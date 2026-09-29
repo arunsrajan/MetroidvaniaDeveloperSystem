@@ -1,0 +1,2557 @@
+{
+	"areas": {
+		"Acrid Lane": {
+			"color": "#f2dd4a",
+			"map_zone": "ACRID_LANE"
+		},
+		"Administration HQ": {
+			"color": "#b48ec9",
+			"map_zone": "ADMINISTRATION_HQ"
+		},
+		"Distribution": {
+			"color": "#f0a93c",
+			"map_zone": "DISTRIBUTION"
+		},
+		"Forsaken Ducts": {
+			"color": "#4db2e6",
+			"map_zone": "FORSAKEN_DUCTS"
+		},
+		"Inner Suburbs": {
+			"color": "#d7bdd0",
+			"map_zone": "INNER_SUBURBS"
+		},
+		"Power Core": {
+			"color": "#e04848",
+			"map_zone": "POWER_CORE"
+		},
+		"Processing Plant": {
+			"color": "#9ccc65",
+			"map_zone": "PROCESSING_PLANT"
+		},
+		"Storage Units": {
+			"color": "#8d4a3a",
+			"map_zone": "STORAGE_UNITS"
+		},
+		"The Docks": {
+			"color": "#e58fb0",
+			"map_zone": "THE_DOCKS"
+		},
+		"The Greenhouse": {
+			"color": "#5b6fd6",
+			"map_zone": "THE_GREENHOUSE"
+		}
+	},
+	"format": "idp_world",
+	"layers": [
+		"Main"
+	],
+	"links": [],
+	"name": "Pharloom Demo",
+	"pins": [],
+	"rooms": {
+		"Acrid_Lane_01": {
+			"area": "Acrid Lane",
+			"gates": {
+				"bot1": {
+					"pos": [
+						972.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "Acrid_Lane_03",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"requires": [
+						"wall_jump"
+					],
+					"side": "left",
+					"to": "Spinal_Shaft_04",
+					"to_gate": "right1"
+				},
+				"top1": {
+					"pos": [
+						972.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Acrid_Lane_02",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				648.0,
+				14256.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					648.0
+				]
+			]
+		},
+		"Acrid_Lane_02": {
+			"area": "Acrid Lane",
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						324.0
+					],
+					"side": "bot",
+					"to": "Acrid_Lane_01",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Acrid_Lane_06",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1296.0,
+				13932.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					324.0
+				]
+			]
+		},
+		"Acrid_Lane_03": {
+			"area": "Acrid Lane",
+			"boss": "The Acrid Queen",
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						324.0
+					],
+					"side": "bot",
+					"to": "Acrid_Lane_04",
+					"to_gate": "top1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Acrid_Lane_01",
+					"to_gate": "bot1"
+				}
+			},
+			"grants": [
+				"double_jump"
+			],
+			"layer": 0,
+			"origin": [
+				1296.0,
+				14904.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					324.0
+				]
+			],
+			"type": "boss"
+		},
+		"Acrid_Lane_04": {
+			"area": "Acrid Lane",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "Acrid_Lane_05",
+					"to_gate": "right1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Acrid_Lane_03",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1296.0,
+				15228.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					972.0
+				]
+			]
+		},
+		"Acrid_Lane_05": {
+			"area": "Acrid Lane",
+			"gates": {
+				"right1": {
+					"pos": [
+						324.0,
+						324.0
+					],
+					"side": "right",
+					"to": "Acrid_Lane_04",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				972.0,
+				15552.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					972.0
+				]
+			]
+		},
+		"Acrid_Lane_06": {
+			"area": "Acrid Lane",
+			"gates": {
+				"right1": {
+					"pos": [
+						648.0,
+						324.0
+					],
+					"side": "right",
+					"to": "Acrid_Lane_02",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				648.0,
+				13932.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					324.0
+				]
+			]
+		},
+		"Administration_HQ_01": {
+			"area": "Administration HQ",
+			"gates": {
+				"bot1": {
+					"pos": [
+						1296.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "Administration_HQ_03",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "Spinal_Shaft_01",
+					"to_gate": "right1"
+				},
+				"top1": {
+					"pos": [
+						972.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Administration_HQ_02",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				648.0,
+				-648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					648.0
+				]
+			]
+		},
+		"Administration_HQ_02": {
+			"area": "Administration HQ",
+			"gates": {
+				"bot1": {
+					"pos": [
+						972.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "Administration_HQ_01",
+					"to_gate": "top1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				648.0,
+				-1296.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					648.0
+				]
+			]
+		},
+		"Administration_HQ_03": {
+			"area": "Administration HQ",
+			"gates": {
+				"bot1": {
+					"pos": [
+						1296.0,
+						324.0
+					],
+					"side": "bot",
+					"to": "Administration_HQ_04",
+					"to_gate": "top1"
+				},
+				"top1": {
+					"pos": [
+						648.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Administration_HQ_01",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1296.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1296.0,
+					324.0
+				],
+				[
+					1296.0,
+					0.0,
+					648.0,
+					324.0
+				]
+			]
+		},
+		"Administration_HQ_04": {
+			"area": "Administration HQ",
+			"gates": {
+				"right1": {
+					"pos": [
+						324.0,
+						972.0
+					],
+					"side": "right",
+					"to": "Administration_HQ_05",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Administration_HQ_03",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				2268.0,
+				324.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					1296.0
+				]
+			]
+		},
+		"Administration_HQ_05": {
+			"area": "Administration HQ",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "Administration_HQ_04",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				2592.0,
+				648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					972.0
+				]
+			]
+		},
+		"Distribution_01": {
+			"area": "Distribution",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "Spinal_Shaft_01",
+					"to_gate": "right2"
+				},
+				"right1": {
+					"pos": [
+						1296.0,
+						972.0
+					],
+					"side": "right",
+					"to": "Distribution_02",
+					"to_gate": "left1"
+				},
+				"right2": {
+					"pos": [
+						1296.0,
+						324.0
+					],
+					"side": "right",
+					"to": "Distribution_04",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				648.0,
+				2916.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1296.0,
+					972.0
+				]
+			]
+		},
+		"Distribution_02": {
+			"area": "Distribution",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Distribution_01",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						972.0,
+						648.0
+					],
+					"side": "right",
+					"to": "Distribution_03",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1944.0,
+				3564.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					648.0
+				]
+			]
+		},
+		"Distribution_03": {
+			"area": "Distribution",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Distribution_02",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				2916.0,
+				3888.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					1296.0
+				]
+			]
+		},
+		"Distribution_04": {
+			"area": "Distribution",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Distribution_01",
+					"to_gate": "right2"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1944.0,
+				2916.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					648.0
+				],
+				[
+					648.0,
+					324.0,
+					648.0,
+					324.0
+				]
+			]
+		},
+		"Forsaken_Ducts_01": {
+			"area": "Forsaken Ducts",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						0.0
+					],
+					"requires": [
+						"double_jump"
+					],
+					"side": "left",
+					"to": "Spinal_Shaft_04",
+					"to_gate": "right2"
+				},
+				"right1": {
+					"pos": [
+						324.0,
+						972.0
+					],
+					"side": "right",
+					"to": "Forsaken_Ducts_02",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				648.0,
+				16848.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					1296.0
+				]
+			]
+		},
+		"Forsaken_Ducts_02": {
+			"area": "Forsaken Ducts",
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						972.0
+					],
+					"side": "bot",
+					"to": "Forsaken_Ducts_03",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "Forsaken_Ducts_01",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				972.0,
+				17172.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					972.0
+				]
+			]
+		},
+		"Forsaken_Ducts_03": {
+			"area": "Forsaken Ducts",
+			"gates": {
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Forsaken_Ducts_02",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				972.0,
+				18144.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1296.0,
+					648.0
+				]
+			]
+		},
+		"Inner_Suburbs_01": {
+			"area": "Inner Suburbs",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Inner_Suburbs_03",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						972.0,
+						324.0
+					],
+					"side": "right",
+					"to": "Spinal_Shaft_04",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Inner_Suburbs_02",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-972.0,
+				12960.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					324.0
+				]
+			]
+		},
+		"Inner_Suburbs_02": {
+			"area": "Inner Suburbs",
+			"gates": {
+				"bot1": {
+					"pos": [
+						0.0,
+						1296.0
+					],
+					"side": "bot",
+					"to": "Inner_Suburbs_01",
+					"to_gate": "top1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-648.0,
+				11664.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					1296.0
+				]
+			]
+		},
+		"Inner_Suburbs_03": {
+			"area": "Inner Suburbs",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Inner_Suburbs_04",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						324.0,
+						324.0
+					],
+					"side": "right",
+					"to": "Inner_Suburbs_01",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-1296.0,
+				12960.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					972.0
+				]
+			],
+			"type": "save"
+		},
+		"Inner_Suburbs_04": {
+			"area": "Inner Suburbs",
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "Inner_Suburbs_05",
+					"to_gate": "top1"
+				},
+				"right1": {
+					"pos": [
+						972.0,
+						324.0
+					],
+					"side": "right",
+					"to": "Inner_Suburbs_03",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						648.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Inner_Suburbs_06",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-2268.0,
+				12960.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					648.0
+				]
+			]
+		},
+		"Inner_Suburbs_05": {
+			"area": "Inner Suburbs",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						972.0
+					],
+					"side": "left",
+					"to": "Inner_Suburbs_07",
+					"to_gate": "right1"
+				},
+				"top1": {
+					"pos": [
+						0.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Inner_Suburbs_04",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-1944.0,
+				13608.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					1620.0
+				]
+			]
+		},
+		"Inner_Suburbs_06": {
+			"area": "Inner Suburbs",
+			"gates": {
+				"bot1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "Inner_Suburbs_04",
+					"to_gate": "top1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-1620.0,
+				12312.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					648.0
+				]
+			]
+		},
+		"Inner_Suburbs_07": {
+			"area": "Inner Suburbs",
+			"gates": {
+				"right1": {
+					"pos": [
+						972.0,
+						324.0
+					],
+					"side": "right",
+					"to": "Inner_Suburbs_05",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-2916.0,
+				14256.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					324.0
+				]
+			]
+		},
+		"Power_Core_01": {
+			"area": "Power Core",
+			"gates": {
+				"bot1": {
+					"pos": [
+						648.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "Power_Core_03",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"requires": [
+						"dash"
+					],
+					"side": "left",
+					"to": "Spinal_Shaft_02",
+					"to_gate": "right1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Power_Core_02",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				648.0,
+				7128.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					648.0
+				]
+			]
+		},
+		"Power_Core_02": {
+			"area": "Power Core",
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "Power_Core_01",
+					"to_gate": "top1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				648.0,
+				6480.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					648.0
+				]
+			]
+		},
+		"Power_Core_03": {
+			"area": "Power Core",
+			"boss": "Voltvessel",
+			"gates": {
+				"right1": {
+					"pos": [
+						648.0,
+						648.0
+					],
+					"side": "right",
+					"to": "Power_Core_04",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Power_Core_01",
+					"to_gate": "bot1"
+				}
+			},
+			"grants": [
+				"wall_jump"
+			],
+			"layer": 0,
+			"origin": [
+				972.0,
+				7776.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					972.0
+				]
+			],
+			"type": "boss"
+		},
+		"Power_Core_04": {
+			"area": "Power Core",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Power_Core_03",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1620.0,
+				8100.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1296.0,
+					972.0
+				]
+			]
+		},
+		"Processing_Plant_01": {
+			"area": "Processing Plant",
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						324.0
+					],
+					"side": "bot",
+					"to": "Processing_Plant_02",
+					"to_gate": "top1"
+				},
+				"bot2": {
+					"pos": [
+						1296.0,
+						324.0
+					],
+					"side": "bot",
+					"to": "Processing_Plant_04",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Spinal_Shaft_03",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				648.0,
+				9720.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					324.0
+				],
+				[
+					1620.0,
+					0.0,
+					648.0,
+					324.0
+				]
+			]
+		},
+		"Processing_Plant_02": {
+			"area": "Processing Plant",
+			"gates": {
+				"right1": {
+					"pos": [
+						324.0,
+						648.0
+					],
+					"side": "right",
+					"to": "Processing_Plant_03",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Processing_Plant_01",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				648.0,
+				10044.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					972.0
+				]
+			]
+		},
+		"Processing_Plant_03": {
+			"area": "Processing Plant",
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						1296.0
+					],
+					"side": "bot",
+					"to": "Processing_Plant_05",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Processing_Plant_02",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						324.0,
+						648.0
+					],
+					"side": "right",
+					"to": "Processing_Plant_06",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				972.0,
+				10368.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					1296.0
+				]
+			]
+		},
+		"Processing_Plant_04": {
+			"area": "Processing Plant",
+			"gates": {
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Processing_Plant_01",
+					"to_gate": "bot2"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1620.0,
+				10044.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					972.0
+				]
+			],
+			"type": "save"
+		},
+		"Processing_Plant_05": {
+			"area": "Processing Plant",
+			"gates": {
+				"right1": {
+					"pos": [
+						324.0,
+						1296.0
+					],
+					"side": "right",
+					"to": "Processing_Plant_07",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Processing_Plant_03",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				972.0,
+				11664.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					1296.0
+				]
+			]
+		},
+		"Processing_Plant_06": {
+			"area": "Processing Plant",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "Processing_Plant_03",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1296.0,
+				10368.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					1296.0
+				],
+				[
+					324.0,
+					972.0,
+					648.0,
+					324.0
+				]
+			]
+		},
+		"Processing_Plant_07": {
+			"area": "Processing Plant",
+			"gates": {
+				"bot1": {
+					"pos": [
+						972.0,
+						324.0
+					],
+					"side": "bot",
+					"to": "Processing_Plant_09",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Processing_Plant_05",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						972.0,
+						324.0
+					],
+					"side": "right",
+					"to": "Processing_Plant_08",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1296.0,
+				12636.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					324.0
+				]
+			]
+		},
+		"Processing_Plant_08": {
+			"area": "Processing Plant",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Processing_Plant_07",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				2268.0,
+				12636.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					648.0
+				],
+				[
+					648.0,
+					324.0,
+					648.0,
+					324.0
+				]
+			]
+		},
+		"Processing_Plant_09": {
+			"area": "Processing Plant",
+			"gates": {
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Processing_Plant_07",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1944.0,
+				12960.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					1296.0
+				]
+			]
+		},
+		"Spinal_Shaft_01": {
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						4212.0
+					],
+					"side": "bot",
+					"to": "Spinal_Shaft_02",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						2592.0
+					],
+					"side": "left",
+					"to": "The_Docks_01",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						648.0,
+						0.0
+					],
+					"side": "right",
+					"to": "Administration_HQ_01",
+					"to_gate": "left1"
+				},
+				"right2": {
+					"pos": [
+						648.0,
+						3564.0
+					],
+					"side": "right",
+					"to": "Distribution_01",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				0.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					4212.0
+				]
+			],
+			"type": "save"
+		},
+		"Spinal_Shaft_02": {
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						4212.0
+					],
+					"side": "bot",
+					"to": "Spinal_Shaft_03",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						2268.0
+					],
+					"side": "left",
+					"to": "The_Greenhouse_01",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						648.0,
+						3240.0
+					],
+					"side": "right",
+					"to": "Power_Core_01",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Spinal_Shaft_01",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				0.0,
+				4212.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					4212.0
+				]
+			],
+			"type": "corridor"
+		},
+		"Spinal_Shaft_03": {
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						4212.0
+					],
+					"side": "bot",
+					"to": "Spinal_Shaft_04",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						2268.0
+					],
+					"side": "left",
+					"to": "Storage_Units_01",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						648.0,
+						1620.0
+					],
+					"side": "right",
+					"to": "Processing_Plant_01",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Spinal_Shaft_02",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				0.0,
+				8424.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					4212.0
+				]
+			],
+			"type": "corridor"
+		},
+		"Spinal_Shaft_04": {
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "Inner_Suburbs_01",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						648.0,
+						1944.0
+					],
+					"side": "right",
+					"to": "Acrid_Lane_01",
+					"to_gate": "left1"
+				},
+				"right2": {
+					"pos": [
+						648.0,
+						4212.0
+					],
+					"side": "right",
+					"to": "Forsaken_Ducts_01",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Spinal_Shaft_03",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				0.0,
+				12636.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					4212.0
+				]
+			],
+			"type": "corridor"
+		},
+		"Storage_Units_01": {
+			"area": "Storage Units",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						972.0
+					],
+					"side": "left",
+					"to": "Storage_Units_02",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1296.0,
+						648.0
+					],
+					"side": "right",
+					"to": "Spinal_Shaft_03",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						0.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Storage_Units_03",
+					"to_gate": "bot1"
+				},
+				"top2": {
+					"pos": [
+						648.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Storage_Units_07",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-1296.0,
+				10044.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1296.0,
+					972.0
+				]
+			]
+		},
+		"Storage_Units_02": {
+			"area": "Storage Units",
+			"gates": {
+				"bot1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "Storage_Units_08",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Storage_Units_04",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						972.0,
+						324.0
+					],
+					"side": "right",
+					"to": "Storage_Units_01",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-2268.0,
+				10692.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					648.0
+				]
+			],
+			"type": "shop"
+		},
+		"Storage_Units_03": {
+			"area": "Storage Units",
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "Storage_Units_01",
+					"to_gate": "top1"
+				},
+				"bot2": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "Storage_Units_06",
+					"to_gate": "top1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-1620.0,
+				9396.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					648.0
+				]
+			]
+		},
+		"Storage_Units_04": {
+			"area": "Storage Units",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "Storage_Units_05",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1620.0,
+						324.0
+					],
+					"side": "right",
+					"to": "Storage_Units_02",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-3888.0,
+				10692.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					324.0
+				]
+			]
+		},
+		"Storage_Units_05": {
+			"area": "Storage Units",
+			"gates": {
+				"right1": {
+					"pos": [
+						1620.0,
+						324.0
+					],
+					"side": "right",
+					"to": "Storage_Units_04",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-5508.0,
+				10692.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					324.0
+				]
+			]
+		},
+		"Storage_Units_06": {
+			"area": "Storage Units",
+			"gates": {
+				"top1": {
+					"pos": [
+						648.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Storage_Units_03",
+					"to_gate": "bot2"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-2268.0,
+				10044.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					324.0
+				]
+			]
+		},
+		"Storage_Units_07": {
+			"area": "Storage Units",
+			"gates": {
+				"bot1": {
+					"pos": [
+						0.0,
+						1620.0
+					],
+					"side": "bot",
+					"to": "Storage_Units_01",
+					"to_gate": "top2"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-648.0,
+				8424.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					1620.0
+				]
+			]
+		},
+		"Storage_Units_08": {
+			"area": "Storage Units",
+			"gates": {
+				"top1": {
+					"pos": [
+						1296.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Storage_Units_02",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-3564.0,
+				11340.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					972.0
+				]
+			]
+		},
+		"The_Docks_01": {
+			"area": "The Docks",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						972.0
+					],
+					"side": "left",
+					"to": "The_Docks_02",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						324.0,
+						648.0
+					],
+					"side": "right",
+					"to": "Spinal_Shaft_01",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-324.0,
+				1944.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					1296.0
+				]
+			]
+		},
+		"The_Docks_02": {
+			"area": "The Docks",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "The_Docks_04",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						972.0,
+						324.0
+					],
+					"side": "right",
+					"to": "The_Docks_01",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						648.0,
+						0.0
+					],
+					"side": "top",
+					"to": "The_Docks_03",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-1296.0,
+				2592.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					972.0
+				]
+			],
+			"type": "save"
+		},
+		"The_Docks_03": {
+			"area": "The Docks",
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						972.0
+					],
+					"side": "bot",
+					"to": "The_Docks_02",
+					"to_gate": "top1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-972.0,
+				1620.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					972.0
+				]
+			]
+		},
+		"The_Docks_04": {
+			"area": "The Docks",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "The_Docks_06",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						972.0,
+						648.0
+					],
+					"side": "right",
+					"to": "The_Docks_02",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "The_Docks_05",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-2268.0,
+				2592.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					972.0
+				]
+			]
+		},
+		"The_Docks_05": {
+			"area": "The Docks",
+			"gates": {
+				"bot1": {
+					"pos": [
+						0.0,
+						972.0
+					],
+					"side": "bot",
+					"to": "The_Docks_04",
+					"to_gate": "top1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-1944.0,
+				1620.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					324.0,
+					972.0
+				]
+			]
+		},
+		"The_Docks_06": {
+			"area": "The Docks",
+			"gates": {
+				"right1": {
+					"pos": [
+						1296.0,
+						324.0
+					],
+					"side": "right",
+					"to": "The_Docks_04",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-3564.0,
+				2916.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1296.0,
+					324.0
+				]
+			]
+		},
+		"The_Greenhouse_01": {
+			"area": "The Greenhouse",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "The_Greenhouse_04",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						648.0,
+						648.0
+					],
+					"side": "right",
+					"to": "Spinal_Shaft_02",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "The_Greenhouse_02",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-648.0,
+				5832.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					972.0
+				]
+			]
+		},
+		"The_Greenhouse_02": {
+			"area": "The Greenhouse",
+			"gates": {
+				"bot1": {
+					"pos": [
+						648.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "The_Greenhouse_01",
+					"to_gate": "top1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "The_Greenhouse_03",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-972.0,
+				5184.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					648.0
+				]
+			]
+		},
+		"The_Greenhouse_03": {
+			"area": "The Greenhouse",
+			"gates": {
+				"bot1": {
+					"pos": [
+						1296.0,
+						324.0
+					],
+					"side": "bot",
+					"to": "The_Greenhouse_02",
+					"to_gate": "top1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-1944.0,
+				4860.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					324.0
+				]
+			]
+		},
+		"The_Greenhouse_04": {
+			"area": "The Greenhouse",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "The_Greenhouse_05",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						972.0,
+						324.0
+					],
+					"side": "right",
+					"to": "The_Greenhouse_01",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-1620.0,
+				6156.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					648.0
+				]
+			]
+		},
+		"The_Greenhouse_05": {
+			"area": "The Greenhouse",
+			"boss": "Moss Mother",
+			"gates": {
+				"bot1": {
+					"pos": [
+						648.0,
+						972.0
+					],
+					"side": "bot",
+					"to": "The_Greenhouse_08",
+					"to_gate": "top1"
+				},
+				"right1": {
+					"pos": [
+						972.0,
+						324.0
+					],
+					"side": "right",
+					"to": "The_Greenhouse_04",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "The_Greenhouse_06",
+					"to_gate": "bot1"
+				}
+			},
+			"grants": [
+				"dash"
+			],
+			"layer": 0,
+			"origin": [
+				-2592.0,
+				6156.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					972.0
+				]
+			],
+			"type": "boss"
+		},
+		"The_Greenhouse_06": {
+			"area": "The Greenhouse",
+			"gates": {
+				"bot1": {
+					"pos": [
+						324.0,
+						972.0
+					],
+					"side": "bot",
+					"to": "The_Greenhouse_05",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "The_Greenhouse_07",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-2592.0,
+				5184.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					972.0
+				]
+			]
+		},
+		"The_Greenhouse_07": {
+			"area": "The Greenhouse",
+			"gates": {
+				"right1": {
+					"pos": [
+						648.0,
+						324.0
+					],
+					"side": "right",
+					"to": "The_Greenhouse_06",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "The_Greenhouse_11",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-3240.0,
+				5508.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					972.0
+				]
+			]
+		},
+		"The_Greenhouse_08": {
+			"area": "The Greenhouse",
+			"gates": {
+				"bot1": {
+					"pos": [
+						648.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "The_Greenhouse_09",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0.0,
+						648.0
+					],
+					"side": "left",
+					"to": "The_Greenhouse_10",
+					"to_gate": "right1"
+				},
+				"top1": {
+					"pos": [
+						0.0,
+						0.0
+					],
+					"side": "top",
+					"to": "The_Greenhouse_05",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-1944.0,
+				7128.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					648.0
+				]
+			]
+		},
+		"The_Greenhouse_09": {
+			"area": "The Greenhouse",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						324.0
+					],
+					"side": "left",
+					"to": "The_Greenhouse_12",
+					"to_gate": "right1"
+				},
+				"top1": {
+					"pos": [
+						324.0,
+						0.0
+					],
+					"side": "top",
+					"to": "The_Greenhouse_08",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-1620.0,
+				7776.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					648.0,
+					648.0
+				],
+				[
+					648.0,
+					324.0,
+					648.0,
+					324.0
+				]
+			]
+		},
+		"The_Greenhouse_10": {
+			"area": "The Greenhouse",
+			"gates": {
+				"right1": {
+					"pos": [
+						972.0,
+						324.0
+					],
+					"side": "right",
+					"to": "The_Greenhouse_08",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-2916.0,
+				7452.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					324.0
+				]
+			]
+		},
+		"The_Greenhouse_11": {
+			"area": "The Greenhouse",
+			"gates": {
+				"bot1": {
+					"pos": [
+						1296.0,
+						648.0
+					],
+					"side": "bot",
+					"to": "The_Greenhouse_07",
+					"to_gate": "top1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-4212.0,
+				4860.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1620.0,
+					648.0
+				]
+			]
+		},
+		"The_Greenhouse_12": {
+			"area": "The Greenhouse",
+			"gates": {
+				"right1": {
+					"pos": [
+						972.0,
+						324.0
+					],
+					"side": "right",
+					"to": "The_Greenhouse_09",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				-2592.0,
+				7776.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					972.0,
+					648.0
+				]
+			]
+		}
+	},
+	"settings": {
+		"default_room_size": [
+			1296,
+			648
+		],
+		"grid": 324,
+		"save_distance_warn": 4
+	},
+	"start_room": "Spinal_Shaft_01",
+	"version": 1
+}

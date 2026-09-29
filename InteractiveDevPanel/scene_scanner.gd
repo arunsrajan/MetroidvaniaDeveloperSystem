@@ -1,6 +1,20 @@
 @tool
+class_name IDPSceneScanner
 extends RefCounted
-class_name SceneScanner
+## Scans room scenes for gameplay features (collectibles, bosses, save points...), ability
+## metadata and terrain, so the map can show what is actually inside every room.
+##
+## Node metadata understood by the scanner (set in the Inspector, "Add Metadata"):
+## - [code]idp_grants[/code] (String or Array): abilities/items picked up here, e.g. "dash".
+## - [code]idp_requires[/code] (String or Array): put on a gate/breakable wall near a door;
+##   the requirement is attached to the closest passage of that cell.
+## - [code]idp_boss_name[/code] (String): marks the node as a boss and names it.
+## - [code]idp_room_type[/code] (String, on the scene root): overrides the inferred type.
+##
+## Transition gates (non-linear mode) are nodes named like Hollow Knight's gates
+## ([code]left1[/code], [code]right2[/code], [code]top1[/code], [code]bot1[/code],
+## [code]door1[/code]), nodes in the [code]idp_gate[/code] group, or [IDPGate] nodes.
+## Optional metadata: [code]idp_to_room[/code], [code]idp_to_gate[/code].
 
 signal scan_progress_updated(current: int, total: int, current_file: String)
 signal scan_completed(scene_database: Dictionary)
@@ -8,22 +22,38 @@ signal scan_map_data_txt_completed(map_data_txt_path: String)
 
 const COLLECTIBLE_GROUPS := ["collectible", "collectibles", "item", "items", "pickup", "pickups"]
 const ENEMY_GROUPS := ["enemy", "enemies", "monster", "monsters", "hostile"]
-const SAVE_POINT_GROUPS := ["save_point", "savepoint", "save", "checkpoint"]
+const SAVE_POINT_GROUPS := ["save_point", "savepoint", "save", "checkpoint", "bench"]
 const BREAKABLE_GROUPS := ["breakable", "destroyable", "destructible", "crate"]
-const TELEPORTER_GROUPS := ["teleporter", "warp", "portal", "transition"]
+const TELEPORTER_GROUPS := ["teleporter", "warp", "portal", "transition", "fast_travel"]
 const SHOP_GROUPS := ["shop", "merchant", "vendor", "trader"]
+const BOSS_GROUPS := ["boss", "bosses", "mini_boss"]
 const BOSS_NAME_PATTERNS := ["boss", "king", "queen", "lord", "guardian"]
 const SHOP_NAME_PATTERNS := ["shop", "merchant", "vendor", "trader", "store"]
-const TELEPORTER_NAME_PATTERNS := ["teleport", "warp", "portal", "gate"]
-const BREAKABLE_NAME_PATTERNS := ["break", "crate", "box", "pot", "barrel", "rock"]
+const TELEPORTER_NAME_PATTERNS := ["teleport", "warp", "portal"]
+const BREAKABLE_NAME_PATTERNS := ["break", "crate", "pot", "barrel", "rock"]
+const SAVE_NAME_PATTERNS := ["savepoint", "save_point", "bench", "checkpoint"]
+const GATE_GROUPS := ["idp_gate", "transition_point", "scene_transition"]
 
+static var _gate_name_re := RegEx.create_from_string("^(left|right|top|bot|bottom|door)\\d+$")
+
+## Room pixels per silhouette pixel (raised automatically for very large rooms).
+const SILHOUETTE_SCALE := 16.0
+const SILHOUETTE_MAX_SIZE := 2048
+const SCENES_PER_FRAME := 3
+
+var in_game_cell_size := Vector2(1152, 648)
+## MetSys rooms carry a RoomInstance node; non-linear rooms don't need one.
+var require_room_instance := true
 var scene_database: Dictionary = {}
 var scan_stats: Dictionary = {}
+var is_scanning := false
+var _cancelled := false
 
-func _init():
+func _init(p_cell_size := Vector2(1152, 648)) -> void:
+	in_game_cell_size = p_cell_size
 	reset()
 
-func reset():
+func reset() -> void:
 	scene_database.clear()
 	scan_stats = {
 		"total_scenes": 0,
@@ -33,26 +63,41 @@ func reset():
 		"rooms_with_boss": 0,
 		"rooms_with_shop": 0,
 		"rooms_with_teleporter": 0,
-		"rooms_with_breakable_walls": 0
+		"rooms_with_breakable_walls": 0,
 	}
 
+func cancel() -> void:
+	_cancelled = true
+
+## Recursively scans [param root_path] for scenes (and MapData.txt files). Asynchronous.
 func scan_all_scenes(root_path: String = "res://") -> Dictionary:
-	reset()
 	var scene_files: Array[String] = []
 	find_scene_files(root_path, scene_files)
+	return await scan_paths(scene_files)
+
+## Scans the given scene files. Only scenes containing a RoomInstance are kept. Asynchronous.
+func scan_paths(scene_files: Array[String]) -> Dictionary:
+	reset()
+	is_scanning = true
+	_cancelled = false
 	scan_stats.total_scenes = scene_files.size()
-	var scanned := 0
-	for scene_path in scene_files:
-		scanned += 1
-		scan_progress_updated.emit(scanned, scene_files.size(), scene_path.get_file())
-		var metadata := analyze_scene(scene_path)
-		if metadata.get("room_instance") != null:
+	var tree := Engine.get_main_loop() as SceneTree
+	for i in scene_files.size():
+		if _cancelled:
+			break
+		var scene_path := scene_files[i]
+		scan_progress_updated.emit(i + 1, scene_files.size(), scene_path.get_file())
+		var metadata := analyze_scene(scene_path, require_room_instance)
+		if metadata.get("room_instance") != null or (not require_room_instance and metadata.get("loaded", false)):
 			scene_database[scene_path] = metadata
 			update_stats_from_metadata(metadata)
+		if tree and i % SCENES_PER_FRAME == SCENES_PER_FRAME - 1:
+			await tree.process_frame
+	is_scanning = false
 	scan_completed.emit(scene_database)
 	return scene_database
 
-func find_scene_files(dir_path: String, result_array: Array[String]):
+func find_scene_files(dir_path: String, result_array: Array[String]) -> void:
 	var dir := DirAccess.open(dir_path)
 	if not dir:
 		printerr("Cannot open directory: ", dir_path)
@@ -60,51 +105,82 @@ func find_scene_files(dir_path: String, result_array: Array[String]):
 	dir.list_dir_begin()
 	var file_name := dir.get_next()
 	while file_name != "":
-		if dir.current_is_dir() and file_name != "." and file_name != "..":
-			find_scene_files(dir_path.path_join(file_name), result_array)
-		elif file_name.ends_with(".tscn"):
+		if dir.current_is_dir():
+			if not file_name.begins_with(".") and file_name != "addons":
+				find_scene_files(dir_path.path_join(file_name), result_array)
+		elif file_name.ends_with(".tscn") or file_name.ends_with(".scn"):
 			result_array.append(dir_path.path_join(file_name))
 		elif file_name.ends_with("MapData.txt"):
 			scan_map_data_txt_completed.emit(dir_path.path_join(file_name))
 		file_name = dir.get_next()
 	dir.list_dir_end()
 
-func analyze_scene(scene_path: String) -> Dictionary:
+## Analyzes any scene, with or without a MetSys RoomInstance (non-linear mode).
+func analyze_scene_any(scene_path: String) -> Dictionary:
+	return analyze_scene(scene_path, false)
+
+func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 	var metadata := {
 		"type": "room",
 		"collectibles": [],
 		"enemies": [],
 		"save_points": [],
+		"bosses": [],
+		"teleporters": [],
+		"shops": [],
+		"grants": PackedStringArray(),
+		"gates": [],
+		"transitions": [],
 		"has_boss": false,
 		"has_shopkeeper": false,
 		"has_breakable_walls": false,
 		"has_teleporter": false,
 		"has_hidden_passage": false,
+		"room_type_hint": "",
 		"room_instance": null,
-		"connections": [],
 		"node_count": 0,
 		"groups": [],
-		"features": {}
+		"silhouette": null,
+		"silhouette_rect": Rect2(),
+		"content_rect": Rect2(),
+		"occupied_cells": [],
 	}
 	if not ResourceLoader.exists(scene_path):
 		return metadata
-	var packed_scene: PackedScene = load(scene_path)
+	var packed_scene := load(scene_path) as PackedScene
 	if not packed_scene:
 		return metadata
-	var instance := packed_scene.instantiate()
+	var instance := packed_scene.instantiate(PackedScene.GEN_EDIT_STATE_DISABLED)
 	if not instance:
 		return metadata
+	# Stops MetSys' RoomInstance from building neighbor previews for this throwaway copy.
+	instance.set_meta(&"fake_map", true)
+	metadata.loaded = true
 	var room_instance := find_room_instance(instance)
 	if room_instance:
-		metadata.room_instance = extract_room_instance_data(room_instance)
-	scan_node_for_features(instance, metadata)
-	metadata.groups = instance.get_groups()
-	metadata.node_count = count_nodes(instance)
+		metadata.room_instance = {"position": _local_transform(room_instance, instance).origin}
+	if room_instance or not require_room:
+		metadata.room_type_hint = str(instance.get_meta(&"idp_room_type", ""))
+		var solids: Array[Rect2] = []
+		var polygons: Array[PackedVector2Array] = []
+		_scan_node(instance, instance, metadata, solids, polygons)
+		# A root named like "BossArena" marks a boss room when no boss node was found.
+		if not metadata.has_boss and _name_matches(_name_words(instance.name), BOSS_NAME_PATTERNS):
+			metadata.has_boss = true
+			var entry := create_feature_entry(instance, instance, "boss")
+			entry.name = String(instance.name).capitalize()
+			metadata.bosses.append(entry)
+		metadata.groups = instance.get_groups()
+		metadata.node_count = count_nodes(instance)
+		_build_silhouette(metadata, solids, polygons)
 	instance.free()
 	return metadata
 
 func find_room_instance(node: Node) -> Node:
 	if node.name == "RoomInstance" or node.is_class("RoomInstance"):
+		return node
+	var script := node.get_script() as Script
+	if script and script.resource_path.ends_with("RoomInstance.gd"):
 		return node
 	for child in node.get_children():
 		var result := find_room_instance(child)
@@ -112,86 +188,227 @@ func find_room_instance(node: Node) -> Node:
 			return result
 	return null
 
-func extract_room_instance_data(room_node: Node) -> Dictionary:
-	var data := {
-		"position": room_node.position if room_node is Node2D else Vector2.ZERO,
-		"cell_size": Vector2(256, 256),
-		"connections": []
-	}
-	if "cell_size" in room_node:
-		data.cell_size = room_node.cell_size
-	var properties := room_node.get_property_list()
-	for prop in properties:
-		if prop.name.ends_with("_room") or prop.name.begins_with("connected_"):
-			var value = room_node.get(prop.name)
-			if value is String and not value.is_empty():
-				data.connections.append({"name": prop.name, "scene_path": value})
-	return data
+## Transform of [param node] relative to [param root]. Scenes are scanned outside the
+## tree, where global_position is not available.
+func _local_transform(node: Node, root: Node) -> Transform2D:
+	var xform := Transform2D.IDENTITY
+	var n := node
+	while n and n != root:
+		if n is Node2D:
+			xform = (n as Node2D).transform * xform
+		n = n.get_parent()
+	return xform
 
-func scan_node_for_features(node: Node, metadata: Dictionary):
-	var node_groups := node.get_groups()
-	metadata.groups.append_array(node_groups)
-	for group in COLLECTIBLE_GROUPS:
-		if node.is_in_group(group):
-			metadata.collectibles.append(create_feature_entry(node, "collectible"))
-			break
-	for group in ENEMY_GROUPS:
-		if node.is_in_group(group):
-			metadata.enemies.append(create_feature_entry(node, "enemy"))
-			break
-	for group in SAVE_POINT_GROUPS:
-		if node.is_in_group(group):
-			metadata.save_points.append(create_feature_entry(node, "save_point"))
-			break
-	for group in BREAKABLE_GROUPS:
-		if node.is_in_group(group):
-			metadata.has_breakable_walls = true
-			break
-	for group in TELEPORTER_GROUPS:
-		if node.is_in_group(group):
-			metadata.has_teleporter = true
-			break
-	for group in SHOP_GROUPS:
-		if node.is_in_group(group):
-			metadata.has_shopkeeper = true
-			break
-	var node_name_lower := node.name.to_lower()
-	if not metadata.has_boss:
-		for pattern in BOSS_NAME_PATTERNS:
-			if node_name_lower.contains(pattern):
-				metadata.has_boss = true
-				break
-	if not metadata.has_shopkeeper:
-		for pattern in SHOP_NAME_PATTERNS:
-			if node_name_lower.contains(pattern):
-				metadata.has_shopkeeper = true
-				break
-	if not metadata.has_teleporter:
-		for pattern in TELEPORTER_NAME_PATTERNS:
-			if node_name_lower.contains(pattern):
-				metadata.has_teleporter = true
-				break
-	if not metadata.has_breakable_walls:
-		for pattern in BREAKABLE_NAME_PATTERNS:
-			if node_name_lower.contains(pattern):
-				metadata.has_breakable_walls = true
-				break
-	if node.is_class("Area2D") and (node_name_lower.contains("secret") or node_name_lower.contains("hidden")):
+func _scan_node(node: Node, root: Node, metadata: Dictionary, solids: Array[Rect2], polygons: Array[PackedVector2Array]) -> void:
+	var name_lower := String(node.name).to_lower()
+	var words := _name_words(node.name)
+	var is_gate := _scan_transition(node, root, metadata)
+	var matched_collectible := _in_any_group(node, COLLECTIBLE_GROUPS)
+	if matched_collectible:
+		metadata.collectibles.append(create_feature_entry(node, root, "collectible"))
+	if _in_any_group(node, ENEMY_GROUPS):
+		metadata.enemies.append(create_feature_entry(node, root, "enemy"))
+	if _in_any_group(node, SAVE_POINT_GROUPS) or (node is Node2D and _contains_any(name_lower, SAVE_NAME_PATTERNS)):
+		metadata.save_points.append(create_feature_entry(node, root, "save_point"))
+	if _in_any_group(node, BREAKABLE_GROUPS) or _name_matches(words, BREAKABLE_NAME_PATTERNS):
+		metadata.has_breakable_walls = true
+	if not is_gate and (_in_any_group(node, TELEPORTER_GROUPS) or (node is Node2D and _name_matches(words, TELEPORTER_NAME_PATTERNS))):
+		metadata.has_teleporter = true
+		metadata.teleporters.append(create_feature_entry(node, root, "teleporter"))
+	if _in_any_group(node, SHOP_GROUPS) or (node is Node2D and _name_matches(words, SHOP_NAME_PATTERNS)):
+		metadata.has_shopkeeper = true
+		metadata.shops.append(create_feature_entry(node, root, "shop"))
+	var boss_name := str(node.get_meta(&"idp_boss_name", ""))
+	if not boss_name.is_empty() or _in_any_group(node, BOSS_GROUPS) or (node != root and _name_matches(words, BOSS_NAME_PATTERNS)):
+		metadata.has_boss = true
+		var entry := create_feature_entry(node, root, "boss")
+		entry.name = boss_name if not boss_name.is_empty() else String(node.name).capitalize()
+		metadata.bosses.append(entry)
+	if node is Area2D and (name_lower.contains("secret") or name_lower.contains("hidden")):
 		metadata.has_hidden_passage = true
+	if node.has_meta(&"idp_grants"):
+		for ability in _meta_list(node.get_meta(&"idp_grants")):
+			if not ability in metadata.grants:
+				metadata.grants.append(ability)
+	if node.has_meta(&"idp_requires"):
+		metadata.gates.append({
+			"requires": _meta_list(node.get_meta(&"idp_requires")),
+			"position": _local_transform(node, root).origin,
+			"name": String(node.name),
+		})
+	_collect_solids(node, root, solids, polygons)
 	for child in node.get_children():
-		scan_node_for_features(child, metadata)
+		_scan_node(child, root, metadata, solids, polygons)
 
-func create_feature_entry(node: Node, feature_type: String) -> Dictionary:
+## Records Hollow Knight-style transition gates. Returns true when [param node] is one.
+func _scan_transition(node: Node, root: Node, metadata: Dictionary) -> bool:
+	if not node is Node2D or node == root:
+		return false
+	var gate_name := String(node.name)
+	var script := node.get_script() as Script
+	var is_idp_gate := script != null and script.get_global_name() == &"IDPGate"
+	if is_idp_gate and not str(node.get("gate_name")).is_empty():
+		gate_name = str(node.get("gate_name"))
+	if not (is_idp_gate or _in_any_group(node, GATE_GROUPS) or _gate_name_re.search(gate_name.to_lower())):
+		return false
+	var side := str(node.get_meta(&"idp_side", ""))
+	if side.is_empty():
+		side = IDPWorld.side_from_name(gate_name.to_lower())
+	metadata.transitions.append({
+		"name": gate_name,
+		"position": _local_transform(node, root).origin,
+		"side": side,
+		"to_room": str(node.get_meta(&"idp_to_room", "")),
+		"to_gate": str(node.get_meta(&"idp_to_gate", "")),
+	})
+	return true
+
+func _in_any_group(node: Node, groups: Array) -> bool:
+	for group in groups:
+		if node.is_in_group(group):
+			return true
+	return false
+
+## "MossMotherBoss" -> ["moss", "mother", "boss"]. Whole-word matching avoids hits like
+## "Walking" for "king" or "HitBox" for "box".
+func _name_words(node_name: StringName) -> PackedStringArray:
+	return String(node_name).to_snake_case().replace("-", "_").replace(" ", "_").split("_", false)
+
+func _name_matches(words: PackedStringArray, patterns: Array) -> bool:
+	for word in words:
+		for pattern in patterns:
+			if word.begins_with(pattern):
+				return true
+	return false
+
+func _contains_any(name_lower: String, patterns: Array) -> bool:
+	for pattern in patterns:
+		if name_lower.contains(pattern):
+			return true
+	return false
+
+func _meta_list(value: Variant) -> PackedStringArray:
+	var ret: PackedStringArray = []
+	var items: Array = Array(value) if (value is Array or value is PackedStringArray) else Array(str(value).split(",", false))
+	for item in items:
+		var s := str(item).strip_edges().to_lower().replace(" ", "_")
+		if not s.is_empty():
+			ret.append(s)
+	return ret
+
+func create_feature_entry(node: Node, root: Node, feature_type: String) -> Dictionary:
 	return {
-		"name": node.name,
+		"name": String(node.name),
 		"type": feature_type,
-		"position": node.position if node is Node2D else Vector2.ZERO,
-		"global_position": node.global_position if node is Node2D else Vector2.ZERO,
-		"scene_file": node.scene_file_path if "scene_file_path" in node else "",
+		"position": _local_transform(node, root).origin,
+		"scene_file": node.scene_file_path,
 		"groups": node.get_groups(),
 		"node_class": node.get_class(),
-		"script": node.get_script() if "script" in node else null
 	}
+
+func _collect_solids(node: Node, root: Node, solids: Array[Rect2], polygons: Array[PackedVector2Array]) -> void:
+	if node is TileMapLayer:
+		var layer := node as TileMapLayer
+		if layer.tile_set and layer.enabled and _is_terrain_layer(layer):
+			var used := layer.get_used_cells()
+			# With collision set up, only solid tiles are terrain (not foliage or vines).
+			if layer.tile_set.get_physics_layers_count() > 0 and layer.collision_enabled:
+				used = used.filter(func(c: Vector2i) -> bool:
+					var td := layer.get_cell_tile_data(c)
+					return td != null and td.get_collision_polygons_count(0) > 0)
+			_add_tile_rects(layer, used, layer.tile_set.tile_size, _local_transform(layer, root), solids)
+	elif node.is_class("TileMap"):
+		var tile_set: TileSet = node.get("tile_set")
+		if tile_set:
+			for i in node.call("get_layers_count"):
+				_add_tile_rects(node, node.call("get_used_cells", i), tile_set.tile_size, _local_transform(node, root), solids)
+	elif node is CollisionShape2D and node.get_parent() is StaticBody2D:
+		var shape := (node as CollisionShape2D).shape
+		if shape is RectangleShape2D and not (node as CollisionShape2D).disabled:
+			var size: Vector2 = (shape as RectangleShape2D).size
+			solids.append(_local_transform(node, root) * Rect2(-size / 2.0, size))
+	elif node is CollisionPolygon2D and node.get_parent() is StaticBody2D:
+		var poly := (node as CollisionPolygon2D).polygon
+		if poly.size() >= 3 and not (node as CollisionPolygon2D).disabled:
+			polygons.append(_local_transform(node, root) * poly)
+
+## Background/decoration layers are art, not the room's shape.
+func _is_terrain_layer(layer: TileMapLayer) -> bool:
+	var n := String(layer.name).to_lower()
+	for word in ["background", "backdrop", "decor", "foreground", "parallax"]:
+		if n.contains(word):
+			return false
+	return not (n == "bg" or n == "fg")
+
+func _add_tile_rects(layer: Node, used_cells: Array, tile_size: Vector2i, xform: Transform2D, solids: Array[Rect2]) -> void:
+	var half := Vector2(tile_size) / 2.0
+	for cell in used_cells:
+		var center: Vector2 = layer.call("map_to_local", cell)
+		solids.append(xform * Rect2(center - half, Vector2(tile_size)))
+
+## Rasterizes terrain into a small alpha image (drawn on the map like a hand-made
+## Hollow Knight map) and records which grid cells the content occupies.
+func _build_silhouette(metadata: Dictionary, solids: Array[Rect2], polygons: Array[PackedVector2Array]) -> void:
+	if solids.is_empty() and polygons.is_empty():
+		return
+	var bounds := Rect2()
+	var first := true
+	for r in solids:
+		bounds = r if first else bounds.merge(r)
+		first = false
+	for poly in polygons:
+		var pr := _poly_rect(poly)
+		bounds = pr if first else bounds.merge(pr)
+		first = false
+	# Snap to the cell grid so textures line up with cells.
+	metadata.content_rect = bounds
+	var cell := in_game_cell_size
+	var start := (bounds.position / cell).floor() * cell
+	var end := (bounds.end / cell).ceil() * cell
+	bounds = Rect2(start, end - start)
+	var scale := SILHOUETTE_SCALE
+	while bounds.size.x / scale > SILHOUETTE_MAX_SIZE or bounds.size.y / scale > SILHOUETTE_MAX_SIZE:
+		scale *= 2.0
+	var img_size := Vector2i((bounds.size / scale).ceil())
+	if img_size.x <= 0 or img_size.y <= 0:
+		return
+	var img := Image.create(img_size.x, img_size.y, false, Image.FORMAT_LA8)
+	var occupied: Dictionary = {}
+	for r in solids:
+		var p := Vector2i(((r.position - bounds.position) / scale).floor())
+		var s := Vector2i(((r.end - bounds.position) / scale).ceil()) - p
+		img.fill_rect(Rect2i(p, s.max(Vector2i.ONE)), Color.WHITE)
+		_mark_occupied(r, occupied)
+	for poly in polygons:
+		var pr := _poly_rect(poly)
+		var p0 := Vector2i(((pr.position - bounds.position) / scale).floor())
+		var p1 := Vector2i(((pr.end - bounds.position) / scale).ceil())
+		for y in range(maxi(p0.y, 0), mini(p1.y, img_size.y)):
+			for x in range(maxi(p0.x, 0), mini(p1.x, img_size.x)):
+				var world := bounds.position + (Vector2(x, y) + Vector2(0.5, 0.5)) * scale
+				if Geometry2D.is_point_in_polygon(world, poly):
+					img.set_pixel(x, y, Color.WHITE)
+		_mark_occupied(pr, occupied)
+	metadata.silhouette = img
+	metadata.silhouette_rect = bounds
+	metadata.occupied_cells = occupied.keys()
+
+func _poly_rect(poly: PackedVector2Array) -> Rect2:
+	var r := Rect2(poly[0], Vector2.ZERO)
+	for p in poly:
+		r = r.expand(p)
+	return r
+
+func _mark_occupied(r: Rect2, occupied: Dictionary) -> void:
+	# Shrink slightly so content that merely touches a cell edge does not count.
+	var inner := r.grow(-1.0)
+	if inner.size.x <= 0 or inner.size.y <= 0:
+		inner = Rect2(r.get_center(), Vector2.ZERO)
+	var c0 := Vector2i((inner.position / in_game_cell_size).floor())
+	var c1 := Vector2i((inner.end / in_game_cell_size).floor())
+	for y in range(c0.y, c1.y + 1):
+		for x in range(c0.x, c1.x + 1):
+			occupied[Vector2i(x, y)] = true
 
 func count_nodes(node: Node) -> int:
 	var count := 1
@@ -199,7 +416,7 @@ func count_nodes(node: Node) -> int:
 		count += count_nodes(child)
 	return count
 
-func update_stats_from_metadata(metadata: Dictionary):
+func update_stats_from_metadata(metadata: Dictionary) -> void:
 	scan_stats.total_collectibles += metadata.collectibles.size()
 	scan_stats.total_enemies += metadata.enemies.size()
 	scan_stats.total_save_points += metadata.save_points.size()
