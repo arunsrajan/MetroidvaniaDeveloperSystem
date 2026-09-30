@@ -4,7 +4,7 @@ extends Control
 ## MetSys mode: map viewer, room annotator and progression analyzer for MetSys'
 ## grid-based MapData.txt.
 ##
-## Layout: toolbar + marker filters on top, the map canvas in the middle and a sidebar
+## Layout: a tool panel on the left (like MetSys' editor), the map canvas in the middle and a sidebar
 ## with Rooms / Inspect / Progress / Issues / Stats tabs.
 
 const DEFAULT_FILTERS: PackedStringArray = ["Save Points", "Bosses", "Collectibles", "Teleporters", "Shops", "Enemies"]
@@ -39,8 +39,10 @@ var export_menu: MenuButton
 var zoom_label: Label
 var route_button: Button
 var filter_box: HFlowContainer
-## The dock inserts the mode switch at the start of this toolbar.
-var toolbar: HFlowContainer
+## The host inserts the mode switch at the start of this box (the Map section).
+var toolbar: Container
+var side_panel: IDPSidePanel
+var side_tabs_check: CheckBox
 var sidebar: TabContainer
 var room_search: LineEdit
 var room_filter_toggle: CheckBox
@@ -137,14 +139,17 @@ func _build_ui() -> void:
 	var root := VBoxContainer.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(root)
+	# Like MetSys' editor: tools on the left, the map in the middle, tabs on the right.
+	var main := HBoxContainer.new()
+	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(main)
+	side_panel = IDPSidePanel.new()
+	main.add_child(side_panel)
 
-	# Toolbar ------------------------------------------------------------------------
-	toolbar = HFlowContainer.new()
-	root.add_child(toolbar)
-
+	# Map file ---------------------------------------------------------------------------
+	toolbar = side_panel.add_section("Map")
 	map_picker = OptionButton.new()
 	map_picker.tooltip_text = "MapData file to show"
-	map_picker.custom_minimum_size.x = 180
 	map_picker.fit_to_longest_item = false
 	map_picker.clip_text = true
 	map_picker.item_selected.connect(_on_map_picked)
@@ -152,8 +157,6 @@ func _build_ui() -> void:
 
 	var reload := IDPUi.button("Reload", "Reload the map file and re-run analysis")
 	reload.pressed.connect(func() -> void: load_map(map_data_path))
-	toolbar.add_child(reload)
-
 	scan_menu = MenuButton.new()
 	scan_menu.text = "Scan"
 	scan_menu.flat = false
@@ -163,15 +166,29 @@ func _build_ui() -> void:
 	sp.add_item("Scan project folder (finds unplaced rooms)...", ScanItem.SCAN_FOLDER)
 	sp.add_item("Find MapData files", ScanItem.FIND_MAPS)
 	sp.id_pressed.connect(_on_scan_menu)
-	toolbar.add_child(scan_menu)
+	IDPSidePanel.row(toolbar, [reload, scan_menu])
+	export_menu = MenuButton.new()
+	export_menu.text = "Export"
+	export_menu.flat = false
+	var ep := export_menu.get_popup()
+	ep.add_item("Map data (JSON)", ExportItem.JSON)
+	ep.add_item("Map image (PNG)", ExportItem.PNG)
+	ep.add_item("Room graph (Graphviz .dot)", ExportItem.DOT)
+	ep.add_item("Design document (Markdown)", ExportItem.MARKDOWN)
+	ep.id_pressed.connect(_on_export_menu)
+	toolbar.add_child(IDPSidePanel.fill(export_menu))
+	side_tabs_check = CheckBox.new()
+	side_tabs_check.text = "Side tabs"
+	side_tabs_check.button_pressed = true
+	side_tabs_check.tooltip_text = "Show the Rooms / Inspect / Progress... tabs on the right. Hide them for a bigger map"
+	side_tabs_check.toggled.connect(func(on: bool) -> void: sidebar.visible = on)
+	toolbar.add_child(side_tabs_check)
 
-	toolbar.add_child(VSeparator.new())
-	toolbar.add_child(IDPUi.label("Layer"))
+	# Display ----------------------------------------------------------------------------
+	var display := side_panel.add_section("Map display")
 	layer_picker = OptionButton.new()
 	layer_picker.item_selected.connect(func(idx: int) -> void: _set_layer(layer_picker.get_item_id(idx)))
-	toolbar.add_child(layer_picker)
-
-	toolbar.add_child(IDPUi.label("Color"))
+	IDPSidePanel.field(display, "Layer", layer_picker)
 	color_picker = OptionButton.new()
 	for i in IDPMapCanvas.COLOR_MODE_NAMES.size():
 		color_picker.add_item(IDPMapCanvas.COLOR_MODE_NAMES[i], i)
@@ -179,10 +196,10 @@ func _build_ui() -> void:
 	color_picker.item_selected.connect(func(idx: int) -> void:
 		canvas.color_mode = idx
 		canvas.redraw())
-	toolbar.add_child(color_picker)
+	IDPSidePanel.field(display, "Color", color_picker)
 
 	view_menu = MenuButton.new()
-	view_menu.text = "View"
+	view_menu.text = "Show on map..."
 	view_menu.flat = false
 	var vp := view_menu.get_popup()
 	vp.hide_on_checkable_item_selection = false
@@ -199,49 +216,34 @@ func _build_ui() -> void:
 	vp.add_separator()
 	vp.add_check_item("Auto-scan map scenes on load", ViewItem.AUTO_SCAN)
 	vp.id_pressed.connect(_on_view_menu)
-	toolbar.add_child(view_menu)
+	display.add_child(IDPSidePanel.fill(view_menu))
 
-	toolbar.add_child(VSeparator.new())
 	var zoom_out := IDPUi.button("-", "Zoom out")
 	var zoom_in := IDPUi.button("+", "Zoom in (or mouse wheel over the map)")
 	var fit := IDPUi.button("Fit", "Fit the layer in view (F)")
 	zoom_out.pressed.connect(func() -> void: canvas.set_zoom(canvas.zoom / 1.25))
 	zoom_in.pressed.connect(func() -> void: canvas.set_zoom(canvas.zoom * 1.25))
 	fit.pressed.connect(func() -> void: canvas.fit_to_layer())
-	toolbar.add_child(zoom_out)
 	zoom_label = IDPUi.label("100%")
 	zoom_label.custom_minimum_size.x = 44
 	zoom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	toolbar.add_child(zoom_label)
-	toolbar.add_child(zoom_in)
-	toolbar.add_child(fit)
+	IDPSidePanel.row(display, [zoom_out, zoom_label, zoom_in, fit])
 
 	route_button = IDPUi.button("Clear route", "Clear the highlighted route / selection highlight (Esc)")
 	route_button.visible = false
 	route_button.pressed.connect(_clear_route_and_highlight)
-	toolbar.add_child(route_button)
+	display.add_child(route_button)
 
-	toolbar.add_child(VSeparator.new())
-	export_menu = MenuButton.new()
-	export_menu.text = "Export"
-	export_menu.flat = false
-	var ep := export_menu.get_popup()
-	ep.add_item("Map data (JSON)", ExportItem.JSON)
-	ep.add_item("Map image (PNG)", ExportItem.PNG)
-	ep.add_item("Room graph (Graphviz .dot)", ExportItem.DOT)
-	ep.add_item("Design document (Markdown)", ExportItem.MARKDOWN)
-	ep.id_pressed.connect(_on_export_menu)
-	toolbar.add_child(export_menu)
-
-	# Filters -------------------------------------------------------------------------
+	# Marker filters ------------------------------------------------------------------------
 	filter_box = HFlowContainer.new()
 	filter_box.tooltip_text = "Show markers on the map and filter the room list"
-	root.add_child(filter_box)
+	side_panel.add_section("Markers", filter_box)
 
 	# Map + sidebar ---------------------------------------------------------------------
 	var split := HSplitContainer.new()
+	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(split)
+	main.add_child(split)
 
 	canvas = IDPMapCanvas.new()
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -257,7 +259,7 @@ func _build_ui() -> void:
 	split.add_child(canvas)
 
 	sidebar = TabContainer.new()
-	sidebar.custom_minimum_size.x = 330
+	sidebar.custom_minimum_size.x = 300
 	split.add_child(sidebar)
 	_build_rooms_tab()
 	_build_inspector_tab()
@@ -397,7 +399,6 @@ func _setup_filters() -> void:
 		var category := element.capitalize()
 		if not category in filter_categories:
 			filter_categories.append(category)
-	filter_box.add_child(IDPUi.label("Show:"))
 	for category in filter_categories:
 		var checkbox := CheckBox.new()
 		checkbox.text = category

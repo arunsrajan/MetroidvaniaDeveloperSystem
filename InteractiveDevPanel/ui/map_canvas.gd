@@ -342,7 +342,7 @@ func _get_silhouette(scene_path: String) -> Texture2D:
 
 func _draw_overlay() -> void:
 	if not model:
-		_draw_centered_message("No map loaded. Pick a MapData.txt in the toolbar.")
+		_draw_centered_message("No map loaded. Pick a MapData.txt in the tool panel.")
 		return
 	var ci := _overlay
 	var cell_px := get_cell_px()

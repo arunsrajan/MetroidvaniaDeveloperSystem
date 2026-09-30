@@ -10,6 +10,11 @@ const DEFAULT_FILTERS_ON: PackedStringArray = ["Save Points", "Bosses"]
 const EXPORT_DIR := "res://idp_exports"
 const SETTING_WORLD_FILE := "interactive_dev_panel/world_file"
 
+const SECTION_TOOLS := "Map tools"
+const SECTION_DISPLAY := "Map display"
+const SECTION_MARKERS := "Markers"
+const SECTION_ROOM := "Room painting"
+
 enum WorldItem { NEW = 1000, OPEN, IMPORT_METSYS, RELOAD }
 enum ViewItem { LABELS, AREA_LABELS, TERRAIN, PREVIEWS, GATES, MARKERS, PINS, ISSUES, GRID, LEGEND }
 enum ExportItem { JSON, PNG, DOT, MARKDOWN }
@@ -26,7 +31,10 @@ var issues: Array = []
 var current_filters: Dictionary = {}
 
 # UI
-var toolbar: HFlowContainer
+## The host inserts the mode switch at the start of this box (the World section).
+var toolbar: Container
+var side_panel: IDPSidePanel
+var side_tabs_check: CheckBox
 var canvas: IDPWorldCanvas
 var world_picker: OptionButton
 var tool_buttons: Array[Button] = []
@@ -121,11 +129,16 @@ func _build_ui() -> void:
 	var root := VBoxContainer.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(root)
+	# Like MetSys' editor: tools on the left, the map in the middle, tabs on the right.
+	var main := HBoxContainer.new()
+	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(main)
+	side_panel = IDPSidePanel.new()
+	main.add_child(side_panel)
 
-	toolbar = HFlowContainer.new()
-	root.add_child(toolbar)
+	# World: mode switch (added by the host), world file, scenes, export.
+	toolbar = side_panel.add_section("World")
 	world_picker = OptionButton.new()
-	world_picker.custom_minimum_size.x = 170
 	world_picker.fit_to_longest_item = false
 	world_picker.clip_text = true
 	world_picker.tooltip_text = "World file (.idpworld.json)"
@@ -142,9 +155,38 @@ func _build_ui() -> void:
 	sp.add_item("Create game scene (IDPWorldGame)...", ScenesItem.GAME_SCENE)
 	sp.add_item("World settings...", ScenesItem.SETTINGS)
 	sp.id_pressed.connect(_on_scenes_menu)
-	toolbar.add_child(scenes_menu)
+	export_menu = IDPUi.menu_button("Export")
+	var ep := export_menu.get_popup()
+	ep.add_item("World + analysis (JSON)", ExportItem.JSON)
+	ep.add_item("Map image (PNG)", ExportItem.PNG)
+	ep.add_item("Room graph (Graphviz .dot)", ExportItem.DOT)
+	ep.add_item("Design document (Markdown)", ExportItem.MARKDOWN)
+	ep.id_pressed.connect(_on_export_menu)
+	IDPSidePanel.row(toolbar, [scenes_menu, export_menu])
 
-	toolbar.add_child(VSeparator.new())
+	# View: map or the selected room's actual contents.
+	var view_section := side_panel.add_section("View")
+	var view_group := ButtonGroup.new()
+	map_view_button = IDPUi.button("Map view", "The world map")
+	map_view_button.toggle_mode = true
+	map_view_button.button_group = view_group
+	map_view_button.button_pressed = true
+	map_view_button.pressed.connect(show_map_view)
+	room_view_button = IDPUi.button("Room view", "Paint the selected room's actual contents (terrain, background, decorations)")
+	room_view_button.toggle_mode = true
+	room_view_button.button_group = view_group
+	room_view_button.pressed.connect(func() -> void: show_room_view(canvas.selected_room))
+	IDPSidePanel.row(view_section, [map_view_button, room_view_button])
+	side_tabs_check = CheckBox.new()
+	side_tabs_check.text = "Side tabs"
+	side_tabs_check.button_pressed = true
+	side_tabs_check.tooltip_text = "Show the Rooms / Scenes / Inspect... tabs on the right. Hide them for a bigger map"
+	side_tabs_check.toggled.connect(func(on: bool) -> void: sidebar.visible = on)
+	view_section.add_child(side_tabs_check)
+
+	# Map tools.
+	var tools := side_panel.add_section(SECTION_TOOLS)
+	var tool_grid := IDPSidePanel.grid(tools, 2)
 	var group := ButtonGroup.new()
 	var short_names := ["Select", "Room", "Extend", "Gate", "Pin", "Paint", "Erase"]
 	for i in IDPWorldCanvas.TOOL_NAMES.size():
@@ -156,7 +198,7 @@ func _build_ui() -> void:
 			canvas.set_tool(i)
 			canvas.grab_focus())
 		tool_buttons.append(b)
-		toolbar.add_child(b)
+		tool_grid.add_child(IDPSidePanel.fill(b))
 	brush_spin = SpinBox.new()
 	brush_spin.min_value = 1
 	brush_spin.max_value = 8
@@ -166,20 +208,19 @@ func _build_ui() -> void:
 	brush_spin.value_changed.connect(func(v: float) -> void:
 		if int(v) != canvas.brush_size:
 			canvas.set_brush_size(int(v)))
-	toolbar.add_child(brush_spin)
+	tool_grid.add_child(IDPSidePanel.fill(brush_spin))
 	undo_button = IDPUi.button("Undo", "Undo (Ctrl+Z on the map)")
 	undo_button.pressed.connect(func() -> void:
 		if world:
 			world.undo())
-	toolbar.add_child(undo_button)
 	redo_button = IDPUi.button("Redo", "Redo (Ctrl+Y on the map)")
 	redo_button.pressed.connect(func() -> void:
 		if world:
 			world.redo())
-	toolbar.add_child(redo_button)
+	IDPSidePanel.row(tools, [undo_button, redo_button])
 
-	toolbar.add_child(VSeparator.new())
-	toolbar.add_child(IDPUi.label("Layer"))
+	# Map display.
+	var display := side_panel.add_section(SECTION_DISPLAY)
 	layer_picker = OptionButton.new()
 	layer_picker.item_selected.connect(func(idx: int) -> void:
 		var id := layer_picker.get_item_id(idx)
@@ -187,13 +228,11 @@ func _build_ui() -> void:
 			_add_layer()
 		else:
 			_set_layer(id))
-	toolbar.add_child(layer_picker)
-	toolbar.add_child(IDPUi.label("Style"))
+	IDPSidePanel.field(display, "Layer", layer_picker)
 	style_picker = OptionButton.new()
 	style_picker.tooltip_text = "Tileset used to draw rooms (also used by the in-game IDPWorldMapView)"
 	style_picker.item_selected.connect(_on_style_picked)
-	toolbar.add_child(style_picker)
-	toolbar.add_child(IDPUi.label("Color"))
+	IDPSidePanel.field(display, "Style", style_picker)
 	color_picker = OptionButton.new()
 	var modes := [[IDPMapCanvas.ColorMode.AREA, "Area"], [IDPMapCanvas.ColorMode.ROOM_TYPE, "Room type"], [IDPMapCanvas.ColorMode.PROGRESSION, "Progression"], [IDPMapCanvas.ColorMode.SAVE_DISTANCE, "Save distance"], [IDPMapCanvas.ColorMode.STATUS, "Build status"]]
 	for m in modes:
@@ -201,9 +240,9 @@ func _build_ui() -> void:
 	color_picker.item_selected.connect(func(idx: int) -> void:
 		canvas.color_mode = color_picker.get_item_id(idx)
 		canvas.redraw())
-	toolbar.add_child(color_picker)
+	IDPSidePanel.field(display, "Color", color_picker)
 
-	view_menu = IDPUi.menu_button("View")
+	view_menu = IDPUi.menu_button("Show on map...")
 	var vp := view_menu.get_popup()
 	vp.hide_on_checkable_item_selection = false
 	var view_items := [
@@ -220,42 +259,31 @@ func _build_ui() -> void:
 		var idx := vp.get_item_index(id)
 		vp.set_item_checked(idx, not vp.is_item_checked(idx))
 		canvas.set_show(vp.get_item_metadata(idx), vp.is_item_checked(idx)))
-	toolbar.add_child(view_menu)
+	display.add_child(IDPSidePanel.fill(view_menu))
 
-	toolbar.add_child(VSeparator.new())
 	var zoom_out := IDPUi.button("-", "Zoom out")
 	zoom_out.pressed.connect(func() -> void: canvas.set_zoom(canvas.zoom / 1.25))
-	toolbar.add_child(zoom_out)
 	zoom_label = IDPUi.label("")
-	zoom_label.custom_minimum_size.x = 48
+	zoom_label.custom_minimum_size.x = 44
 	zoom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	toolbar.add_child(zoom_label)
 	var zoom_in := IDPUi.button("+", "Zoom in (or mouse wheel over the map)")
 	zoom_in.pressed.connect(func() -> void: canvas.set_zoom(canvas.zoom * 1.25))
-	toolbar.add_child(zoom_in)
 	var fit := IDPUi.button("Fit", "Fit the layer in view (F)")
 	fit.pressed.connect(func() -> void: canvas.fit_to_layer())
-	toolbar.add_child(fit)
+	IDPSidePanel.row(display, [zoom_out, zoom_label, zoom_in, fit])
 	route_button = IDPUi.button("Clear route", "Clear the highlighted route / highlight (Esc)")
 	route_button.visible = false
 	route_button.pressed.connect(_clear_route_and_highlight)
-	toolbar.add_child(route_button)
+	display.add_child(route_button)
 
-	export_menu = IDPUi.menu_button("Export")
-	var ep := export_menu.get_popup()
-	ep.add_item("World + analysis (JSON)", ExportItem.JSON)
-	ep.add_item("Map image (PNG)", ExportItem.PNG)
-	ep.add_item("Room graph (Graphviz .dot)", ExportItem.DOT)
-	ep.add_item("Design document (Markdown)", ExportItem.MARKDOWN)
-	ep.id_pressed.connect(_on_export_menu)
-	toolbar.add_child(export_menu)
-
+	# Marker filters.
 	filter_box = HFlowContainer.new()
-	root.add_child(filter_box)
+	side_panel.add_section(SECTION_MARKERS, filter_box)
 
 	var split := HSplitContainer.new()
+	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(split)
+	main.add_child(split)
 	canvas = IDPWorldCanvas.new()
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -276,35 +304,31 @@ func _build_ui() -> void:
 	view_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	view_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	split.add_child(view_box)
-	var view_bar := HBoxContainer.new()
-	view_box.add_child(view_bar)
-	var view_group := ButtonGroup.new()
-	map_view_button = IDPUi.button("Map view", "The world map")
-	map_view_button.toggle_mode = true
-	map_view_button.button_group = view_group
-	map_view_button.button_pressed = true
-	map_view_button.pressed.connect(show_map_view)
-	view_bar.add_child(map_view_button)
-	room_view_button = IDPUi.button("Room view", "Paint the selected room's actual contents (terrain, background, decorations)")
-	room_view_button.toggle_mode = true
-	room_view_button.button_group = view_group
-	room_view_button.pressed.connect(func() -> void: show_room_view(canvas.selected_room))
-	view_bar.add_child(room_view_button)
 	view_box.add_child(canvas)
 	room_view = IDPRoomView.new()
 	room_view.visible = false
 	room_view.saved.connect(_on_room_saved)
 	room_view.status_message.connect(_set_status)
 	view_box.add_child(room_view)
+	# The Room view's brushes and actions live in the tool panel too, shown with it.
+	side_panel.add_section(SECTION_ROOM, room_view.controls)
+	side_panel.set_section_visible(SECTION_ROOM, false)
 
 	sidebar = TabContainer.new()
-	sidebar.custom_minimum_size.x = 340
+	sidebar.custom_minimum_size.x = 300
 	split.add_child(sidebar)
 	_build_rooms_tab()
 	_build_palette_tab()
 	_build_inspector_tab()
 	_build_areas_tab()
 	views = IDPAnalysisViews.new(self, sidebar)
+	# The Room view's tile palette is a tab, shown with the Room view.
+	room_view.palette.name = "Tiles"
+	sidebar.add_child(room_view.palette)
+	sidebar.set_tab_hidden(sidebar.get_tab_idx_from_control(room_view.palette), true)
+	room_view.palette_requested.connect(func() -> void:
+		side_tabs_check.button_pressed = true
+		sidebar.current_tab = sidebar.get_tab_idx_from_control(room_view.palette))
 
 	var status := HBoxContainer.new()
 	root.add_child(status)
@@ -557,7 +581,6 @@ func _build_settings_dialog() -> void:
 func _setup_filters() -> void:
 	for child in filter_box.get_children():
 		child.queue_free()
-	filter_box.add_child(IDPUi.label("Show:"))
 	for category in DEFAULT_FILTERS:
 		var cb := CheckBox.new()
 		cb.text = category
@@ -845,6 +868,7 @@ func show_map_view() -> void:
 	room_view.visible = false
 	canvas.visible = true
 	map_view_button.set_pressed_no_signal(true)
+	_show_room_sections(false)
 	canvas.redraw()
 
 ## Paints the room's actual contents. A room without a scene gets one first.
@@ -870,7 +894,21 @@ func show_room_view(id: String) -> void:
 	canvas.visible = false
 	room_view.visible = true
 	room_view_button.set_pressed_no_signal(true)
+	_show_room_sections(true)
 	_set_status("Room view: %s. Paint terrain, or press Generate cave to start from the room's shape on the map." % id)
+
+## The tool panel shows the map tools with the Map view and the room brushes with the
+## Room view.
+func _show_room_sections(room: bool) -> void:
+	for section in [SECTION_TOOLS, SECTION_DISPLAY, SECTION_MARKERS]:
+		side_panel.set_section_visible(section, not room)
+	side_panel.set_section_visible(SECTION_ROOM, room)
+	var tiles := sidebar.get_tab_idx_from_control(room_view.palette)
+	sidebar.set_tab_hidden(tiles, not room)
+	if room:
+		sidebar.current_tab = tiles
+	elif sidebar.current_tab == tiles:
+		sidebar.current_tab = 0
 
 func _on_room_saved(path: String) -> void:
 	EditorInterface.get_resource_filesystem().update_file(path)
@@ -1174,7 +1212,7 @@ func _rebuild_inspector() -> void:
 	_inspector_room = canvas.selected_room
 	_inspector_signature = _inspector_sig(_inspector_room)
 	if not world:
-		inspector.add_child(IDPUi.hint("Non-linear mode: draw rooms freely and connect them with gates, like a Hollow Knight map.\n\nOpen the world picker in the toolbar:\n- New world... starts an empty map.\n- Import from MetSys map... converts a MetSys MapData.txt."))
+		inspector.add_child(IDPUi.hint("Non-linear mode: draw rooms freely and connect them with gates, like a Hollow Knight map.\n\nOpen the world picker in the tool panel on the left:\n- New world... starts an empty map.\n- Import from MetSys map... converts a MetSys MapData.txt."))
 		return
 	if not world.has_room(_inspector_room):
 		inspector.add_child(IDPUi.hint("Select a room to edit it.\n\nR: draw a room, E: extend the selected room, G: add gates, P: pins.\nDrag .tscn files from the FileSystem dock onto the map to place scenes.\nDrag from a gate to another gate to connect rooms.\nDouble-click a room to open (or create) its scene. Right-click for more."))

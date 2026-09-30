@@ -2,7 +2,7 @@
 
 A Godot 4 editor plugin that turns your metroidvania's world into a design workbench: room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
 
-It has two modes, switched from the first drop-down in the toolbar:
+It has two modes, switched from the first drop-down in the tool panel:
 
 | | **MetSys mode** | **Non-linear mode** |
 |---|---|---|
@@ -25,6 +25,22 @@ Both modes share the analysis: progression spheres, backtracking, save distance,
 Copy the `InteractiveDevPanel` folder into your project's `addons/` directory and enable **Interactive Dev Panel** in **Project Settings > Plugins**. A **Map Dev** tab appears at the top of the editor, next to 2D / 3D / Script.
 
 Prefer a right-side dock? Set `interactive_dev_panel/use_main_screen` to `false` in Project Settings and re-enable the plugin.
+
+### Layout
+
+Like MetSys' own editor, Map Dev keeps its buttons in a **tool panel on the left** and gives the rest of the screen to the map:
+
+- **Left: the tool panel.** It is split into foldable sections:
+  - **World** or **Map**: mode switch, map or world file, Scenes/Scan, Export and **Side tabs**.
+  - **View** (non-linear mode): Map view or Room view.
+  - **Map tools**: Select, Room, Extend, Gate, Pin, Paint and Erase, plus brush size and Undo/Redo.
+  - **Map display**: layer, style, color mode, what to show on the map, and zoom.
+  - **Markers**: the marker filters.
+  - **Room painting**: shown instead of the map sections while the Room view is open.
+
+  Click a section's title to fold it; **«** collapses the whole panel to a thin strip.
+- **Middle: the canvas.** It shows the map or the Room view.
+- **Right: the tabs.** Rooms, Scenes, Inspect, Areas, Progress, Issues, Stats and, in the Room view, Tiles. Untick **Side tabs** to hide them for a full-width map, or drag the splitter.
 
 ---
 
@@ -71,7 +87,7 @@ The world file borrows proven designs:
 
 ### Getting started
 
-In the toolbar's world picker:
+In the world picker (tool panel, World section):
 
 - **New world...** creates an empty `.idpworld.json`.
 - **Import from MetSys map...** converts a MetSys map (with your annotations) into a world. Cells merge into rectangles, and passages become named, connected gates.
@@ -90,7 +106,7 @@ Then:
 
 You can design the whole map before any scene exists, the way a hand-drawn metroidvania map is sketched, and fill it with scenes afterwards.
 
-1. **Pick a style** in the toolbar's **Style** drop-down. This is the tileset rooms are drawn with, tinted by each area's color, and the in-game map (`IDPWorldMapView`) uses it too. The choices are:
+1. **Pick a style** in the **Style** drop-down (Map display section). This is the tileset rooms are drawn with, tinted by each area's color, and the in-game map (`IDPWorldMapView`) uses it too. The choices are:
    - **Hand-drawn (double line)**, the default: light border band, dark inner line, tinted fill.
    - **Blueprint**, **Chunky pixel**, or **Flat**.
    - **Any MetSys map theme** (Exquisite, SotN, AoS...). Walls and corners come from the theme, and gates show as the theme's passages.
@@ -101,7 +117,7 @@ You can design the whole map before any scene exists, the way a hand-drawn metro
    - start a stroke inside a room to grow it (L, T and U shapes are fine);
    - hold **Shift** to start a separate room next to another one;
    - the brush never paints over another room;
-   - `[` and `]` (or **Brush** in the toolbar) change the brush size.
+   - `[` and `]` (or **Brush** in the Map tools section) change the brush size.
 4. **Erase** (`X`) removes cells from any room. A room erased completely is deleted.
 5. **Add doors:** **Scenes > Add doors between touching rooms** puts a connected gate pair on the longest shared edge of every pair of touching rooms.
 6. **Drop scenes in:** drag scenes from the **Scenes** palette tab (with thumbnails, hiding scenes already placed) or from the FileSystem dock onto a painted room. The room keeps its painted shape, the scene's (0, 0) goes to the room's top-left corner, and a generated name (`Room_03`) becomes the scene's name. Dropped on empty space, a scene becomes a new room sized to its terrain. Rooms without a scene can also get a brand new one with **Create scene...**.
@@ -120,19 +136,55 @@ The paint grid defaults to a quarter of the default room size. Change it in **Sc
 
 ### Room view: painting the room itself
 
-The map is one view of a room; the **Room view** is the other. It shows the room at its real size and lets you paint what's inside it. Open it with **Room view** above the map, **Paint room** in the Inspector, or right-click > **Paint room (actual view)**. A room that has no scene yet gets one first.
+The map is one view of a room; the **Room view** is the other. It shows the room at its real size and lets you paint what's inside it. Open it with **Room view** in the tool panel's View section, **Paint room** in the Inspector, or right-click > **Paint room (actual view)**. A room that has no scene yet gets one first.
 
 ![Map view and Room view](docs/map_and_room_view.png)
 
 - **Brushes:**
-  - **Terrain** paints autotiled ground and walls, using Godot's terrain system.
-  - **Background** paints foliage behind the room.
+  - **Terrain** paints ground and walls on the `Terrain` layer.
+  - **Background** paints behind the room.
   - **Decor** places grass, ferns, flowers, mushrooms, vines, stalactites or hanging moss.
   - **Erase** removes decorations and terrain; Shift+Erase removes background.
-  - `[` and `]` change the brush size; the wheel zooms and middle/right drag pans.
+  - `[` and `]` change the brush size; the wheel zooms and middle/right drag pans. **Undo**/**Redo** (Ctrl+Z / Ctrl+Y) step through strokes and shapes.
+- **Fill:** the list below the tools (Room painting section) sets what the current brush paints:
+  - a **terrain**, autotiled with Godot's terrain system;
+  - **random tiles of a kind** (foliage, grass, vines...);
+  - the **palette tiles** you picked;
+  - a **solid color**, for example a sky or cave backdrop for the background.
+
+  Each brush remembers its own fill.
+- **Shapes:** instead of **Brush**, choose a shape and drag a box in the view. Releasing paints it; Esc cancels. Shapes work with every brush, including Erase, which carves curved caves.
+  - **Rectangle** fills the box.
+  - **Irregular** fills it with an organic rock blob.
+  - **Left**, **Right**, **Top** and **Bottom curved** make a mass whose named side follows a curve. The opposite side is the flat base:
+    - Top curved is ground: hills, bowls, ramps.
+    - Bottom curved hangs from the ceiling: arches, overhangs.
+    - Left curved grows out of a wall on the right; Right curved grows out of a wall on the left.
+  - **Curve** sets the curve:
+    - convex (dome) and concave (bowl);
+    - slope, rounded corner, quarter-pipe and S-curve ramps;
+    - hill, mesa, rolling hills, steps and spikes.
+  - **Flip** mirrors ramps. **x** sets the number of waves, steps or spikes.
+  - **Irregular %** roughens any shape's edge into natural-looking rock.
+
+![Curves: top, bottom and irregular left curved](docs/room_shapes_curves.png)
+
+- **Tile palette** (the **Tiles** tab on the right, also opened with **Tile palette** in the tool panel) shows the room tileset's spritesheets.
+  - **+ Sheet** adds a PNG, WebP or JPG. Set the tile size, margin and separation, and whether the tiles are solid. Sheets drawn at another size than the room grid (16 px art on a 32 px grid, say) are scaled to fit it, and empty cells are skipped.
+  - Drag over tiles to pick one or a block. The current brush then paints them as a repeating pattern, or picks random tiles from the block when **Random** is on.
+  - **Make terrain** turns a picked 3x3 box (corners, edges, fill: the usual platformer layout) into an autotiling solid terrain. It also accepts a 4x4 block ordered by connected sides (1 right + 2 bottom + 4 left + 8 top). For a 3x3 box, the pieces it lacks (1-tile columns, ledges, single blocks) reuse the closest tile. The terrain then appears in the fill list, and Generate cave can use it.
+  - **Solid on/off** adds or removes full-tile collision.
+  - **Tag** gives tiles a kind (`grass`, `flower`, `foliage`, `vine_top`...), so kind fills, Auto-decorate and Generate cave use your art.
+  - Colored marks on tiles show which are solid (red), tagged (blue) or part of a terrain (bar).
+
+![Room painted with shapes, a spritesheet terrain, palette bricks and a color background](docs/room_shapes.png)
 - **Generate cave** builds a starting room from the room's shape on the map. It places rough cave walls, a floor and ledges jutting from the walls, keeps openings wherever the room has gates, then adds background foliage and decorations. **New variation** rerolls it and **Auto-decorate** redoes only the decorations. Everything stays inside the room's shape, and irregular rooms get rock in their notches.
 - **Save** writes the tiles into the room scene's `Background`, `Terrain` and `Decor` TileMapLayers (creating the missing ones) and touches nothing else in the scene. A scene open in an editor tab is reloaded. The map's silhouette updates from the terrain, so the two views stay in sync. Leaving the Room view saves automatically.
-- **Tiles:** with no tileset, IDP generates a starter pixel-art "mossy cave" set at `res://idp_tiles/idp_cave_tileset.tres`. It has moss-topped rock with collision and autotiling, a cave wall, teal foliage and decorations, and a PNG copy sits next to it for repainting. Rooms that already have a TileSet keep it: its terrains appear in the Terrain picker, and tiles with an `idp_kind` custom data string (`grass`, `vine_top`, `stalactite_small`, `foliage`...) are used by the Decor brush and Auto-decorate. Change the default in the world file's `settings.room_tileset`.
+- **Tiles:** with no tileset, IDP generates a starter pixel-art "mossy cave" set at `res://idp_tiles/idp_cave_tileset.tres`. It has moss-topped rock with collision and autotiling, a cave wall, teal foliage and decorations, and a PNG copy sits next to it for repainting.
+  - Rooms that already have a TileSet keep it. Its terrains appear in the fill list, and tiles with an `idp_kind` custom data string (`grass`, `vine_top`, `stalactite_small`, `foliage`...) are used by the kind fills and Auto-decorate.
+  - Sheets, terrains, tags and colors added from the palette are saved into that TileSet: its `.tres` file, or the scene when the TileSet is embedded in it.
+  - Solid colors are one white tile tinted by alternative tiles.
+  - Change the default in the world file's `settings.room_tileset`.
 
 Only solid tiles (with collision) count as terrain for the map silhouette. Background and decoration layers never do.
 
@@ -351,7 +403,8 @@ addons/InteractiveDevPanel/
 │   ├── annotations.gd     # IDPAnnotations: MapData.idp.json
 │   ├── world.gd           # IDPWorld: .idpworld.json (rooms, gates, areas, undo, runtime lookups)
 │   ├── world_scene_tools.gd # IDPWorldSceneTools: place/create scenes, sync gates, fit rooms
-│   ├── room_painter.gd    # IDPRoomPainter: paints a room scene's tile layers, generates caves
+│   ├── room_painter.gd    # IDPRoomPainter: paints a room scene's tile layers, generates caves, spritesheets
+│   ├── terrain_shapes.gd  # IDPTerrainShapes: rectangle, irregular and curved-side shape brushes
 │   ├── tileset_factory.gd # IDPTilesetFactory: starter pixel-art "mossy cave" tileset
 │   ├── graph.gd           # IDPGraph: mode-independent room graph
 │   ├── analysis.gd        # IDPAnalysis: progression, save distance, topology, routes
@@ -367,8 +420,10 @@ addons/InteractiveDevPanel/
 │   ├── world_canvas.gd    # IDPWorldCanvas: free-form world editor
 │   ├── world_map_view.gd  # IDPWorldMapView: in-game map
 │   ├── map_style.gd       # IDPMapStyle: tilesets (built-in, custom PNG, MetSys themes)
-│   ├── room_view.gd       # IDPRoomView: the Room view (actual view) and its toolbar
+│   ├── room_view.gd       # IDPRoomView: the Room view (actual view) and its brush controls
+│   ├── side_panel.gd      # IDPSidePanel: the left tool panel (foldable sections)
 │   ├── room_canvas.gd     # IDPRoomCanvas: room painting surface (own SubViewport)
+│   ├── tile_palette.gd    # IDPTilePalette: spritesheet palette (pick, solid, tag, make terrain)
 │   ├── analysis_views.gd  # Progress / Issues / Stats tabs
 │   └── ui_util.gd
 └── assets/

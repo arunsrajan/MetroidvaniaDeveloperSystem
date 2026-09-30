@@ -5,7 +5,9 @@ extends Control
 ## tile layers (see [IDPRoomPainter]).
 ##
 ## Left drag paints with the current brush, middle/right drag pans, the wheel zooms.
-## Erase removes decorations and terrain (Shift: background).
+## Erase removes decorations and terrain (Shift: background). With a shape (rectangle,
+## irregular blob, curved side), left drag spans the shape's box and releasing paints it;
+## Esc cancels. Ctrl+Z / Ctrl+Y undo and redo.
 
 signal painted
 signal status_message(text: String)
@@ -16,9 +18,18 @@ var painter: IDPRoomPainter
 var world: IDPWorld
 var room_id := ""
 var tool: int = Tool.TERRAIN
-var terrain_pick := Vector2i(0, 0) ## terrain set, terrain
-var decor_kind := "grass"
+## Fill painted by each tool (see [method IDPRoomPainter.paint_fill]).
+var fills: Dictionary = {
+	Tool.TERRAIN: {"type": "terrain", "set": 0, "terrain": 0},
+	Tool.BACKGROUND: {"type": "kind", "kind": "foliage"},
+	Tool.DECOR: {"type": "kind", "kind": "grass"},
+}
 var brush_size := 2
+var shape: int = IDPTerrainShapes.Shape.BRUSH
+var curve: int = IDPTerrainShapes.CurveType.CONVEX
+var roughness := 0.0 ## 0..1, "Irregular"
+var mirror := false
+var curve_count := 3 ## waves, steps or spikes
 var zoom := 0.5
 var pan := Vector2(20, 20)
 
@@ -32,6 +43,10 @@ var _pan_orig := Vector2.ZERO
 var _last_cell := Vector2i.ZERO
 var _mouse := Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
+var _shape_from := Vector2i.ZERO
+var _shape_to := Vector2i.ZERO
+var _shaping := false
+var _shape_seed := 1
 
 func _init() -> void:
 	clip_contents = true
@@ -158,13 +173,24 @@ func _draw_overlay() -> void:
 		ci.draw_rect(Rect2(p - Vector2(6, 6), Vector2(12, 12)), Color(1, 0.9, 0.3))
 		ci.draw_string_outline(font, p + Vector2(9, -8), g, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 3, Color.BLACK)
 		ci.draw_string(font, p + Vector2(9, -8), g, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 0.9, 0.3))
-	# Brush preview.
-	if get_rect().has_point(_mouse):
-		var color: Color = [Color(0.5, 1, 0.4), Color(0.3, 0.8, 1), Color(1, 0.8, 0.3), Color(1, 0.35, 0.35)][tool]
-		for c in _brush_cells(painter.cell_at("Terrain", screen_to_local(_mouse))):
-			var r := painter.cell_rect("Terrain", c)
-			ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(color, 0.18))
-			ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), color, false, 1.0)
+	# Brush / shape preview.
+	var color: Color = [Color(0.5, 1, 0.4), Color(0.3, 0.8, 1), Color(1, 0.8, 0.3), Color(1, 0.35, 0.35)][tool]
+	if _shaping:
+		_draw_cells(ci, shape_cells(), color)
+		var a := painter.cell_rect("Terrain", Vector2i(mini(_shape_from.x, _shape_to.x), mini(_shape_from.y, _shape_to.y)))
+		var bb := painter.cell_rect("Terrain", Vector2i(maxi(_shape_from.x, _shape_to.x), maxi(_shape_from.y, _shape_to.y)))
+		ci.draw_rect(Rect2(local_to_screen(a.position), (bb.end - a.position) * zoom), color, false, 1.0)
+	elif get_rect().has_point(_mouse):
+		if shape == IDPTerrainShapes.Shape.BRUSH:
+			for c in _brush_cells(painter.cell_at("Terrain", screen_to_local(_mouse))):
+				var r := painter.cell_rect("Terrain", c)
+				ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(color, 0.18))
+				ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), color, false, 1.0)
+		else:
+			var r := painter.cell_rect("Terrain", painter.cell_at("Terrain", screen_to_local(_mouse)))
+			var p := local_to_screen(r.get_center())
+			ci.draw_line(p - Vector2(8, 0), p + Vector2(8, 0), color, 1.0)
+			ci.draw_line(p - Vector2(0, 8), p + Vector2(0, 8), color, 1.0)
 	var title := "%s  (actual view)%s" % [room_id, "  *unsaved" if painter.dirty else ""]
 	ci.draw_rect(Rect2(Vector2(6, 6), font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 14) + Vector2(12, 8)), Color(0, 0, 0, 0.6))
 	ci.draw_string(font, Vector2(12, 23), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
@@ -203,6 +229,42 @@ func _brush_cells(center: Vector2i) -> Array:
 			out.append(center + Vector2i(x, y))
 	return out
 
+## Cells as merged row spans (cheap to draw even for big shapes).
+func _draw_cells(ci: CanvasItem, cells: Array, color: Color) -> void:
+	var rows: Dictionary = {}
+	for c: Vector2i in cells:
+		if not rows.has(c.y):
+			rows[c.y] = []
+		rows[c.y].append(c.x)
+	for y in rows:
+		var xs: Array = rows[y]
+		xs.sort()
+		var start: int = xs[0]
+		var prev: int = xs[0]
+		for i in range(1, xs.size() + 1):
+			if i < xs.size() and xs[i] == prev + 1:
+				prev = xs[i]
+				continue
+			var a := painter.cell_rect("Terrain", Vector2i(start, y))
+			var b := painter.cell_rect("Terrain", Vector2i(prev, y))
+			ci.draw_rect(Rect2(local_to_screen(a.position), (b.end - a.position) * zoom), Color(color, 0.35))
+			if i < xs.size():
+				start = xs[i]
+				prev = xs[i]
+
+## Cells of the shape being dragged.
+func shape_cells() -> Array[Vector2i]:
+	return IDPTerrainShapes.cells(shape, _shape_from, _shape_to, curve, roughness, mirror, _shape_seed, curve_count)
+
+## Paints a shape spanning cells [param a] to [param b] with the current tool (also used
+## by tests).
+func paint_shape(a: Vector2i, b: Vector2i, shift := false) -> void:
+	_shape_from = a
+	_shape_to = b
+	painter.checkpoint()
+	_apply(shape_cells(), shift)
+	_shape_seed += 1
+
 func _paint_line(a: Vector2i, b: Vector2i, shift: bool) -> void:
 	var cells: Dictionary = {}
 	var steps := maxi(absi(b.x - a.x), absi(b.y - a.y))
@@ -210,14 +272,16 @@ func _paint_line(a: Vector2i, b: Vector2i, shift: bool) -> void:
 		var c := Vector2i(Vector2(a).lerp(Vector2(b), float(i) / maxf(1.0, float(steps))).round())
 		for bc in _brush_cells(c):
 			cells[bc] = true
-	var list: Array = cells.keys()
+	_apply(cells.keys(), shift)
+
+func _apply(list: Array, shift: bool) -> void:
 	match tool:
 		Tool.TERRAIN:
-			painter.paint_terrain("Terrain", list, terrain_pick.x, terrain_pick.y)
+			painter.paint_fill("Terrain", list, fills[Tool.TERRAIN], _rng)
 		Tool.BACKGROUND:
-			painter.place_kind("Background", list, "foliage", _rng)
+			painter.paint_fill("Background", list, fills[Tool.BACKGROUND], _rng)
 		Tool.DECOR:
-			painter.place_kind("Decor", list, decor_kind, _rng)
+			painter.paint_fill("Decor", list, fills[Tool.DECOR], _rng)
 		Tool.ERASE:
 			if shift:
 				painter.erase("Background", list)
@@ -247,12 +311,24 @@ func _gui_input(event: InputEvent) -> void:
 			_pan_start = mb.position
 			_pan_orig = pan
 		elif mb.button_index == MOUSE_BUTTON_LEFT:
+			var cell := painter.cell_at("Terrain", screen_to_local(mb.position))
 			if mb.pressed:
 				grab_focus()
-				_painting = true
-				_last_cell = painter.cell_at("Terrain", screen_to_local(mb.position))
-				_paint_line(_last_cell, _last_cell, mb.shift_pressed)
-			else:
+				if shape != IDPTerrainShapes.Shape.BRUSH:
+					_shaping = true
+					_shape_from = cell
+					_shape_to = cell
+				else:
+					painter.checkpoint()
+					_painting = true
+					_last_cell = cell
+					_paint_line(_last_cell, _last_cell, mb.shift_pressed)
+			elif _shaping:
+				_shaping = false
+				_shape_to = cell
+				paint_shape(_shape_from, _shape_to, mb.shift_pressed)
+				status_message.emit("%s shape painted (%d x %d tiles). Ctrl+Z undoes it." % [IDPTerrainShapes.SHAPE_NAMES[shape], absi(_shape_to.x - _shape_from.x) + 1, absi(_shape_to.y - _shape_from.y) + 1])
+			elif _painting:
 				_painting = false
 				status_message.emit("Painted %s. Save writes it into the scene; the map silhouette updates after saving." % room_id)
 		accept_event()
@@ -263,6 +339,8 @@ func _gui_input(event: InputEvent) -> void:
 		if _panning:
 			pan = _pan_orig + (mm.position - _pan_start)
 			_apply_view()
+		elif _shaping:
+			_shape_to = painter.cell_at("Terrain", screen_to_local(mm.position))
 		elif _painting:
 			var cell := painter.cell_at("Terrain", screen_to_local(mm.position))
 			if cell != _last_cell:
@@ -271,7 +349,17 @@ func _gui_input(event: InputEvent) -> void:
 		_overlay.queue_redraw()
 		accept_event()
 	elif event is InputEventKey and event.pressed and not event.echo:
+		var key := event as InputEventKey
+		if key.ctrl_pressed and (key.keycode == KEY_Z or key.keycode == KEY_Y):
+			var redo := key.keycode == KEY_Y or key.shift_pressed
+			if painter.redo() if redo else painter.undo():
+				painted.emit()
+				status_message.emit("Redone." if redo else "Undone.")
+			accept_event()
+			return
 		match event.keycode:
+			KEY_ESCAPE:
+				_shaping = false
 			KEY_BRACKETLEFT:
 				brush_size = maxi(1, brush_size - 1)
 			KEY_BRACKETRIGHT:

@@ -29,9 +29,14 @@ static func menu_button(text: String, tooltip := "") -> MenuButton:
 	m.tooltip_text = tooltip
 	return m
 
+## The editor's display scale (1 outside the editor), for sizes set in code.
+static func editor_scale() -> float:
+	var ei: Object = Engine.get_singleton(&"EditorInterface") if Engine.is_editor_hint() and Engine.has_singleton(&"EditorInterface") else null
+	return ei.get_editor_scale() if ei else 1.0
+
 static func title(text: String, font_size := 15) -> Label:
 	var l := label(text)
-	l.add_theme_font_size_override("font_size", font_size)
+	l.add_theme_font_size_override("font_size", roundi(font_size * editor_scale()))
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return l
 
