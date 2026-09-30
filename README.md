@@ -156,7 +156,7 @@ The map is one view of a room; the **Room view** is the other. It shows the room
   - **Terrain** paints ground and walls on the `Terrain` layer.
   - **Background** paints behind the room.
   - **Decor** places grass, ferns, flowers, mushrooms, vines, stalactites or hanging moss.
-  - **Erase** removes decorations and terrain; Shift+Erase removes background.
+  - **Erase** removes the top tile under the brush: the decoration, else the terrain, else the background, including palette tiles and solid colors. One stroke peels one layer per cell. The list next to the tools can limit it to **Decor only**, **Terrain only** or **Background only**, or clear **All layers**. Shift+Erase removes background only.
   - `[` and `]` change the brush size; the wheel zooms and middle/right drag pans. **Undo**/**Redo** (Ctrl+Z / Ctrl+Y) step through strokes and shapes.
 - **Fill:** the list below the tools (Room painting section) sets what the current brush paints:
   - a **terrain**, autotiled with Godot's terrain system;
@@ -196,7 +196,7 @@ The map is one view of a room; the **Room view** is the other. It shows the room
   - Rooms that already have a TileSet keep it. Its terrains appear in the fill list, and tiles with an `idp_kind` custom data string (`grass`, `vine_top`, `stalactite_small`, `foliage`...) are used by the kind fills and Auto-decorate.
   - Sheets, terrains, tags and colors added from the palette are saved into that TileSet: its `.tres` file, or the scene when the TileSet is embedded in it.
   - Solid colors are one white tile tinted by alternative tiles.
-  - Change the default in the world file's `settings.room_tileset`.
+  - Change the default in **Scenes > World settings > Room tileset** (stored as `settings.room_tileset`), for example to the [Mossgrove asset pack](asset_packs/mossgrove/README.md)'s TileSet.
 
 Only solid tiles (with collision) count as terrain for the map silhouette. Background and decoration layers never do.
 
@@ -224,7 +224,14 @@ Everything saves automatically to the world file. It reloads if the file changes
 
 - **Fit to scene** resizes the room to the scene's terrain (TileMapLayers and static collision).
 - **Import from scene** adds or moves map gates to match the scene's gate nodes. Any node named `left1`, `right2`, `top1`, `bot1` or `door1` counts, as do nodes in the `idp_gate` group and `IDPGate` nodes. Connections can come from `idp_to_room` / `idp_to_gate` node metadata.
-- **Write to scene** adds an `IDPGate` node for every map gate the scene is missing. It never deletes nodes, and refuses to write a scene that's open in an editor tab.
+- **Gate nodes follow the map automatically.** Adding or connecting a gate on the map adds the matching `IDPGate` nodes to the rooms' scenes. That covers the Gate tool, **Add gate**, **Add doors between touching rooms** and **Auto-connect facing gates**. They go under a `Gates` node, at the gate's map position, with a collision shape across the doorway.
+  - A closed scene is saved right away, keeping its UID.
+  - A scene open in an editor tab gets the nodes as an unsaved edit that the scene's own Ctrl+Z undoes; save it as usual.
+  - A plain node already named like the gate becomes an `IDPGate`: an `Area2D` gets the script, and any other `Node2D` is replaced, keeping its name, position and children. Nodes with a script and instanced scenes are left alone.
+  - Nodes that are already there are never moved or deleted.
+  - Undoing the change on the map (or deleting the gate) takes the added nodes back out, as long as the scene hasn't been edited since.
+  - Turn it off in **Scenes > World settings > Auto-add gate nodes**.
+- **Write to scene** does the same on demand. It also moves every gate node to its map position, and refuses a scene that's open in an editor tab.
 - Each gate row has its name, its target, **requires** (abilities or keys), **One-way**, unlink and delete.
 - **Room ID** is the id your game uses (Hollow Knight uses scene names like `Crossroads_01`). Renaming it updates every gate that points to it.
 - Saving a room scene rescans it, so markers, terrain and gate checks stay current.
@@ -245,6 +252,11 @@ It handles:
 
 - **Rooms:** one room scene loaded at a time, placed at its world position, so world coordinates match the map in every room. It starts in `starting_room` (or the world's start room) at `starting_gate`, the room's save point, or its middle. There's an optional fade between rooms.
 - **Transitions:** every `IDPGate` in a loaded room is wired up automatically. Entering one loads the target room and spawns the player just inside the entry gate. A short cooldown stops players bouncing straight back.
+- **Momentum and vertical gates:** the player is held still during the transition and keeps its velocity (`keep_momentum`), so a run or a jump carries into the next room.
+  - Coming up through a hole into the floor of the room above (its `bot` gate), the player gets at least `up_exit_speed` (650 px/s) upward. It clears the hole and can land beside it instead of falling straight back.
+  - Dropping in through a ceiling gate (`top`) never pushes the player upward.
+  - Floor and ceiling gates need a gap in the terrain: the player has to reach the gate's area at the room's edge.
+- **Missing gate nodes:** a gate connected on the map with no `IDPGate` node in its scene prints a warning naming the room and gate.
 - **Seamless rooms** (`seamless_rooms`): walking into a touching room loads it without a gate.
 - **Requirements** (`enforce_requirements`): gates whose map requirements the player lacks emit `transition_blocked(transition, missing)` instead.
 - **Progress:** `grant_ability()` / `has_ability()`, `store_object()` / `is_object_stored()` for collected items and opened walls (`object_id(node)` gives stable ids), visited rooms and the current area.
@@ -412,6 +424,18 @@ During such a run `IDPRuntime.active_request` holds the request (handy for skipp
 - **PNG:** the whole current layer at high resolution
 - **Graphviz `.dot`:** the room graph clustered by area, with gated doors labeled and one-way doors as arrows (`dot -Tsvg map.dot -o map.svg`)
 - **Markdown design document:** summary, progression, bosses, rooms by area, open issues
+
+## Asset pack: Mossgrove
+
+[`asset_packs/mossgrove`](asset_packs/mossgrove/README.md) is a painted-style starter pack for 32 px tiles:
+- **Tiles:** four autotiling terrains (mossy stone, pale shell, dark crystal rock and a background cave wall) and 22 decorations tagged for IDP.
+- **Characters:** a moth-masked hero with 8 animations, a crawler and a lantern moth.
+- **Effects and props:** slash, spark and dust effects, plus props.
+- **Backgrounds:** three 1920 x 1080 parallax layers.
+
+It comes with a ready TileSet, SpriteFrames and a demo scene. Set it as the world's **Room tileset** and IDP's Generate cave and Auto-decorate paint rooms with it. The generator scripts are included, so you can recolor it or regenerate it.
+
+![Mossgrove demo](asset_packs/mossgrove/preview/demo.png)
 
 ## Designing a Hollow Knight-style world
 

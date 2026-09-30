@@ -51,6 +51,13 @@ signal ability_gained(ability: String)
 @export var fade_time := 0.2
 ## Ignores gates briefly after arriving, so the player can't bounce straight back.
 @export var gate_cooldown := 0.35
+## Keep the player's velocity through gates, like Hollow Knight: a run or a jump carries
+## into the next room. Off: the player arrives standing still.
+@export var keep_momentum := true
+## Coming up through a gate in the floor of the next room ("bot" gates), the player gets
+## at least this upward speed (px/s), so it clears the hole and can land beside it instead
+## of falling straight back. 0 = off.
+@export var up_exit_speed := 650.0
 ## Room scenes may contain a player of their own, to test them on their own (F6). It is
 ## removed when the room is loaded into the game, which has the real player.
 @export var remove_room_players := true
@@ -163,6 +170,14 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 		push_error("IDPWorldGame: room '%s' has no scene." % room)
 		return
 	changing_room = true
+	# The player is held still during the transition; its velocity carries over.
+	var carried := Vector2.ZERO
+	var player_mode := Node.PROCESS_MODE_INHERIT
+	if player:
+		if "velocity" in player:
+			carried = player.velocity
+		player_mode = player.process_mode
+		player.process_mode = Node.PROCESS_MODE_DISABLED
 	var style := transition
 	if style < 0:
 		style = room_camera.room_transition if room_camera else (IDPRoomCamera.Transition.FADE if fade_time > 0 else IDPRoomCamera.Transition.CUT)
@@ -199,7 +214,9 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 	if player:
 		player.global_position = _spawn_position(id, entry_gate, world_position)
 		if "velocity" in player:
-			player.velocity = Vector2.ZERO
+			player.velocity = _arrival_velocity(id, entry_gate, carried)
+		player.process_mode = player_mode
+	_warn_missing_gate_nodes(id, path)
 	if room_camera:
 		await room_camera.enter_room(id, style, previous_center)
 	elif camera:
@@ -233,6 +250,32 @@ func _clean_room(room: Node, path: String) -> void:
 		if is_instance_valid(n) and n.is_in_group(&"player") and n != player:
 			n.get_parent().remove_child(n)
 			n.free()
+
+## Velocity on arrival through [param entry_gate]: kept (with keep_momentum), pushed up
+## when coming up through a floor gate, never upwards when dropping in through a ceiling.
+func _arrival_velocity(id: String, entry_gate: String, carried: Vector2) -> Vector2:
+	if entry_gate.is_empty():
+		return Vector2.ZERO
+	var v := carried if keep_momentum else Vector2.ZERO
+	var gate := IDPGate.find_gate(room_node, entry_gate)
+	var side := gate.get_side() if gate else (world.get_gate_side(id, entry_gate) if world.has_gate(id, entry_gate) else "")
+	if side == "bot" and up_exit_speed > 0.0:
+		v.y = minf(v.y, -up_exit_speed)
+	elif side == "top":
+		v.y = maxf(v.y, 0.0)
+	return v
+
+var _warned_gates: Dictionary = {}
+
+## A connected map gate without an IDPGate node in the scene can't be walked through.
+func _warn_missing_gate_nodes(id: String, path: String) -> void:
+	for g in world.get_gates(id):
+		var key := "%s/%s" % [id, g]
+		if _warned_gates.has(key) or world.get_transition(id, g).is_empty():
+			continue
+		if IDPGate.find_gate(room_node, g) == null:
+			_warned_gates[key] = true
+			push_warning("IDPWorldGame: gate '%s' of room '%s' is connected on the map but %s has no IDPGate node for it, so the player can't leave through it. In Map Dev, select the room and press Write to scene (Inspect tab)." % [g, id, path])
 
 func _spawn_position(id: String, entry_gate: String, world_position: Vector2) -> Vector2:
 	if not entry_gate.is_empty():

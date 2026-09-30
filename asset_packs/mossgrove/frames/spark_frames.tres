@@ -1,0 +1,39 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/vfx/spark.png" id="1_50kf8"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_srpo2"]
+atlas = ExtResource("1_50kf8")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1ryur"]
+atlas = ExtResource("1_50kf8")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_awcwi"]
+atlas = ExtResource("1_50kf8")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_deme3"]
+atlas = ExtResource("1_50kf8")
+region = Rect2(192, 0, 64, 64)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_srpo2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1ryur")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_awcwi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_deme3")
+}],
+"loop": 0,
+"name": &"spark",
+"speed": 20.0
+}]

@@ -1,0 +1,39 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/enemies/moth.png" id="1_jmrsc"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_banbw"]
+atlas = ExtResource("1_jmrsc")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kgwtp"]
+atlas = ExtResource("1_jmrsc")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_24pyy"]
+atlas = ExtResource("1_jmrsc")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qj722"]
+atlas = ExtResource("1_jmrsc")
+region = Rect2(192, 0, 64, 64)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_banbw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kgwtp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_24pyy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qj722")
+}],
+"loop": 1,
+"name": &"fly",
+"speed": 10.0
+}]

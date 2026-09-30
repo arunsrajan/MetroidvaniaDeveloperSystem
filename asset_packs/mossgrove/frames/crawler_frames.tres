@@ -1,0 +1,39 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/enemies/crawler.png" id="1_bqxgu"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_du15c"]
+atlas = ExtResource("1_bqxgu")
+region = Rect2(0, 0, 64, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rde17"]
+atlas = ExtResource("1_bqxgu")
+region = Rect2(64, 0, 64, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_y5eoi"]
+atlas = ExtResource("1_bqxgu")
+region = Rect2(128, 0, 64, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3sstk"]
+atlas = ExtResource("1_bqxgu")
+region = Rect2(192, 0, 64, 48)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_du15c")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rde17")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_y5eoi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3sstk")
+}],
+"loop": 1,
+"name": &"walk",
+"speed": 8.0
+}]

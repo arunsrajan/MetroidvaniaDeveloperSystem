@@ -1,0 +1,46 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/vfx/slash.png" id="1_jsrsh"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kb607"]
+atlas = ExtResource("1_jsrsh")
+region = Rect2(0, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wskhy"]
+atlas = ExtResource("1_jsrsh")
+region = Rect2(96, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4ipvl"]
+atlas = ExtResource("1_jsrsh")
+region = Rect2(192, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_t7air"]
+atlas = ExtResource("1_jsrsh")
+region = Rect2(288, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_re080"]
+atlas = ExtResource("1_jsrsh")
+region = Rect2(384, 0, 96, 64)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kb607")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wskhy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4ipvl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_t7air")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_re080")
+}],
+"loop": 0,
+"name": &"slash",
+"speed": 24.0
+}]

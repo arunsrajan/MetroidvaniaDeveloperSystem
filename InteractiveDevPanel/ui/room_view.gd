@@ -53,7 +53,7 @@ func _init() -> void:
 	var tool_grid := IDPSidePanel.grid(controls, 2)
 	var group := ButtonGroup.new()
 	var names := ["Terrain", "Background", "Decor", "Erase"]
-	var tips := ["Paint the Terrain layer (solid ground: autotiled terrain, palette tiles or colors)", "Paint the Background layer (foliage, palette tiles or a solid color)", "Paint the Decor layer (grass, vines, stalactites, palette tiles...)", "Erase decorations and terrain (Shift: background). Works with shapes too, to carve curved caves"]
+	var tips := ["Paint the Terrain layer (solid ground: autotiled terrain, palette tiles or colors)", "Paint the Background layer (foliage, palette tiles or a solid color)", "Paint the Decor layer (grass, vines, stalactites, palette tiles...)", "Erase the top tile under the brush: decoration, else terrain, else background (palette tiles and colors too). Pick one layer or all layers in the list next to it; Shift erases background only. Works with shapes too, to carve curved caves"]
 	for i in names.size():
 		var b := IDPUi.button(names[i], tips[i])
 		b.toggle_mode = true
@@ -220,7 +220,8 @@ func open_room(p_world: IDPWorld, id: String) -> String:
 	var path := world.get_scene_path(id)
 	if path.is_empty():
 		return "%s has no scene." % id
-	var tiles := IDPTilesetFactory.get_or_create(str(world.get_setting("room_tileset", DEFAULT_TILESET)))
+	var tiles_path := str(world.get_setting("room_tileset", ""))
+	var tiles := IDPTilesetFactory.get_or_create(tiles_path if not tiles_path.is_empty() else DEFAULT_TILESET)
 	painter = IDPRoomPainter.open(path, tiles)
 	if not painter:
 		return "Could not open %s." % path
@@ -401,7 +402,17 @@ func _fill_pickers(validate: bool) -> void:
 	_filling = true
 	fill_opt.clear()
 	var erase := canvas.tool == IDPRoomCanvas.Tool.ERASE
-	fill_opt.disabled = erase
+	fill_opt.disabled = false
+	if erase:
+		# The list chooses what Erase removes.
+		for i in IDPRoomCanvas.ERASE_MODE_NAMES.size():
+			fill_opt.add_item(IDPRoomCanvas.ERASE_MODE_NAMES[i], i)
+		fill_opt.select(canvas.erase_mode)
+		fill_opt.tooltip_text = "What Erase removes (Shift: background only)"
+		color_button.visible = false
+		_filling = false
+		return
+	fill_opt.tooltip_text = "What the current tool paints: a terrain (autotiled), random tiles of a kind, the tiles picked in the palette, or a solid color"
 	var current: Dictionary = canvas.fills.get(canvas.tool, {})
 	for c in choices:
 		if c[1]:
@@ -417,7 +428,10 @@ func _fill_pickers(validate: bool) -> void:
 	_filling = false
 
 func _on_fill_selected(idx: int) -> void:
-	if _filling or canvas.tool == IDPRoomCanvas.Tool.ERASE:
+	if _filling:
+		return
+	if canvas.tool == IDPRoomCanvas.Tool.ERASE:
+		canvas.erase_mode = fill_opt.get_item_id(idx)
 		return
 	var f: Dictionary = fill_opt.get_item_metadata(idx)
 	match str(f.type):

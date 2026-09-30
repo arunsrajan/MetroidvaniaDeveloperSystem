@@ -89,6 +89,11 @@ var _selected_area := ""
 var _filling_list := false
 var _export_viewport: SubViewport
 var room_view: IDPRoomView
+## Gate nodes are added to room scenes when gates are added or connected on the map.
+var _gate_state: Dictionary = {} ## room -> {gate: "to|to_gate"} at the last change
+var _gate_rooms: Dictionary = {} ## rooms waiting for their gate nodes
+var _gate_timer: Timer
+var _gate_log: Array = [] ## automatic writes to saved scenes, for undo
 var map_view_button: Button
 var room_view_button: Button
 
@@ -100,6 +105,7 @@ func _ready() -> void:
 	_save_timer = _make_timer(0.5, _save_world)
 	_refresh_timer = _make_timer(0.2, _refresh)
 	_file_timer = _make_timer(1.5, _check_world_file_changed)
+	_gate_timer = _make_timer(0.4, _sync_gate_nodes)
 	_file_timer.one_shot = false
 	_file_timer.start()
 	_refresh_world_list()
@@ -741,6 +747,9 @@ func load_world(p: String) -> void:
 	world_path = p
 	world = IDPWorld.load_world(p)
 	world.changed.connect(_on_world_changed)
+	_gate_state = _gate_signature()
+	_gate_rooms.clear()
+	_gate_log.clear()
 	_last_modified = FileAccess.get_modified_time(p)
 	if ProjectSettings.get_setting(SETTING_WORLD_FILE, "") != p:
 		ProjectSettings.set_setting(SETTING_WORLD_FILE, p)
@@ -780,6 +789,142 @@ func _on_world_changed() -> void:
 	_save_timer.start()
 	_refresh_timer.start()
 	canvas.redraw()
+	_track_gate_changes()
+
+# --- Gate nodes follow the map --------------------------------------------------------------
+
+func _gate_signature() -> Dictionary:
+	var out: Dictionary = {}
+	if not world:
+		return out
+	for id in world.get_room_ids():
+		var gates: Dictionary = {}
+		for g in world.get_gates(id):
+			var gd: Dictionary = world.get_gate(id, g)
+			gates[g] = "%s|%s" % [gd.get("to", ""), gd.get("to_gate", "")]
+		out[id] = gates
+	return out
+
+func auto_gate_nodes_enabled() -> bool:
+	return world != null and bool(world.get_setting("auto_gate_nodes", true))
+
+## Rooms whose gates were added or re-connected get their IDPGate nodes (batched); gates
+## removed again (undo, delete) take back the nodes IDP added, if the scene is unchanged.
+func _track_gate_changes() -> void:
+	var now := _gate_signature()
+	if auto_gate_nodes_enabled():
+		for id in now:
+			var before: Dictionary = _gate_state.get(id, {})
+			for g in now[id]:
+				if not before.has(g) or before[g] != now[id][g]:
+					_gate_rooms[id] = true
+		_take_back_gate_writes(now)
+		if not _gate_rooms.is_empty():
+			_gate_timer.start()
+	_gate_state = now
+
+func _sync_gate_nodes() -> void:
+	if not world or not auto_gate_nodes_enabled():
+		_gate_rooms.clear()
+		return
+	var written: PackedStringArray = []
+	var paths: Array = []
+	for id in _gate_rooms.keys():
+		if not world.has_room(id):
+			continue
+		var path := world.get_scene_path(id)
+		if path.is_empty() or not ResourceLoader.exists(path):
+			continue # no scene yet: Create scene adds its gates
+		var open_root: Node = null
+		for r in EditorInterface.get_open_scene_roots():
+			if r and r.scene_file_path == path:
+				open_root = r
+		var names: PackedStringArray
+		if open_root:
+			names = _ensure_gates_in_open_scene(id, open_root)
+		else:
+			var before := FileAccess.get_file_as_bytes(path)
+			names = IDPWorldSceneTools.ensure_gate_nodes(world, id)
+			if not names.is_empty():
+				_gate_log.append({"room": id, "path": path, "gates": names, "before": before, "after": FileAccess.get_file_as_bytes(path)})
+				if _gate_log.size() > 50:
+					_gate_log.pop_front()
+				EditorInterface.get_resource_filesystem().update_file(path)
+				paths.append(path)
+		for n in names:
+			written.append("%s.%s" % [id, n])
+	_gate_rooms.clear()
+	if not paths.is_empty():
+		_scan_paths(paths)
+	if not written.is_empty():
+		_set_status("Added IDPGate nodes to the scenes: %s. (Turn this off in World settings > Auto-add gate nodes.)" % ", ".join(written))
+
+## Adds the missing gate nodes to a scene open in the editor, as one undoable action in
+## that scene's history (the scene is marked unsaved).
+func _ensure_gates_in_open_scene(id: String, root: Node) -> PackedStringArray:
+	var changes := IDPWorldSceneTools.gate_node_changes(world, id, root)
+	var done: PackedStringArray = []
+	if changes.add.is_empty() and changes.convert.is_empty():
+		return done
+	var ur := EditorInterface.get_editor_undo_redo()
+	ur.create_action("Add IDPGate nodes (%s)" % id, UndoRedo.MERGE_DISABLE, root)
+	var container: Node = root.get_node_or_null(^"Gates")
+	if not container and not changes.add.is_empty():
+		container = Node2D.new()
+		container.name = "Gates"
+		ur.add_do_method(root, "add_child", container, true)
+		ur.add_do_method(container, "set_owner", root)
+		ur.add_do_reference(container)
+		ur.add_undo_method(root, "remove_child", container)
+	for gate_name in changes.add:
+		var gate := IDPWorldSceneTools.new_gate_node(world, id, gate_name)
+		gate.position = IDPWorldSceneTools.gate_position(world, id, gate_name, container, root)
+		ur.add_do_method(container, "add_child", gate, true)
+		ur.add_do_method(gate, "set_owner", root)
+		for c in gate.get_children():
+			ur.add_do_method(c, "set_owner", root)
+		ur.add_do_reference(gate)
+		ur.add_undo_method(container, "remove_child", gate)
+		done.append(gate_name)
+	for node: Node2D in changes.convert:
+		if node is Area2D:
+			ur.add_do_method(node, "set_script", IDPGate)
+			ur.add_undo_method(node, "set_script", null)
+		else:
+			var gate := IDPWorldSceneTools.new_gate_node(world, id, String(node.name))
+			gate.transform = node.transform
+			ur.add_do_method(node, "replace_by", gate, true)
+			ur.add_do_method(gate, "set_owner", root)
+			for c in gate.get_children():
+				ur.add_do_method(c, "set_owner", root)
+			ur.add_do_reference(gate)
+			ur.add_undo_method(gate, "replace_by", node, true)
+			ur.add_undo_reference(node)
+		done.append(String(node.name))
+	ur.commit_action()
+	return done
+
+## When every gate an automatic write added is gone from the map again (undo or delete)
+## and the scene file is still exactly as IDP wrote it, the file is put back.
+func _take_back_gate_writes(now: Dictionary) -> void:
+	for i in range(_gate_log.size() - 1, -1, -1):
+		var e: Dictionary = _gate_log[i]
+		var gates: Dictionary = now.get(e.room, {})
+		var gone := true
+		for g in e.gates:
+			gone = gone and not gates.has(g)
+		if not gone:
+			continue
+		if FileAccess.file_exists(e.path) and FileAccess.get_file_as_bytes(e.path) == e.after and not e.path in EditorInterface.get_open_scenes():
+			var f := FileAccess.open(e.path, FileAccess.WRITE)
+			if f:
+				f.store_buffer(e.before)
+				f.close()
+				ResourceLoader.load(e.path, "", ResourceLoader.CACHE_MODE_REPLACE) # drop the cached copy
+				EditorInterface.get_resource_filesystem().update_file(e.path)
+				_scan_paths([e.path])
+				_set_status("Removed the IDPGate nodes IDP had added to %s." % e.path.get_file())
+		_gate_log.remove_at(i)
 
 func _save_world() -> void:
 	if not world:
@@ -1602,7 +1747,7 @@ func _write_gates_to_scene(id: String) -> void:
 		return
 	EditorInterface.get_resource_filesystem().update_file(p)
 	_scan_paths([p])
-	_set_status("Wrote %d gate(s) to %s" % [n, p.get_file()])
+	_set_status("%s: %d IDPGate node(s), at their map positions." % [p.get_file(), n])
 
 # --- Context menu, play ------------------------------------------------------------------------
 
@@ -1766,6 +1911,16 @@ func _show_settings() -> void:
 	var play_edit := IDPUi.field_line(grid, "Play scene", world.get_setting("play_scene", ""), "auto: game scene hosting the room")
 	play_edit.tooltip_text = "Scene that Play from here boots with the room as its start. Empty: detected automatically."
 	IDPUi.commit_line(play_edit, func(t: String) -> void: world.set_setting("play_scene", t.strip_edges()))
+	grid.add_child(IDPUi.label("Auto-add gate nodes"))
+	var auto_gates := CheckBox.new()
+	auto_gates.text = "When gates are added or connected"
+	auto_gates.button_pressed = auto_gate_nodes_enabled()
+	auto_gates.tooltip_text = "Adding or connecting gates on the map adds the matching IDPGate nodes to the rooms' scenes (and turns plain gate nodes into IDPGates). Open scenes get them as an undoable edit."
+	auto_gates.toggled.connect(func(on: bool) -> void: world.set_setting("auto_gate_nodes", on))
+	grid.add_child(auto_gates)
+	var tiles_edit := IDPUi.field_line(grid, "Room tileset", world.get_setting("room_tileset", ""), "starter mossy cave tileset")
+	tiles_edit.tooltip_text = "TileSet (.tres) the Room view paints new rooms with, e.g. an asset pack's tileset. Rooms that already have tiles keep theirs."
+	IDPUi.commit_line(tiles_edit, func(t: String) -> void: world.set_setting("room_tileset", t.strip_edges()))
 	var warn_edit := IDPUi.field_line(grid, "Save distance warning", str(world.get_setting("save_distance_warn", 4)), "4")
 	IDPUi.commit_line(warn_edit, func(t: String) -> void: world.set_setting("save_distance_warn", maxi(1, t.to_int())))
 	var layers_edit := IDPUi.field_line(grid, "Layer names", ", ".join(world.get_layer_names()), "Main, Dream")

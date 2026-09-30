@@ -5,7 +5,8 @@ extends Control
 ## tile layers (see [IDPRoomPainter]).
 ##
 ## Left drag paints with the current brush, middle/right drag pans, the wheel zooms.
-## Erase removes decorations and terrain (Shift: background). With a shape (rectangle,
+## Erase removes the top tile under the brush (decoration, else terrain, else background),
+## or only one layer's tiles, or all of them ([member erase_mode]; Shift: background only). With a shape (rectangle,
 ## irregular blob, curved side), left drag spans the shape's box and releasing paints it;
 ## Esc cancels. Ctrl+Z / Ctrl+Y undo and redo.
 
@@ -13,6 +14,8 @@ signal painted
 signal status_message(text: String)
 
 enum Tool { TERRAIN, BACKGROUND, DECOR, ERASE }
+enum EraseMode { TOP, DECOR, TERRAIN, BACKGROUND, ALL }
+const ERASE_MODE_NAMES: PackedStringArray = ["Top tile (decor, terrain, then background)", "Decor only", "Terrain only", "Background only", "All layers"]
 
 var painter: IDPRoomPainter
 var world: IDPWorld
@@ -25,6 +28,7 @@ var fills: Dictionary = {
 	Tool.DECOR: {"type": "kind", "kind": "grass"},
 }
 var brush_size := 2
+var erase_mode: int = EraseMode.TOP
 var shape: int = IDPTerrainShapes.Shape.BRUSH
 var curve: int = IDPTerrainShapes.CurveType.CONVEX
 var roughness := 0.0 ## 0..1, "Irregular"
@@ -47,6 +51,7 @@ var _shape_from := Vector2i.ZERO
 var _shape_to := Vector2i.ZERO
 var _shaping := false
 var _shape_seed := 1
+var _stroke_erased: Dictionary = {} ## cells already erased in this stroke (one layer each)
 
 func _init() -> void:
 	clip_contents = true
@@ -261,6 +266,7 @@ func shape_cells() -> Array[Vector2i]:
 func paint_shape(a: Vector2i, b: Vector2i, shift := false) -> void:
 	_shape_from = a
 	_shape_to = b
+	_stroke_erased.clear()
 	painter.checkpoint()
 	_apply(shape_cells(), shift)
 	_shape_seed += 1
@@ -283,20 +289,36 @@ func _apply(list: Array, shift: bool) -> void:
 		Tool.DECOR:
 			painter.paint_fill("Decor", list, fills[Tool.DECOR], _rng)
 		Tool.ERASE:
-			if shift:
-				painter.erase("Background", list)
-			else:
-				var decor: TileMapLayer = painter.layers.Decor
-				var terrain_cells: Array = []
-				for c in list:
-					if decor.get_cell_source_id(c) != -1:
-						decor.erase_cell(c)
-					else:
-						terrain_cells.append(c)
-				if not terrain_cells.is_empty():
-					painter.erase("Terrain", terrain_cells)
-				painter.dirty = true
+			erase_cells(list, EraseMode.BACKGROUND if shift else erase_mode)
 	painted.emit()
+
+## Erases [param cells] as [param mode] says. In one stroke a cell is erased once, so
+## dragging back and forth doesn't dig through every layer.
+func erase_cells(cells: Array, mode: int) -> void:
+	var by_layer := {"Decor": [], "Terrain": [], "Background": []}
+	for c: Vector2i in cells:
+		if _stroke_erased.has(c):
+			continue
+		_stroke_erased[c] = true
+		match mode:
+			EraseMode.TOP:
+				for n in ["Decor", "Terrain", "Background"]:
+					if painter.layers[n].get_cell_source_id(c) != -1:
+						by_layer[n].append(c)
+						break
+			EraseMode.DECOR:
+				by_layer.Decor.append(c)
+			EraseMode.TERRAIN:
+				by_layer.Terrain.append(c)
+			EraseMode.BACKGROUND:
+				by_layer.Background.append(c)
+			EraseMode.ALL:
+				for n in by_layer:
+					by_layer[n].append(c)
+	for n in by_layer:
+		if not by_layer[n].is_empty():
+			painter.erase(n, by_layer[n])
+	painter.dirty = true
 
 func _gui_input(event: InputEvent) -> void:
 	if not painter:
@@ -320,6 +342,7 @@ func _gui_input(event: InputEvent) -> void:
 					_shape_to = cell
 				else:
 					painter.checkpoint()
+					_stroke_erased.clear()
 					_painting = true
 					_last_cell = cell
 					_paint_line(_last_cell, _last_cell, mb.shift_pressed)

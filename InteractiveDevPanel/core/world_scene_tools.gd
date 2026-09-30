@@ -8,6 +8,8 @@ extends RefCounted
 ## - [method create_scene_for_room]: a room drawn on the map becomes a new scene with
 ##   bounds guides and one [IDPGate] per map gate.
 ## - [method import_gates] / [method write_gates]: sync gates in either direction.
+## - [method ensure_gate_nodes]: add the IDPGate nodes a scene lacks (the panel calls it
+##   whenever gates are added or connected on the map).
 ## - [method fit_room_to_scene]: resize the room to the scene's actual content.
 
 const GATE_SIZE_ALONG := 128.0
@@ -99,7 +101,7 @@ static func create_scene_for_room(world: IDPWorld, id: String, scene_path: Strin
 		guide.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bounds.add_child(guide)
 		guide.owner = root
-	_add_missing_gates(world, id, root)
+	apply_gate_nodes(world, id, root)
 	var packed := PackedScene.new()
 	var err := packed.pack(root)
 	root.free()
@@ -111,8 +113,9 @@ static func create_scene_for_room(world: IDPWorld, id: String, scene_path: Strin
 		world.set_room_scene(id, scene_path)
 	return err
 
-## Adds IDPGate nodes for map gates missing from the room's scene and moves existing ones
-## to their map position. Never deletes nodes. Returns the number of gates written.
+## Adds IDPGate nodes for map gates missing from the room's scene, turns plain gate nodes
+## into IDPGates, and moves existing ones to their map position. Never deletes nodes.
+## Returns the number of gates in the scene that match the map, or -1 on error.
 static func write_gates(world: IDPWorld, id: String) -> int:
 	var path := world.get_scene_path(id)
 	if path.is_empty():
@@ -121,12 +124,125 @@ static func write_gates(world: IDPWorld, id: String) -> int:
 	if not packed:
 		return -1
 	var root := packed.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
-	var count := _add_missing_gates(world, id, root)
+	apply_gate_nodes(world, id, root, true)
+	var count := 0
+	var existing: Dictionary = {}
+	_collect_gate_nodes(root, root, existing)
+	for g in world.get_gates(id):
+		if existing.has(g):
+			count += 1
 	packed.pack(root)
 	root.free()
 	if save_keeping_uid(packed, path) != OK:
 		return -1
 	return count
+
+## Adds the IDPGate nodes the room's saved scene lacks (and converts plain gate nodes),
+## without moving anything already there. Saves only when something changed. Returns the
+## gate names added or converted.
+static func ensure_gate_nodes(world: IDPWorld, id: String) -> PackedStringArray:
+	var path := world.get_scene_path(id)
+	var packed: PackedScene = load(path) as PackedScene if not path.is_empty() and ResourceLoader.exists(path) else null
+	if not packed:
+		return PackedStringArray()
+	var root := packed.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
+	var changed := apply_gate_nodes(world, id, root, false)
+	if not changed.is_empty():
+		packed.pack(root)
+		if save_keeping_uid(packed, path) != OK:
+			changed = PackedStringArray()
+	root.free()
+	return changed
+
+## What the scene needs for its map gates: {"add": gate names without a node, "convert":
+## gate nodes of this scene that are plain nodes (no script, not an instanced scene)}.
+static func gate_node_changes(world: IDPWorld, id: String, root: Node) -> Dictionary:
+	var existing: Dictionary = {}
+	_collect_gate_nodes(root, root, existing)
+	var add: PackedStringArray = []
+	var convert: Array[Node2D] = []
+	for gate_name in world.get_gates(id):
+		if not existing.has(gate_name):
+			add.append(gate_name)
+			continue
+		var node: Node2D = existing[gate_name]
+		if not node is IDPGate and node.get_script() == null and node.scene_file_path.is_empty() and node.owner == root:
+			convert.append(node)
+	return {"add": add, "convert": convert}
+
+## A new IDPGate for a map gate, with a collision shape across the doorway (the shape is
+## not owned yet).
+static func new_gate_node(world: IDPWorld, id: String, gate_name: String) -> IDPGate:
+	var gate := IDPGate.new()
+	gate.name = gate_name
+	gate.collision_layer = 0
+	var shape := CollisionShape2D.new()
+	shape.name = "Shape"
+	var rect := RectangleShape2D.new()
+	var side := world.get_gate_side(id, gate_name)
+	rect.size = Vector2(GATE_SIZE_ACROSS, GATE_SIZE_ALONG) if side in ["left", "right"] else Vector2(GATE_SIZE_ALONG, GATE_SIZE_ACROSS)
+	shape.shape = rect
+	gate.add_child(shape)
+	return gate
+
+## Position for a gate node under [param parent] so it sits at the map gate.
+static func gate_position(world: IDPWorld, id: String, gate_name: String, parent: Node, root: Node) -> Vector2:
+	return _local_transform(parent, root).affine_inverse() * world.get_gate_local_pos(id, gate_name)
+
+## Converts a plain gate node into an IDPGate: an Area2D gets the IDPGate script, any
+## other Node2D is replaced by a new IDPGate keeping its name, transform and children.
+static func convert_gate_node(world: IDPWorld, id: String, node: Node2D, root: Node) -> Node2D:
+	if node is Area2D:
+		node.set_script(IDPGate)
+		if node.find_children("*", "CollisionShape2D", false, false).is_empty() and node.find_children("*", "CollisionPolygon2D", false, false).is_empty():
+			var tmp := new_gate_node(world, id, String(node.name))
+			var shape: Node = tmp.get_child(0)
+			tmp.remove_child(shape)
+			tmp.free()
+			node.add_child(shape)
+			shape.owner = root
+		return node
+	var gate := new_gate_node(world, id, String(node.name))
+	gate.transform = node.transform
+	node.replace_by(gate, true)
+	gate.owner = root
+	for c in gate.get_children():
+		if not c.owner:
+			c.owner = root
+	node.free()
+	return gate
+
+## Adds and converts gate nodes on a scene instance. With [param move_existing], gates
+## already in the scene move to their map position. Returns the gate names added or
+## converted.
+static func apply_gate_nodes(world: IDPWorld, id: String, root: Node, move_existing := false) -> PackedStringArray:
+	var changes := gate_node_changes(world, id, root)
+	var done: PackedStringArray = []
+	for node: Node2D in changes.convert:
+		done.append(String(node.name))
+		convert_gate_node(world, id, node, root)
+	var container: Node = root.get_node_or_null(^"Gates")
+	for gate_name in changes.add:
+		if not container:
+			container = Node2D.new()
+			container.name = "Gates"
+			root.add_child(container)
+			container.owner = root
+		var gate := new_gate_node(world, id, gate_name)
+		gate.position = gate_position(world, id, gate_name, container, root)
+		container.add_child(gate)
+		gate.owner = root
+		for c in gate.get_children():
+			c.owner = root
+		done.append(gate_name)
+	if move_existing:
+		var existing: Dictionary = {}
+		_collect_gate_nodes(root, root, existing)
+		for gate_name in world.get_gates(id):
+			if existing.has(gate_name) and not gate_name in changes.add:
+				var node: Node2D = existing[gate_name]
+				node.position = gate_position(world, id, gate_name, node.get_parent(), root)
+	return done
 
 ## Re-saves an existing scene without changing its UID. Maps (MetSys and worlds) point at
 ## rooms by UID, and some Godot versions drop it when a scene is re-saved from a script.
@@ -136,42 +252,6 @@ static func save_keeping_uid(packed: PackedScene, path: String) -> Error:
 	if err == OK and uid != ResourceUID.INVALID_ID:
 		err = ResourceSaver.set_uid(path, uid)
 	return err
-
-static func _add_missing_gates(world: IDPWorld, id: String, root: Node) -> int:
-	var existing: Dictionary = {}
-	_collect_gate_nodes(root, root, existing)
-	var container: Node = root.get_node_or_null(^"Gates")
-	var count := 0
-	var gates := world.get_gates(id)
-	for gate_name in gates:
-		var local := world.get_gate_local_pos(id, gate_name)
-		if existing.has(gate_name):
-			var node: Node2D = existing[gate_name]
-			var parent_xform := _local_transform(node.get_parent(), root)
-			node.position = parent_xform.affine_inverse() * local
-			count += 1
-			continue
-		if not container:
-			container = Node2D.new()
-			container.name = "Gates"
-			root.add_child(container)
-			container.owner = root
-		var gate := IDPGate.new()
-		gate.name = gate_name
-		gate.position = local
-		gate.collision_layer = 0
-		var shape := CollisionShape2D.new()
-		shape.name = "Shape"
-		var rect := RectangleShape2D.new()
-		var side := world.get_gate_side(id, gate_name)
-		rect.size = Vector2(GATE_SIZE_ACROSS, GATE_SIZE_ALONG) if side in ["left", "right"] else Vector2(GATE_SIZE_ALONG, GATE_SIZE_ACROSS)
-		shape.shape = rect
-		container.add_child(gate)
-		gate.owner = root
-		gate.add_child(shape)
-		shape.owner = root
-		count += 1
-	return count
 
 ## Creates a ready-to-run game scene for the world: an IDPWorldGame root, a placeholder
 ## player (CharacterBody2D in the "player" group) with a following camera, and an in-game

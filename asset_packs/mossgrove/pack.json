@@ -1,0 +1,725 @@
+{
+  "name": "Mossgrove",
+  "tile_size": 32,
+  "terrains": [
+    {
+      "name": "Mossy stone",
+      "column": 0,
+      "solid": true,
+      "layout": "4x4 sides (index = 1 right + 2 bottom + 4 left + 8 top) + fill variants in column 4"
+    },
+    {
+      "name": "Pale shell",
+      "column": 5,
+      "solid": true,
+      "layout": "4x4 sides (index = 1 right + 2 bottom + 4 left + 8 top) + fill variants in column 4"
+    },
+    {
+      "name": "Deep rock",
+      "column": 10,
+      "solid": true,
+      "layout": "4x4 sides (index = 1 right + 2 bottom + 4 left + 8 top) + fill variants in column 4"
+    },
+    {
+      "name": "Cave wall",
+      "column": 15,
+      "solid": false,
+      "layout": "4x4 sides (index = 1 right + 2 bottom + 4 left + 8 top) + fill variants in column 4"
+    }
+  ],
+  "decor": [
+    {
+      "kind": "grass",
+      "coords": [
+        0,
+        0
+      ]
+    },
+    {
+      "kind": "grass",
+      "coords": [
+        1,
+        0
+      ]
+    },
+    {
+      "kind": "grass",
+      "coords": [
+        2,
+        0
+      ]
+    },
+    {
+      "kind": "fern",
+      "coords": [
+        3,
+        0
+      ]
+    },
+    {
+      "kind": "fern",
+      "coords": [
+        4,
+        0
+      ]
+    },
+    {
+      "kind": "flower",
+      "coords": [
+        5,
+        0
+      ]
+    },
+    {
+      "kind": "flower",
+      "coords": [
+        6,
+        0
+      ]
+    },
+    {
+      "kind": "mushroom",
+      "coords": [
+        7,
+        0
+      ]
+    },
+    {
+      "kind": "mushroom",
+      "coords": [
+        0,
+        1
+      ]
+    },
+    {
+      "kind": "hanging_moss",
+      "coords": [
+        1,
+        1
+      ]
+    },
+    {
+      "kind": "hanging_moss",
+      "coords": [
+        2,
+        1
+      ]
+    },
+    {
+      "kind": "vine_top",
+      "coords": [
+        3,
+        1
+      ]
+    },
+    {
+      "kind": "vine_mid",
+      "coords": [
+        4,
+        1
+      ]
+    },
+    {
+      "kind": "vine_mid",
+      "coords": [
+        5,
+        1
+      ]
+    },
+    {
+      "kind": "vine_end",
+      "coords": [
+        6,
+        1
+      ]
+    },
+    {
+      "kind": "stalactite_small",
+      "coords": [
+        7,
+        1
+      ]
+    },
+    {
+      "kind": "stalactite_small",
+      "coords": [
+        0,
+        2
+      ]
+    },
+    {
+      "kind": "stalactite_large",
+      "coords": [
+        1,
+        2
+      ]
+    },
+    {
+      "kind": "foliage",
+      "coords": [
+        2,
+        2
+      ]
+    },
+    {
+      "kind": "foliage",
+      "coords": [
+        3,
+        2
+      ]
+    },
+    {
+      "kind": "foliage",
+      "coords": [
+        4,
+        2
+      ]
+    },
+    {
+      "kind": "foliage",
+      "coords": [
+        5,
+        2
+      ]
+    }
+  ],
+  "sprites": {
+    "player": {
+      "texture": "characters/player.png",
+      "frame_size": [
+        64,
+        64
+      ],
+      "origin": [
+        30,
+        60
+      ],
+      "animations": {
+        "idle": {
+          "fps": 8,
+          "loop": true,
+          "frames": [
+            [
+              0,
+              0,
+              64,
+              64
+            ],
+            [
+              64,
+              0,
+              64,
+              64
+            ],
+            [
+              128,
+              0,
+              64,
+              64
+            ],
+            [
+              192,
+              0,
+              64,
+              64
+            ],
+            [
+              256,
+              0,
+              64,
+              64
+            ],
+            [
+              320,
+              0,
+              64,
+              64
+            ]
+          ]
+        },
+        "run": {
+          "fps": 12,
+          "loop": true,
+          "frames": [
+            [
+              0,
+              64,
+              64,
+              64
+            ],
+            [
+              64,
+              64,
+              64,
+              64
+            ],
+            [
+              128,
+              64,
+              64,
+              64
+            ],
+            [
+              192,
+              64,
+              64,
+              64
+            ],
+            [
+              256,
+              64,
+              64,
+              64
+            ],
+            [
+              320,
+              64,
+              64,
+              64
+            ],
+            [
+              384,
+              64,
+              64,
+              64
+            ],
+            [
+              448,
+              64,
+              64,
+              64
+            ]
+          ]
+        },
+        "jump": {
+          "fps": 10,
+          "loop": false,
+          "frames": [
+            [
+              0,
+              128,
+              64,
+              64
+            ],
+            [
+              64,
+              128,
+              64,
+              64
+            ],
+            [
+              128,
+              128,
+              64,
+              64
+            ]
+          ]
+        },
+        "fall": {
+          "fps": 10,
+          "loop": true,
+          "frames": [
+            [
+              0,
+              192,
+              64,
+              64
+            ],
+            [
+              64,
+              192,
+              64,
+              64
+            ],
+            [
+              128,
+              192,
+              64,
+              64
+            ]
+          ]
+        },
+        "dash": {
+          "fps": 16,
+          "loop": false,
+          "frames": [
+            [
+              0,
+              256,
+              64,
+              64
+            ],
+            [
+              64,
+              256,
+              64,
+              64
+            ],
+            [
+              128,
+              256,
+              64,
+              64
+            ],
+            [
+              192,
+              256,
+              64,
+              64
+            ]
+          ]
+        },
+        "attack": {
+          "fps": 18,
+          "loop": false,
+          "frames": [
+            [
+              0,
+              320,
+              64,
+              64
+            ],
+            [
+              64,
+              320,
+              64,
+              64
+            ],
+            [
+              128,
+              320,
+              64,
+              64
+            ],
+            [
+              192,
+              320,
+              64,
+              64
+            ],
+            [
+              256,
+              320,
+              64,
+              64
+            ]
+          ]
+        },
+        "hurt": {
+          "fps": 10,
+          "loop": false,
+          "frames": [
+            [
+              0,
+              384,
+              64,
+              64
+            ],
+            [
+              64,
+              384,
+              64,
+              64
+            ]
+          ]
+        },
+        "wall_slide": {
+          "fps": 6,
+          "loop": true,
+          "frames": [
+            [
+              0,
+              448,
+              64,
+              64
+            ],
+            [
+              64,
+              448,
+              64,
+              64
+            ]
+          ]
+        }
+      }
+    },
+    "crawler": {
+      "texture": "enemies/crawler.png",
+      "frame_size": [
+        64,
+        48
+      ],
+      "origin": [
+        32,
+        44
+      ],
+      "animations": {
+        "walk": {
+          "fps": 8,
+          "loop": true,
+          "frames": [
+            [
+              0,
+              0,
+              64,
+              48
+            ],
+            [
+              64,
+              0,
+              64,
+              48
+            ],
+            [
+              128,
+              0,
+              64,
+              48
+            ],
+            [
+              192,
+              0,
+              64,
+              48
+            ]
+          ]
+        }
+      }
+    },
+    "moth": {
+      "texture": "enemies/moth.png",
+      "frame_size": [
+        64,
+        64
+      ],
+      "origin": [
+        32,
+        36
+      ],
+      "animations": {
+        "fly": {
+          "fps": 10,
+          "loop": true,
+          "frames": [
+            [
+              0,
+              0,
+              64,
+              64
+            ],
+            [
+              64,
+              0,
+              64,
+              64
+            ],
+            [
+              128,
+              0,
+              64,
+              64
+            ],
+            [
+              192,
+              0,
+              64,
+              64
+            ]
+          ]
+        }
+      }
+    },
+    "slash": {
+      "texture": "vfx/slash.png",
+      "frame_size": [
+        96,
+        64
+      ],
+      "origin": [
+        48,
+        32
+      ],
+      "animations": {
+        "slash": {
+          "fps": 24,
+          "loop": false,
+          "frames": [
+            [
+              0,
+              0,
+              96,
+              64
+            ],
+            [
+              96,
+              0,
+              96,
+              64
+            ],
+            [
+              192,
+              0,
+              96,
+              64
+            ],
+            [
+              288,
+              0,
+              96,
+              64
+            ],
+            [
+              384,
+              0,
+              96,
+              64
+            ]
+          ]
+        }
+      }
+    },
+    "spark": {
+      "texture": "vfx/spark.png",
+      "frame_size": [
+        64,
+        64
+      ],
+      "origin": [
+        32,
+        32
+      ],
+      "animations": {
+        "spark": {
+          "fps": 20,
+          "loop": false,
+          "frames": [
+            [
+              0,
+              0,
+              64,
+              64
+            ],
+            [
+              64,
+              0,
+              64,
+              64
+            ],
+            [
+              128,
+              0,
+              64,
+              64
+            ],
+            [
+              192,
+              0,
+              64,
+              64
+            ]
+          ]
+        }
+      }
+    },
+    "dust": {
+      "texture": "vfx/dust.png",
+      "frame_size": [
+        48,
+        32
+      ],
+      "origin": [
+        24,
+        16
+      ],
+      "animations": {
+        "dust": {
+          "fps": 14,
+          "loop": false,
+          "frames": [
+            [
+              0,
+              0,
+              48,
+              32
+            ],
+            [
+              48,
+              0,
+              48,
+              32
+            ],
+            [
+              96,
+              0,
+              48,
+              32
+            ],
+            [
+              144,
+              0,
+              48,
+              32
+            ],
+            [
+              192,
+              0,
+              48,
+              32
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "props": {
+    "bench": {
+      "texture": "props/bench.png",
+      "size": [
+        96,
+        48
+      ]
+    },
+    "lamp": {
+      "texture": "props/lamp.png",
+      "size": [
+        64,
+        96
+      ]
+    },
+    "sign": {
+      "texture": "props/sign.png",
+      "size": [
+        48,
+        64
+      ]
+    },
+    "shell_pile": {
+      "texture": "props/shell_pile.png",
+      "size": [
+        64,
+        32
+      ]
+    },
+    "breakable_wall": {
+      "texture": "props/breakable_wall.png",
+      "size": [
+        64,
+        96
+      ]
+    }
+  },
+  "parallax": [
+    {
+      "texture": "backgrounds/parallax_far.png",
+      "scroll_scale": 0.2
+    },
+    {
+      "texture": "backgrounds/parallax_mid.png",
+      "scroll_scale": 0.5
+    },
+    {
+      "texture": "backgrounds/parallax_near.png",
+      "scroll_scale": 1.3
+    }
+  ]
+}

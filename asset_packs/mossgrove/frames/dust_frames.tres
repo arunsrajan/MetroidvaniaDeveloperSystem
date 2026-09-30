@@ -1,0 +1,46 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/vfx/dust.png" id="1_nts77"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ku7ui"]
+atlas = ExtResource("1_nts77")
+region = Rect2(0, 0, 48, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cxh0q"]
+atlas = ExtResource("1_nts77")
+region = Rect2(48, 0, 48, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1jalj"]
+atlas = ExtResource("1_nts77")
+region = Rect2(96, 0, 48, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bqerk"]
+atlas = ExtResource("1_nts77")
+region = Rect2(144, 0, 48, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4t1w3"]
+atlas = ExtResource("1_nts77")
+region = Rect2(192, 0, 48, 32)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ku7ui")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cxh0q")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1jalj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bqerk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4t1w3")
+}],
+"loop": 0,
+"name": &"dust",
+"speed": 14.0
+}]
