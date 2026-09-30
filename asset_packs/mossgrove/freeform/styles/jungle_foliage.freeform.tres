@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="IDPFreeformStyle" format=3]
+
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/fill_foliage.png" id="1_kcmyx"]
+[ext_resource type="Script" path="res://addons/InteractiveDevPanel/nodes/idp_freeform_style.gd" id="2_0gum3"]
+[ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/mossgrove.stamps.tres" id="3_jik3u"]
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_foliage.png" id="4_ist8t"]
+
+[resource]
+script = ExtResource("2_0gum3")
+display_name = "Jungle foliage (background)"
+fill_texture = ExtResource("1_kcmyx")
+outline_width = 0.0
+top_texture = ExtResource("4_ist8t")
+top_width = 56.0
+top_inset = 8.0
+top_angle = 80.0
+stamp_set = ExtResource("3_jik3u")
+top_clumps = "bubble_bg"
+clump_spacing = 150.0
+solid = false
+default_layer = "back"

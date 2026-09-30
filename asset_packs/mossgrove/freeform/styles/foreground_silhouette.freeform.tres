@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="IDPFreeformStyle" format=3]
+
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/fill_silhouette.png" id="1_6nauc"]
+[ext_resource type="Script" path="res://addons/InteractiveDevPanel/nodes/idp_freeform_style.gd" id="2_shopo"]
+[ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/mossgrove.stamps.tres" id="3_3ct14"]
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_silhouette.png" id="4_a7yl4"]
+
+[resource]
+script = ExtResource("2_shopo")
+display_name = "Foreground silhouette"
+fill_texture = ExtResource("1_6nauc")
+outline_width = 0.0
+top_texture = ExtResource("4_a7yl4")
+top_width = 48.0
+top_inset = 4.0
+top_angle = 89.0
+stamp_set = ExtResource("3_3ct14")
+top_clumps = "silhouette"
+clump_spacing = 130.0
+clump_scale = Vector2(0.8, 1.3)
+solid = false
+default_layer = "front"

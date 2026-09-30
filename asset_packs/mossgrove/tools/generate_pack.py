@@ -19,6 +19,7 @@ import terrain  # noqa: E402
 import decor  # noqa: E402
 import characters as ch  # noqa: E402
 import scenery  # noqa: E402
+import freeform_art  # noqa: E402
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -67,6 +68,19 @@ def main():
         save(down(fn()), out("props", name + ".png"))
         pack["props"][name] = {"texture": "props/%s.png" % name, "size": [w, h]}
     print("props", round(time.time() - t0, 1))
+
+    ff = {"fills": {}, "edges": {}, "clumps": {}}
+    for name, fn in freeform_art.FILLS.items():
+        save(down(fn()), out("freeform", "fill_%s.png" % name))
+        ff["fills"][name] = "freeform/fill_%s.png" % name
+    for name, fn in freeform_art.EDGES.items():
+        save(down(fn()), out("freeform", "edge_%s.png" % name))
+        ff["edges"][name] = "freeform/edge_%s.png" % name
+    img, table = freeform_art.clumps_atlas()
+    save(down(img), out("freeform", "clumps.png"))
+    ff["clumps"] = {"texture": "freeform/clumps.png", "items": table}
+    pack["freeform"] = ff
+    print("freeform art", round(time.time() - t0, 1))
 
     for name, fn, scroll in (("far", scenery.far_layer, 0.2), ("mid", scenery.mid_layer, 0.5), ("near", scenery.near_layer, 1.3)):
         save(fn(), out("backgrounds", "parallax_%s.png" % name))

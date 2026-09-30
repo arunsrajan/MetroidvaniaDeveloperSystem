@@ -4,6 +4,8 @@ extends SceneTree
 ##   mossgrove_tileset.tres   terrains (autotiling, collision) + decorations (idp_kind tags)
 ##   frames/*.tres            SpriteFrames for the player, enemies and effects
 ##   demo/mossgrove_demo.tscn a small level with parallax, the player, enemies and props
+##   freeform/*.freeform.tres  styles for IDP's freeform terrain (needs the IDP addon)
+##   freeform/mossgrove.stamps.tres  clumps for IDP's Stamps tool and the styles' edges
 ##
 ## Run from the project folder (after the editor has imported the PNGs):
 ##   godot --headless --script res://asset_packs/mossgrove/tools/build_resources.gd
@@ -19,6 +21,8 @@ func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(root_dir.path_join("frames"))
 	for sprite_name in pack.sprites:
 		ResourceSaver.save(build_frames(pack.sprites[sprite_name]), root_dir.path_join("frames/%s_frames.tres" % sprite_name))
+	if pack.has("freeform") and _has_class("IDPFreeformStyle"):
+		build_freeform()
 	DirAccess.make_dir_recursive_absolute(root_dir.path_join("demo"))
 	var demo := build_demo(load(root_dir.path_join("mossgrove_tileset.tres")))
 	var packed := PackedScene.new()
@@ -27,6 +31,64 @@ func _init() -> void:
 	demo.free()
 	print("Mossgrove resources built in ", root_dir)
 	quit()
+
+func _has_class(n: String) -> bool:
+	for c in ProjectSettings.get_global_class_list():
+		if c.class == n:
+			return true
+	return false
+
+# --- Freeform styles and stamps (IDP) ----------------------------------------------------------
+
+func build_freeform() -> void:
+	var ff: Dictionary = pack.freeform
+	var stamps: Resource = load("res://addons/InteractiveDevPanel/nodes/idp_stamp_set.gd").new()
+	stamps.display_name = "Mossgrove clumps"
+	stamps.texture = tex(ff.clumps.texture)
+	var regions: Array[Rect2] = []
+	var cats := PackedStringArray()
+	var anchors := PackedVector2Array()
+	for it in ff.clumps.items:
+		regions.append(Rect2(it.region[0], it.region[1], it.region[2], it.region[3]))
+		cats.append(it.category)
+		anchors.append(Vector2(it.anchor[0], it.anchor[1]))
+	stamps.regions = regions
+	stamps.categories = cats
+	stamps.anchors = anchors
+	ResourceSaver.save(stamps, root_dir.path_join("freeform/mossgrove.stamps.tres"))
+	stamps = load(root_dir.path_join("freeform/mossgrove.stamps.tres"))
+	var style_script: Script = load("res://addons/InteractiveDevPanel/nodes/idp_freeform_style.gd")
+	var specs := {
+		"mossy_rock": {"display_name": "Mossy rock", "fill": "rock", "outline_color": Color("#080b10"), "outline_width": 3.0,
+			"top": "moss", "top_width": 58.0, "top_inset": 4.0, "top_angle": 78.0, "bottom": "under", "bottom_width": 40.0, "bottom_inset": 2.0,
+			"top_clumps": "moss", "bottom_clumps": "hanging", "clump_spacing": 85.0, "clump_scale": Vector2(0.5, 0.95)},
+		"pale_shell": {"display_name": "Pale shell", "fill": "shell", "outline_color": Color("#221e2a"), "outline_width": 3.0,
+			"top": "shell", "top_width": 26.0, "top_inset": 3.0, "bottom": "under", "bottom_width": 34.0, "bottom_inset": 2.0},
+		"deep_crystal": {"display_name": "Deep crystal rock", "fill": "deep", "outline_color": Color("#030409"), "outline_width": 3.0,
+			"top": "crystal", "top_width": 40.0, "top_inset": 4.0, "bottom": "under", "bottom_width": 34.0, "bottom_inset": 2.0},
+		"jungle_foliage": {"display_name": "Jungle foliage (background)", "fill": "foliage", "outline_width": 0.0,
+			"top": "foliage", "top_width": 56.0, "top_inset": 8.0, "top_angle": 80.0, "solid": false, "default_layer": "back",
+			"top_clumps": "bubble_bg", "clump_spacing": 150.0, "clump_scale": Vector2(0.7, 1.1)},
+		"foreground_silhouette": {"display_name": "Foreground silhouette", "fill": "silhouette", "outline_width": 0.0,
+			"top": "silhouette", "top_width": 48.0, "top_inset": 4.0, "top_angle": 89.0, "solid": false, "default_layer": "front",
+			"top_clumps": "silhouette", "clump_spacing": 130.0, "clump_scale": Vector2(0.8, 1.3)},
+	}
+	DirAccess.make_dir_recursive_absolute(root_dir.path_join("freeform/styles"))
+	for key in specs:
+		var sp: Dictionary = specs[key]
+		var st: Resource = style_script.new()
+		st.display_name = sp.display_name
+		st.fill_texture = tex(ff.fills[sp.fill])
+		for k in ["outline_color", "outline_width", "top_width", "top_inset", "top_angle", "bottom_width", "bottom_inset", "top_clumps", "bottom_clumps", "clump_spacing", "clump_scale", "solid", "default_layer"]:
+			if sp.has(k):
+				st.set(k, sp[k])
+		if sp.has("top"):
+			st.top_texture = tex(ff.edges[sp.top])
+		if sp.has("bottom"):
+			st.bottom_texture = tex(ff.edges[sp.bottom])
+		if sp.has("top_clumps") or sp.has("bottom_clumps"):
+			st.stamp_set = stamps
+		ResourceSaver.save(st, root_dir.path_join("freeform/styles/%s.freeform.tres" % key))
 
 func tex(path: String) -> Texture2D:
 	return load(root_dir.path_join(path))

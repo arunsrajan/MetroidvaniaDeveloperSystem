@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="IDPFreeformStyle" format=3]
+
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_under.png" id="1_gxh51"]
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/fill_deep.png" id="2_x65px"]
+[ext_resource type="Script" path="res://addons/InteractiveDevPanel/nodes/idp_freeform_style.gd" id="3_1v1vl"]
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_crystal.png" id="4_2gqg7"]
+
+[resource]
+script = ExtResource("3_1v1vl")
+display_name = "Deep crystal rock"
+fill_texture = ExtResource("2_x65px")
+outline_color = Color(0.011764706, 0.015686275, 0.03529412, 1)
+top_texture = ExtResource("4_2gqg7")
+top_width = 40.0
+top_inset = 4.0
+bottom_texture = ExtResource("1_gxh51")
+bottom_width = 34.0
+bottom_inset = 2.0

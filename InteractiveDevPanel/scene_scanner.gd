@@ -322,6 +322,10 @@ func _collect_solids(node: Node, root: Node, solids: Array[Rect2], polygons: Arr
 		if tile_set:
 			for i in node.call("get_layers_count"):
 				_add_tile_rects(node, node.call("get_used_cells", i), tile_set.tile_size, _local_transform(node, root), solids)
+	elif node is IDPFreeform:
+		# Freeform terrain builds its collision at runtime: use its outline.
+		if node.solid and node.points.size() >= 3:
+			polygons.append(_local_transform(node, root) * node.get_outline())
 	elif node is CollisionShape2D and node.get_parent() is StaticBody2D:
 		var shape := (node as CollisionShape2D).shape
 		if shape is RectangleShape2D and not (node as CollisionShape2D).disabled:

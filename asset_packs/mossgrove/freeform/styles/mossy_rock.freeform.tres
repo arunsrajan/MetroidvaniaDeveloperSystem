@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="IDPFreeformStyle" format=3]
+
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_under.png" id="1_g0vwh"]
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/fill_rock.png" id="2_p5yky"]
+[ext_resource type="Script" path="res://addons/InteractiveDevPanel/nodes/idp_freeform_style.gd" id="3_ki8e7"]
+[ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/mossgrove.stamps.tres" id="4_4iuvv"]
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_moss.png" id="5_ab8kr"]
+
+[resource]
+script = ExtResource("3_ki8e7")
+display_name = "Mossy rock"
+fill_texture = ExtResource("2_p5yky")
+top_texture = ExtResource("5_ab8kr")
+top_width = 58.0
+top_inset = 4.0
+top_angle = 78.0
+bottom_texture = ExtResource("1_g0vwh")
+bottom_width = 40.0
+bottom_inset = 2.0
+stamp_set = ExtResource("4_4iuvv")
+top_clumps = "moss"
+bottom_clumps = "hanging"
+clump_spacing = 85.0
+clump_scale = Vector2(0.5, 0.95)

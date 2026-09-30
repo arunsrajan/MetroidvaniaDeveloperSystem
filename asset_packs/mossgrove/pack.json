@@ -721,5 +721,313 @@
       "texture": "backgrounds/parallax_near.png",
       "scroll_scale": 1.3
     }
-  ]
+  ],
+  "freeform": {
+    "fills": {
+      "rock": "freeform/fill_rock.png",
+      "shell": "freeform/fill_shell.png",
+      "deep": "freeform/fill_deep.png",
+      "foliage": "freeform/fill_foliage.png",
+      "silhouette": "freeform/fill_silhouette.png"
+    },
+    "edges": {
+      "moss": "freeform/edge_moss.png",
+      "under": "freeform/edge_under.png",
+      "shell": "freeform/edge_shell.png",
+      "crystal": "freeform/edge_crystal.png",
+      "foliage": "freeform/edge_foliage.png",
+      "silhouette": "freeform/edge_silhouette.png"
+    },
+    "clumps": {
+      "texture": "freeform/clumps.png",
+      "items": [
+        {
+          "category": "moss",
+          "region": [
+            0,
+            0,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.95
+          ]
+        },
+        {
+          "category": "moss",
+          "region": [
+            128,
+            0,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.95
+          ]
+        },
+        {
+          "category": "moss",
+          "region": [
+            256,
+            0,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.95
+          ]
+        },
+        {
+          "category": "moss",
+          "region": [
+            384,
+            0,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.95
+          ]
+        },
+        {
+          "category": "moss",
+          "region": [
+            512,
+            0,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.95
+          ]
+        },
+        {
+          "category": "moss",
+          "region": [
+            640,
+            0,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.95
+          ]
+        },
+        {
+          "category": "leaf",
+          "region": [
+            768,
+            0,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.97
+          ]
+        },
+        {
+          "category": "leaf",
+          "region": [
+            896,
+            0,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.97
+          ]
+        },
+        {
+          "category": "leaf",
+          "region": [
+            0,
+            128,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.97
+          ]
+        },
+        {
+          "category": "fern",
+          "region": [
+            128,
+            128,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.98
+          ]
+        },
+        {
+          "category": "fern",
+          "region": [
+            256,
+            128,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.98
+          ]
+        },
+        {
+          "category": "hanging",
+          "region": [
+            384,
+            128,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.02
+          ]
+        },
+        {
+          "category": "hanging",
+          "region": [
+            512,
+            128,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.02
+          ]
+        },
+        {
+          "category": "hanging",
+          "region": [
+            640,
+            128,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.02
+          ]
+        },
+        {
+          "category": "bubble_bg",
+          "region": [
+            768,
+            128,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "category": "bubble_bg",
+          "region": [
+            896,
+            128,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "category": "bubble_bg",
+          "region": [
+            0,
+            256,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "category": "bubble_bg",
+          "region": [
+            128,
+            256,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "category": "silhouette",
+          "region": [
+            256,
+            256,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.98
+          ]
+        },
+        {
+          "category": "silhouette",
+          "region": [
+            384,
+            256,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.98
+          ]
+        },
+        {
+          "category": "silhouette",
+          "region": [
+            512,
+            256,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.98
+          ]
+        },
+        {
+          "category": "silhouette",
+          "region": [
+            640,
+            256,
+            128,
+            128
+          ],
+          "anchor": [
+            0.5,
+            0.98
+          ]
+        }
+      ]
+    }
+  }
 }

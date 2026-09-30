@@ -1,0 +1,257 @@
+[gd_scene format=3]
+
+[ext_resource type="TileSet" path="res://asset_packs/mossgrove/mossgrove_tileset.tres" id="1_6u3r6"]
+[ext_resource type="Script" path="res://addons/InteractiveDevPanel/nodes/idp_freeform.gd" id="2_ejss3"]
+[ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/styles/jungle_foliage.freeform.tres" id="3_tihsv"]
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/clumps.png" id="4_asnth"]
+[ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/styles/mossy_rock.freeform.tres" id="5_j8kej"]
+[ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/styles/foreground_silhouette.freeform.tres" id="6_e3jju"]
+
+[node name="MossyShaft" type="Node2D" unique_id=1444911716]
+
+[node name="Terrain" type="TileMapLayer" parent="." unique_id=1774006648]
+tile_set = ExtResource("1_6u3r6")
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=330115270]
+metadata/_edit_lock_ = true
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=778446396]
+offset_right = 960.0
+offset_bottom = 1600.0
+mouse_filter = 2
+border_color = Color(0.3, 0.9, 1, 1)
+border_width = 4.0
+
+[node name="Foreground" type="TileMapLayer" parent="." unique_id=2122736152]
+z_index = 20
+tile_map_data = PackedByteArray(0, 0, 0, 0, 48, 0, 2, 0, 0, 0, 0, 0, 1, 0, 1, 0, 48, 0, 2, 0, 0, 0, 0, 0, 1, 0, 0, 0, 47, 0, 2, 0, 0, 0, 0, 0, 1, 0)
+tile_set = ExtResource("1_6u3r6")
+
+[node name="FreeformBack" type="Node2D" parent="." unique_id=237971206]
+z_index = -8
+
+[node name="Shape1" type="Node2D" parent="FreeformBack" unique_id=319680250]
+script = ExtResource("2_ejss3")
+points = PackedVector2Array(949.9426, 780, 944.437, 1067.7297, 825.96326, 1274.1237, 700.3148, 1429.5259, 568.4236, 1633.5747, 399.59958, 1556.125, 218.06393, 1552.2324, 121.91031, 1291.4434, 18.213348, 1066.0879, -40.360596, 780, 87.9064, 537.0887, 132.26575, 283.34692, 220.87668, 16.059998, 398.5213, -6.5338135, 565.51465, -45.493713, 691.8533, 155.42023, 811.69214, 306.25916, 972.86523, 474.65826)
+style = ExtResource("3_tihsv")
+solid = false
+seed_value = 56969
+
+[node name="StampsBack" type="Node2D" parent="." unique_id=1282515792]
+z_index = -6
+
+[node name="_Sprite2D_564" type="Sprite2D" parent="StampsBack" unique_id=1846967359]
+position = Vector2(330, 420)
+rotation = -0.008506745
+scale = Vector2(1.0487585, 1.0487585)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(768, 128, 128, 128)
+metadata/idp_stamp = 14
+
+[node name="_Sprite2D_565" type="Sprite2D" parent="StampsBack" unique_id=12953806]
+position = Vector2(560, 300)
+rotation = 0.066784866
+scale = Vector2(0.84368944, 0.84368944)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(0, 256, 128, 128)
+metadata/idp_stamp = 16
+
+[node name="_Sprite2D_566" type="Sprite2D" parent="StampsBack" unique_id=675248577]
+position = Vector2(420, 900)
+rotation = 0.10094268
+scale = Vector2(0.92856, 0.92856)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(0, 256, 128, 128)
+metadata/idp_stamp = 16
+
+[node name="_Sprite2D_567" type="Sprite2D" parent="StampsBack" unique_id=720800732]
+position = Vector2(500, 1220)
+rotation = -3.042858
+scale = Vector2(0.84487945, -0.84487945)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(128, 256, 128, 128)
+metadata/idp_stamp = 17
+
+[node name="Freeform" type="Node2D" parent="." unique_id=933279467]
+z_index = 1
+
+[node name="Shape1" type="Node2D" parent="Freeform" unique_id=1690204494]
+script = ExtResource("2_ejss3")
+points = PackedVector2Array(-60, -60, 250, -60, 215, 120, 150, 290, 205, 470, 140, 650, 110, 830, 185, 990, 130, 1160, 195, 1330, 160, 1480, -60, 1480)
+style = ExtResource("5_j8kej")
+seed_value = 52871
+
+[node name="Shape2" type="Node2D" parent="Freeform" unique_id=1363551640]
+script = ExtResource("2_ejss3")
+points = PackedVector2Array(1020, -60, 690, -60, 760, 110, 720, 250, 800, 370, 1020, 400)
+style = ExtResource("5_j8kej")
+seed_value = 2107
+
+[node name="Shape3" type="Node2D" parent="Freeform" unique_id=1229390173]
+script = ExtResource("2_ejss3")
+points = PackedVector2Array(1020, 700, 700, 730, 610, 820, 700, 900, 650, 1040, 760, 1180, 700, 1330, 1020, 1340)
+style = ExtResource("5_j8kej")
+seed_value = 32140
+
+[node name="Shape4" type="Node2D" parent="Freeform" unique_id=1814020319]
+script = ExtResource("2_ejss3")
+points = PackedVector2Array(-60, 1520, 260, 1470, 560, 1500, 820, 1460, 1020, 1480, 1020, 1660, -60, 1660)
+style = ExtResource("5_j8kej")
+seed_value = 85324
+
+[node name="Shape5" type="Node2D" parent="Freeform" unique_id=360577496]
+script = ExtResource("2_ejss3")
+points = PackedVector2Array(256, 608, 224, 608, 224, 640, 288, 640, 288, 672, 384, 640, 480, 640, 448, 608, 448, 544, 256, 544)
+style = ExtResource("5_j8kej")
+seed_value = 63144
+
+[node name="Shape6" type="Node2D" parent="Freeform" unique_id=860225115]
+position = Vector2(20, 10)
+script = ExtResource("2_ejss3")
+points = PackedVector2Array(430.00003, 560, 660, 520, 470, 625)
+style = ExtResource("5_j8kej")
+seed_value = 65084
+
+[node name="Shape7" type="Node2D" parent="Freeform" unique_id=1309146944]
+script = ExtResource("2_ejss3")
+points = PackedVector2Array(300, 1250.0001, 273.63962, 1278.2842, 210, 1290, 146.36038, 1278.2842, 120, 1250.0001, 132.05771, 1229.9999, 186.70628, 1211.3629, 255, 1215.3589, 296.93332, 1239.6472)
+style = ExtResource("5_j8kej")
+seed_value = 34591
+
+[node name="StampsFront" type="Node2D" parent="." unique_id=1613916029]
+z_index = 6
+
+[node name="_Sprite2D_737" type="Sprite2D" parent="StampsFront" unique_id=1946685277]
+position = Vector2(230, 300)
+rotation = 3.1204515
+scale = Vector2(0.8713568, -0.8713568)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -121.6)
+region_enabled = true
+region_rect = Rect2(256, 0, 128, 128)
+metadata/idp_stamp = 2
+
+[node name="_Sprite2D_738" type="Sprite2D" parent="StampsFront" unique_id=818988524]
+position = Vector2(200, 660)
+rotation = 0.03317315
+scale = Vector2(1.1906322, 1.1906322)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -121.6)
+region_enabled = true
+region_rect = Rect2(384, 0, 128, 128)
+metadata/idp_stamp = 3
+
+[node name="_Sprite2D_739" type="Sprite2D" parent="StampsFront" unique_id=1757697757]
+position = Vector2(170, 1000)
+rotation = -0.059815843
+scale = Vector2(0.9833018, 0.9833018)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -121.6)
+region_enabled = true
+region_rect = Rect2(128, 0, 128, 128)
+metadata/idp_stamp = 1
+
+[node name="_Sprite2D_740" type="Sprite2D" parent="StampsFront" unique_id=1758382169]
+position = Vector2(720, 730)
+rotation = -0.052522007
+scale = Vector2(0.98178506, 0.98178506)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -121.6)
+region_enabled = true
+region_rect = Rect2(0, 0, 128, 128)
+metadata/idp_stamp = 0
+
+[node name="_Sprite2D_741" type="Sprite2D" parent="StampsFront" unique_id=1512806846]
+position = Vector2(260, 1470)
+rotation = -0.07841375
+scale = Vector2(0.94425905, 0.94425905)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -121.6)
+region_enabled = true
+region_rect = Rect2(640, 0, 128, 128)
+metadata/idp_stamp = 5
+
+[node name="_Sprite2D_742" type="Sprite2D" parent="StampsFront" unique_id=442434054]
+position = Vector2(620, 1500)
+rotation = -0.09388415
+scale = Vector2(0.9688445, 0.9688445)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -121.6)
+region_enabled = true
+region_rect = Rect2(512, 0, 128, 128)
+metadata/idp_stamp = 4
+
+[node name="_Sprite2D_743" type="Sprite2D" parent="StampsFront" unique_id=2131284894]
+position = Vector2(470, 630)
+rotation = 0.10956218
+scale = Vector2(1.1238513, 1.1238513)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(640, 128, 128, 128)
+metadata/idp_stamp = 13
+
+[node name="_Sprite2D_744" type="Sprite2D" parent="StampsFront" unique_id=859519171]
+position = Vector2(780, 1190)
+rotation = -3.075951
+scale = Vector2(0.8259853, -0.8259853)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(640, 128, 128, 128)
+metadata/idp_stamp = 13
+
+[node name="_Sprite2D_745" type="Sprite2D" parent="StampsFront" unique_id=1548628675]
+position = Vector2(760, 390)
+rotation = 0.014126784
+scale = Vector2(1.1710963, 1.1710963)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(384, 128, 128, 128)
+metadata/idp_stamp = 11
+
+[node name="FreeformFront" type="Node2D" parent="." unique_id=2050232009]
+z_index = 22
+
+[node name="Shape1" type="Node2D" parent="FreeformFront" unique_id=1836506891]
+script = ExtResource("2_ejss3")
+points = PackedVector2Array(560, 1660, 640, 1420, 780, 1260, 1020, 1180, 1020, 1660)
+style = ExtResource("6_e3jju")
+solid = false
+seed_value = 89695
+
+[node name="StampsForeground" type="Node2D" parent="." unique_id=1914349780]
+z_index = 24
+
+[node name="_Sprite2D_755" type="Sprite2D" parent="StampsForeground" unique_id=284813925]
+position = Vector2(60, 1600)
+rotation = -0.0591497
+scale = Vector2(1.8607647, 1.8607647)
+texture = ExtResource("4_asnth")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(256, 256, 128, 128)
+metadata/idp_stamp = 18

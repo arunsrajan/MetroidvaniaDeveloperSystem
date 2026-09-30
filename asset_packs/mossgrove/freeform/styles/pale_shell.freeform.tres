@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="IDPFreeformStyle" format=3]
+
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_under.png" id="1_4tp3h"]
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/fill_shell.png" id="2_1rwhm"]
+[ext_resource type="Script" path="res://addons/InteractiveDevPanel/nodes/idp_freeform_style.gd" id="3_ptgb1"]
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_shell.png" id="4_ddsfb"]
+
+[resource]
+script = ExtResource("3_ptgb1")
+display_name = "Pale shell"
+fill_texture = ExtResource("2_1rwhm")
+outline_color = Color(0.13333334, 0.11764706, 0.16470589, 1)
+top_texture = ExtResource("4_ddsfb")
+top_width = 26.0
+top_inset = 3.0
+bottom_texture = ExtResource("1_4tp3h")
+bottom_width = 34.0
+bottom_inset = 2.0

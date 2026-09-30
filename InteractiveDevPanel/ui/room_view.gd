@@ -19,7 +19,11 @@ signal palette_requested
 
 const DEFAULT_TILESET := "res://idp_tiles/idp_cave_tileset.tres"
 const Shape := IDPTerrainShapes.Shape
-const TOOL_LAYERS: PackedStringArray = ["Terrain", "Background", "Decor"]
+const TOOL_LAYERS: PackedStringArray = ["Terrain", "Background", "Decor", "Erase", "Foreground", "Freeform", "Stamps"]
+const FREEFORM_LAYERS: PackedStringArray = ["Terrain (solid)", "Background", "Foreground"]
+const FREEFORM_GROUPS: PackedStringArray = ["Freeform", "FreeformBack", "FreeformFront"]
+const STAMP_LAYERS: PackedStringArray = ["Behind terrain", "In front of terrain", "Foreground"]
+const STAMP_GROUPS: PackedStringArray = ["StampsBack", "StampsFront", "StampsForeground"]
 
 var canvas: IDPRoomCanvas
 var palette: IDPTilePalette
@@ -43,6 +47,12 @@ var controls: VBoxContainer
 var _split: HSplitContainer
 var _variation := 0
 var _filling := false
+var layer_opt: OptionButton ## freeform / stamp layer
+var mode_opt: OptionButton ## freeform Draw / Edit
+var size_spin: SpinBox ## stamp size
+var _styles: Array[IDPFreeformStyle] = []
+var _stamp_sets: Array[IDPStampSet] = []
+var _shape_rows: Array[Control] = []
 
 func _init() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -52,8 +62,11 @@ func _init() -> void:
 	# What to paint.
 	var tool_grid := IDPSidePanel.grid(controls, 2)
 	var group := ButtonGroup.new()
-	var names := ["Terrain", "Background", "Decor", "Erase"]
-	var tips := ["Paint the Terrain layer (solid ground: autotiled terrain, palette tiles or colors)", "Paint the Background layer (foliage, palette tiles or a solid color)", "Paint the Decor layer (grass, vines, stalactites, palette tiles...)", "Erase the top tile under the brush: decoration, else terrain, else background (palette tiles and colors too). Pick one layer or all layers in the list next to it; Shift erases background only. Works with shapes too, to carve curved caves"]
+	var names := ["Terrain", "Background", "Decor", "Erase", "Foreground", "Freeform", "Stamps"]
+	var tips := ["Paint the Terrain layer (solid ground: autotiled terrain, palette tiles or colors)", "Paint the Background layer (foliage, palette tiles or a solid color)", "Paint the Decor layer (grass, vines, stalactites, palette tiles...)", "Erase the top item under the brush: a stamp, else foreground, decoration, terrain, then background (palette tiles and colors too). Pick one layer or all layers in the list next to it; Shift erases background only. Works with shapes too, to carve curved caves",
+		"Paint the Foreground layer, drawn in front of everything (dark silhouettes framing the room)",
+		"Freeform terrain: smooth curvy shapes instead of tiles (rounded ledges, bulging moss walls), with textured edges, clumps and exact collision. Draw by clicking points or dragging freehand, or pick a shape and drag its box. Edit mode reshapes them",
+		"Place large clumps freely (moss bubbles, leaves, ferns, hanging moss, background bubbles, foreground silhouettes). Click or drag; Shift removes"]
 	for i in names.size():
 		var b := IDPUi.button(names[i], tips[i])
 		b.toggle_mode = true
@@ -68,6 +81,28 @@ func _init() -> void:
 	fill_opt.tooltip_text = "What the current tool paints: a terrain (autotiled), random tiles of a kind, the tiles picked in the palette, or a solid color"
 	fill_opt.item_selected.connect(_on_fill_selected)
 	var fill_row := IDPSidePanel.field(controls, "Fill", fill_opt)
+	layer_opt = OptionButton.new()
+	layer_opt.tooltip_text = "Layer of new freeform shapes or stamps"
+	layer_opt.item_selected.connect(_on_layer_selected)
+	_shape_rows.append(IDPSidePanel.field(controls, "Layer", layer_opt))
+	mode_opt = OptionButton.new()
+	mode_opt.add_item("Draw", IDPRoomCanvas.FreeformMode.DRAW)
+	mode_opt.add_item("Edit", IDPRoomCanvas.FreeformMode.EDIT)
+	mode_opt.tooltip_text = "Draw: click points (or drag freehand) and click the first point, double-click or press Enter to close; or pick a shape below and drag its box.\nEdit: drag points, Alt+click removes one, double-click an edge adds one, drag inside to move, Delete removes the shape."
+	mode_opt.item_selected.connect(func(idx: int) -> void:
+		canvas.freeform_mode = mode_opt.get_item_id(idx)
+		canvas._overlay.queue_redraw())
+	_shape_rows.append(IDPSidePanel.field(controls, "Mode", mode_opt))
+	size_spin = SpinBox.new()
+	size_spin.min_value = 20
+	size_spin.max_value = 400
+	size_spin.step = 10
+	size_spin.value = 100
+	size_spin.prefix = "Size"
+	size_spin.suffix = "%"
+	size_spin.tooltip_text = "Stamp size (each stamp also varies a little)"
+	size_spin.value_changed.connect(func(v: float) -> void: canvas.stamp_scale = v / 100.0)
+	controls.add_child(IDPSidePanel.fill(size_spin))
 	color_button = ColorPickerButton.new()
 	color_button.color = Color("#0f2a2c")
 	color_button.custom_minimum_size = Vector2(36, 0)
@@ -150,12 +185,14 @@ func _init() -> void:
 	var back := IDPUi.button("Fill background", "Fill the room's shape with the Background fill (foliage, palette tiles or a solid color)")
 	back.pressed.connect(fill_background)
 	generation.add_child(back)
-	var clear := IDPUi.button("Clear", "Remove all tiles from the three layers")
+	var clear := IDPUi.button("Clear", "Remove all tiles, freeform shapes and stamps")
 	clear.pressed.connect(func() -> void:
 		if painter:
 			painter.checkpoint()
 			for n in IDPRoomPainter.LAYER_ORDER:
 				painter.clear_layer(n)
+			painter.clear_items()
+			canvas.selected = null
 			_changed("Cleared."))
 	actions.add_child(IDPSidePanel.fill(clear))
 	undo_button = IDPUi.button("Undo", "Undo the last stroke or shape (Ctrl+Z)")
@@ -209,6 +246,7 @@ func _init() -> void:
 		_fill_pickers(true)
 		canvas._overlay.queue_redraw())
 	_update_shape_controls()
+	_update_tool_controls()
 
 ## Opens the room for painting. Returns an error message, or "" on success.
 func open_room(p_world: IDPWorld, id: String) -> String:
@@ -227,6 +265,7 @@ func open_room(p_world: IDPWorld, id: String) -> String:
 		return "Could not open %s." % path
 	canvas.open(world, id, painter)
 	palette.set_painter(painter)
+	_load_styles()
 	_fill_pickers(true)
 	# Generate cave builds autotiled terrain.
 	generate_button.disabled = not painter.has_terrains()
@@ -291,7 +330,51 @@ func set_tool(t: int) -> void:
 	canvas.tool = t
 	tool_buttons[t].set_pressed_no_signal(true)
 	_fill_pickers(false)
+	_update_tool_controls()
+	canvas._overlay.queue_redraw()
 	canvas.grab_focus()
+
+## Shows the controls the current tool uses.
+func _update_tool_controls() -> void:
+	var t := canvas.tool
+	var freeform := t == IDPRoomCanvas.Tool.FREEFORM
+	var stamps := t == IDPRoomCanvas.Tool.STAMP
+	layer_opt.get_parent().visible = freeform or stamps
+	mode_opt.get_parent().visible = freeform
+	size_spin.visible = stamps
+	brush_spin.visible = not freeform and not stamps
+	shape_opt.get_parent().visible = not stamps
+	curve_opt.get_parent().visible = not stamps
+	rough_spin.visible = not stamps
+	flip_check.get_parent().visible = not stamps
+	_filling = true
+	layer_opt.clear()
+	if freeform:
+		for i in FREEFORM_LAYERS.size():
+			layer_opt.add_item(FREEFORM_LAYERS[i], i)
+		layer_opt.select(maxi(0, FREEFORM_GROUPS.find(canvas.freeform_group)))
+	elif stamps:
+		for i in STAMP_LAYERS.size():
+			layer_opt.add_item(STAMP_LAYERS[i], i)
+		layer_opt.select(maxi(0, STAMP_GROUPS.find(canvas.stamp_group)))
+	_filling = false
+
+func _on_layer_selected(idx: int) -> void:
+	if _filling:
+		return
+	if canvas.tool == IDPRoomCanvas.Tool.FREEFORM:
+		canvas.freeform_group = FREEFORM_GROUPS[idx]
+		canvas.freeform_solid = idx == 0
+		if is_instance_valid(canvas.selected) and painter and canvas.freeform_mode == IDPRoomCanvas.FreeformMode.EDIT:
+			# Edit mode: move the selected shape to that layer.
+			painter.checkpoint()
+			var node := canvas.selected
+			node.get_parent().remove_child(node)
+			node.solid = canvas.freeform_solid
+			painter.items_root.get_node(canvas.freeform_group).add_child(node)
+			painter.dirty = true
+	elif canvas.tool == IDPRoomCanvas.Tool.STAMP:
+		canvas.stamp_group = STAMP_GROUPS[idx]
 
 func generate(new_variation: bool) -> void:
 	if not painter or not painter.has_terrains():
@@ -364,6 +447,8 @@ func _default_fill(t: int, choices: Array) -> Dictionary:
 			for c in choices:
 				if c[2].get("type") == "kind" and c[2].kind != "foliage":
 					return c[2]
+		IDPRoomCanvas.Tool.FOREGROUND:
+			return {"type": "color", "color": Color("#03070a")}
 	for c in choices:
 		if c[2].get("type") == want:
 			return c[2]
@@ -396,13 +481,36 @@ func _fill_pickers(validate: bool) -> void:
 		return
 	var choices := _fill_choices()
 	if validate:
-		for t in [IDPRoomCanvas.Tool.TERRAIN, IDPRoomCanvas.Tool.BACKGROUND, IDPRoomCanvas.Tool.DECOR]:
+		for t in [IDPRoomCanvas.Tool.TERRAIN, IDPRoomCanvas.Tool.BACKGROUND, IDPRoomCanvas.Tool.DECOR, IDPRoomCanvas.Tool.FOREGROUND]:
 			if not _fill_valid(canvas.fills.get(t, {}), choices):
 				canvas.fills[t] = _default_fill(t, choices)
 	_filling = true
 	fill_opt.clear()
 	var erase := canvas.tool == IDPRoomCanvas.Tool.ERASE
 	fill_opt.disabled = false
+	if canvas.tool == IDPRoomCanvas.Tool.FREEFORM:
+		for i in _styles.size():
+			fill_opt.add_item(_styles[i].get_display_name(), i)
+		fill_opt.select(maxi(0, _styles.find(canvas.freeform_style)))
+		fill_opt.tooltip_text = "Style of new freeform shapes (and of the selected one). Styles are *.freeform.tres files in the project"
+		color_button.visible = false
+		_filling = false
+		return
+	if canvas.tool == IDPRoomCanvas.Tool.STAMP:
+		var k := 0
+		for si in _stamp_sets.size():
+			for cat in _stamp_sets[si].get_categories():
+				fill_opt.add_item("%s: %s" % [_stamp_sets[si].get_display_name(), cat.capitalize()], k)
+				fill_opt.set_item_metadata(fill_opt.item_count - 1, [si, cat])
+				if _stamp_sets[si] == canvas.stamp_set and cat == canvas.stamp_category:
+					fill_opt.select(fill_opt.item_count - 1)
+				k += 1
+		if fill_opt.item_count == 0:
+			fill_opt.add_item("No stamp sets (add the Mossgrove pack)")
+		fill_opt.tooltip_text = "Stamps placed by the brush. Stamp sets are *.stamps.tres files in the project"
+		color_button.visible = false
+		_filling = false
+		return
 	if erase:
 		# The list chooses what Erase removes.
 		for i in IDPRoomCanvas.ERASE_MODE_NAMES.size():
@@ -433,6 +541,15 @@ func _on_fill_selected(idx: int) -> void:
 	if canvas.tool == IDPRoomCanvas.Tool.ERASE:
 		canvas.erase_mode = fill_opt.get_item_id(idx)
 		return
+	if canvas.tool == IDPRoomCanvas.Tool.FREEFORM:
+		_set_freeform_style(_styles[fill_opt.get_item_id(idx)], true)
+		return
+	if canvas.tool == IDPRoomCanvas.Tool.STAMP:
+		var meta: Variant = fill_opt.get_item_metadata(idx)
+		if meta is Array:
+			canvas.stamp_set = _stamp_sets[meta[0]]
+			canvas.stamp_category = meta[1]
+		return
 	var f: Dictionary = fill_opt.get_item_metadata(idx)
 	match str(f.type):
 		"stamp":
@@ -446,11 +563,42 @@ func _on_fill_selected(idx: int) -> void:
 	canvas.fills[canvas.tool] = f
 	color_button.visible = f.type == "color"
 
-## Tiles picked in the palette: the current tool paints them (Erase switches to Terrain).
+## Picks a freeform style; its default layer is used for new shapes. With
+## [param apply_to_selected] in Edit mode, the selected shape takes the style too.
+func _set_freeform_style(st: IDPFreeformStyle, apply_to_selected: bool) -> void:
+	canvas.freeform_style = st
+	var idx := {"terrain": 0, "back": 1, "front": 2}.get(st.default_layer, 0)
+	canvas.freeform_group = FREEFORM_GROUPS[idx]
+	canvas.freeform_solid = st.solid and idx == 0
+	if apply_to_selected and is_instance_valid(canvas.selected) and painter and canvas.freeform_mode == IDPRoomCanvas.FreeformMode.EDIT:
+		painter.checkpoint()
+		canvas.selected.style = st
+		painter.dirty = true
+	_update_tool_controls()
+
+## Freeform styles and stamp sets available: built-ins plus the project's files.
+func _load_styles() -> void:
+	_styles = IDPFreeformStyle.builtins()
+	_styles.append_array(IDPFreeformStyle.find_in_project())
+	_stamp_sets = IDPStampSet.find_in_project()
+	if not canvas.freeform_style or not canvas.freeform_style in _styles:
+		# Prefer a textured style from the project (a mossy one if there is).
+		var pick := _styles[0]
+		for st in _styles.slice(3):
+			if pick == _styles[0] or st.get_display_name().to_lower().contains("moss"):
+				pick = st
+		_set_freeform_style(pick, false)
+	if (not canvas.stamp_set or not canvas.stamp_set in _stamp_sets) and not _stamp_sets.is_empty():
+		canvas.stamp_set = _stamp_sets[0]
+		var cats := canvas.stamp_set.get_categories()
+		canvas.stamp_category = cats[0] if not cats.is_empty() else ""
+
+## Tiles picked in the palette: the current tool paints them (Erase, Freeform and Stamps
+## switch to Terrain).
 func _on_palette_picked() -> void:
 	if not palette.has_selection():
 		return
-	if canvas.tool == IDPRoomCanvas.Tool.ERASE:
+	if canvas.tool in [IDPRoomCanvas.Tool.ERASE, IDPRoomCanvas.Tool.FREEFORM, IDPRoomCanvas.Tool.STAMP]:
 		set_tool(IDPRoomCanvas.Tool.TERRAIN)
 	canvas.fills[canvas.tool] = palette.get_fill()
 	_fill_pickers(false)

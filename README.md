@@ -200,6 +200,37 @@ The map is one view of a room; the **Room view** is the other. It shows the room
 
 Only solid tiles (with collision) count as terrain for the map silhouette. Background and decoration layers never do.
 
+#### Freeform terrain, stamps and the foreground
+
+Tiles are great for straight platforms, but organic caves need smooth curves, rounded moss-covered ledges and layers of foliage. Three more tools paint those:
+
+- **Freeform** draws terrain as a smooth curved shape instead of tiles.
+  - **Draw** mode:
+    - click points, then close the shape by clicking its first point, double-clicking or pressing Enter;
+    - or drag freehand;
+    - or pick a **Shape** (Irregular, curved sides...) and drag its box: the shape becomes a smooth freeform.
+  - **Edit** mode:
+    - drag a point to reshape; Alt+click removes one, and double-clicking an edge adds one;
+    - drag inside a shape to move it; Delete removes it.
+  - **Style** (the fill list) sets the look: a repeating fill texture, textured strips along edges that face up (moss, grass, crystals) and down (dark rock with dripping roots), an outline, and clumps scattered along the edges.
+  - **Layer:**
+    - **Terrain (solid)** gets exact curved collision and shows on the map;
+    - **Background** and **Foreground** are art only.
+  - Styles are `*.freeform.tres` files (`IDPFreeformStyle`), found anywhere in the project. Three plain color styles are built in.
+- **Stamps** places large sprites anywhere, off the grid: moss bubbles, leaf clusters, ferns, hanging moss, background bubbles, foreground silhouettes.
+  - Click or drag to place; each stamp gets a little random size, flip and tilt. Shift removes stamps.
+  - Pick the category in the fill list, a **Size**, and a layer: behind the terrain, in front of it, or foreground.
+  - Stamp sets are `*.stamps.tres` files (`IDPStampSet`).
+- **Foreground** paints a tile layer drawn in front of everything, typically dark silhouettes framing the screen.
+- **Erase** removes the top item: a stamp first, then foreground, decoration, terrain, background.
+
+![A cave drawn with freeform terrain, stamps and a foreground silhouette](asset_packs/mossgrove/preview/freeform_cave.png)
+
+**How it's saved:**
+- Freeform shapes are `IDPFreeform` nodes that store only their points and style; the visuals and collision are rebuilt when the scene loads, in the editor and in the game. They're grouped under `FreeformBack`, `Freeform` and `FreeformFront`.
+- Stamps are plain `Sprite2D`s under `StampsBack`, `StampsFront` and `StampsForeground`.
+- The [Mossgrove pack](asset_packs/mossgrove/README.md) provides five styles (mossy rock, pale shell, deep crystal rock, jungle foliage, foreground silhouette) and its clump set.
+
 ### Editing
 
 | Input | Action |
@@ -475,6 +506,9 @@ addons/InteractiveDevPanel/
 ├── nodes/
 │   ├── idp_world_game.gd  # IDPWorldGame: non-linear game runtime (MetSysGame counterpart)
 │   ├── idp_room_camera.gd # IDPRoomCamera: irregular-room camera zones and transitions (Camera2D / Phantom Camera)
+│   ├── idp_freeform.gd    # IDPFreeform: curved freeform terrain (fill, edge strips, clumps, collision)
+│   ├── idp_freeform_style.gd # IDPFreeformStyle: a freeform shape's look (*.freeform.tres)
+│   ├── idp_stamp_set.gd   # IDPStampSet: sprites placed freely by the Stamps tool (*.stamps.tres)
 │   ├── idp_gate.gd        # IDPGate: runtime room transition
 │   └── idp_play_launcher.* # Boots the game scene in the chosen room
 ├── ui/

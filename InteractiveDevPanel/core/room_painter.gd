@@ -1,16 +1,21 @@
 @tool
 class_name IDPRoomPainter
 extends RefCounted
-## Paints the actual contents of a room scene: its "Background", "Terrain" and "Decor"
-## TileMapLayers, with Godot's terrain autotiling. Used by the panel's Room view.
+## Paints the actual contents of a room scene: its "Background", "Terrain", "Decor" and
+## "Foreground" TileMapLayers (with Godot's terrain autotiling), its freeform shapes
+## ([IDPFreeform]) and its stamps (sprites from an [IDPStampSet]). Used by the Room view.
 ##
 ## The scene is opened as an editable instance kept outside the tree. Painting happens on
-## copies of its TileMapLayers (so they can be displayed), and [method save] writes their
-## tile data back into the scene's own layers (creating missing ones) and saves the scene.
-## Nothing else in the scene is touched.
+## copies (so they can be displayed), and [method save] writes them back into the scene
+## (creating missing layers and item groups) and saves it. Nothing else is touched.
 
-const LAYER_Z := {"Background": -10, "Terrain": 0, "Decor": 5}
-const LAYER_ORDER: PackedStringArray = ["Background", "Terrain", "Decor"]
+const LAYER_Z := {"Background": -10, "Terrain": 0, "Decor": 5, "Foreground": 20}
+const LAYER_ORDER: PackedStringArray = ["Background", "Terrain", "Decor", "Foreground"]
+## Groups of freeform shapes and stamps (nodes of that name in the scene) and their z.
+const ITEM_GROUPS := {
+	"FreeformBack": -8, "StampsBack": -6, "Freeform": 1, "StampsFront": 6,
+	"FreeformFront": 22, "StampsForeground": 24,
+}
 
 var scene_path := ""
 var root: Node
@@ -19,6 +24,8 @@ var tile_set: TileSet
 var dirty := false
 var tile_set_dirty := false
 var _source_paths: Dictionary = {} ## name -> NodePath inside root
+## Display copies of freeform shapes and stamps: one child per item group.
+var items_root: Node2D
 var _undo: Array = [] ## snapshots: layer name -> tile_map_data
 var _redo: Array = []
 
@@ -58,7 +65,25 @@ static func open(path: String, default_tile_set: TileSet = null) -> IDPRoomPaint
 		if not copy.tile_set:
 			copy.tile_set = p.tile_set
 		p.layers[n] = copy
+	p.items_root = Node2D.new()
+	p.items_root.name = "IDPItems"
+	for g in ITEM_GROUPS:
+		var c := Node2D.new()
+		c.name = g
+		c.z_index = ITEM_GROUPS[g]
+		p.items_root.add_child(c)
+	for node in p.root.find_children("*", "", true, false):
+		if node.owner != p.root or not (node is IDPFreeform or is_stamp(node)):
+			continue
+		var parent_name := String(node.get_parent().name)
+		var group := parent_name if ITEM_GROUPS.has(parent_name) else ("Freeform" if node is IDPFreeform else "StampsFront")
+		var copy: Node2D = node.duplicate()
+		copy.transform = _local_transform(node, p.root)
+		p.items_root.get_node(group).add_child(copy)
 	return p
+
+static func is_stamp(node: Node) -> bool:
+	return node is Sprite2D and node.has_meta(&"idp_stamp")
 
 static func _local_transform(node: Node, top: Node) -> Transform2D:
 	var xform := Transform2D.IDENTITY
@@ -100,12 +125,106 @@ func _snapshot() -> Dictionary:
 	var out: Dictionary = {}
 	for n in LAYER_ORDER:
 		out[n] = layers[n].tile_map_data
+	var items: Dictionary = {}
+	for g in ITEM_GROUPS:
+		var list: Array = []
+		for node in items_root.get_node(g).get_children():
+			list.append(_item_data(node))
+		items[g] = list
+	out[&"_items"] = items
 	return out
 
 func _restore(snap: Dictionary) -> void:
 	for n in snap:
-		layers[n].tile_map_data = snap[n]
+		if n is String and layers.has(n):
+			layers[n].tile_map_data = snap[n]
+	if snap.has(&"_items"):
+		for g in snap[&"_items"]:
+			var container := items_root.get_node(String(g))
+			for c in container.get_children():
+				container.remove_child(c)
+				c.queue_free()
+			for d in snap[&"_items"][g]:
+				container.add_child(_item_from(d))
 	dirty = true
+
+static func _item_data(node: Node) -> Dictionary:
+	if node is IDPFreeform:
+		var d: Dictionary = node.to_data()
+		d.kind = "freeform"
+		return d
+	var s := node as Sprite2D
+	return {"kind": "stamp", "texture": s.texture, "region": s.region_rect, "offset": s.offset,
+		"transform": s.transform, "index": s.get_meta(&"idp_stamp", 0)}
+
+static func _item_from(d: Dictionary) -> Node2D:
+	if d.kind == "freeform":
+		return IDPFreeform.from_data(d)
+	var s := Sprite2D.new()
+	s.texture = d.texture
+	s.region_enabled = true
+	s.region_rect = d.region
+	s.centered = false
+	s.offset = d.offset
+	s.transform = d.transform
+	s.set_meta(&"idp_stamp", d.index)
+	return s
+
+# --- Freeform shapes and stamps --------------------------------------------------------------
+
+## Items of a group ("Freeform", "StampsFront"...).
+func items(group: String) -> Array:
+	return items_root.get_node(group).get_children()
+
+func add_freeform(points: PackedVector2Array, style: IDPFreeformStyle, group := "Freeform", solid := true) -> IDPFreeform:
+	var f := IDPFreeform.new()
+	f.name = "Shape%d" % (items_root.get_node(group).get_child_count() + 1)
+	f.style = style
+	f.solid = solid
+	f.seed_value = randi() % 100000
+	f.points = points
+	items_root.get_node(group).add_child(f, true)
+	dirty = true
+	return f
+
+func add_stamp(stamp_set: IDPStampSet, index: int, pos: Vector2, scale_value: Vector2, rotation_value := 0.0, group := "StampsFront") -> Sprite2D:
+	var s := stamp_set.make_sprite(index)
+	s.name = "Stamp%d" % (items_root.get_node(group).get_child_count() + 1)
+	s.position = pos
+	s.scale = scale_value
+	s.rotation = rotation_value
+	items_root.get_node(group).add_child(s, true)
+	dirty = true
+	return s
+
+func remove_item(node: Node) -> void:
+	if node and node.get_parent():
+		node.get_parent().remove_child(node)
+		node.queue_free()
+		dirty = true
+
+## The top-most freeform shape containing [param p] (scene-local), or null.
+func freeform_at(p: Vector2) -> IDPFreeform:
+	for g in ["FreeformFront", "Freeform", "FreeformBack"]:
+		var list := items(g)
+		for i in range(list.size() - 1, -1, -1):
+			if list[i].has_point(p):
+				return list[i]
+	return null
+
+## Stamps whose position is within [param radius] of [param p] (scene-local).
+func stamps_near(p: Vector2, radius: float) -> Array:
+	var out: Array = []
+	for g in ["StampsForeground", "StampsFront", "StampsBack"]:
+		for s in items(g):
+			if s.position.distance_to(p) <= radius:
+				out.append(s)
+	return out
+
+func clear_items() -> void:
+	for g in ITEM_GROUPS:
+		for c in items(g):
+			remove_item(c)
 
 func free_instance() -> void:
 	if is_instance_valid(root):
@@ -113,6 +232,8 @@ func free_instance() -> void:
 	for l in layers.values():
 		if is_instance_valid(l) and not l.is_inside_tree():
 			l.free()
+	if is_instance_valid(items_root) and not items_root.is_inside_tree():
+		items_root.free()
 
 ## Writes the painted tiles into the scene and saves it.
 func save() -> Error:
@@ -133,6 +254,7 @@ func save() -> Error:
 			_source_paths[n] = root.get_path_to(target)
 		target.tile_set = copy.tile_set
 		target.tile_map_data = copy.tile_map_data
+	_save_items()
 	save_tile_set()
 	var packed := PackedScene.new()
 	var err := packed.pack(root)
@@ -141,6 +263,29 @@ func save() -> Error:
 	if err == OK:
 		dirty = false
 	return err
+
+## Replaces the scene's freeform shapes and stamps with the edited ones.
+func _save_items() -> void:
+	for node in root.find_children("*", "", true, false):
+		if is_instance_valid(node) and node.owner == root and (node is IDPFreeform or is_stamp(node)):
+			node.get_parent().remove_child(node)
+			node.free()
+	for g in ITEM_GROUPS:
+		var list := items(g)
+		var container: Node2D = root.get_node_or_null(NodePath(g))
+		if list.is_empty():
+			continue
+		if not container:
+			container = Node2D.new()
+			container.name = g
+			container.z_index = ITEM_GROUPS[g]
+			root.add_child(container)
+			container.owner = root
+		for item in list:
+			var copy: Node2D = _item_from(_item_data(item))
+			copy.name = item.name
+			container.add_child(copy, true)
+			copy.owner = root
 
 # --- Coordinates --------------------------------------------------------------------------
 
