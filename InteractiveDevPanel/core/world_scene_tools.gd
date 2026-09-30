@@ -198,6 +198,14 @@ static func create_game_scene(world: IDPWorld, scene_path: String) -> Error:
 	camera.name = "Camera2D"
 	player.add_child(camera)
 	camera.owner = game
+	# Irregular-room camera zones and room transitions (settings: World settings > Camera).
+	var room_camera := IDPRoomCamera.new()
+	room_camera.name = "RoomCamera"
+	game.add_child(room_camera)
+	room_camera.owner = game
+	room_camera.camera = camera
+	room_camera.target = player
+	game.room_camera = room_camera
 	var ui := CanvasLayer.new()
 	ui.name = "UI"
 	game.add_child(ui)

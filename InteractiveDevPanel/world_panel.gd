@@ -1776,6 +1776,43 @@ func _show_settings() -> void:
 		world.data.layers = names
 		world._touch()
 		_rebuild_layer_picker())
+	# Camera (IDPRoomCamera reads these when its use_world_settings is on).
+	var cam: Dictionary = world.get_setting("camera", {})
+	var set_cam := func(key: String, value: Variant) -> void:
+		var c: Dictionary = world.get_setting("camera", {}).duplicate()
+		c[key] = value
+		world.set_setting("camera", c)
+	var cam_title := IDPUi.label("Camera")
+	cam_title.add_theme_color_override("font_color", get_theme_color(&"accent_color", &"Editor"))
+	grid.add_child(cam_title)
+	grid.add_child(IDPUi.hint("Used by IDPRoomCamera in the game scene"))
+	var options := [
+		["Camera backend", "backend", IDPRoomCamera.BACKEND_NAMES, "Auto uses PhantomCamera2D when the Phantom Camera addon is enabled, else Camera2D."],
+		["Irregular rooms", "confine", IDPRoomCamera.CONFINE_NAMES, "Room shape: the camera is limited to the zone (largest rectangle of the room's shape) the player is in and glides between zones, so notches of L- or U-shaped rooms stay hidden."],
+		["Room transition", "room_transition", IDPRoomCamera.TRANSITION_NAMES, "Fade to black, cut, slide the view to the new room (player waits), or blend (the camera glides over while the player keeps moving)."],
+	]
+	for o in options:
+		grid.add_child(IDPUi.label(o[0]))
+		var opt := OptionButton.new()
+		for n in o[2]:
+			opt.add_item(n)
+		opt.select(int(cam.get(o[1], 0)))
+		opt.tooltip_text = o[3]
+		var key: String = o[1]
+		opt.item_selected.connect(func(idx: int) -> void: set_cam.call(key, idx))
+		grid.add_child(opt)
+	var numbers := [
+		["Transition time (s)", "transition_time", 0.35],
+		["Zone glide time (s)", "zone_blend_time", 0.5],
+		["Zone switch margin (px)", "zone_hysteresis", 32.0],
+		["Follow smoothing (0 = off)", "follow_smoothing", 0.0],
+		["Zoom", "zoom", 1.0],
+	]
+	for n in numbers:
+		var value: Variant = cam.get(n[1], n[2])
+		var edit := IDPUi.field_line(grid, n[0], str(value[0] if value is Array else value), str(n[2]))
+		var key: String = n[1]
+		IDPUi.commit_line(edit, func(t: String) -> void: set_cam.call(key, t.to_float()))
 	settings_dialog.popup_centered(Vector2i(460, 0))
 
 # --- Export ----------------------------------------------------------------------------------

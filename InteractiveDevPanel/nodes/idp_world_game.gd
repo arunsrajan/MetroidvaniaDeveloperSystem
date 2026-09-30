@@ -8,7 +8,9 @@ extends Node2D
 ## [codeblock]
 ## Game (IDPWorldGame)      world_file = "res://world.idpworld.json", starting_room = "Crossroads_01"
 ## ├── Player               assigned to "player"
-## ├── Camera2D             optional; apply_camera_limits() is called on every room change
+## ├── Camera2D             optional; limited to the room on every room change
+## ├── RoomCamera (IDPRoomCamera)  optional; irregular-room camera zones and transitions
+##                          (cut, fade, slide, blend) with Camera2D or Phantom Camera
 ## └── UI/Map (IDPWorldMapView)   optional; kept up to date automatically
 ## [/codeblock]
 ## What it does:
@@ -37,14 +39,21 @@ signal ability_gained(ability: String)
 @export var player: Node2D
 @export var camera: Camera2D
 @export var map_view: IDPWorldMapView
+## Camera controller for irregular rooms and room transitions. Empty: an IDPRoomCamera
+## child if there is one, else the Camera2D is limited to the room's bounding box.
+@export var room_camera: IDPRoomCamera
 ## Refuse gate transitions whose map requirements the player lacks.
 @export var enforce_requirements := false
 ## Load the neighboring room when the player walks into it, without a gate.
 @export var seamless_rooms := false
-## Fade to black between rooms (seconds, 0 = instant).
+## Fade to black between rooms (seconds, 0 = instant). With a room camera, its
+## transition settings are used instead.
 @export var fade_time := 0.2
 ## Ignores gates briefly after arriving, so the player can't bounce straight back.
 @export var gate_cooldown := 0.35
+## Room scenes may contain a player of their own, to test them on their own (F6). It is
+## removed when the room is loaded into the game, which has the real player.
+@export var remove_room_players := true
 
 var world: IDPWorld
 var current_room := ""
@@ -61,13 +70,24 @@ var _load_requested := false
 var _pending_save: Dictionary = {}
 
 func _ready() -> void:
+	if _inside_another_game():
+		# A room scene whose root has this script: only the outer game runs.
+		push_warning("IDPWorldGame: '%s' was loaded inside another IDPWorldGame. Room scenes should have a plain Node2D root; only the game scene uses IDPWorldGame." % scene_file_path)
+		return
 	if world_file.is_empty():
 		world_file = ProjectSettings.get_setting("interactive_dev_panel/world_file", "")
 	world = IDPWorld.get_cached(world_file)
 	if world.get_room_ids().is_empty():
 		push_error("IDPWorldGame: world file '%s' has no rooms." % world_file)
 		return
-	if fade_time > 0:
+	_find_player_and_camera()
+	if not room_camera:
+		for c in get_children():
+			if c is IDPRoomCamera:
+				room_camera = c
+	if room_camera:
+		room_camera.setup(self)
+	if fade_time > 0 or room_camera:
 		var layer := CanvasLayer.new()
 		layer.layer = 100
 		_fade = ColorRect.new()
@@ -80,6 +100,30 @@ func _ready() -> void:
 		_apply_save(_pending_save)
 		_pending_save = {}
 	_auto_start.call_deferred()
+
+func _inside_another_game() -> bool:
+	var n := get_parent()
+	while n:
+		if n is IDPWorldGame:
+			return true
+		n = n.get_parent()
+	return false
+
+## Unassigned player: the game's node in the "player" group. Unassigned camera: a Camera2D
+## under the player.
+func _find_player_and_camera() -> void:
+	if not player:
+		for n in get_tree().get_nodes_in_group(&"player"):
+			if n is Node2D and is_ancestor_of(n):
+				player = n
+				push_warning("IDPWorldGame: 'player' is not assigned; using %s (in the \"player\" group). Assign it in the inspector to be sure." % get_path_to(n))
+				break
+	if not player:
+		push_warning("IDPWorldGame: no player. Assign 'player' (a CharacterBody2D in the \"player\" group); without it, room changes can't move the player and the camera leaves it behind.")
+	if not camera and player:
+		for c in player.find_children("*", "Camera2D", true, false):
+			camera = c
+			break
 
 ## Loads the starting room unless a save, "Play from here" or your own code already
 ## asked for a room.
@@ -99,14 +143,17 @@ func _physics_process(_delta: float) -> void:
 	if seamless_rooms and not world.room_contains(current_room, player.global_position):
 		var next := world.room_at(player.global_position, world.get_room_layer(current_room))
 		if not next.is_empty() and next != current_room:
-			load_room(next, "", player.global_position)
+			# Walking into a touching room: the camera glides over.
+			load_room(next, "", player.global_position, IDPRoomCamera.Transition.BLEND if room_camera else -1)
 
 # --- Rooms --------------------------------------------------------------------------------
 
 ## Loads [param room] (a room id, or a scene path on the map). The player is placed at
 ## [param entry_gate] if given, else at [param world_position] if given, else at the
-## room's first save point or middle. Asynchronous: await it or use [signal room_loaded].
-func load_room(room: String, entry_gate := "", world_position := Vector2.INF) -> void:
+## room's first save point or middle. [param transition] (an [enum IDPRoomCamera.Transition])
+## overrides the room camera's transition for this change. Asynchronous: await it or use
+## [signal room_loaded].
+func load_room(room: String, entry_gate := "", world_position := Vector2.INF, transition := -1) -> void:
 	if changing_room:
 		return
 	_load_requested = true
@@ -116,11 +163,25 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF) ->
 		push_error("IDPWorldGame: room '%s' has no scene." % room)
 		return
 	changing_room = true
-	await _fade_to(1.0)
-	if room_node:
-		room_node.queue_free()
-		await room_node.tree_exited
+	var style := transition
+	if style < 0:
+		style = room_camera.room_transition if room_camera else (IDPRoomCamera.Transition.FADE if fade_time > 0 else IDPRoomCamera.Transition.CUT)
+	if room_node == null and style != IDPRoomCamera.Transition.FADE:
+		style = IDPRoomCamera.Transition.CUT # nothing to slide or blend from
+	var previous_center := room_camera.screen_center() if room_camera and room_camera.camera else Vector2.ZERO
+	if style == IDPRoomCamera.Transition.FADE:
+		await _fade_to(1.0)
+	var old_room := room_node
+	if old_room:
+		if style == IDPRoomCamera.Transition.SLIDE or style == IDPRoomCamera.Transition.BLEND:
+			# Stays visible (but inert) until the camera has moved over.
+			old_room.process_mode = Node.PROCESS_MODE_DISABLED
+		else:
+			old_room.queue_free()
+			await old_room.tree_exited
+			old_room = null
 	room_node = (load(path) as PackedScene).instantiate()
+	_clean_room(room_node, path)
 	room_node.position = world.get_origin(id)
 	add_child(room_node)
 	move_child(room_node, 0)
@@ -139,8 +200,12 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF) ->
 		player.global_position = _spawn_position(id, entry_gate, world_position)
 		if "velocity" in player:
 			player.velocity = Vector2.ZERO
-	if camera:
+	if room_camera:
+		await room_camera.enter_room(id, style, previous_center)
+	elif camera:
 		apply_camera_limits(camera)
+	if old_room:
+		old_room.queue_free()
 	if map_view:
 		map_view.mark_visited(id)
 	_cooldown_until = Time.get_ticks_msec() + int(gate_cooldown * 1000.0)
@@ -154,7 +219,20 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF) ->
 		area_changed.emit(old_area, area)
 	# Last: awaiting room_loaded means everything above has happened.
 	room_loaded.emit(id)
-	await _fade_to(0.0)
+	if style == IDPRoomCamera.Transition.FADE:
+		await _fade_to(0.0)
+
+## Room scenes are plain scenes: players placed in them for testing are removed, and a
+## game script on their root is reported (it would try to run a second game).
+func _clean_room(room: Node, path: String) -> void:
+	if room is IDPWorldGame:
+		push_warning("IDPWorldGame: room scene '%s' has the IDPWorldGame script on its root. Rooms should have a plain Node2D root; only the game scene uses IDPWorldGame." % path)
+	if not remove_room_players:
+		return
+	for n in room.find_children("*", "", true, false):
+		if is_instance_valid(n) and n.is_in_group(&"player") and n != player:
+			n.get_parent().remove_child(n)
+			n.free()
 
 func _spawn_position(id: String, entry_gate: String, world_position: Vector2) -> Vector2:
 	if not entry_gate.is_empty():
@@ -274,8 +352,9 @@ func idp_play_from(request: Dictionary) -> void:
 	await load_room(id, "", world.get_origin(id) + request.position)
 
 func _fade_to(alpha: float) -> void:
-	if not _fade or fade_time <= 0 or not is_inside_tree():
+	var time := room_camera.transition_time / 2.0 if room_camera else fade_time
+	if not _fade or time <= 0 or not is_inside_tree():
 		return
 	var tween := create_tween()
-	tween.tween_property(_fade, "color:a", alpha, fade_time)
+	tween.tween_property(_fade, "color:a", alpha, time)
 	await tween.finished

@@ -8,6 +8,8 @@ extends VBoxContainer
 const WIDTH := 220.0
 
 var body: VBoxContainer
+## Top row (title, window menu, collapse button).
+var header: HBoxContainer
 var _scroll: ScrollContainer
 var _collapse: Button
 var _title: Label
@@ -17,6 +19,7 @@ func _init() -> void:
 	custom_minimum_size.x = WIDTH * IDPUi.editor_scale()
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var head := HBoxContainer.new()
+	header = head
 	add_child(head)
 	_title = IDPUi.title("Map Dev", 14)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL

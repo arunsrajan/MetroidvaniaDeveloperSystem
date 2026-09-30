@@ -24,7 +24,19 @@ Both modes share the analysis: progression spheres, backtracking, save distance,
 
 Copy the `InteractiveDevPanel` folder into your project's `addons/` directory and enable **Interactive Dev Panel** in **Project Settings > Plugins**. A **Map Dev** tab appears at the top of the editor, next to 2D / 3D / Script.
 
-Prefer a right-side dock? Set `interactive_dev_panel/use_main_screen` to `false` in Project Settings and re-enable the plugin.
+### Detaching and docking
+
+The **⧉** menu in the tool panel's title row moves Map Dev at any time, without restarting:
+
+- **Detach to floating window:** its own window, for a second monitor. Its size and position are remembered per project.
+  - While detached, the Map Dev tab shows **Dock Map Dev back here**.
+  - Closing the window docks the panel back.
+- **Dock in main screen:** the Map Dev tab next to 2D / 3D / Script.
+- **Dock on the right** or **Dock in bottom panel:** an editor dock.
+
+The choice is saved in `interactive_dev_panel/placement`. To have no Map Dev tab at all, set `interactive_dev_panel/use_main_screen` to `false` and re-enable the plugin.
+
+![Map Dev detached into its own window](docs/floating_window.png)
 
 ### Layout
 
@@ -219,12 +231,13 @@ Everything saves automatically to the world file. It reloads if the file changes
 
 ### At runtime: IDPWorldGame (no MetSys needed)
 
-Non-linear mode comes with its own game runtime. **`IDPWorldGame`** is the counterpart of MetSys' `MetSysGame`, and it reads the same `.idpworld.json` you edit in the panel. **Scenes > Create game scene...** generates a runnable one: an `IDPWorldGame` root with a placeholder player, a following camera and an in-game map. Swap in your player and press F6.
+Non-linear mode comes with its own game runtime. **`IDPWorldGame`** is the counterpart of MetSys' `MetSysGame`, and it reads the same `.idpworld.json` you edit in the panel. **Scenes > Create game scene...** generates a runnable one: an `IDPWorldGame` root with a placeholder player, a following camera, a room camera and an in-game map. Swap in your player and press F6.
 
 ```
-Game (IDPWorldGame)     world_file, starting_room, starting_gate, player, camera, map_view
+Game (IDPWorldGame)     world_file, starting_room, starting_gate, player, camera, map_view, room_camera
 ├── Player              any Node2D; CharacterBody2D velocity is reset on room changes
-│   └── Camera2D        clamped to the current room on every room change
+│   └── Camera2D        limited to the room (by the RoomCamera, or its bounding box without one)
+├── RoomCamera (IDPRoomCamera)   irregular-room zones and room transitions
 └── UI/Map (IDPWorldMapView)
 ```
 
@@ -239,6 +252,30 @@ It handles:
 - **Signals:** `room_changed(from, to)`, `area_changed(from, to)`, `room_loaded(room)` (emitted last), `transition_blocked(transition, missing)` and `ability_gained(ability)`.
 - **Helpers:** `load_room(room_or_scene, entry_gate, world_position)`, `get_room_bounds()`, `apply_camera_limits(camera)`, `get_room_name()`.
 - **Play from here** works automatically: the game implements `idp_play_from()`.
+
+#### Camera for irregular rooms: IDPRoomCamera
+
+**`IDPRoomCamera`** keeps the camera inside rooms of any shape. It drives a plain `Camera2D`, or [Phantom Camera](https://github.com/ramokz/phantom-camera)'s `PhantomCamera2D` when that addon is installed and enabled.
+
+- **Camera zones.**
+  - An irregular room (L, T, U...) is split into its largest rectangles.
+  - The camera is limited to the zone the player is in, so it never shows the rock in the room's notches. When the player moves into another zone, the camera glides over, like Hollow Knight's camera locks.
+  - A zone smaller than the screen grows to screen size, staying inside the room.
+  - A margin (`zone_hysteresis`) stops flicker where zones overlap.
+- **Room transitions** (`room_transition`):
+  - **Fade** to black.
+  - **Cut:** instant.
+  - **Slide:** the view pans from the old room to the new one while the player waits, like classic Metroid.
+  - **Blend:** the limits glide over while the player keeps moving. Seamless rooms always blend.
+  - During a slide or blend, the old room stays visible, but inert, until the camera arrives.
+- **Backends** (`backend`):
+  - **Camera2D:** IDP animates the camera's limits itself.
+  - **PhantomCamera2D:** one PhantomCamera2D per zone. The active zone gets the priority and Phantom Camera's host tweens between them. A `PhantomCameraHost` is added under the Camera2D if it's missing.
+  - **Auto:** picks Phantom Camera when it's available.
+- **Configuring it:**
+  - Set the exports on the node: zoom, follow smoothing and offset, zone glide time and easing, transition time and easing, Phantom follow mode and priority.
+  - Or use **Scenes > World settings > Camera** in the panel. With `use_world_settings` on (the default), those values override the exports, so the whole team shares one camera setup through the world file.
+- `zone_changed(zone)` is emitted when the camera switches zones; `get_active_pcam()` returns the active PhantomCamera2D.
 
 ```gdscript
 extends IDPWorldGame
@@ -413,6 +450,7 @@ addons/InteractiveDevPanel/
 │   └── exporters.gd       # IDPExporters: JSON, Graphviz, Markdown
 ├── nodes/
 │   ├── idp_world_game.gd  # IDPWorldGame: non-linear game runtime (MetSysGame counterpart)
+│   ├── idp_room_camera.gd # IDPRoomCamera: irregular-room camera zones and transitions (Camera2D / Phantom Camera)
 │   ├── idp_gate.gd        # IDPGate: runtime room transition
 │   └── idp_play_launcher.* # Boots the game scene in the chosen room
 ├── ui/
