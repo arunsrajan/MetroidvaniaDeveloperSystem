@@ -71,6 +71,7 @@ var pin_kind: OptionButton
 var settings_dialog: AcceptDialog
 
 # State
+var _files_ready := false ## the editor finished its startup scan and imports
 var _scanner: IDPSceneScanner
 var _save_timer: Timer
 var _refresh_timer: Timer
@@ -979,13 +980,16 @@ func _scan_paths(paths: Array) -> void:
 	if _scanner and _scanner.is_scanning:
 		_scanner.cancel()
 	_scanner = IDPSceneScanner.new(world.get_default_room_size() if world else Vector2(1152, 648))
+	var scanner := _scanner
+	await _editor_files_ready()
+	if scanner != _scanner:
+		return
 	_scanner.require_room_instance = false
 	_scanner.scan_progress_updated.connect(func(current: int, total: int, file: String) -> void:
 		progress_bar.visible = true
 		progress_bar.max_value = total
 		progress_bar.value = current
 		_set_status("Scanning %d/%d: %s" % [current, total, file]))
-	var scanner := _scanner
 	var db: Dictionary = await scanner.scan_paths(typed)
 	if scanner != _scanner:
 		return
@@ -1000,6 +1004,18 @@ func _scan_paths(paths: Array) -> void:
 	canvas.refresh_previews()
 	_refresh()
 	_set_status("Scanned %d scene(s)." % typed.size())
+
+## On the first scan, waits until the editor is past its startup and is neither scanning
+## nor importing. Room scenes loaded earlier pull in resources whose imports are missing or
+## stale (a tileset's new sheet), which floods the log and can stall the editor's start.
+func _editor_files_ready() -> void:
+	if _files_ready:
+		return
+	await get_tree().process_frame
+	var fs := EditorInterface.get_resource_filesystem()
+	while fs.is_scanning() or fs.is_importing():
+		await get_tree().create_timer(0.25).timeout
+	_files_ready = true
 
 func on_scene_saved(p: String) -> void:
 	if world and not world.find_room_by_scene(p).is_empty():

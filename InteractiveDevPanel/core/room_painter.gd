@@ -717,18 +717,15 @@ func auto_decorate(seed_value := 0, clear := true, allowed: Dictionary = {}) -> 
 
 ## Adds a spritesheet (PNG...) to the tileset as a new atlas source and returns its id
 ## (-1 on failure). Fully transparent cells are skipped. A sheet whose tiles are not the
-## tileset's tile size is scaled (nearest) to fit the grid and embedded. With
-## [param collision], every tile gets a full-tile collision shape (for terrain).
+## tileset's tile size is scaled (nearest) to fit the grid. The tileset links to the image
+## files (see [method _file_texture]), so it stays small. With [param collision], every
+## tile gets a full-tile collision shape (for terrain).
 func add_sheet(texture_path: String, sheet_tile: Vector2i, margin := Vector2i.ZERO, separation := Vector2i.ZERO, collision := false) -> int:
 	if sheet_tile.x <= 0 or sheet_tile.y <= 0:
 		return -1
-	var tex: Texture2D = load(texture_path) as Texture2D if ResourceLoader.exists(texture_path) else null
+	var tex := _sheet_texture(texture_path)
 	if not tex:
-		# Not imported yet (just created): read the file and embed it.
-		var raw := Image.load_from_file(texture_path)
-		if not raw:
-			return -1
-		tex = ImageTexture.create_from_image(raw)
+		return -1
 	var img := tex.get_image()
 	if not img:
 		return -1
@@ -744,7 +741,8 @@ func add_sheet(texture_path: String, sheet_tile: Vector2i, margin := Vector2i.ZE
 		img.resize(maxi(1, roundi(img.get_width() * factor.x)), maxi(1, roundi(img.get_height() * factor.y)), Image.INTERPOLATE_NEAREST)
 		margin = Vector2i((Vector2(margin) * factor).round())
 		separation = Vector2i((Vector2(separation) * factor).round())
-		src.texture = ImageTexture.create_from_image(img)
+		var scaled_path := "%s/%s_idp%dx%d.png" % [texture_path.get_base_dir(), texture_path.get_file().get_basename(), grid.x, grid.y]
+		src.texture = _file_texture(img, scaled_path)
 	else:
 		src.texture = tex
 	src.texture_region_size = grid
@@ -769,6 +767,78 @@ func add_sheet(texture_path: String, sheet_tile: Vector2i, margin := Vector2i.ZE
 	tile_set_dirty = true
 	save_tile_set()
 	return sid
+
+## The sheet at [param path] as an imported texture. A file the editor has not imported
+## yet (just copied into the project) is imported first: reading the raw file instead
+## would end up embedding every pixel in the tileset.
+static func _sheet_texture(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	var fs := _editor_files()
+	if fs and path.begins_with("res://") and FileAccess.file_exists(path):
+		fs.update_file(path)
+		fs.reimport_files(PackedStringArray([path]))
+		if ResourceLoader.exists(path):
+			return ResourceLoader.load(path, "Texture2D", ResourceLoader.CACHE_MODE_REPLACE) as Texture2D
+	var raw := Image.load_from_file(path)
+	return _packed_texture(raw) if raw else null
+
+## A texture for [param img] that a tileset can reference cheaply. In the editor it is
+## saved as a PNG at [param path] and imported, so the tileset only links to it; embedding
+## the raw pixels makes the .tres huge (a 3232x2208 sheet is about 100 MB of text).
+## Elsewhere it is embedded losslessly compressed.
+static func _file_texture(img: Image, path: String) -> Texture2D:
+	var fs := _editor_files()
+	if fs and path.begins_with("res://") and img.save_png(path) == OK:
+		fs.update_file(path)
+		fs.reimport_files(PackedStringArray([path]))
+		var tex := ResourceLoader.load(path, "Texture2D", ResourceLoader.CACHE_MODE_REPLACE) as Texture2D
+		if tex:
+			return tex
+	return _packed_texture(img)
+
+static func _packed_texture(img: Image) -> Texture2D:
+	var packed := PortableCompressedTexture2D.new()
+	packed.create_from_image(img, PortableCompressedTexture2D.COMPRESSION_MODE_LOSSLESS)
+	return packed
+
+static func _editor_files() -> Object:
+	if Engine.is_editor_hint() and Engine.has_singleton(&"EditorInterface"):
+		return Engine.get_singleton(&"EditorInterface").get_resource_filesystem()
+	return null
+
+## Moves big images embedded in [param ts] (sheets added by older versions, or from files
+## that were not imported yet) out to PNG files next to it and links them instead. Returns
+## how many were moved; the tileset is saved when any were. Only works in the editor.
+static func externalize_sheets(ts: TileSet) -> int:
+	var base := ts.resource_path
+	if not _editor_files() or base.is_empty() or "::" in base:
+		return 0
+	var moved := 0
+	for i in ts.get_source_count():
+		var sid := ts.get_source_id(i)
+		var src := ts.get_source(sid) as TileSetAtlasSource
+		if not src or not src.texture is ImageTexture or src.texture.get_width() * src.texture.get_height() < 512 * 512:
+			continue
+		if not src.texture.resource_path.is_empty() and not "::" in src.texture.resource_path:
+			continue
+		var img: Image = src.texture.get_image()
+		if not img:
+			continue
+		var stem := "%s_%s" % [base.get_basename(), src.resource_name.validate_filename() if not src.resource_name.is_empty() else "sheet%d" % sid]
+		var path := stem + ".png"
+		var n := 2
+		while FileAccess.file_exists(path):
+			path = "%s_%d.png" % [stem, n]
+			n += 1
+		var tex := _file_texture(img, path)
+		if tex is PortableCompressedTexture2D:
+			continue
+		src.texture = tex
+		moved += 1
+	if moved > 0:
+		ResourceSaver.save(ts, base)
+	return moved
 
 ## Removes a sheet from the tileset (tiles painted from it disappear).
 func remove_sheet(source_id: int) -> void:

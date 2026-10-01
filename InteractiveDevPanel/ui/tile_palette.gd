@@ -76,6 +76,10 @@ func _init() -> void:
 	grid.draw.connect(_draw_grid)
 	grid.gui_input.connect(_grid_input)
 	scroll.add_child(grid)
+	# Only the visible part of the sheet is drawn: redraw when it scrolls or resizes.
+	scroll.get_h_scroll_bar().value_changed.connect(func(_v: float) -> void: grid.queue_redraw())
+	scroll.get_v_scroll_bar().value_changed.connect(func(_v: float) -> void: grid.queue_redraw())
+	scroll.resized.connect(grid.queue_redraw)
 	info = IDPUi.hint("Drag over tiles to pick them for the brushes.")
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(info)
@@ -188,23 +192,53 @@ func _coords_at(pos: Vector2) -> Vector2i:
 	var grid_size := src.get_atlas_grid_size()
 	return c.clamp(Vector2i.ZERO, grid_size - Vector2i.ONE)
 
+## Draws the sheet, its grid and tile markers. Only the part visible in the scroll area is
+## drawn: big sheets have thousands of tiles, and drawing them all (an outline each)
+## stalls the editor for seconds on every redraw.
 func _draw_grid() -> void:
 	var src := _source()
 	if not src:
 		return
-	grid.draw_rect(Rect2(Vector2.ZERO, grid.custom_minimum_size), Color(0.1, 0.1, 0.12))
+	var full := Rect2(Vector2.ZERO, grid.custom_minimum_size)
+	var view := Rect2(Vector2(scroll.scroll_horizontal, scroll.scroll_vertical), scroll.size).intersection(full)
+	if not view.has_area():
+		view = full
+	grid.draw_rect(view, Color(0.1, 0.1, 0.12))
 	grid.draw_texture_rect(src.texture, Rect2(Vector2.ZERO, Vector2(src.texture.get_size()) * zoom), false)
-	for i in src.get_tiles_count():
-		var c := src.get_tile_id(i)
-		var r := _tile_rect(src, c)
-		grid.draw_rect(r, Color(1, 1, 1, 0.12), false, 1.0)
-		var td := src.get_tile_data(c, 0)
-		if td.terrain_set >= 0 and td.terrain >= 0:
-			grid.draw_rect(Rect2(r.position + Vector2(0, r.size.y - 3), Vector2(r.size.x, 3)), painter.tile_set.get_terrain_color(td.terrain_set, td.terrain))
-		if painter.is_solid(source_id, c):
-			grid.draw_rect(Rect2(r.position + Vector2(1, 1), Vector2(4, 4)), Color(1, 0.35, 0.3))
-		if not painter.get_tile_kind(source_id, c).is_empty():
-			grid.draw_rect(Rect2(r.position + Vector2(r.size.x - 5, 1), Vector2(4, 4)), Color(0.3, 0.85, 1))
+	var grid_size := src.get_atlas_grid_size()
+	var lo := _coords_at(view.position)
+	var hi := _coords_at(view.end)
+	var step := Vector2(src.texture_region_size + src.separation) * zoom
+	var origin := Vector2(src.margins) * zoom
+	# Grid lines, in one draw call.
+	var lines := PackedVector2Array()
+	for x in range(lo.x, mini(hi.x + 2, grid_size.x + 1)):
+		var px := origin.x + x * step.x
+		lines.append_array([Vector2(px, view.position.y), Vector2(px, view.end.y)])
+	for y in range(lo.y, mini(hi.y + 2, grid_size.y + 1)):
+		var py := origin.y + y * step.y
+		lines.append_array([Vector2(view.position.x, py), Vector2(view.end.x, py)])
+	if not lines.is_empty():
+		grid.draw_multiline(lines, Color(1, 1, 1, 0.12))
+	# Markers of the visible tiles: terrain (bottom bar), solid (red), kind tag (blue).
+	var kind_layer := -1
+	for i in painter.tile_set.get_custom_data_layers_count():
+		if painter.tile_set.get_custom_data_layer_name(i) == "idp_kind":
+			kind_layer = i
+	var physics := painter.tile_set.get_physics_layers_count() > 0
+	for y in range(lo.y, hi.y + 1):
+		for x in range(lo.x, hi.x + 1):
+			var c := Vector2i(x, y)
+			if not src.has_tile(c):
+				continue
+			var r := _tile_rect(src, c)
+			var td := src.get_tile_data(c, 0)
+			if td.terrain_set >= 0 and td.terrain >= 0:
+				grid.draw_rect(Rect2(r.position + Vector2(0, r.size.y - 3), Vector2(r.size.x, 3)), painter.tile_set.get_terrain_color(td.terrain_set, td.terrain))
+			if physics and td.get_collision_polygons_count(0) > 0:
+				grid.draw_rect(Rect2(r.position + Vector2(1, 1), Vector2(4, 4)), Color(1, 0.35, 0.3))
+			if kind_layer >= 0 and not str(td.get_custom_data_by_layer_id(kind_layer)).is_empty():
+				grid.draw_rect(Rect2(r.position + Vector2(r.size.x - 5, 1), Vector2(4, 4)), Color(0.3, 0.85, 1))
 	if selection.has_area():
 		var a := _tile_rect(src, selection.position)
 		var b := _tile_rect(src, selection.end - Vector2i.ONE)

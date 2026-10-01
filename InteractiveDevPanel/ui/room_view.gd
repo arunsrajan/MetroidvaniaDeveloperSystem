@@ -260,6 +260,9 @@ func open_room(p_world: IDPWorld, id: String) -> String:
 		return "%s has no scene." % id
 	var tiles_path := str(world.get_setting("room_tileset", ""))
 	var tiles := IDPTilesetFactory.get_or_create(tiles_path if not tiles_path.is_empty() else DEFAULT_TILESET)
+	var moved := IDPRoomPainter.externalize_sheets(tiles) if tiles else 0
+	if moved > 0:
+		status_message.emit("Moved %d sheet image(s) embedded in %s out to PNG files next to it, so the tileset loads fast." % [moved, tiles.resource_path.get_file()])
 	painter = IDPRoomPainter.open(path, tiles)
 	if not painter:
 		return "Could not open %s." % path
