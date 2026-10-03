@@ -1,6 +1,8 @@
-# InteractiveDevPanel
+# Metroidvania Developer System
 
-A Godot 4 editor plugin that turns your metroidvania's world into a design workbench: room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
+A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, connect them with gates, paint each room's terrain, freeform rock and decorations, then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
+
+The plugin's classes keep their `IDP` prefix (`IDPWorldGame`, `IDPGate`...), from its original name, Interactive Dev Panel.
 
 It has two modes, switched from the first drop-down in the tool panel:
 
@@ -22,7 +24,14 @@ Both modes share the analysis: progression spheres, backtracking, save distance,
 
 ## Installation
 
-Copy the `InteractiveDevPanel` folder into your project's `addons/` directory and enable **Interactive Dev Panel** in **Project Settings > Plugins**. A **Map Dev** tab appears at the top of the editor, next to 2D / 3D / Script.
+The addon lives in `addons/MetroidvaniaDeveloperSystem/`, so it installs into any Godot project in the usual way:
+
+- **From the editor's AssetLib tab or a GitHub ZIP:** download it, keep `addons/MetroidvaniaDeveloperSystem/` checked and install. The optional Mossgrove art pack in `asset_packs/mossgrove/` comes with it; uncheck it if you don't need it.
+- **By hand:** copy `addons/MetroidvaniaDeveloperSystem/` into your project's `addons/` folder, and `asset_packs/mossgrove/` into `asset_packs/` if you want the art pack.
+
+Then enable **Metroidvania Developer System** in **Project Settings > Plugins**. A **Map Dev** tab appears at the top of the editor, next to 2D / 3D / Script. Without MetSys installed, it starts in non-linear mode.
+
+This repository is also a Godot project: open its `project.godot` to try the plugin with the Mossgrove demo scenes.
 
 ### Detaching and docking
 
@@ -481,8 +490,20 @@ It comes with a ready TileSet, SpriteFrames and a demo scene. Set it as the worl
 
 ## File structure
 
+The repository:
+
 ```
-addons/InteractiveDevPanel/
+addons/MetroidvaniaDeveloperSystem/  # the plugin (all you need)
+asset_packs/mossgrove/               # optional art pack: tiles, characters, freeform styles, demos
+examples/                            # a sample .idpworld.json
+docs/                                # screenshots for this README
+project.godot                        # demo project with the plugin enabled
+```
+
+The plugin:
+
+```
+addons/MetroidvaniaDeveloperSystem/
 ├── plugin.gd              # EditorPlugin: main screen tab (or dock), scene-save hook
 ├── dock.gd / dock.tscn    # Mode host: switches between the two panels
 ├── metsys_panel.gd        # IDPMetSysPanel: MetSys mode
@@ -527,6 +548,17 @@ addons/InteractiveDevPanel/
 
 The `core/` classes have no editor dependencies, so you can use them from tool scripts or CI. For example, fail a build when `IDPWorldValidator.run()` reports errors.
 
+## Upgrading from InteractiveDevPanel
+
+Scenes and resources often reference the plugin's scripts by path only (`res://addons/InteractiveDevPanel/nodes/idp_gate.gd`), so they must point to the new folder before the old one goes. Otherwise Godot loads them without their `IDPGate`, `IDPWorldGame` or freeform scripts.
+
+1. Close the project in Godot and back it up (or commit it).
+2. In every `.tscn`, `.tres`, `.gd` and `.cfg` file and in `project.godot`, replace `res://addons/InteractiveDevPanel/` with `res://addons/MetroidvaniaDeveloperSystem/`. Use your editor's find and replace in files, or run `git grep -l "addons/InteractiveDevPanel" | xargs sed -i "s|addons/InteractiveDevPanel|addons/MetroidvaniaDeveloperSystem|g"`.
+3. Delete `addons/InteractiveDevPanel/` and copy in `addons/MetroidvaniaDeveloperSystem/`.
+4. Open the project and enable **Metroidvania Developer System** in **Project Settings > Plugins** if it isn't already.
+
+Class names, project settings (`interactive_dev_panel/...`) and world files are unchanged.
+
 ## Upgrading from 1.x
 
 - The panel is now a main screen tab with two modes; set `interactive_dev_panel/use_main_screen = false` to keep the dock.
@@ -535,3 +567,7 @@ The `core/` classes have no editor dependencies, so you can use them from tool s
 - The **Show** checkboxes control map markers; room list filtering is opt-in.
 - `SceneScanner` is now `IDPSceneScanner`. `map_overlay.gd`, `draw_marker.gd` and `status_bar.gd` were replaced.
 - Interior edges of multi-cell rooms are no longer drawn as passages.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The Mossgrove asset pack is under the same license.

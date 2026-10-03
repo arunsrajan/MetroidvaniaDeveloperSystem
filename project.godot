@@ -1,0 +1,30 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Metroidvania Developer System"
+config/description="Demo project for the Metroidvania Developer System editor plugin."
+run/main_scene="res://asset_packs/mossgrove/demo/freeform_cave.tscn"
+config/features=PackedStringArray("4.7")
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/MetroidvaniaDeveloperSystem/plugin.cfg")
+
+[interactive_dev_panel]
+
+mode=1
+world_file="res://examples/demo.idpworld.json"
+placement=0
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0

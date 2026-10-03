@@ -1,0 +1,11 @@
+# Godot 4
+.godot/
+/android/
+*.translation
+export_presets.cfg
+
+# Files the editor writes into the demo project
+MapData.idp.json
+MapData.idpworld.json
+idp_exports/
+idp_tiles/

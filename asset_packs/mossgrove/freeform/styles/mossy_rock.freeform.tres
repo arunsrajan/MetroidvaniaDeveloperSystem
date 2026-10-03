@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_under.png" id="1_g0vwh"]
 [ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/fill_rock.png" id="2_p5yky"]
-[ext_resource type="Script" path="res://addons/InteractiveDevPanel/nodes/idp_freeform_style.gd" id="3_ki8e7"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_freeform_style.gd" id="3_ki8e7"]
 [ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/mossgrove.stamps.tres" id="4_4iuvv"]
 [ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_moss.png" id="5_ab8kr"]
 

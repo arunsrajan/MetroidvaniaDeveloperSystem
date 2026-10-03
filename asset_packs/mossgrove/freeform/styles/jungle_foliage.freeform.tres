@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="IDPFreeformStyle" format=3]
 
 [ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/fill_foliage.png" id="1_kcmyx"]
-[ext_resource type="Script" path="res://addons/InteractiveDevPanel/nodes/idp_freeform_style.gd" id="2_0gum3"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_freeform_style.gd" id="2_0gum3"]
 [ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/mossgrove.stamps.tres" id="3_jik3u"]
 [ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_foliage.png" id="4_ist8t"]
 

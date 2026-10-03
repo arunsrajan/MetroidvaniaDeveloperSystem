@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://dgxbkr5la47fe"]
+
+[ext_resource type="Script" uid="uid://bhgixy7sdlbmp" path="res://addons/MetroidvaniaDeveloperSystem/dock.gd" id="1_4bxfa"]
+
+[node name="MetroidvaniaDeveloperSystem" type="Control" unique_id=418111714]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_4bxfa")

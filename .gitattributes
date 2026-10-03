@@ -1,0 +1,10 @@
+# Normalize line endings for all text files.
+* text=auto eol=lf
+
+# Godot Asset Library downloads (GitHub archives) contain only the addon and the
+# optional Mossgrove asset pack, not the demo project, docs or examples.
+/**                export-ignore
+/addons            !export-ignore
+/addons/**         !export-ignore
+/asset_packs       !export-ignore
+/asset_packs/**    !export-ignore

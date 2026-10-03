@@ -42,7 +42,7 @@ func _has_class(n: String) -> bool:
 
 func build_freeform() -> void:
 	var ff: Dictionary = pack.freeform
-	var stamps: Resource = load("res://addons/InteractiveDevPanel/nodes/idp_stamp_set.gd").new()
+	var stamps: Resource = load("res://addons/MetroidvaniaDeveloperSystem/nodes/idp_stamp_set.gd").new()
 	stamps.display_name = "Mossgrove clumps"
 	stamps.texture = tex(ff.clumps.texture)
 	var regions: Array[Rect2] = []
@@ -57,7 +57,7 @@ func build_freeform() -> void:
 	stamps.anchors = anchors
 	ResourceSaver.save(stamps, root_dir.path_join("freeform/mossgrove.stamps.tres"))
 	stamps = load(root_dir.path_join("freeform/mossgrove.stamps.tres"))
-	var style_script: Script = load("res://addons/InteractiveDevPanel/nodes/idp_freeform_style.gd")
+	var style_script: Script = load("res://addons/MetroidvaniaDeveloperSystem/nodes/idp_freeform_style.gd")
 	var specs := {
 		"mossy_rock": {"display_name": "Mossy rock", "fill": "rock", "outline_color": Color("#080b10"), "outline_width": 3.0,
 			"top": "moss", "top_width": 58.0, "top_inset": 4.0, "top_angle": 78.0, "bottom": "under", "bottom_width": 40.0, "bottom_inset": 2.0,
