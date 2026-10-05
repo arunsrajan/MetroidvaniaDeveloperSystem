@@ -74,6 +74,13 @@ static func run(world: IDPWorld, analysis: IDPAnalysis, scene_db: Dictionary) ->
 				first = false
 			if not local_bounds.grow(world.get_grid()).encloses(content):
 				IDPValidator._add(issues, W, CATEGORY_LAYOUT, "%s: the scene's terrain (%s) extends past the room drawn on the map. Use Inspect > Fit to scene" % [name, _fmt_rect(content)], id, Vector3i.MAX, at, layer)
+		for t in meta.get("twisted", []):
+			IDPValidator.add_twisted_issue(issues, name, t, id, Vector3i.MAX, world.get_origin(id) + Vector2(t.position), layer)
+		for o in meta.get("overlaps", []):
+			IDPValidator.add_overlap_issue(issues, name, o, id, Vector3i.MAX, world.get_origin(id) + Vector2(o.position), layer)
+		# Physics checks (IDPRoomCheck), run in the background by the panel.
+		for g in meta.get("geometry", []):
+			IDPValidator._add(issues, W, IDPValidator.CATEGORY_GEOMETRY, g.message, id, Vector3i.MAX, world.get_origin(id) + Vector2(g.pos), layer)
 		var scene_gates: Dictionary = {}
 		for t in meta.get("transitions", []):
 			scene_gates[t.name] = t

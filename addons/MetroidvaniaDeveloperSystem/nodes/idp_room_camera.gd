@@ -22,16 +22,21 @@ extends Node2D
 ## Add it as a child of the IDPWorldGame (Create game scene does). Every setting can also
 ## come from the world file (World settings > Camera in the panel) when
 ## [member use_world_settings] is on.
+##
+## [b]Fights.[/b] An [IDPCameraDirector] child borrows the camera for a moment: framing a
+## threat, revealing an arena, punching in, focusing on a node ([method get_director]).
 
 enum Backend { AUTO, CAMERA_2D, PHANTOM_CAMERA }
 enum Confine { ROOM_SHAPE, ROOM_BOUNDS, NONE }
 enum Transition { FADE, CUT, SLIDE, BLEND }
+enum Motion { GLIDE, CUT }
 
 const BACKEND_NAMES: PackedStringArray = ["Auto (Phantom Camera if installed)", "Camera2D", "PhantomCamera2D"]
 const CONFINE_NAMES: PackedStringArray = ["Room shape (zones)", "Room bounds", "None"]
 const TRANSITION_NAMES: PackedStringArray = ["Fade", "Cut", "Slide", "Blend"]
+const MOTION_NAMES: PackedStringArray = ["Glide", "Cut, never glide"]
 ## Settings read from the world file's settings.camera.
-const SETTING_KEYS: PackedStringArray = ["backend", "confine", "room_transition", "transition_time", "zone_blend_time", "zone_hysteresis", "follow_smoothing", "zoom"]
+const SETTING_KEYS: PackedStringArray = ["backend", "confine", "room_transition", "transition_style", "transition_time", "zone_blend_time", "zone_hysteresis", "follow_smoothing", "zoom"]
 
 signal zone_changed(zone: Rect2)
 
@@ -43,6 +48,10 @@ signal zone_changed(zone: Rect2)
 ## Values in the world file (settings.camera) override the ones set here.
 @export var use_world_settings := true
 @export var zoom := Vector2.ONE
+## GLIDE: zones, slides, blends and the director's moves glide. CUT: the camera never glides:
+## zone changes and room transitions cut, follow smoothing is off and the director cuts to its
+## view and back (a camera that eases late makes the parallax and the backdrop late too).
+@export var transition_style: Motion = Motion.GLIDE
 
 @export_group("Irregular rooms")
 ## How the camera is kept inside a room: by its shape (zones), by its bounding box, or not.
@@ -79,6 +88,12 @@ var zone := Rect2()
 var room_id := ""
 var using_phantom := false
 
+## The director borrowing the camera (see [method get_director]).
+var director: IDPCameraDirector
+## True while the director has the camera: the room camera keeps track of zones and limits but
+## leaves the camera alone.
+var directed := false
+
 var _limits := Rect2() ## current (animated) Camera2D limits
 var _limit_tween: Tween
 var _pcams: Array[Node2D] = []
@@ -88,6 +103,29 @@ var _busy := false
 func _ready() -> void:
 	top_level = true
 	global_position = Vector2.ZERO
+	for c in get_children():
+		if c is IDPCameraDirector:
+			director = c
+
+## The [IDPCameraDirector] of this camera (a child), added when there is none.
+func get_director() -> IDPCameraDirector:
+	if not is_instance_valid(director):
+		director = IDPCameraDirector.new()
+		director.name = "Director"
+		add_child(director)
+	return director
+
+func is_cut() -> bool:
+	return transition_style == Motion.CUT
+
+## The room transition used: [member room_transition] (or [param style]), with a cut instead
+## of a slide or blend when [member transition_style] is CUT.
+func get_room_transition(style := -1) -> int:
+	if style < 0:
+		style = room_transition
+	if is_cut() and (style == Transition.SLIDE or style == Transition.BLEND):
+		return Transition.CUT
+	return style
 
 ## Called by [IDPWorldGame] when it starts.
 func setup(p_game: IDPWorldGame) -> void:
@@ -111,7 +149,7 @@ func setup(p_game: IDPWorldGame) -> void:
 	if using_phantom:
 		_ensure_host()
 	else:
-		camera.position_smoothing_enabled = follow_smoothing > 0.0
+		camera.position_smoothing_enabled = follow_smoothing > 0.0 and not is_cut()
 		camera.position_smoothing_speed = maxf(follow_smoothing, 0.01)
 		if camera.get_parent() == self or camera.top_level:
 			# A free camera (not a child of the player) follows the target itself.
@@ -125,6 +163,7 @@ func apply_settings(s: Dictionary) -> void:
 	backend = int(s.get("backend", backend)) as Backend
 	confine = int(s.get("confine", confine)) as Confine
 	room_transition = int(s.get("room_transition", room_transition)) as Transition
+	transition_style = int(s.get("transition_style", transition_style)) as Motion
 	transition_time = float(s.get("transition_time", transition_time))
 	zone_blend_time = float(s.get("zone_blend_time", zone_blend_time))
 	zone_hysteresis = float(s.get("zone_hysteresis", zone_hysteresis))
@@ -162,7 +201,7 @@ func _ensure_host() -> void:
 	camera.add_child(host)
 
 func _process(_delta: float) -> void:
-	if not using_phantom and target and camera and (camera.get_parent() == self or camera.top_level) and not _busy:
+	if not using_phantom and target and camera and (camera.get_parent() == self or camera.top_level) and not _busy and not directed:
 		camera.global_position = target.global_position + follow_offset
 
 func _physics_process(_delta: float) -> void:
@@ -176,7 +215,7 @@ func _physics_process(_delta: float) -> void:
 		if zones[i].has_point(p) and (best < 0 or zones[i].get_area() > zones[best].get_area()):
 			best = i
 	if best >= 0 and zones[best] != zone:
-		_set_zone(zones[best], zone_blend_time)
+		_set_zone(zones[best], 0.0 if is_cut() else zone_blend_time)
 
 # --- Rooms ------------------------------------------------------------------------------------
 
@@ -191,6 +230,9 @@ func screen_center() -> Vector2:
 ## Called by [IDPWorldGame] after the new room is in place and the player is placed.
 ## Performs the transition (slide or blend; fades are done by the game).
 func enter_room(id: String, style: int, previous_center: Vector2) -> void:
+	if is_instance_valid(director):
+		director.cancel()
+	style = get_room_transition(style)
 	room_id = id
 	var rects := game.world.get_world_rects(id)
 	match confine:
@@ -257,12 +299,16 @@ func _set_zone(z: Rect2, blend: float) -> void:
 	zone = z
 	zone_changed.emit(z)
 	if using_phantom:
+		for p in _pcams:
+			_prop(p.get("tween_resource"), "duration", blend)
 		_activate_pcam(z)
 		return
 	_tween_limits(_limits_for(z), blend, zone_trans, zone_ease)
 
 func _apply_limits(r: Rect2) -> void:
 	_limits = r
+	if directed:
+		return
 	camera.limit_left = floori(r.position.x)
 	camera.limit_top = floori(r.position.y)
 	camera.limit_right = ceili(r.end.x)
@@ -314,6 +360,63 @@ func _slide_to(new_limits: Rect2) -> void:
 		frozen.process_mode = old_mode
 	_busy = false
 
+# --- What the director needs --------------------------------------------------------------------
+
+## The zoom the room's camera rests at.
+func rest_zoom() -> float:
+	return zoom.x
+
+## The limits the room's camera keeps to now (the current zone's, grown to the view).
+func rest_limits() -> Rect2:
+	if using_phantom or not _limits.has_area():
+		return _limits_for(zone)
+	return _limits
+
+## Where the room's own camera looks at zoom [param z] (default: its rest zoom) when nothing
+## directs it: the target, kept inside [method rest_limits].
+func rest_centre(z := -1.0) -> Vector2:
+	if z <= 0.0:
+		z = rest_zoom()
+	var l := rest_limits()
+	var p := (target.global_position + follow_offset) if target else l.get_center()
+	if l.size.x > 1e6:
+		return p
+	var half := (camera.get_viewport_rect().size if camera else Vector2(1152, 648)) / 2.0 / z
+	var c := p
+	for axis in 2:
+		if l.size[axis] >= half[axis] * 2.0:
+			c[axis] = clampf(p[axis], l.position[axis] + half[axis], l.end[axis] - half[axis])
+		else:
+			c[axis] = l.get_center()[axis]
+	return c
+
+## Rectangles a view may show at the rest zoom or closer: each zone's limits. Empty when the
+## camera isn't confined.
+func legal_areas() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if confine == Confine.NONE or not game or room_id.is_empty():
+		return out
+	if zones.is_empty():
+		out.append(_limits_for(game.world.get_room_bounds(room_id)))
+	for z in zones:
+		out.append(_limits_for(z))
+	return out
+
+## The room's shape (world rectangles): a pulled-out view must stay inside it.
+func shape_rects() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if not game or room_id.is_empty():
+		return out
+	if confine == Confine.ROOM_BOUNDS:
+		out.append(game.world.get_room_bounds(room_id))
+	else:
+		out.assign(game.world.get_world_rects(room_id))
+	return out
+
+## Puts the Camera2D's limits back to the room camera's (when the director lets go).
+func restore_limits() -> void:
+	_apply_limits(_limits)
+
 # --- Phantom Camera ----------------------------------------------------------------------------
 
 func _make_pcam(z: Rect2) -> Node2D:
@@ -324,7 +427,7 @@ func _make_pcam(z: Rect2) -> Node2D:
 	_prop(pcam, "follow_mode", phantom_follow_mode)
 	_prop(pcam, "zoom", zoom)
 	_prop(pcam, "follow_offset", follow_offset)
-	if follow_smoothing > 0.0:
+	if follow_smoothing > 0.0 and not is_cut():
 		_prop(pcam, "follow_damping", true)
 		var d := clampf(1.0 / follow_smoothing, 0.01, 1.0)
 		_prop(pcam, "follow_damping_value", Vector2(d, d))
@@ -334,7 +437,7 @@ func _make_pcam(z: Rect2) -> Node2D:
 	_prop(pcam, "limit_bottom", ceili(l.end.y))
 	var tween_res := _new_global("PhantomCameraTween") as Resource
 	if tween_res:
-		_prop(tween_res, "duration", zone_blend_time)
+		_prop(tween_res, "duration", 0.0 if is_cut() else zone_blend_time)
 		_prop(tween_res, "transition", 1) # sine
 		_prop(tween_res, "ease", 2) # in-out
 		_prop(pcam, "tween_resource", tween_res)
@@ -366,7 +469,7 @@ func _enter_room_phantom(start: Rect2, style: int) -> void:
 	else:
 		await get_tree().process_frame
 	for p in _pcams:
-		_prop(p.get("tween_resource"), "duration", zone_blend_time)
+		_prop(p.get("tween_resource"), "duration", 0.0 if is_cut() else zone_blend_time)
 	for p in _old_pcams:
 		if is_instance_valid(p):
 			p.queue_free()

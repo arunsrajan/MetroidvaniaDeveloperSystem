@@ -1,0 +1,29 @@
+{
+  "name": "Sunken Gardens",
+  "for": "Metroidvania Developer System 2.2 freeform terrain",
+  "styles": [
+    {"file": "freeform/styles/garden_limestone.freeform.tres", "name": "Garden limestone", "role": "terrain", "layer": "terrain", "fill": "fill_limestone.png", "top": "edge_grass.png", "bottom": "edge_roots.png", "clumps": {"top": "grass", "bottom": "ivy"}},
+    {"file": "freeform/styles/garden_ledge.freeform.tres", "name": "Garden ledge", "role": "platform", "one_way": true, "layer": "terrain", "fill": "fill_limestone.png", "top": "edge_grass.png", "bottom": "edge_roots.png", "clumps": {"bottom": "ivy"}},
+    {"file": "freeform/styles/sunken_ruin.freeform.tres", "name": "Sunken ruin (background)", "role": "terrain", "solid": false, "layer": "back", "fill": "fill_ruin.png", "top": "edge_hedge.png", "clumps": {"bottom": "ivy"}},
+    {"file": "freeform/styles/sunken_deep.freeform.tres", "name": "Deep ground", "role": "decor", "solid": false, "layer": "terrain", "fill": "fill_deep.png", "bottom": "edge_roots.png"},
+    {"file": "freeform/styles/garden_foreground.freeform.tres", "name": "Garden foreground leaves", "role": "terrain", "solid": false, "layer": "front", "fill": "fill_silhouette.png", "top": "edge_silhouette.png", "clumps": {"top": "silhouette"}}
+  ],
+  "stamps": {
+    "file": "freeform/sunken_gardens.stamps.tres",
+    "texture": "freeform/clumps.png",
+    "cell": 128,
+    "categories": {
+      "grass": {"count": 6, "anchor": [0.5, 0.98]},
+      "flower": {"count": 3, "anchor": [0.5, 0.98]},
+      "fern": {"count": 2, "anchor": [0.5, 0.98]},
+      "moss": {"count": 3, "anchor": [0.5, 0.95]},
+      "ivy": {"count": 3, "anchor": [0.5, 0.02]},
+      "leaf_bg": {"count": 3, "anchor": [0.5, 0.5]},
+      "silhouette": {"count": 4, "anchor": [0.5, 0.98]}
+    }
+  },
+  "fills": {"size": [256, 256], "files": ["fill_limestone.png", "fill_ruin.png", "fill_deep.png", "fill_silhouette.png"]},
+  "edges": {"size": [512, 64], "files": ["edge_grass.png", "edge_hedge.png", "edge_roots.png", "edge_silhouette.png"]},
+  "demo": "demo/sunken_garden_demo.tscn",
+  "tools": {"art": "tools/sunken_gardens.py", "demo": "tools/build_demo.gd"}
+}

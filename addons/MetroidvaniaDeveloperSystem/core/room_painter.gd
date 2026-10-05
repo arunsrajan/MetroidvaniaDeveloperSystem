@@ -7,7 +7,12 @@ extends RefCounted
 ##
 ## The scene is opened as an editable instance kept outside the tree. Painting happens on
 ## copies (so they can be displayed), and [method save] writes them back into the scene
-## (creating missing layers and item groups) and saves it. Nothing else is touched.
+## (creating missing layers and item groups) and saves it.
+##
+## Tools that change the scene's other nodes (Convert to freeform hides old terrain, Fit
+## props moves objects) record [member scene_edits] instead of touching the scene, so undo
+## covers them; [method save] applies them. Tiles hidden rather than deleted go to a
+## disabled "<Layer>Blockout" layer ([method hide_cells]).
 
 const LAYER_Z := {"Background": -10, "Terrain": 0, "Decor": 5, "Foreground": 20}
 const LAYER_ORDER: PackedStringArray = ["Background", "Terrain", "Decor", "Foreground"]
@@ -19,6 +24,8 @@ const ITEM_GROUPS := {
 
 var scene_path := ""
 var root: Node
+## The scene as loaded, for saving it back safely (see [method IDPWorldSceneTools.repack_safely]).
+var packed_scene: PackedScene
 var layers: Dictionary = {} ## name -> TileMapLayer copy being edited
 var tile_set: TileSet
 var dirty := false
@@ -28,6 +35,13 @@ var _source_paths: Dictionary = {} ## name -> NodePath inside root
 var items_root: Node2D
 var _undo: Array = [] ## snapshots: layer name -> tile_map_data
 var _redo: Array = []
+## Hidden tiles: layer name -> disabled TileMapLayer copy ("<Layer>Blockout").
+var blockout: Dictionary = {}
+## Changes to the scene's other nodes: path from the root -> {hidden, removed, position}.
+var scene_edits: Dictionary = {}
+var _scene_originals: Dictionary = {} ## path -> {visible, process_mode, position, blockout}
+var _detached: Dictionary = {} ## path -> [node, parent path, index]: removed by a save
+var _created: Dictionary = {} ## paths of layers and groups a save added (removed again when empty)
 
 const COLOR_SOURCE_NAME := "IDP colors"
 const MAX_UNDO := 60
@@ -38,12 +52,20 @@ static func open(path: String, default_tile_set: TileSet = null) -> IDPRoomPaint
 		return null
 	var p := IDPRoomPainter.new()
 	p.scene_path = path
+	p.packed_scene = packed
 	p.root = packed.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
 	var found: Dictionary = {}
-	var all_layers: Array = p.root.find_children("*", "TileMapLayer", true, false)
+	var all_layers: Array = p.root.find_children("*", "TileMapLayer", true, false).filter(func(l: Node) -> bool: return not l.has_meta(&"idp_blockout"))
 	for layer in all_layers:
 		if layer.name in LAYER_Z and not found.has(String(layer.name)):
 			found[String(layer.name)] = layer
+	for layer in p.root.find_children("*Blockout", "TileMapLayer", true, false):
+		var base := String(layer.name).trim_suffix("Blockout")
+		if base in LAYER_Z and layer.has_meta(&"idp_blockout") and not p.blockout.has(base):
+			var copy: TileMapLayer = layer.duplicate()
+			copy.transform = _local_transform(layer, p.root)
+			p.blockout[base] = copy
+			p._source_paths[base + "Blockout"] = p.root.get_path_to(layer)
 	if not found.has("Terrain") and not all_layers.is_empty():
 		found["Terrain"] = all_layers[0] # a scene with one unnamed tile layer: paint on it
 	for layer in found.values():
@@ -132,6 +154,11 @@ func _snapshot() -> Dictionary:
 			list.append(_item_data(node))
 		items[g] = list
 	out[&"_items"] = items
+	var hidden: Dictionary = {}
+	for n in blockout:
+		hidden[n] = blockout[n].tile_map_data
+	out[&"_blockout"] = hidden
+	out[&"_scene"] = scene_edits.duplicate(true)
 	return out
 
 func _restore(snap: Dictionary) -> void:
@@ -146,6 +173,11 @@ func _restore(snap: Dictionary) -> void:
 				c.queue_free()
 			for d in snap[&"_items"][g]:
 				container.add_child(_item_from(d))
+	for n in blockout:
+		blockout[n].tile_map_data = snap.get(&"_blockout", {}).get(n, PackedByteArray())
+	for n in snap.get(&"_blockout", {}):
+		blockout_layer(n).tile_map_data = snap[&"_blockout"][n]
+	scene_edits = snap.get(&"_scene", {}).duplicate(true)
 	dirty = true
 
 static func _item_data(node: Node) -> Dictionary:
@@ -154,8 +186,12 @@ static func _item_data(node: Node) -> Dictionary:
 		d.kind = "freeform"
 		return d
 	var s := node as Sprite2D
+	var meta: Dictionary = {}
+	for k in s.get_meta_list():
+		if k != &"idp_stamp":
+			meta[k] = s.get_meta(k)
 	return {"kind": "stamp", "texture": s.texture, "region": s.region_rect, "offset": s.offset,
-		"transform": s.transform, "index": s.get_meta(&"idp_stamp", 0)}
+		"transform": s.transform, "index": s.get_meta(&"idp_stamp", 0), "meta": meta}
 
 static func _item_from(d: Dictionary) -> Node2D:
 	if d.kind == "freeform":
@@ -168,6 +204,8 @@ static func _item_from(d: Dictionary) -> Node2D:
 	s.offset = d.offset
 	s.transform = d.transform
 	s.set_meta(&"idp_stamp", d.index)
+	for k in d.get("meta", {}):
+		s.set_meta(k, d.meta[k])
 	return s
 
 # --- Freeform shapes and stamps --------------------------------------------------------------
@@ -226,6 +264,228 @@ func clear_items() -> void:
 		for c in items(g):
 			remove_item(c)
 
+# --- Hidden tiles and the scene's other nodes ----------------------------------------------------
+
+## The disabled layer that keeps [param layer_name]'s hidden tiles (made on demand).
+func blockout_layer(layer_name: String) -> TileMapLayer:
+	if not blockout.has(layer_name):
+		var src: TileMapLayer = layers[layer_name]
+		var l := TileMapLayer.new()
+		l.name = layer_name + "Blockout"
+		l.tile_set = src.tile_set
+		l.transform = src.transform
+		l.z_index = src.z_index
+		l.enabled = false
+		l.set_meta(&"idp_blockout", true)
+		blockout[layer_name] = l
+	return blockout[layer_name]
+
+## Takes [param cells] out of a layer and keeps them, hidden and without collision, in its
+## blockout layer (saved in the scene, so they can be brought back).
+func hide_cells(layer_name: String, cells: Array) -> void:
+	var src: TileMapLayer = layers[layer_name]
+	var dst := blockout_layer(layer_name)
+	for c: Vector2i in cells:
+		var sid := src.get_cell_source_id(c)
+		if sid == -1:
+			continue
+		dst.set_cell(c, sid, src.get_cell_atlas_coords(c), src.get_cell_alternative_tile(c))
+		src.erase_cell(c)
+	dirty = true
+
+func _scene_path_of(node: Node) -> String:
+	return String(root.get_path_to(node))
+
+func _remember(node: Node) -> String:
+	var p := _scene_path_of(node)
+	if not _scene_originals.has(p):
+		_scene_originals[p] = {"visible": node.visible if node is CanvasItem else true, "process_mode": node.process_mode,
+			"position": node.position if node is Node2D else Vector2.ZERO, "blockout": node.has_meta(&"idp_blockout")}
+	if not scene_edits.has(p):
+		scene_edits[p] = {}
+	return p
+
+## Hides a node of the scene and takes it out of physics (it stays in the scene, marked as
+## old terrain: the scanner and the checks skip it). Call [method checkpoint] first.
+func hide_scene_node(node: Node) -> void:
+	scene_edits[_remember(node)].hidden = true
+	dirty = true
+
+## Removes a node of the scene when it is saved. Call [method checkpoint] first.
+func remove_scene_node(node: Node) -> void:
+	scene_edits[_remember(node)].removed = true
+	dirty = true
+
+## Moves a node of the scene ([param pos] in its parent's space). Call [method checkpoint] first.
+func move_scene_node(node: Node2D, pos: Vector2) -> void:
+	scene_edits[_remember(node)].position = pos
+	dirty = true
+
+## The node's position with the Room view's moves applied.
+func scene_position(node: Node2D) -> Vector2:
+	return scene_edits.get(_scene_path_of(node), {}).get("position", node.position)
+
+## How far the Room view moved [param node] (and its parents), in the scene's space.
+func scene_offset(node: Node) -> Vector2:
+	var off := Vector2.ZERO
+	var n := node
+	while n and n != root:
+		var e: Dictionary = scene_edits.get(_scene_path_of(n), {})
+		if e.has("position") and n is Node2D:
+			off += Vector2(e.position) - (n as Node2D).position
+		n = n.get_parent()
+	return off
+
+## Whether the Room view hid or removed [param node] or a parent of it.
+func is_scene_node_hidden(node: Node) -> bool:
+	var n := node
+	while n and n != root:
+		var e: Dictionary = scene_edits.get(_scene_path_of(n), {})
+		if e.get("hidden", false) or e.get("removed", false):
+			return true
+		n = n.get_parent()
+	return false
+
+## Every scene node the Room view changed (now, or before an undo), with how it was:
+## path -> {visible, process_mode, position}. For showing the edits.
+func scene_originals() -> Dictionary:
+	return _scene_originals
+
+## Applies [member scene_edits] to the scene, after putting back what earlier saves changed.
+func _apply_scene_edits() -> void:
+	for p in _detached.keys():
+		if not scene_edits.get(p, {}).get("removed", false):
+			var d: Array = _detached[p]
+			var parent := root.get_node_or_null(d[1])
+			if parent:
+				parent.add_child(d[0])
+				parent.move_child(d[0], mini(d[2], parent.get_child_count() - 1))
+				d[0].owner = root
+				_own(d[0], root)
+			_detached.erase(p)
+	for p in _scene_originals:
+		var n := root.get_node_or_null(NodePath(p))
+		if not n:
+			continue
+		var o: Dictionary = _scene_originals[p]
+		if n is CanvasItem:
+			n.visible = o.visible
+		n.process_mode = o.process_mode
+		if n is Node2D:
+			n.position = o.position
+		if not o.blockout and n.has_meta(&"idp_blockout"):
+			n.remove_meta(&"idp_blockout")
+	for p in scene_edits:
+		var n := root.get_node_or_null(NodePath(p))
+		if not n:
+			continue
+		var e: Dictionary = scene_edits[p]
+		if e.has("position") and n is Node2D:
+			n.position = e.position
+		if e.get("removed", false):
+			_detached[p] = [n, root.get_path_to(n.get_parent()), n.get_index()]
+			n.get_parent().remove_child(n)
+		elif e.get("hidden", false):
+			if n is CanvasItem:
+				n.visible = false
+			n.process_mode = Node.PROCESS_MODE_DISABLED
+			n.set_meta(&"idp_blockout", true)
+
+## Layers and groups an earlier save added that are empty again (after undo) go, so the
+## scene is as it was.
+func _drop_empty_created() -> void:
+	for p in _created.keys():
+		var n := root.get_node_or_null(NodePath(p))
+		if not n:
+			_created.erase(p)
+			continue
+		var empty: bool = n.get_child_count() == 0 if not n is TileMapLayer else (n as TileMapLayer).get_used_cells().is_empty()
+		if empty:
+			for key in _source_paths.keys():
+				if String(_source_paths[key]) == p:
+					_source_paths.erase(key)
+			n.get_parent().remove_child(n)
+			n.free()
+			_created.erase(p)
+
+## Owner of the nodes of a re-attached subtree that came from this scene (not from scenes it
+## instances).
+static func _own(node: Node, owner_node: Node) -> void:
+	for c in node.get_children():
+		if c.owner == null:
+			c.owner = owner_node
+		if c.scene_file_path.is_empty():
+			_own(c, owner_node)
+
+func _save_blockout() -> void:
+	for n in blockout:
+		var copy: TileMapLayer = blockout[n]
+		var key: String = n + "Blockout"
+		var target: TileMapLayer = root.get_node_or_null(_source_paths[key]) if _source_paths.has(key) else null
+		if not target:
+			if copy.get_used_cells().is_empty():
+				continue
+			target = TileMapLayer.new()
+			target.name = key
+			target.z_index = copy.z_index
+			target.enabled = false
+			target.set_meta(&"idp_blockout", true)
+			var src: Node = root.get_node_or_null(_source_paths[n]) if _source_paths.has(n) else null
+			if src and src.get_parent():
+				src.get_parent().add_child(target)
+				src.get_parent().move_child(target, src.get_index() + 1)
+			else:
+				root.add_child(target)
+			target.owner = root
+			_source_paths[key] = root.get_path_to(target)
+			_created[String(_source_paths[key])] = true
+		target.tile_set = copy.tile_set
+		target.tile_map_data = copy.tile_map_data
+
+## Makes a twisted freeform shape simple (see [method IDPFreeform.repair_points]). The
+## largest part stays in [param f]; other parts become new shapes beside it with the same
+## settings; slivers are dropped. Returns the shapes it became (empty: removed, all slivers).
+## Call [method checkpoint] first.
+func repair_freeform(f: IDPFreeform) -> Array[IDPFreeform]:
+	var out: Array[IDPFreeform] = []
+	var parts := IDPFreeform.repair_points(f.points, f.smooth)
+	if parts.is_empty():
+		remove_item(f)
+		return out
+	var data := f.to_data()
+	f.points = parts[0].points
+	f.smooth = parts[0].smooth
+	out.append(f)
+	for i in range(1, parts.size()):
+		var d := data.duplicate()
+		d.points = parts[i].points
+		d.smooth = parts[i].smooth
+		d.name = "%s_%d" % [f.name, i + 1]
+		var copy := IDPFreeform.from_data(d)
+		f.get_parent().add_child(copy, true)
+		out.append(copy)
+	dirty = true
+	return out
+
+## Every freeform shape of the room whose outline crosses itself.
+func twisted_freeforms() -> Array[IDPFreeform]:
+	var out: Array[IDPFreeform] = []
+	for f in IDPFreeform.shapes_in(items_root):
+		if f.points.size() >= 3 and not f.is_outline_simple():
+			out.append(f)
+	return out
+
+## Repairs every twisted shape. Returns {repaired, shapes (they became), removed}.
+func repair_all() -> Dictionary:
+	var result := {"repaired": 0, "shapes": 0, "removed": 0}
+	for f in twisted_freeforms():
+		var parts := repair_freeform(f)
+		result.repaired += 1
+		result.shapes += parts.size()
+		if parts.is_empty():
+			result.removed += 1
+	return result
+
 func free_instance() -> void:
 	if is_instance_valid(root):
 		root.free()
@@ -234,8 +494,17 @@ func free_instance() -> void:
 			l.free()
 	if is_instance_valid(items_root) and not items_root.is_inside_tree():
 		items_root.free()
+	for l in blockout.values():
+		if is_instance_valid(l) and not l.is_inside_tree():
+			l.free()
+	for d in _detached.values():
+		if is_instance_valid(d[0]):
+			d[0].free()
+	_detached.clear()
 
-## Writes the painted tiles into the scene and saves it.
+## Writes the painted tiles into the scene and saves it, keeping its UID and anything the
+## scene sets inside instanced scenes. A scene with a node whose script failed to load is not
+## saved: [member IDPWorldSceneTools.last_error] says which.
 func save() -> Error:
 	for n in LAYER_ORDER:
 		var copy: TileMapLayer = layers[n]
@@ -252,24 +521,30 @@ func save() -> Error:
 			if n == "Background":
 				root.move_child(target, 0)
 			_source_paths[n] = root.get_path_to(target)
+			_created[String(_source_paths[n])] = true
 		target.tile_set = copy.tile_set
 		target.tile_map_data = copy.tile_map_data
 	_save_items()
+	_save_blockout()
+	_apply_scene_edits()
+	_drop_empty_created()
 	save_tile_set()
-	var packed := PackedScene.new()
-	var err := packed.pack(root)
-	if err == OK:
-		err = IDPWorldSceneTools.save_keeping_uid(packed, scene_path)
+	var err := IDPWorldSceneTools.repack_safely(root, packed_scene, scene_path)
 	if err == OK:
 		dirty = false
 	return err
 
-## Replaces the scene's freeform shapes and stamps with the edited ones.
+## Writes the edited freeform shapes and stamps into the scene. Nodes that are still there
+## (same group, same name) are updated in place, so an unchanged room saves unchanged; the
+## others are added or removed.
 func _save_items() -> void:
+	var existing: Dictionary = {} # "group/name" -> node
 	for node in root.find_children("*", "", true, false):
 		if is_instance_valid(node) and node.owner == root and (node is IDPFreeform or is_stamp(node)):
-			node.get_parent().remove_child(node)
-			node.free()
+			var parent := node.get_parent()
+			var g := String(parent.name) if ITEM_GROUPS.has(String(parent.name)) and parent.get_parent() == root else ""
+			existing["%s/%s" % [g, node.name]] = node
+	var kept: Dictionary = {}
 	for g in ITEM_GROUPS:
 		var list := items(g)
 		var container: Node2D = root.get_node_or_null(NodePath(g))
@@ -281,11 +556,67 @@ func _save_items() -> void:
 			container.z_index = ITEM_GROUPS[g]
 			root.add_child(container)
 			container.owner = root
+			_created[g] = true
+		var order: Array[Node] = []
 		for item in list:
-			var copy: Node2D = _item_from(_item_data(item))
-			copy.name = item.name
-			container.add_child(copy, true)
-			copy.owner = root
+			var node: Node2D = existing.get("%s/%s" % [g, item.name])
+			if node and (node is IDPFreeform) == (item is IDPFreeform) and not kept.has(node):
+				_apply_item(node, _item_data(item))
+			else:
+				node = _item_from(_item_data(item))
+				node.name = item.name
+				container.add_child(node, true)
+				node.owner = root
+			kept[node] = true
+			order.append(node)
+		# Same order as in the Room view (only moved when it differs).
+		var current: Array[Node] = []
+		for c in container.get_children():
+			if kept.has(c):
+				current.append(c)
+		if current != order:
+			for node in order:
+				container.move_child(node, -1)
+	for node: Node in existing.values():
+		if not kept.has(node) and is_instance_valid(node):
+			node.get_parent().remove_child(node)
+			node.free()
+
+## Sets a scene node's properties from item data, leaving equal values alone.
+static func _apply_item(node: Node2D, d: Dictionary) -> void:
+	if node is IDPFreeform:
+		var f := node as IDPFreeform
+		var c: Dictionary = d.get("collision", {})
+		var values := {"points": d.points, "style": d.style, "solid": d.solid, "smooth": d.smooth, "edge_clumps": d.edge_clumps,
+			"seed_value": d.seed, "position": d.position, "override_collision": not c.is_empty()}
+		if not c.is_empty():
+			values.merge({"role": c.role, "collision_layer": c.layer, "collision_mask": c.mask, "one_way": c.one_way, "one_way_margin": c.margin}, true)
+		for k in values:
+			if f.get(k) != values[k]:
+				f.set(k, values[k])
+		var meta: Dictionary = d.get("meta", {})
+		for k in meta:
+			if not f.has_meta(k) or f.get_meta(k) != meta[k]:
+				f.set_meta(k, meta[k])
+		for k in f.get_meta_list():
+			if not meta.has(k):
+				f.remove_meta(k)
+		return
+	var s := node as Sprite2D
+	var values := {"texture": d.texture, "region_rect": d.region, "offset": d.offset, "transform": d.transform}
+	for k in values:
+		if s.get(k) != values[k]:
+			s.set(k, values[k])
+	s.region_enabled = true
+	s.centered = false
+	s.set_meta(&"idp_stamp", d.index)
+	var meta: Dictionary = d.get("meta", {})
+	for k in meta:
+		if not s.has_meta(k) or s.get_meta(k) != meta[k]:
+			s.set_meta(k, meta[k])
+	for k in s.get_meta_list():
+		if k != &"idp_stamp" and not meta.has(k):
+			s.remove_meta(k)
 
 # --- Coordinates --------------------------------------------------------------------------
 

@@ -26,8 +26,8 @@ Both modes share the analysis: progression spheres, backtracking, save distance,
 
 The addon lives in `addons/MetroidvaniaDeveloperSystem/`, so it installs into any Godot project in the usual way:
 
-- **From the editor's AssetLib tab or a GitHub ZIP:** download it, keep `addons/MetroidvaniaDeveloperSystem/` checked and install. The optional Mossgrove art pack in `asset_packs/mossgrove/` comes with it; uncheck it if you don't need it.
-- **By hand:** copy `addons/MetroidvaniaDeveloperSystem/` into your project's `addons/` folder, and `asset_packs/mossgrove/` into `asset_packs/` if you want the art pack.
+- **From the editor's AssetLib tab or a GitHub ZIP:** download it, keep `addons/MetroidvaniaDeveloperSystem/` checked and install. The optional art packs in `asset_packs/mossgrove/` and `asset_packs/sunken_gardens/` come with it; uncheck them if you don't need them.
+- **By hand:** copy `addons/MetroidvaniaDeveloperSystem/` into your project's `addons/` folder, and the packs you want from `asset_packs/` into `asset_packs/`.
 
 Then enable **Metroidvania Developer System** in **Project Settings > Plugins**. A **Map Dev** tab appears at the top of the editor, next to 2D / 3D / Script. Without MetSys installed, it starts in non-linear mode.
 
@@ -240,6 +240,184 @@ Tiles are great for straight platforms, but organic caves need smooth curves, ro
 - Stamps are plain `Sprite2D`s under `StampsBack`, `StampsFront` and `StampsForeground`.
 - The [Mossgrove pack](asset_packs/mossgrove/README.md) provides five styles (mossy rock, pale shell, deep crystal rock, jungle foliage, foreground silhouette) and its clump set.
 
+#### Shader skins
+
+A style can be drawn by shaders instead of textures. Its **Material** exports:
+
+| Export | Meaning |
+|---|---|
+| `fill_material` | Material of the fill. The fill texture and color still reach it as `TEXTURE` and `COLOR`. |
+| `edge_material` | Material of a band built along the outline, `edge_inside` px into the shape and `edge_outside` px out of it |
+| `edge_inside`, `edge_outside` | The band's width inside and outside (34 and 30 px) |
+| `skip_edges_on_grid` | Edges lying on this grid's lines (your room or paint cell size) get no band: where rock meets the room's outer boundary and runs on into the next room |
+
+The band mesh has `UV.x` along the edge in pixels and `UV.y` across it: 0 at the outline, 1 at the inner edge, negative outside. `COLOR.r` says which way the surface faces (0 up, 1 down) and `COLOR.g` left or right, so one shader can grow grass on floors, light the walls and hang drips under ceilings. `IDPEdgeBand.edge_mesh()` builds it.
+
+The addon ships an example, `shaders/terrain_skin.gdshader`, used by the built-in style **Shader stone (example)**. Its fill pass paints lit, bevelled cut stone in world space, so neighbouring shapes join without a seam. Its edge pass grows grass on floors, puts a lit bevel on walls, and casts shadow with drips under ceilings. Copy it to make your own skins, or point `fill_material` and `edge_material` at any `ShaderMaterial`.
+
+![The example shader skin](docs/terrain_skin.png)
+
+#### Collision: roles, layers and one-way ledges
+
+A freeform style says what its shapes are for and how they collide. These are the **Collision** exports of `IDPFreeformStyle`:
+
+| Export | Default | Meaning |
+|---|---|---|
+| `role` | `TERRAIN` | `TERRAIN`: solid ground, part of the room's silhouette on the map. `PLATFORM`: a ledge, listed as a platform rather than drawn into the silhouette. `DECOR`: drawn only; it never collides and never counts as terrain. |
+| `collision_layer` | 1 | Physics layers of the shape's `StaticBody2D` |
+| `collision_mask` | 1 | Physics layers it detects |
+| `one_way` | off | Bodies jump up through the shape and land on its top, like a ledge |
+| `one_way_margin` | 16 | How far a body may sink into a one-way shape and still be pushed onto it |
+
+- The defaults are the old behaviour, so existing `.freeform.tres` files load unchanged. Styles that marked ledges with `metadata/one_way_platform = true` still count as one-way platforms.
+- The Room view's style list shows the role, for example "Garden ledge (platform, one-way)". In **Edit** mode, the tops of one-way shapes are dashed.
+- **Role** (Freeform tool) overrides the style for new shapes, and for the selected shape in Edit mode: terrain, one-way platform, two-way platform or decoration. The override is stored on the `IDPFreeform` node (its **Collision override** exports), so undo, copies and saves keep it.
+- Games find their ledges with `IDPFreeform.platforms_in(room)`, which looks inside the item groups too. `IDPFreeform.terrain_in(room)` and `IDPFreeform.shapes_in(room)` do the same for ground and for every shape. On a shape, `is_platform()`, `is_terrain()`, `is_one_way()` and `get_role()` combine the style and the override.
+
+```gdscript
+for ledge in IDPFreeform.platforms_in(room):
+    print(ledge.name, " is one-way: ", ledge.is_one_way())
+```
+
+#### Outlines that cross themselves
+
+Godot can't fill or collide with an outline that crosses itself. `Polygon2D` draws nothing, and `CollisionPolygon2D` logs "Convex decomposing failed!" and collides with nothing. That happens easily: a thin arch whose rounding folds over itself, or points dragged across each other.
+
+- In the editor such a shape is drawn with a **red outline**. It gets a node warning, and a warning in the Output names it.
+- The **Issues** tab lists every one under **Geometry**, for example "Cave_03: freeform shape Freeform/Shape4 crosses itself (no fill, no collision)". It also lists twisted `CollisionPolygon2D`s of static bodies in room scenes, by node path. Clicking an issue jumps to the room.
+- **Repair** (Freeform tool) untwists the selected shape and **Repair all** every shape of the room. Clipper unties the outline. The largest part stays in the shape, other parts become shapes of their own with the same style and settings, and slivers under 400 px² are dropped. Ctrl+Z undoes it.
+- In code: `shape.is_outline_simple()`, `IDPGeometry.is_simple(polygon)` and `IDPGeometry.untwist(polygon)`.
+
+#### Convert to freeform
+
+Block a room out fast with tiles, rectangles or collision polygons, then make it organic. **Convert to freeform...** (Room view) turns its terrain into freeform rock and keeps its layout:
+
+- **Rock.** It takes the solid tiles of the Terrain layer, the static bodies, and solid freeform shapes with Smooth off (a blockout drawn with Rectangle). These join into as few shapes as they make, running on 96 px past the room's edges. Then:
+  - corners become bowls (inside corners) and rounded lips (outside corners);
+  - walls bulge, ceilings sag and hang in lobes, floors rise in low mounds now and then.
+- **Kept clear:** rock never grows into these.
+  - **Doorways:** every gap in the room's outline, gates or not, with a 300 px corridor inside it.
+  - The space above every platform.
+  - **Objects:** every object in the room (its sprites or shapes) with a margin, more for objects that stand (save points, NPCs...) and for bosses. Mark any other area with an `idp_protected` group or metadata. A `ReferenceRect` marked that way protects its rectangle.
+- **Floors stay put** under everything standing in the room, within 2.5 px. Where rounding or growth would move one, that stretch is pinned and the rock is designed again.
+- **Platforms** become one-way freeform ledges with exactly their old top and a rounded underside. This covers one-way bodies, one-way tiles and blockout shapes with the Platform role.
+- **Background** and **Foreground** tiles can become freeform shapes of a style too, or stay tiles.
+- **Every outline is checked** (see above); a mass whose rounding would fold over itself is tried again more gently.
+
+The dialog sets the rock, ledge, background and foreground styles. It also sets the growth (0 % rounds corners only), the inside and outside corner radii, the seed, and whether to fill outside the room's shape (below). **Old terrain** is either:
+
+- **kept hidden:** the tiles move to a disabled `TerrainBlockout` layer, and the bodies are hidden and taken out of physics, all still in the scene. The scanner and the checks skip them.
+- **removed.**
+
+**Preview** applies it so you can look; **Cancel** takes it back out. It's one step of the Room view's undo. Static bodies with a script or a sprite are objects, not terrain, and stay. So do moving platforms (`AnimatableBody2D`). Override this with `idp_convert` metadata (`true` or `false`) or the `idp_convert` group.
+
+The algorithm is `IDPFreeformConverter` in `core/`, so tools and CI can run it on any room:
+
+```gdscript
+var painter := IDPRoomPainter.open("res://rooms/cave_02.tscn")
+var conv := IDPFreeformConverter.new()
+conv.rock_style = load("res://styles/mossy_rock.freeform.tres")
+conv.use_world_room(world, "Cave_02")   # the room's shape and gates
+print(conv.convert(painter))            # {rock, ledges, openings, old, warnings...}
+painter.save()
+```
+
+#### Decorate freeform and scenery shapes
+
+**Decorate freeform...** (Room view) places scenery relative to the room's freeform rock:
+
+- **Hanging:** a stamp category (ivy, hanging moss...) hung under ceilings and ledges.
+- **Floor plants:** stamp categories (ferns, flowers, grass, moss...) along floors.
+- **Structures:** background shapes in a style of your choice:
+  - broken columns, ruined arches, garden walls and mounds standing on flat floors, with leaf stamps on top;
+  - stalactite curtains under flat ceilings.
+- **Foreground:** leaf silhouettes framing the room's free corners, in front of everything.
+
+**Density** and **Seed** tune it, and **Preview** shows it before you keep it. It keeps out of the same areas Convert to freeform protects: doorways, the room above platforms, and every object. Everything goes into the Room view's item groups, as shapes and stamps you can edit afterwards. Running it again replaces what it placed before, so the same seed gives the same room. The dialog guesses the categories from the stamp set: stamps anchored at their top hang, and stamps anchored at their bottom stand.
+
+The structures come from **scenery shape generators** (`IDPShapeGenerators`), which are also in the **Freeform** tool's **Shape** list, under **Scenery**: pick **Column**, **Arch (broken)**, **Garden wall**, **Mound** or **Stalactite curtain** and drag its box. Standing shapes stand on the box's bottom; stalactites hang from its top. Every outline they make is simple.
+
+In code: `IDPFreeformDecorator` (with `use_world_room()` and `decorate(painter)`), and `IDPShapeGenerators.make(kind, box, rng)`, which returns `{points, smooth}`.
+
+#### Fill outside the room's shape
+
+An L-, T- or U-shaped room's scene covers its whole bounding box, but the box's cells outside the room's shape on the map belong to the neighbouring rooms. **Fill outside shape** covers them with freeform shapes of the style picked next to the button, typically a dark "deep ground" style.
+
+- The shapes run on past the box's edges and sit in the Freeform group, so they draw over the rock's edges.
+- They are decorations: they never collide, whatever their style, and the map silhouette, the scanner and the checks ignore them. A passage can still lead into that area.
+- They remember the shape they were made for. When the room's shape changes on the map, the Room view redoes them as it opens the room (undoable), or press the button again.
+- **World settings > Notch fill style** makes **Create scene** fill new irregular rooms this way. Convert to freeform's dialog offers it too.
+
+#### Checking a room with physics
+
+The progression checks work on the room graph: they know a door exists, not whether rock closes it. **Check room** (Room view) and the **Geometry** issues test the room's real geometry. The room's tile layers, solid freeform shapes and static bodies are copied into an off-screen physics space, and then:
+
+- **Gates:** every gate must be open at its edge of the room. The check looks for the longest gap along the inside of the edge, 256 px either side of the gate. A side gate needs the player's height plus 8 px; a floor or ceiling gate needs the player's width plus 16 px.
+- **Platforms** (one-way bodies and freeform shapes with the Platform role):
+  - a body landing on one must stop at its top (±3 px);
+  - it needs **head clearance** above (90 px by default).
+- **Standing objects** (save points, benches, shops, NPCs, spawn points, nodes in the `idp_stands` group) must have ground within 48 px under them and must not be buried.
+- **Climbs:** a player-sized body jumps, steering in the air, from floor to floor. It starts where the player lands after coming in through each gate. Every exit up out of the room must be reached.
+
+**Check room** marks problems in the view. With **Reachability** on, it draws every floor the player gets to in green and the rest in red. The marks clear at the next edit.
+
+The **Issues** tab runs the same checks on every room in the background, one room per frame, under **Geometry**. A room is checked again when its scene, its shape, its gates or the player settings change.
+
+- In non-linear mode, the passages are the room's map gates. Turn the checks off in **World settings > Geometry checks**.
+- In MetSys mode, they are the room's MetSys passages. Turn the checks off in **Scan > Check room geometry**. The player settings are under **Scan > Player settings for the checks...**.
+
+**World settings > Player** describes the player the checks simulate:
+
+| Setting | Default | Used for |
+|---|---|---|
+| Player size | 32 x 64 | The body that jumps, and how wide openings must be |
+| Jump velocity | 700 px/s | The jump |
+| Gravity | 900 px/s² | The jump (with 700 px/s, it rises 272 px) |
+| Max jump height | v² / 2g | Another way to set the jump velocity |
+| Run speed | 300 px/s | How far a jump carries sideways |
+| Head clearance | 90 px | Room needed above platforms |
+
+They're stored in the world file as `settings.player` (`MapData.idp.json` in MetSys mode). From code or CI:
+
+```gdscript
+var check := IDPRoomCheck.new(world.get_setting("player", {}))
+check.room_rects = world.get_local_rects(room_id)
+check.passages = IDPRoomCheck.passages_from_world(world, room_id)
+check.build_from_scene(room_scene.instantiate(), some_node_in_the_tree)
+for issue in check.run(room_id):
+    print(issue.kind, ": ", issue.message)
+check.free_proxy()
+```
+
+#### Fit props to floor and Declutter
+
+Generated or quickly dressed rooms end up with props floating, sunk into floors, or standing inside each other. Two Room view buttons fix that. Both are undoable (Ctrl+Z) and saved with the room:
+
+- **Fit props to floor** stands every object that stands on the floor under it, or lifts it out of the ground it is sunk in. That covers save points, shops, NPCs, benches, spawn points and nodes in the `idp_stands` group. It then steps the object along its floor out of any platform. Hanging things and enemies are left alone.
+- **Declutter** takes objects in order of importance. Each one that overlaps something already placed steps sideways along its own floor to the nearest clear spot, at least 8 px from everything:
+  1. Doors, gates, machines (lifts, ladders, ropes, bridges, levers...), `idp_protected` and `idp_fixed` nodes, and path-moved bodies never move.
+  2. Enemies and bosses never move either: their patrols start where they stand.
+  3. Objects that stand move first.
+  4. Everything else moves next, bigger first, and must also keep clear of the platforms.
+
+  A decoration (no collision, no script, no groups) with nowhere to go is removed; anything else stays where it is. Art drawn behind the room (z below 0), static bodies (terrain and platforms) and objects wider than 700 px aren't objects.
+
+Objects are measured by their visible art: sprites count their non-transparent pixels, not the margin around them. The floor comes from the room's terrain as the physics checks see it: tiles, freeform shapes by role, and static bodies, never the objects' own bodies.
+
+The **Issues** tab lists objects that stand in or behind each other (*Geometry: objects overlap*), found when scenes are scanned.
+
+For rooms generated at runtime, an **`IDPRoomDresser`** node does both as rooms load. As a child of `IDPWorldGame` it dresses every room; anywhere else, the room it is in. From code, `IDPRoomDressing` has `fit_to_floor()`, `declutter()`, `overlaps()` and `apply()`, with `ground_check()` building the ground.
+
+#### Saving without losing anything
+
+Room scenes are saved by instancing them and packing them again, and two things used to get lost silently. **Save** in the Room view, **Create scene**, **Write to scene** and the automatic gate nodes now all go through `IDPWorldSceneTools.repack_safely(root, packed, path)`, which:
+
+- **keeps properties set inside instanced scenes.** A room may set properties on nodes inside a scene it instances (a weather scene's thunder volume, a particle amount) without marking that instance as having editable children. Packing drops those unless the instance is marked, so it is marked: the file gains an `[editable path="..."]` line and nothing else changes.
+- **refuses to save a node that lost its script.** When a script fails to load (a compile error, or an autoload it needs that isn't loaded, as when a tool runs with `--script`), the node loads without it and would be saved with `script = null`. The scene is not saved, and the status line names the node.
+- **keeps the scene's UID**, also from tools and CI, where Godot's UID cache can be out of date.
+
+The Room view also updates the shapes and stamps that are still there in place instead of re-creating them, so saving an unchanged room leaves its file unchanged.
+
 ### Editing
 
 | Input | Action |
@@ -278,14 +456,16 @@ Everything saves automatically to the world file. It reloads if the file changes
 
 ### At runtime: IDPWorldGame (no MetSys needed)
 
-Non-linear mode comes with its own game runtime. **`IDPWorldGame`** is the counterpart of MetSys' `MetSysGame`, and it reads the same `.idpworld.json` you edit in the panel. **Scenes > Create game scene...** generates a runnable one: an `IDPWorldGame` root with a placeholder player, a following camera, a room camera and an in-game map. Swap in your player and press F6.
+Non-linear mode comes with its own game runtime. **`IDPWorldGame`** is the counterpart of MetSys' `MetSysGame`, and it reads the same `.idpworld.json` you edit in the panel. **Scenes > Create game scene...** generates a runnable one: an `IDPWorldGame` root with a placeholder player, a following camera, a room camera with a camera director, area music, and a UI with an in-game map, area titles and objective banners. Swap in your player and press F6.
 
 ```
 Game (IDPWorldGame)     world_file, starting_room, starting_gate, player, camera, map_view, room_camera
 ├── Player              any Node2D; CharacterBody2D velocity is reset on room changes
 │   └── Camera2D        limited to the room (by the RoomCamera, or its bounding box without one)
 ├── RoomCamera (IDPRoomCamera)   irregular-room zones and room transitions
-└── UI/Map (IDPWorldMapView)
+│   └── Director (IDPCameraDirector)   framing fights
+├── Music (IDPMusic)    area music
+└── UI                  Map (IDPWorldMapView), AreaTitle, ObjectiveBanner
 ```
 
 It handles:
@@ -300,8 +480,9 @@ It handles:
 - **Seamless rooms** (`seamless_rooms`): walking into a touching room loads it without a gate.
 - **Requirements** (`enforce_requirements`): gates whose map requirements the player lacks emit `transition_blocked(transition, missing)` instead.
 - **Progress:** `grant_ability()` / `has_ability()`, `store_object()` / `is_object_stored()` for collected items and opened walls (`object_id(node)` gives stable ids), visited rooms and the current area.
-- **Save data:** `get_save_data()` / `set_save_data()` restore room, position, abilities, visited rooms, stored objects and the map's reveal state. `set_save_data()` works before or after the game enters the tree.
-- **Signals:** `room_changed(from, to)`, `area_changed(from, to)`, `room_loaded(room)` (emitted last), `transition_blocked(transition, missing)` and `ability_gained(ability)`.
+- **Presentation:** the room's backdrop, darkness and lights, and 2.5D (see below).
+- **Save data:** `get_save_data()` / `set_save_data()` restore room, position, abilities, visited rooms, stored objects, the map's reveal state, completed objectives, defeated enemies and bosses, and followers. `set_save_data()` works before or after the game enters the tree.
+- **Signals:** `room_changed(from, to)`, `area_changed(from, to)`, `room_loaded(room)` (emitted last), `transition_blocked(transition, missing)`, `ability_gained(ability)`, `objective_completed(area)` and `defeated(id, boss)`.
 - **Helpers:** `load_room(room_or_scene, entry_gate, world_position)`, `get_room_bounds()`, `apply_camera_limits(camera)`, `get_room_name()`.
 - **Play from here** works automatically: the game implements `idp_play_from()`.
 
@@ -328,6 +509,35 @@ It handles:
   - Set the exports on the node: zoom, follow smoothing and offset, zone glide time and easing, transition time and easing, Phantom follow mode and priority.
   - Or use **Scenes > World settings > Camera** in the panel. With `use_world_settings` on (the default), those values override the exports, so the whole team shares one camera setup through the world file.
 - `zone_changed(zone)` is emitted when the camera switches zones; `get_active_pcam()` returns the active PhantomCamera2D.
+- **Camera motion** (`transition_style`, also in **World settings > Camera**): *Glide*, or *Cut, never glide*. With Cut, zone changes, room slides and blends, follow smoothing and the director's moves all cut. A camera that eases late makes the parallax and the backdrop late too.
+
+#### Framing fights: IDPCameraDirector
+
+**`IDPCameraDirector`** borrows the room camera for a moment when a fight needs framing, then gives it back exactly where the room's camera would be, so nothing jumps. Add it as a child of the `IDPRoomCamera` (generated game scenes have one), or call `room_camera.get_director()`.
+
+- `frame_threat(node, seconds)`: pull out until the player and a threat off screen are both in view. Ignored when the threat is on screen.
+- `reveal(rect, seconds)`: pull out to show an area, such as a boss's whole arena for an attack that covers it.
+- `punch_in(amount, seconds, around)`: a short push in, `amount` times closer, between the player and `around`.
+- `focus_on(node, zoom, seconds, time_scale)`: hold on a node (a death, a finishing blow) at `zoom` times the room's zoom, with the game slowed to `time_scale` meanwhile.
+- `release()` lets go early, gliding back; `cancel()` gives the camera back at once (a room change does this).
+- `started(kind)` and `released` are emitted; `is_overriding()` and `current_kind()` tell you what it's doing.
+
+Rules:
+
+- **Priority:** a focus beats a threat or a reveal, which beat a punch.
+- **Inside the room:** a pull-out never shows anything outside the room's shape. In an L- or T-shaped room, one that would show a notch is brought back in until it doesn't. Views at the room's zoom or closer stay inside a camera zone, and the player (or what a focus is on) always stays in view.
+- **Limits:** `min_zoom` (default 0.6) is the farthest a pull-out goes, as a share of the room camera's zoom. Nothing is framed for less than `min_hold` seconds.
+- **Timing:** zoom and position glide (`glide`), in real time, so they also run while the game is slowed down.
+- **Backends:** with Camera2D the director moves the camera itself; with Phantom Camera it takes over through a PhantomCamera2D of its own with the highest priority, and hands back with a cut.
+- **Automatic mode** (`automatic`): it watches `watch_group` (`enemy`) a few times a second and frames the nearest enemy that is off screen, within `engage_range`, and after the player. An enemy is after the player when its `is_attacking` is true, when its `state` or `current_state` enum value isn't one of `quiet_states` (idle, patrol...), or when it closed in since the last look. Dead ones (`health <= 0`) are ignored.
+
+```gdscript
+func _on_boss_wind_up(boss: Node2D) -> void:
+    room_camera.get_director().reveal(arena_rect, 1.5)
+
+func _on_boss_defeated(boss: Node2D) -> void:
+    room_camera.get_director().focus_on(boss, 1.6, 1.2, 0.3)
+```
 
 ```gdscript
 extends IDPWorldGame
@@ -343,6 +553,29 @@ func _on_dash_pickup_collected(pickup: Node) -> void:
     store_object(pickup)            # stays collected after leaving the room and in saves
 ```
 
+#### 2.5D: IDPDepth25D
+
+**`IDPDepth25D`** makes flat rooms read as solid using only their own 2D art. Add one to a room scene, or tick **World settings > 2.5D** and `IDPWorldGame` adds one to every room it loads. The `depth_25d` export on the game overrides that per game: World setting, On or Off. Every frame it reads where the camera looks and fakes depth around that point:
+
+- **Extruded terrain:** every wall, floor and platform gets the side faces of a solid block, running back toward the vanishing point in the middle of the view, so they swing as the camera moves. It extrudes:
+  - solid freeform shapes with the Terrain or Platform role (never decorations, nor background or foreground shapes);
+  - the collision of tile layers, as merged blocks;
+  - the collision of static bodies.
+- **Tilted floors:** the tops of floors and ledges become planes receding into the screen, paved in perspective.
+- **Light:** faces are lit from the key light and fall off with distance from the player. The view darkens away from the player and toward its edges.
+- **Shadows:** bodies in `shadow_groups` (`player`, `enemy`) cast soft shadows on the ground under them that spread and fade as they rise.
+
+![2.5D in the Sunken Gardens demo](docs/depth_25d.png)
+
+It is drawing only: nothing collides differently.
+
+- **Colors** come from the freeform styles: the average of their fill and top textures, or their colors. Set `depth_side_color` and `depth_top_color` on a style to choose them, or turn its `extrude` off. Tiles take the average of their tileset's art.
+- **Look:** an `IDPDepthStyle` resource sets how far walls reach back (`depth_x`, `depth_y`), the light (direction, reach, darkening, vignette), the shadow strength, and the floor paving and joints. Set it on the node, or as **World settings > 2.5D style**.
+- **Inputs:** the view comes from the `IDPRoomCamera` when there is one, else the viewport's camera. The light follows `player` (or the first node in the `player` group).
+- **Performance:** outlines are simplified and cached until a shape moves or changes. Faces are only rebuilt when the camera or the light moves, and only for what's on screen; the terrain is looked for again when the room's tree changes. A 2304 x 1296 room with 30 curved shapes builds its faces in under 1 ms per frame.
+
+In the editor, the Room view's **2.5D preview** shows the room as it will look in the game.
+
 **`IDPGate`** is the transition node, the equivalent of Hollow Knight's TransitionPoint. It's an `Area2D` named like its map gate (`left1`, `door1`...); **Write to scene** adds them for you. `IDPWorldGame` handles it automatically. With your own game code, connect `player_entered(transition)`, which carries `{room, gate, scene_path, entry_pos, side, from_room, from_gate}`, or call `IDPWorld.get_cached(path).get_transition(room_id, gate_name)`.
 
 **`IDPWorldMapView`** is an in-game map Control following Hollow Knight's rules: rooms appear once visited, or dimmed once the player owns the map of their area. `IDPWorldGame` updates it for you. On its own:
@@ -353,6 +586,88 @@ map_view.mark_visited(room_id)
 map_view.map_area("The Greenhouse")        # when the area map is bought
 map_view.set_player(room_id, player.position)
 ```
+
+#### The distance behind the rooms: IDPBackdrop
+
+An **`IDPBackdrop`** resource (`*.backdrop.tres`) describes everything behind a room: a sky gradient and an ordered list of **`IDPBackdropLayer`** planes, farthest first. Each layer has:
+
+- **Art** (`source`): a texture repeated along the plane, stamps of an `IDPStampSet` category scattered along it (`stamp_density`, `stamp_scale`, `jitter`), or a scene.
+- **Depth** (`depth`): 0 stays on screen like the sky, 1 moves with the room, above 1 runs faster than the camera. `scale`, `offset`, `repeat` and `spacing` place the art.
+- **Look:** `haze_color` and `haze` (the air between plane and viewer), `tint`, `desaturate`, `alpha`, and `sway` for leaves and hanging things.
+- **Foreground:** drawn in front of the room instead of behind it.
+
+Pick one in **World settings > Backdrop** (every room), on an area (**Areas tab > Backdrop**) or on a room (**Inspect tab > Backdrop**); the most specific wins, and you can drag the `.tres` from the FileSystem dock onto the field. `IDPWorldGame` keeps one **`IDPBackdropView`** and swaps the backdrop as the player changes rooms. You can also put an `IDPBackdropView` in a room scene yourself.
+
+The view draws the sky and the planes behind the room in a `SubViewport` with a world of its own, at `resolution` (half by default) of the screen, and shows it on a canvas layer far below the room's. So the distance is never drawn into the room's world, costs a quarter of the pixels, and a dark room's darkness doesn't cover it. With `sample_palette` on, the haze takes some of the room's terrain colors. The Sunken Gardens pack ships `garden.backdrop.tres`, a four-layer garden distance made only of resources.
+
+#### Dark rooms and lights
+
+A room can be dark: a subtractive `DirectionalLight2D` dims the room, and the player, enemies and lanterns carry soft `PointLight2D` lights that carve pools of light out of it, as in Lost in the Sky.
+
+- **`darkness`** on a room (**Inspect tab**) or an area (**Areas tab**): `0` lit, `0.05` to `0.8` dimmed, empty for automatic. A room's own value beats its area's.
+- **Automatic:** with **World settings > Dark room share** above 0, that share of the automatic rooms is dimmed by 0.35 to 0.55. The pick comes from the room id, so a room is always the same.
+- **Light carriers:** nodes in the groups of **World settings > Light groups** (or the game's `light_groups`, default `player, enemy, lantern`) get an `IDPLight` child, on in dark rooms and off in lit ones. Nodes added later (a spawned enemy) get one too.
+- Leaving a dark room restores full light. `room_darkness` off on the game ignores darkness everywhere; `get_darkness(room)` and `darkness` tell your code how dark it is.
+
+#### Area titles and music
+
+Areas in the world file have presentation fields, set in the **Areas tab**: `title`, `subtitle`, `music` (a stream path), `music_volume_db` and `boss_music`.
+
+- **`IDPAreaTitle`** (a Control in the UI's CanvasLayer) fades the area's title in near the top of the screen when the player enters the area, Silksong-style, with the subtitle under it. `first_visit_only` titles each area once; `shown(area)` is emitted as it starts.
+- **`IDPMusic`** loops each area's music and crossfades (`crossfade_time`) when the area changes. Walking between rooms of one area, or into an area with the same music, never restarts it. `play_boss(stream)` starts a fight's music (the area's `boss_music` by default) from silence and is safe to call twice; `end_boss()` crossfades back. `bus` picks the audio bus.
+
+Both find the game by themselves (`IDPWorldGame.instance`); set `game` when you have several.
+
+#### Objectives
+
+Each area can have one objective: `objective` (the text) and `objective_done_when` (what completes it), set in the **Areas tab**:
+
+- `ability:dash`, or just `dash`: the player has the ability or key (`grant_ability`);
+- `object:Crypt_01/Chest`: the object is stored (`store_object`);
+- `boss:Warden`: the boss is defeated (`defeat_boss`, or `mark_defeated` on a node with `idp_boss_name` metadata);
+- empty: your code calls `complete_objective(area)`.
+
+`IDPWorldGame` checks objectives whenever one of these changes and emits `objective_completed(area)`; completed objectives are in the save data. **`IDPObjectiveBanner`** shows the objective when the player arrives in an area where it isn't done, and again, marked done, when it completes. The in-game map (`IDPWorldMapView`) shows the current area's objective too.
+
+In the editor, the **Progress** and **Stats** tabs list every objective with where and in which sphere it can complete. The **Issues** tab flags objectives that can never complete: an ability no room grants, a boss no room has, an object in a room that doesn't exist, or a condition only met in rooms the player can never reach.
+
+#### Doors, barriers, fast travel and cinematics
+
+- **Doors:** `IDPGate.mode = INTERACT` waits for `interact_action` (`ui_up`) while the player stands in the gate, and shows `prompt` ("Up: {to}", with the destination's name). `TOUCH` is the classic transition.
+- **Barriers:** an **`IDPGateBarrier`** (a `StaticBody2D` with a collision shape) stands in a doorway while its requirements are missing: the guarded gate's map `requires`, or its own `requires` (`dash`, `object:<id>`, `boss:<name>`). When they're met it opens visibly (its children slide up and fade, or an `AnimationPlayer`'s `open` animation plays, or a plain bar is drawn) and stays open, in saves too. Keys are just abilities or stored objects: there is no separate key system.
+- **Fast travel:** map **links** (elevators, stag stations, teleports) are runtime pairs. Tick `link` on an `IDPGate` and it leads to the other end of the link from its room; set each end's gate in the link's row in the **Inspect tab**. With `enforce_requirements` on, a link's `requires` blocks it like a gate's.
+- **Cinematics:** `transition_scene` on a gate plays a scene over everything between the rooms. Its root can have a `play(transition)` method (awaited) or a `finished` signal. `play_cinematic(scene)` plays one from your own code.
+
+#### Exploration, defeated enemies and followers
+
+- **Exploration file** (`exploration_file`, e.g. `user://exploration.json`): visited rooms and the map's reveal are written there as soon as a room is first entered, separately from save points, so dying or quitting never forgets the map. `reset_exploration()` forgets it for a new game.
+- **Defeated enemies:** `mark_defeated(node)` keeps an enemy gone: loading its room again removes it before the room enters the tree, also after saving and loading. A node with `idp_boss_name` metadata also counts its boss as defeated (`is_boss_defeated`). `defeated(id, boss)` is emitted.
+- **Followers:** instanced scenes in the `carry_over` group (`carry_over_group`) within `carry_over_distance` of the gate the player leaves through come along: they're re-created just inside the gate the player arrives at, at the same offset along it, and removed from the room they left. They stay where they end up, in saves too.
+
+Save data now also holds area visits, completed objectives, defeated enemies and bosses, and followers that moved.
+
+#### Level overview and room pictures
+
+**`IDPLevelOverview`** pulls the camera back over the level: pictures of the rooms around the live one, each in its real place on the map, while the camera eases back until all of them are on screen. It's made for a death screen like Lost in the Sky's, a level intro or a map preview.
+
+```gdscript
+func _on_player_died() -> void:
+    await $LevelOverview.show_for(5.0)   # skippable with any key after skip_after (1 s)
+    get_tree().reload_current_scene()
+```
+
+- `open()` and `close()` show it and take it away; `opened` and `closed` are emitted. `scope` picks the rooms: the current area's, the current layer's or the world's. `pull_time`, `fit` and `margin` shape the pull-back.
+- The camera moves through the room camera's director (`frame_world(area, seconds, ease_seconds)`, which sets the room's limits aside), or the game's Camera2D without a room camera. `close()` glides it back to the room.
+- Pictures don't receive the live room's lights, so a dark room doesn't darken them.
+
+Building a dozen rooms at the moment the overview opens would stall the game, so the pictures are made ahead of time by **`IDPRoomPictures`**. Add one to the game scene:
+
+- **Cache:** pictures are kept in memory for the session and in `user://idp_room_pictures/`, named after the scene's path and the time it was last saved. An edited room is drawn again; an unchanged one never is.
+- **Background work:** when a room loads, the node first reads the pictures already on disk for the rooms in its `scope` (off the main thread, one per frame). Then it draws the missing ones, one room every `bake_gap` seconds, with the scene loaded off the main thread first. It never draws while an overview is open. `bake_started(path)`, `picture_ready(path, texture)` and `all_ready` are emitted.
+- **Size:** rooms are drawn at `IDPRoomPictures.bake_scale` (0.35) of their size.
+- **What's left out:** a room drawn for a picture is a copy made only to be looked at (`strip_for_preview()`). Nodes in the player, enemy, boss and carry-over groups, cameras, canvas layers and nodes with `idp_preview_skip` metadata are left out, and sounds are silenced. Its root gets `idp_preview` metadata, so your room scripts can skip gameplay setup. Nothing in it runs.
+- **Static API:** `picture(path)` (memory only, cheap in any frame), `load_cached(path)`, `bake(host, path, rect)`, `store(path, image)`, `is_stale(path)`, `forget()`, `clear_disk()`.
+- **In the editor:** the World map's **View > Scene previews** uses these pictures (the editor and the game share `user://`) and falls back to the live scene for rooms never pictured or changed since.
 
 ### Non-linear checks (Issues tab)
 
@@ -404,17 +719,19 @@ Randomizer-style progression from the start room (the first save room by default
 - **Backtrack entries:** for each sphere, the exact door to go back to with the new ability.
 - **Locked** rooms are never unlocked; **not connected** rooms have no path at all.
 - **Abilities & keys:** where each is found and every door it opens. Select one to highlight it on the map.
+- **Objectives:** each area's objective, where and in which sphere it can complete, in red when it never can.
 - **Topology:** dead ends, chokepoints (rooms whose removal splits the map) and hubs.
 
 ### Issues tab
 Clickable issues that jump to the room. Shared checks:
 
-- **Progression:** locked and disconnected rooms, abilities required but never granted, and abilities granted but never required.
+- **Progression:** locked and disconnected rooms, abilities required but never granted, abilities granted but never required, and objectives that can never complete.
 - **Design:** bosses more than 2 rooms from a save point, rooms far from any save, and dead ends with no reward.
+- **Geometry:** freeform shapes and collision polygons whose outline crosses itself, and objects that overlap.
 - **Notes:** `todo` and `bug` pins, and TODO lines in room notes.
 
 ### Stats tab
-Rooms, areas, bosses (with sphere and distance to a save) and build status progress.
+Rooms, areas, bosses (with sphere and distance to a save), objectives and build status progress.
 
 ### Scene metadata
 The scanner detects features by group and node name (whole words, so `Walking` never counts as a `king`):
@@ -477,6 +794,12 @@ It comes with a ready TileSet, SpriteFrames and a demo scene. Set it as the worl
 
 ![Mossgrove demo](asset_packs/mossgrove/preview/demo.png)
 
+## Asset pack: Sunken Gardens
+
+[`asset_packs/sunken_gardens`](asset_packs/sunken_gardens/README.md) is freeform terrain art: garden limestone with flowering turf, one-way garden ledges, a sunken ruin for structures in the distance, deep ground for **Fill outside shape**, foreground leaf silhouettes, and 24 stamps (grass, flowers, ferns, moss, hanging ivy, leaves). Its demo room was built by MDS itself: a blockout of rectangles, then Convert to freeform, Decorate freeform and Fill outside shape with the pack's styles.
+
+![Sunken Gardens demo](asset_packs/sunken_gardens/preview/demo.png)
+
 ## Designing a Hollow Knight-style world
 
 - **Block out first.** Draw rooms (non-linear) or paint cells (MetSys), set their status to `blockout`, and use the *Build status* color mode to see what still needs art.
@@ -495,10 +818,24 @@ The repository:
 ```
 addons/MetroidvaniaDeveloperSystem/  # the plugin (all you need)
 asset_packs/mossgrove/               # optional art pack: tiles, characters, freeform styles, demos
+asset_packs/sunken_gardens/          # optional art pack: freeform styles and stamps, a demo room
 examples/                            # a sample .idpworld.json
 docs/                                # screenshots for this README
+tests/                               # headless tests (not needed in your project)
 project.godot                        # demo project with the plugin enabled
 ```
+
+The tests run as scenes, so autoloads load; each exits with code 1 when a check fails. Import once first, so Godot knows every class:
+
+```bash
+godot --headless --path . --import
+```
+
+```bash
+godot --headless --path . res://tests/run_all.tscn
+```
+
+Run one test with its own scene (`res://tests/test_safe_save.tscn`), or pass a filter: `res://tests/run_all.tscn -- freeform`.
 
 The plugin:
 
@@ -523,15 +860,39 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── analysis.gd        # IDPAnalysis: progression, save distance, topology, routes
 │   ├── validator.gd       # IDPValidator: MetSys + shared checks
 │   ├── world_validator.gd # IDPWorldValidator: non-linear checks
+│   ├── geometry.gd        # IDPGeometry: simple-outline test, untwisting, unions, simplification
+│   ├── room_objects.gd    # IDPRoomObjects: a room's objects, their visual rects, protected areas
+│   ├── room_check.gd      # IDPRoomCheck: physics checks of a room (gates, headroom, climbs)
+│   ├── room_dressing.gd   # IDPRoomDressing: Fit props to floor, Declutter, overlapping objects
+│   ├── freeform_converter.gd # IDPFreeformConverter: Convert to freeform
+│   ├── notch_fill.gd      # IDPNotchFill: Fill outside shape
+│   ├── freeform_decorator.gd # IDPFreeformDecorator: Decorate freeform
+│   ├── shape_generators.gd # IDPShapeGenerators: column, broken arch, garden wall, mound, stalactites
+│   ├── edge_band.gd       # IDPEdgeBand: band meshes for shader-skinned freeform shapes
 │   └── exporters.gd       # IDPExporters: JSON, Graphviz, Markdown
 ├── nodes/
 │   ├── idp_world_game.gd  # IDPWorldGame: non-linear game runtime (MetSysGame counterpart)
 │   ├── idp_room_camera.gd # IDPRoomCamera: irregular-room camera zones and transitions (Camera2D / Phantom Camera)
+│   ├── idp_camera_director.gd # IDPCameraDirector: framing threats, reveals, punch-ins and focus in fights
 │   ├── idp_freeform.gd    # IDPFreeform: curved freeform terrain (fill, edge strips, clumps, collision)
 │   ├── idp_freeform_style.gd # IDPFreeformStyle: a freeform shape's look (*.freeform.tres)
+│   ├── idp_depth_25d.gd   # IDPDepth25D: 2.5D (extruded terrain, receding floors, light, shadows)
+│   ├── idp_depth_style.gd # IDPDepthStyle: how IDPDepth25D looks
 │   ├── idp_stamp_set.gd   # IDPStampSet: sprites placed freely by the Stamps tool (*.stamps.tres)
-│   ├── idp_gate.gd        # IDPGate: runtime room transition
+│   ├── idp_backdrop.gd    # IDPBackdrop: sky and distance planes (*.backdrop.tres)
+│   ├── idp_backdrop_layer.gd # IDPBackdropLayer: one plane of a backdrop
+│   ├── idp_backdrop_view.gd # IDPBackdropView: draws a backdrop off screen behind the room
+│   ├── idp_gate.gd        # IDPGate: runtime room transition (touch or door, links, cinematics)
+│   ├── idp_gate_barrier.gd # IDPGateBarrier: a gate shut until its requirements are met
+│   ├── idp_area_title.gd  # IDPAreaTitle: the area's title card
+│   ├── idp_music.gd       # IDPMusic: area music crossfades and boss music
+│   ├── idp_objective_banner.gd # IDPObjectiveBanner: the area's objective
+│   ├── idp_room_pictures.gd # IDPRoomPictures: cached pictures of rooms, made in the background
+│   ├── idp_level_overview.gd # IDPLevelOverview: pull-back over the level (death screens, previews)
+│   ├── idp_room_dresser.gd # IDPRoomDresser: fits and declutters rooms as they load
 │   └── idp_play_launcher.* # Boots the game scene in the chosen room
+├── shaders/
+│   └── terrain_skin.*     # Example terrain skin shader and its fill and edge materials
 ├── ui/
 │   ├── map_canvas.gd      # IDPMapCanvas: MetSys map
 │   ├── world_canvas.gd    # IDPWorldCanvas: free-form world editor
@@ -542,6 +903,9 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── room_canvas.gd     # IDPRoomCanvas: room painting surface (own SubViewport)
 │   ├── tile_palette.gd    # IDPTilePalette: spritesheet palette (pick, solid, tag, make terrain)
 │   ├── analysis_views.gd  # Progress / Issues / Stats tabs
+│   ├── geometry_checker.gd # IDPGeometryChecker: the room checks, in the background
+│   ├── convert_dialog.gd  # IDPConvertDialog: Convert to freeform options and preview
+│   ├── decorate_dialog.gd # IDPDecorateDialog: Decorate options
 │   └── ui_util.gd
 └── assets/
 ```

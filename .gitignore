@@ -9,3 +9,6 @@ MapData.idp.json
 MapData.idpworld.json
 idp_exports/
 idp_tiles/
+
+# Scenes the tests write
+tests/tmp/

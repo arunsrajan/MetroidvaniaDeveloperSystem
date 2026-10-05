@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://addons/MetroidvaniaDeveloperSystem/shaders/terrain_skin.gdshader" id="1_skin"]
+
+[resource]
+shader = ExtResource("1_skin")
+shader_parameter/edge_pass = true

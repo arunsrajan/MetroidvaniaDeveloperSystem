@@ -380,3 +380,58 @@ func get_ability_sources(ability: String) -> Array[String]:
 		if ability in room_info[id].grants:
 			ret.append(id)
 	return ret
+
+## The areas' objectives ([code]areas[name].objective[/code] and
+## [code]objective_done_when[/code]), each a
+## Dictionary: [code]area, text, condition, kind[/code] ("ability", "object", "boss" or
+## "" when game code completes it), [code]target, rooms[/code] (where the condition can be met),
+## [code]sphere[/code] (earliest progression sphere it can complete in, -1 unknown) and
+## [code]problem[/code] (why it can never complete, "" when it can).
+func get_objectives() -> Array:
+	var ret: Array = []
+	var areas: Dictionary = annotations.data.get("areas", {})
+	for area in areas:
+		var text := str(areas[area].get("objective", ""))
+		var condition := str(areas[area].get("objective_done_when", "")).strip_edges()
+		if text.is_empty() and condition.is_empty():
+			continue
+		var o := {"area": area, "text": text, "condition": condition, "kind": "", "target": "", "rooms": [], "sphere": -1, "problem": ""}
+		ret.append(o)
+		if condition.is_empty():
+			continue
+		var c := IDPAnnotations.parse_condition(condition)
+		o.kind = c[0]
+		o.target = c[1]
+		var rooms: Array[String] = []
+		match o.kind:
+			"ability":
+				o.target = str(c[1]).to_lower().replace(" ", "_")
+				rooms = get_ability_sources(o.target)
+				if rooms.is_empty():
+					o.problem = "no room grants '%s'" % o.target
+			"boss":
+				for id in room_info:
+					for b in room_info[id].boss_names:
+						if str(b).to_lower() == str(o.target).to_lower():
+							rooms.append(id)
+				if rooms.is_empty():
+					o.problem = "no room has the boss '%s'" % o.target
+			"object":
+				# Object ids are "<room id>/<node path>" (IDPWorldGame.object_id) unless a node
+				# sets idp_object_id: only the room part can be checked.
+				var room_id := str(o.target).get_slice("/", 0)
+				if str(o.target).contains("/"):
+					if room_info.has(room_id):
+						rooms.append(room_id)
+					else:
+						o.problem = "the object's room '%s' doesn't exist" % room_id
+		o.rooms = rooms
+		if o.problem.is_empty() and not rooms.is_empty() and not start_room_id.is_empty():
+			var best := -1
+			for id in rooms:
+				if sphere_of.has(id) and (best < 0 or int(sphere_of[id]) < best):
+					best = int(sphere_of[id])
+			o.sphere = best
+			if best < 0:
+				o.problem = "it can only be met in %s, which the player can never reach" % ", ".join(rooms.map(get_room_name))
+	return ret

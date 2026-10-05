@@ -140,12 +140,35 @@ func _refresh_progression() -> void:
 			use_item.set_metadata(0, {"rooms": [u.a, u.b] if not u.b.is_empty() else [u.a]})
 		item.set_metadata(0, {"rooms": highlight})
 
+	var objectives := analysis.get_objectives()
+	if not objectives.is_empty():
+		var head := progression_tree.create_item(root)
+		head.set_text(0, "Objectives (%d)" % objectives.size())
+		head.set_metadata(0, {})
+		for o in objectives:
+			var item := progression_tree.create_item(head)
+			item.set_text(0, "%s: %s" % [o.area, _objective_status(o)])
+			item.set_tooltip_text(0, "%s\nDone when: %s" % [o.text, o.condition if not str(o.condition).is_empty() else "game code calls complete_objective()"])
+			if not str(o.problem).is_empty():
+				item.set_custom_color(0, Color(1, 0.5, 0.5))
+			item.set_metadata(0, {"rooms": o.rooms})
+
 	var topo := progression_tree.create_item(root)
 	topo.set_text(0, "Map topology")
 	topo.set_metadata(0, {})
 	_add_room_group(topo, "Dead ends (%d)" % analysis.dead_ends.size(), analysis.dead_ends, Color.WHITE, true)
 	_add_room_group(topo, "Chokepoints (%d): removing one splits the map" % analysis.chokepoints.size(), analysis.chokepoints, Color.WHITE, true)
 	_add_room_group(topo, "Hubs (%d): 4+ neighbors" % analysis.hubs.size(), analysis.hubs, Color.WHITE, true)
+
+## "text - how it completes" for a [method IDPAnalysis.get_objectives] entry.
+func _objective_status(o: Dictionary) -> String:
+	var text := str(o.text) if not str(o.text).is_empty() else "(no text)"
+	if not str(o.problem).is_empty():
+		return "%s - NEVER COMPLETES: %s" % [text, o.problem]
+	if str(o.kind).is_empty():
+		return "%s - completed by game code" % text
+	var where := ", ".join(o.rooms.map(analysis.get_room_name)) if not o.rooms.is_empty() else "?"
+	return "%s - %s %s in %s%s" % [text, o.kind, o.target, where, " (sphere %d)" % o.sphere if o.sphere >= 0 else ""]
 
 func _add_room_item(parent: TreeItem, id: String) -> void:
 	var item := progression_tree.create_item(parent)
@@ -238,6 +261,16 @@ func _refresh_stats() -> void:
 			t += "[url=room:%s]%s[/url]: %s (sphere %s, %s)\n" % [id, info.name, ", ".join(info.boss_names) if not info.boss_names.is_empty() else "unnamed", analysis.sphere_of.get(id, "-"), "save %d room(s) away" % sd if sd >= 0 else "no save reachable"]
 	if not any_boss:
 		t += "None found. Name a boss in the Inspector or add idp_boss_name metadata to a node.\n"
+
+	var objectives := analysis.get_objectives()
+	if not objectives.is_empty():
+		t += "\n[b]Objectives[/b]\n"
+		for o in objectives:
+			var swatch: Color = host.ui_area_color(o.area)
+			var status := _objective_status(o)
+			if not str(o.problem).is_empty():
+				status = "[color=#ff8080]%s[/color]" % status
+			t += "[color=#%s]%s[/color]: %s\n" % [swatch.lightened(0.35).to_html(false), o.area, status]
 
 	t += "\n[b]Build status[/b]\n"
 	var status_counts: Dictionary = {}

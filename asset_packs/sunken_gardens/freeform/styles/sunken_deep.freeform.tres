@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="IDPFreeformStyle" format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_freeform_style.gd" id="1_style"]
+[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/fill_deep.png" id="2_fill"]
+[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/edge_roots.png" id="3_bottom"]
+
+[resource]
+script = ExtResource("1_style")
+display_name = "Deep ground"
+fill_texture = ExtResource("2_fill")
+fill_color = Color(0.032, 0.029, 0.016, 1)
+outline_color = Color(0.02, 0.018, 0.01, 1)
+outline_width = 2.0
+bottom_texture = ExtResource("3_bottom")
+bottom_width = 44.0
+bottom_inset = -5.5
+role = 2
+solid = false
+default_layer = "terrain"

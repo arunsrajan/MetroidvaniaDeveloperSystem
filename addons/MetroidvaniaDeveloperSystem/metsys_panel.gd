@@ -14,7 +14,7 @@ const SETTING_AUTO_SCAN := "interactive_dev_panel/auto_scan_map_scenes"
 
 enum ViewItem { LABELS, TERRAIN, PREVIEWS, DOORS, MARKERS, ELEMENTS, PINS, ISSUES, GRID, LEGEND, AUTO_SCAN = 100 }
 enum ExportItem { JSON, PNG, DOT, MARKDOWN }
-enum ScanItem { RESCAN_MAP, SCAN_FOLDER, FIND_MAPS }
+enum ScanItem { RESCAN_MAP, SCAN_FOLDER, FIND_MAPS, PLAYER, GEOMETRY }
 enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, SET_START, ADD_PIN, REMOVE_PIN, ROUTE, LINK, COPY_UID, COPY_CELL }
 
 # Data
@@ -73,12 +73,22 @@ var _inspector_room := ""
 var _filling_room_list := false
 var _inspector_info: RichTextLabel
 var _export_viewport: SubViewport
+## Physics checks of the room scenes (Issues > Geometry), in the background.
+var geometry_checker: IDPGeometryChecker
+var _player_dialog: AcceptDialog
 
 func _ready() -> void:
 	if is_part_of_edited_scene():
 		return
 	_build_ui()
 	_setup_filters()
+	geometry_checker = IDPGeometryChecker.new()
+	add_child(geometry_checker)
+	geometry_checker.progress.connect(func(current: int, total: int, path: String) -> void:
+		_set_status("Checking room geometry %d/%d: %s" % [current, total, path.get_file()]))
+	geometry_checker.finished.connect(func(paths: Array) -> void:
+		_refresh_timer.start()
+		_set_status("Checked the geometry of %d room(s): see Issues > Geometry." % paths.size()))
 	_save_timer = _make_timer(0.6, _save_annotations)
 	_refresh_timer = _make_timer(0.25, _refresh_analysis)
 	_file_timer = _make_timer(1.5, _check_map_file_changed)
@@ -165,6 +175,9 @@ func _build_ui() -> void:
 	sp.add_item("Rescan map scenes", ScanItem.RESCAN_MAP)
 	sp.add_item("Scan project folder (finds unplaced rooms)...", ScanItem.SCAN_FOLDER)
 	sp.add_item("Find MapData files", ScanItem.FIND_MAPS)
+	sp.add_separator()
+	sp.add_check_item("Check room geometry (physics)", ScanItem.GEOMETRY)
+	sp.add_item("Player settings for the checks...", ScanItem.PLAYER)
 	sp.id_pressed.connect(_on_scan_menu)
 	IDPSidePanel.row(toolbar, [reload, scan_menu])
 	export_menu = MenuButton.new()
@@ -512,6 +525,7 @@ func load_map(path: String) -> void:
 	_last_modified = FileAccess.get_modified_time(path)
 	model = IDPMapModel.load_file(path)
 	annotations = IDPAnnotations.load_for_map(path)
+	_sync_scan_menu()
 	annotations.changed.connect(_on_annotations_changed)
 	canvas.in_game_cell_size = _get_cell_size()
 	canvas.metsys_default_color = _get_metsys_default_color()
@@ -580,6 +594,46 @@ func _on_scan_menu(id: int) -> void:
 		ScanItem.FIND_MAPS:
 			_refresh_map_list()
 			_set_status("Found %d map file(s)." % (map_picker.item_count - 1))
+		ScanItem.GEOMETRY:
+			if annotations:
+				annotations.set_setting("geometry_checks", not geometry_checks_enabled())
+				_sync_scan_menu()
+		ScanItem.PLAYER:
+			_show_player_settings()
+
+func _sync_scan_menu() -> void:
+	var sp := scan_menu.get_popup()
+	sp.set_item_checked(sp.get_item_index(ScanItem.GEOMETRY), geometry_checks_enabled())
+
+func geometry_checks_enabled() -> bool:
+	return annotations != null and bool(annotations.get_setting("geometry_checks", true))
+
+## One room check per room with a scanned scene (see IDPGeometryChecker).
+func geometry_jobs() -> Array:
+	var jobs: Array = []
+	var cell := _get_cell_size()
+	for room: IDPMapModel.Room in model.rooms.values():
+		if room.scene_path.is_empty() or not scene_database.has(room.scene_path):
+			continue
+		jobs.append({"path": room.scene_path, "name": analysis.get_room_name(room.id) if analysis else room.id, "rects": IDPRoomCheck.rects_from_metsys(room, cell),
+			"passages": IDPRoomCheck.passages_from_metsys(model, room, cell), "player": annotations.get_setting("player", {}), "cell_size": cell})
+	return jobs
+
+func _show_player_settings() -> void:
+	if not annotations:
+		return
+	if not _player_dialog:
+		_player_dialog = AcceptDialog.new()
+		_player_dialog.title = "Player for the room checks"
+		add_child(_player_dialog)
+	for c in _player_dialog.get_children():
+		if c is GridContainer:
+			c.queue_free()
+	var grid := GridContainer.new()
+	grid.columns = 2
+	_player_dialog.add_child(grid)
+	IDPUi.player_fields(grid, annotations.get_setting("player", {}), func(d: Dictionary) -> void: annotations.set_setting("player", d))
+	_player_dialog.popup_centered(Vector2i(380, 0))
 
 func _scan_map_scenes() -> void:
 	if not model:
@@ -658,6 +712,9 @@ func _save_annotations() -> void:
 func _refresh_analysis() -> void:
 	if not model:
 		return
+	var geometry_on := geometry_checks_enabled()
+	for p in scene_database:
+		scene_database[p].geometry = geometry_checker.issues_of(p) if geometry_on else []
 	analysis = IDPAnalysis.new(IDPGraph.from_metsys(model, scene_database, _get_cell_size()), annotations, scene_database).run()
 	issues = IDPValidator.run(model, annotations, analysis, scene_database, scanned_paths)
 	canvas.issue_cells.clear()
@@ -674,6 +731,8 @@ func _refresh_analysis() -> void:
 		_rebuild_inspector()
 	else:
 		_update_inspector_info()
+	if geometry_on and not scene_database.is_empty() and not (_scanner and _scanner.is_scanning):
+		geometry_checker.check(geometry_jobs())
 
 func _refresh_room_list() -> void:
 	room_tree.clear()
