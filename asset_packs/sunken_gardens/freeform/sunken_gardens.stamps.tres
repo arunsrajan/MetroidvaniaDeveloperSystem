@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="IDPStampSet" format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_stamp_set.gd" id="1_stamps"]
+[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/clumps.png" id="2_clumps"]
+
+[resource]
+script = ExtResource("1_stamps")
+display_name = "Sunken Gardens"
+texture = ExtResource("2_clumps")
+regions = Array[Rect2]([Rect2(0, 0, 128, 128), Rect2(128, 0, 128, 128), Rect2(256, 0, 128, 128), Rect2(384, 0, 128, 128), Rect2(512, 0, 128, 128), Rect2(640, 0, 128, 128), Rect2(768, 0, 128, 128), Rect2(896, 0, 128, 128), Rect2(0, 128, 128, 128), Rect2(128, 128, 128, 128), Rect2(256, 128, 128, 128), Rect2(384, 128, 128, 128), Rect2(512, 128, 128, 128), Rect2(640, 128, 128, 128), Rect2(768, 128, 128, 128), Rect2(896, 128, 128, 128), Rect2(0, 256, 128, 128), Rect2(128, 256, 128, 128), Rect2(256, 256, 128, 128), Rect2(384, 256, 128, 128), Rect2(512, 256, 128, 128), Rect2(640, 256, 128, 128), Rect2(768, 256, 128, 128), Rect2(896, 256, 128, 128)])
+categories = PackedStringArray("grass", "grass", "grass", "grass", "grass", "grass", "flower", "flower", "flower", "fern", "fern", "moss", "moss", "moss", "ivy", "ivy", "ivy", "leaf_bg", "leaf_bg", "leaf_bg", "silhouette", "silhouette", "silhouette", "silhouette")
+anchors = PackedVector2Array(0.5, 0.98, 0.5, 0.98, 0.5, 0.98, 0.5, 0.98, 0.5, 0.98, 0.5, 0.98, 0.5, 0.98, 0.5, 0.98, 0.5, 0.98, 0.5, 0.98, 0.5, 0.98, 0.5, 0.95, 0.5, 0.95, 0.5, 0.95, 0.5, 0.02, 0.5, 0.02, 0.5, 0.02, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.98, 0.5, 0.98, 0.5, 0.98, 0.5, 0.98)

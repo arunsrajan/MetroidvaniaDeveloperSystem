@@ -9,12 +9,17 @@ extends Node2D
 ## - a textured fill (repeating), an outline,
 ## - strips along edges facing up (moss, grass) and down (drips, roots),
 ## - clumps from the style's stamp set scattered along those edges,
-## - with [member solid], a StaticBody2D with the exact curved collision.
+## - with [member solid], a StaticBody2D with the exact curved collision, on the style's
+##   collision layers, one-way for ledges (see [member IDPFreeformStyle.role]).
 ## Made by the Room view's Freeform tool; can also be edited in the inspector.
+##
+## An outline that crosses itself can't be filled or collided with: in the editor it is
+## drawn red and reported (see [method is_outline_simple]); the Room view's Repair fixes it.
 
 @export var points: PackedVector2Array = []:
 	set(v):
 		points = v
+		_simple_state = -1
 		_queue_rebuild()
 @export var style: IDPFreeformStyle:
 	set(v):
@@ -29,6 +34,7 @@ extends Node2D
 @export var smooth := true:
 	set(v):
 		smooth = v
+		_simple_state = -1
 		_queue_rebuild()
 ## Scatter the style's clumps along the edges.
 @export var edge_clumps := true:
@@ -39,8 +45,36 @@ extends Node2D
 	set(v):
 		seed_value = v
 		_queue_rebuild()
+@export_group("Collision override")
+## Use the settings below instead of the style's role, layers and one-way.
+@export var override_collision := false:
+	set(v):
+		override_collision = v
+		_queue_rebuild()
+@export var role: IDPFreeformStyle.Role = IDPFreeformStyle.Role.TERRAIN:
+	set(v):
+		role = v
+		_queue_rebuild()
+@export_flags_2d_physics var collision_layer := 1:
+	set(v):
+		collision_layer = v
+		_queue_rebuild()
+@export_flags_2d_physics var collision_mask := 1:
+	set(v):
+		collision_mask = v
+		_queue_rebuild()
+@export var one_way := false:
+	set(v):
+		one_way = v
+		_queue_rebuild()
+@export var one_way_margin := 16.0:
+	set(v):
+		one_way_margin = v
+		_queue_rebuild()
 
 var _pending := false
+var _simple_state := -1 ## -1 unknown, 0 twisted, 1 simple
+var _warned := false
 
 func _ready() -> void:
 	rebuild()
@@ -64,6 +98,129 @@ static func _default_style() -> IDPFreeformStyle:
 	if not _fallback:
 		_fallback = IDPFreeformStyle.builtins()[0]
 	return _fallback
+
+# --- Collision ---------------------------------------------------------------------------------
+
+## Terrain, platform or decoration: the override's, else the style's.
+func get_role() -> IDPFreeformStyle.Role:
+	return role if override_collision else get_style().get_role()
+
+func get_body_layer() -> int:
+	return collision_layer if override_collision else get_style().collision_layer
+
+func get_body_mask() -> int:
+	return collision_mask if override_collision else get_style().collision_mask
+
+func is_one_way() -> bool:
+	return one_way if override_collision else get_style().is_one_way()
+
+func get_one_way_margin() -> float:
+	return one_way_margin if override_collision else get_style().one_way_margin
+
+## Has a collision body: [member solid] and not a decoration.
+func is_collider() -> bool:
+	return solid and get_role() != IDPFreeformStyle.Role.DECOR
+
+## Solid ground: collides and counts toward the room's silhouette on the map.
+func is_terrain() -> bool:
+	return is_collider() and get_role() == IDPFreeformStyle.Role.TERRAIN
+
+## A ledge or platform (one-way or not).
+func is_platform() -> bool:
+	return is_collider() and get_role() == IDPFreeformStyle.Role.PLATFORM
+
+## Gives this shape its own collision settings (kept by undo, copies and saves).
+func set_collision_override(p_role: IDPFreeformStyle.Role, p_one_way: bool, layer := -1, mask := -1) -> void:
+	var st := get_style()
+	role = p_role
+	one_way = p_one_way
+	collision_layer = layer if layer >= 0 else st.collision_layer
+	collision_mask = mask if mask >= 0 else st.collision_mask
+	one_way_margin = st.one_way_margin
+	override_collision = true
+
+## Every freeform shape under [param root] (inside item groups or not), [param root]
+## included.
+static func shapes_in(root: Node) -> Array[IDPFreeform]:
+	var out: Array[IDPFreeform] = []
+	if not root:
+		return out
+	var stack: Array[Node] = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is IDPFreeform:
+			out.append(n)
+			continue
+		stack.append_array(n.get_children())
+	return out
+
+## The platforms (ledges) under [param root]: solid shapes with the Platform role, wherever
+## they are (the Room view keeps shapes in item groups, not directly in the room).
+static func platforms_in(root: Node) -> Array[IDPFreeform]:
+	var out: Array[IDPFreeform] = []
+	for f in shapes_in(root):
+		if f.is_platform():
+			out.append(f)
+	return out
+
+## The solid ground shapes under [param root].
+static func terrain_in(root: Node) -> Array[IDPFreeform]:
+	var out: Array[IDPFreeform] = []
+	for f in shapes_in(root):
+		if f.is_terrain():
+			out.append(f)
+	return out
+
+# --- Validity ----------------------------------------------------------------------------------
+
+## Whether the outline can be filled and collided with (no edge crosses another). A twisted
+## outline draws nothing and has no collision. Cached until the shape changes.
+func is_outline_simple() -> bool:
+	if _simple_state < 0:
+		_simple_state = 1 if IDPGeometry.is_simple(get_outline()) else 0
+	return _simple_state == 1
+
+func _get_configuration_warnings() -> PackedStringArray:
+	if points.size() >= 3 and not is_outline_simple():
+		return PackedStringArray(["The outline crosses itself, so this shape has no fill and no collision. Move its points apart, or select it in the Room view (Freeform > Edit) and press Repair."])
+	return PackedStringArray()
+
+## A twisted shape made simple: [{points, smooth}, ...], largest first (empty when nothing of
+## it is bigger than a sliver). Clipper unties the control points, or, when only the rounding
+## folds the outline over itself, the drawn outline (then simplified back into control
+## points, rounded again if that stays simple). A simple shape comes back as it is.
+static func repair_points(pts: PackedVector2Array, round_it: bool) -> Array:
+	var out: Array = []
+	if IDPGeometry.is_simple(outline_of(pts, round_it)):
+		out.append({"points": pts, "smooth": round_it})
+		return out
+	var parts: Array[PackedVector2Array]
+	if not IDPGeometry.is_simple(pts):
+		parts = IDPGeometry.untwist(pts)
+	else:
+		parts = IDPGeometry.untwist(outline_of(pts, true))
+	for part in parts:
+		var found := false
+		for tolerance in [2.0, 4.0, 8.0]:
+			var simple := IDPGeometry.simplify_closed(part, tolerance)
+			if simple.size() >= 3 and round_it and IDPGeometry.is_simple(outline_of(simple, true)):
+				out.append({"points": simple, "smooth": true})
+				found = true
+				break
+		if not found:
+			var straight := IDPGeometry.simplify_closed(part, 0.5)
+			out.append({"points": straight if IDPGeometry.is_simple(straight) else part, "smooth": false})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return absf(IDPGeometry.signed_area(a.points)) > absf(IDPGeometry.signed_area(b.points)))
+	return out
+
+## "res://rooms/cave.tscn: Freeform/Shape3", or the node's path in the tree.
+func describe() -> String:
+	if owner and owner.is_ancestor_of(self):
+		var scene := owner.scene_file_path
+		return "%s%s" % [scene + ": " if not scene.is_empty() else "", owner.get_path_to(self)]
+	var p := get_parent()
+	return "%s/%s" % [p.name, name] if p else String(name)
 
 # --- Geometry ---------------------------------------------------------------------------------
 
@@ -175,7 +332,16 @@ func rebuild() -> void:
 		fill.texture = st.fill_texture
 		fill.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 		fill.texture_scale = Vector2.ONE / maxf(st.fill_scale, 0.01)
+	if st.fill_material:
+		fill.material = st.fill_material
 	_part(fill)
+	if st.edge_material:
+		var band := IDPEdgeBand.edge_mesh(outline, st.edge_inside, st.edge_outside, st.skip_edges_on_grid, position)
+		if band:
+			var mi := MeshInstance2D.new()
+			mi.mesh = band
+			mi.material = st.edge_material
+			_part(mi)
 	if st.outline_width > 0.0:
 		var line := Line2D.new()
 		line.points = outline
@@ -202,12 +368,36 @@ func rebuild() -> void:
 		if not st.bottom_clumps.is_empty():
 			for run in bottoms:
 				_scatter(run, st, st.bottom_clumps, rng, true)
-	if solid:
+	if is_collider():
 		var body := StaticBody2D.new()
+		body.collision_layer = get_body_layer()
+		body.collision_mask = get_body_mask()
 		var col := CollisionPolygon2D.new()
 		col.polygon = outline
+		col.one_way_collision = is_one_way()
+		col.one_way_collision_margin = get_one_way_margin()
 		body.add_child(col)
 		_part(body)
+	_report_validity(outline)
+
+## In the editor, a twisted outline is drawn red and reported once.
+func _report_validity(outline: PackedVector2Array) -> void:
+	var was := _simple_state
+	_simple_state = 1 if IDPGeometry.is_simple(outline) else 0
+	if was != _simple_state and Engine.is_editor_hint() and is_inside_tree():
+		update_configuration_warnings()
+	if _simple_state == 1 or not Engine.is_editor_hint():
+		return
+	var line := Line2D.new()
+	line.points = outline
+	line.closed = true
+	line.width = 4.0
+	line.default_color = Color(1, 0.15, 0.1)
+	line.z_index = 50
+	_part(line)
+	if not _warned:
+		_warned = true
+		push_warning("IDPFreeform %s: its outline crosses itself, so it has no fill and no collision. Select it in the Room view (Freeform > Edit) and press Repair." % describe())
 
 func _part(node: Node) -> void:
 	node.set_meta(&"idp_part", true)
@@ -273,12 +463,21 @@ func _scatter(run: PackedVector2Array, st: IDPFreeformStyle, category: String, r
 # --- Data (undo, copies) ---------------------------------------------------------------------
 
 func to_data() -> Dictionary:
-	return {"points": points, "style": style, "solid": solid, "smooth": smooth, "edge_clumps": edge_clumps,
+	# Packed arrays are shared by reference: snapshots get their own copy.
+	var d := {"points": points.duplicate(), "style": style, "solid": solid, "smooth": smooth, "edge_clumps": edge_clumps,
 		"seed": seed_value, "position": position, "name": String(name)}
+	if override_collision:
+		d.collision = {"role": role, "layer": collision_layer, "mask": collision_mask, "one_way": one_way, "margin": one_way_margin}
+	var meta: Dictionary = {}
+	for k in get_meta_list():
+		meta[k] = get_meta(k)
+	if not meta.is_empty():
+		d.meta = meta
+	return d
 
 static func from_data(d: Dictionary) -> IDPFreeform:
 	var f := IDPFreeform.new()
-	f.points = d.points
+	f.points = (d.points as PackedVector2Array).duplicate()
 	f.style = d.style
 	f.solid = d.solid
 	f.smooth = d.smooth
@@ -287,6 +486,17 @@ static func from_data(d: Dictionary) -> IDPFreeform:
 	f.position = d.position
 	if not str(d.get("name", "")).is_empty():
 		f.name = d.name
+	var c: Dictionary = d.get("collision", {})
+	if not c.is_empty():
+		f.role = c.role
+		f.collision_layer = c.layer
+		f.collision_mask = c.mask
+		f.one_way = c.one_way
+		f.one_way_margin = c.margin
+		f.override_collision = true
+	var meta: Dictionary = d.get("meta", {})
+	for k in meta:
+		f.set_meta(k, meta[k])
 	return f
 
 ## Whether [param p] (in this node's parent space) is inside the shape.

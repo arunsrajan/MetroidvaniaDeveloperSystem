@@ -49,10 +49,16 @@ var _variation := 0
 var _filling := false
 var layer_opt: OptionButton ## freeform / stamp layer
 var mode_opt: OptionButton ## freeform Draw / Edit
+var role_opt: OptionButton ## freeform collision role
+var repair_row: Control ## freeform Repair / Repair all
 var size_spin: SpinBox ## stamp size
 var _styles: Array[IDPFreeformStyle] = []
 var _stamp_sets: Array[IDPStampSet] = []
 var _shape_rows: Array[Control] = []
+var _check_host: SubViewport
+var _convert_dialog: IDPConvertDialog
+var _decorate_dialog: IDPDecorateDialog
+var _fill_style_opt: OptionButton
 
 func _init() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -93,6 +99,17 @@ func _init() -> void:
 		canvas.freeform_mode = mode_opt.get_item_id(idx)
 		canvas._overlay.queue_redraw())
 	_shape_rows.append(IDPSidePanel.field(controls, "Mode", mode_opt))
+	role_opt = OptionButton.new()
+	for i in IDPRoomCanvas.ROLE_CHOICE_NAMES.size():
+		role_opt.add_item(IDPRoomCanvas.ROLE_CHOICE_NAMES[i], i)
+	role_opt.tooltip_text = "Collision of new freeform shapes (and of the selected one in Edit mode): the style's role, terrain, a platform (one-way ledges are jumped up through), or a decoration that never collides. Dashed tops in Edit mode mark one-way shapes"
+	role_opt.item_selected.connect(_on_role_selected)
+	IDPSidePanel.field(controls, "Role", role_opt)
+	var repair := IDPUi.button("Repair", "Untwist the selected shape: an outline that crosses itself has no fill and no collision. The largest part stays; other parts become shapes of their own; slivers go")
+	repair.pressed.connect(repair_selected)
+	var repair_all := IDPUi.button("Repair all", "Untwist every shape of the room whose outline crosses itself (drawn red)")
+	repair_all.pressed.connect(repair_all_shapes)
+	repair_row = IDPSidePanel.row(controls, [repair, repair_all])
 	size_spin = SpinBox.new()
 	size_spin.min_value = 20
 	size_spin.max_value = 400
@@ -185,6 +202,39 @@ func _init() -> void:
 	var back := IDPUi.button("Fill background", "Fill the room's shape with the Background fill (foliage, palette tiles or a solid color)")
 	back.pressed.connect(fill_background)
 	generation.add_child(back)
+	var convert := IDPUi.button("Convert to freeform...", "Turn the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects. Platforms become one-way ledges. Block a room out with rectangles or tiles, then make it organic")
+	convert.pressed.connect(open_convert_dialog)
+	generation.add_child(convert)
+	var decorate := IDPUi.button("Decorate freeform...", "Place scenery relative to the freeform rock: stamps hung under ceilings, plants along floors, background structures (columns, broken arches, garden walls, mounds, stalactites) on flat floors, and foreground leaves in free corners. Never over doorways or anything in the room; running it again replaces it")
+	decorate.pressed.connect(open_decorate_dialog)
+	generation.add_child(decorate)
+	_fill_style_opt = OptionButton.new()
+	_fill_style_opt.fit_to_longest_item = false
+	_fill_style_opt.clip_text = true
+	_fill_style_opt.tooltip_text = "Style of Fill outside shape (deep ground)"
+	var outside := IDPUi.button("Fill outside shape", "Cover the cells of the room's box that are outside its shape on the map (its notches, which belong to neighbouring rooms) with non-solid shapes of the style picked next to it, drawn over the rock's edges. Run it again after changing the room's shape; the Room view also redoes it when it opens a room whose shape changed")
+	outside.pressed.connect(fill_outside)
+	IDPSidePanel.row(generation, [outside, _fill_style_opt])
+	var check := IDPUi.button("Check room", "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view")
+	check.pressed.connect(check_room)
+	var reach := CheckBox.new()
+	reach.text = "Reachability"
+	reach.button_pressed = true
+	reach.tooltip_text = "After Check room, draw the floors the player can reach from the gates in green, the others in red"
+	reach.toggled.connect(func(on: bool) -> void:
+		canvas.show_reachability = on
+		canvas._overlay.queue_redraw())
+	IDPSidePanel.row(generation, [check, reach])
+	var fit_props := IDPUi.button("Fit props to floor", "Stand every object that stands (save points, shops, NPCs, benches, spawn points: see the idp_stands group) on the floor under it, or lift it out of the ground it is sunk in, then step it along its floor out of any platform. Ctrl+Z undoes it")
+	fit_props.pressed.connect(fit_props_to_floor)
+	var declutter := IDPUi.button("Declutter", "Separate objects that stand in or behind each other: doors, machines and enemies stay; save points and shops, then everything else, step along their floor to the nearest clear spot. A decoration with nowhere to go is removed. Ctrl+Z undoes it")
+	declutter.pressed.connect(declutter_room)
+	IDPSidePanel.row(generation, [fit_props, declutter])
+	var depth := CheckBox.new()
+	depth.text = "2.5D preview"
+	depth.tooltip_text = "Show the room as IDPDepth25D draws it in the game: walls and floors extruded toward the middle of the view, floors paved in perspective, lit from above (World settings > 2.5D turns it on in the game)"
+	depth.toggled.connect(func(on: bool) -> void: canvas.set_depth_preview(on))
+	generation.add_child(depth)
 	var clear := IDPUi.button("Clear", "Remove all tiles, freeform shapes and stamps")
 	clear.pressed.connect(func() -> void:
 		if painter:
@@ -236,8 +286,13 @@ func _init() -> void:
 	canvas = IDPRoomCanvas.new()
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	canvas.painted.connect(func() -> void: canvas._overlay.queue_redraw())
+	canvas.painted.connect(func() -> void:
+		canvas.check_result = {}
+		canvas._overlay.queue_redraw())
 	canvas.status_message.connect(func(t: String) -> void: status_message.emit(t))
+	canvas.selection_changed.connect(func(f: IDPFreeform) -> void:
+		if f and canvas.freeform_mode == IDPRoomCanvas.FreeformMode.EDIT:
+			role_opt.select(IDPRoomCanvas.role_choice_of(f)))
 	_split.add_child(canvas)
 	palette = IDPTilePalette.new()
 	palette.status_message.connect(func(t: String) -> void: status_message.emit(t))
@@ -270,6 +325,7 @@ func open_room(p_world: IDPWorld, id: String) -> String:
 	palette.set_painter(painter)
 	_load_styles()
 	_fill_pickers(true)
+	_refresh_outside_fill()
 	# Generate cave builds autotiled terrain.
 	generate_button.disabled = not painter.has_terrains()
 	if not painter.has_terrains():
@@ -324,6 +380,8 @@ func save() -> Error:
 	if err == OK:
 		saved.emit(painter.scene_path)
 		status_message.emit("Saved %s." % painter.scene_path.get_file())
+	elif not IDPWorldSceneTools.last_error.is_empty():
+		status_message.emit(IDPWorldSceneTools.last_error)
 	else:
 		status_message.emit("Could not save %s (error %d)." % [painter.scene_path, err])
 	canvas._overlay.queue_redraw()
@@ -344,6 +402,9 @@ func _update_tool_controls() -> void:
 	var stamps := t == IDPRoomCanvas.Tool.STAMP
 	layer_opt.get_parent().visible = freeform or stamps
 	mode_opt.get_parent().visible = freeform
+	role_opt.get_parent().visible = freeform
+	repair_row.visible = freeform
+	_update_generator_shapes(freeform)
 	size_spin.visible = stamps
 	brush_spin.visible = not freeform and not stamps
 	shape_opt.get_parent().visible = not stamps
@@ -362,6 +423,23 @@ func _update_tool_controls() -> void:
 		layer_opt.select(maxi(0, STAMP_GROUPS.find(canvas.stamp_group)))
 	_filling = false
 
+## The Freeform tool's Shape list also offers the scenery generators (Column, Arch...).
+func _update_generator_shapes(freeform: bool) -> void:
+	var has := shape_opt.get_item_index(IDPRoomCanvas.GENERATOR_BASE) >= 0
+	if freeform and not has:
+		shape_opt.add_separator("Scenery")
+		for i in IDPShapeGenerators.NAMES.size():
+			shape_opt.add_item(IDPShapeGenerators.NAMES[i], IDPRoomCanvas.GENERATOR_BASE + i)
+			shape_opt.set_item_tooltip(shape_opt.item_count - 1, IDPShapeGenerators.TIPS[i] + ". Drag its box")
+	elif not freeform and has:
+		for i in range(shape_opt.item_count - 1, -1, -1):
+			if shape_opt.get_item_id(i) >= IDPRoomCanvas.GENERATOR_BASE or shape_opt.is_item_separator(i):
+				shape_opt.remove_item(i)
+		if canvas.shape >= IDPRoomCanvas.GENERATOR_BASE:
+			canvas.shape = IDPTerrainShapes.Shape.BRUSH
+			shape_opt.select(0)
+			_update_shape_controls()
+
 func _on_layer_selected(idx: int) -> void:
 	if _filling:
 		return
@@ -378,6 +456,161 @@ func _on_layer_selected(idx: int) -> void:
 			painter.dirty = true
 	elif canvas.tool == IDPRoomCanvas.Tool.STAMP:
 		canvas.stamp_group = STAMP_GROUPS[idx]
+
+func _on_role_selected(idx: int) -> void:
+	canvas.freeform_role = role_opt.get_item_id(idx)
+	if is_instance_valid(canvas.selected) and painter and canvas.freeform_mode == IDPRoomCanvas.FreeformMode.EDIT:
+		painter.checkpoint()
+		IDPRoomCanvas.apply_role_choice(canvas.selected, canvas.freeform_role)
+		painter.dirty = true
+		_changed("%s: %s." % [canvas.selected.name, IDPRoomCanvas.ROLE_CHOICE_NAMES[canvas.freeform_role]])
+
+func repair_selected() -> void:
+	if not painter:
+		return
+	var f := canvas.selected
+	if not is_instance_valid(f):
+		status_message.emit("Select a shape first (Freeform > Edit, click it), or press Repair all.")
+		return
+	if f.is_outline_simple():
+		status_message.emit("%s's outline is fine: nothing to repair." % f.name)
+		return
+	painter.checkpoint()
+	var parts := painter.repair_freeform(f)
+	canvas.selected = parts[0] if not parts.is_empty() else null
+	_changed("Repaired %s: %s." % [f.name if not parts.is_empty() else "the shape", "%d shape(s)" % parts.size() if not parts.is_empty() else "only slivers were left, so it was removed"])
+
+func repair_all_shapes() -> void:
+	if not painter:
+		return
+	if painter.twisted_freeforms().is_empty():
+		status_message.emit("No shape of %s crosses itself." % room_id)
+		return
+	painter.checkpoint()
+	var r := painter.repair_all()
+	if not is_instance_valid(canvas.selected):
+		canvas.selected = null
+	_changed("Repaired %d shape(s) into %d; %d removed (slivers only). Ctrl+Z undoes it." % [r.repaired, r.shapes, r.removed])
+
+## Runs the physics checks (IDPRoomCheck) on the room as painted, and marks what it finds.
+func check_room() -> Array:
+	if not painter or not world:
+		return []
+	var c := IDPRoomCheck.new(world.get_setting("player", {}))
+	c.room_rects = world.get_local_rects(room_id)
+	c.passages = IDPRoomCheck.passages_from_world(world, room_id)
+	c.build_from_painter(painter, _host())
+	var issues := c.run()
+	canvas.check_result = {"issues": issues.duplicate(true), "surfaces": c.surfaces.duplicate(true)}
+	c.free_proxy()
+	canvas._overlay.queue_redraw()
+	var reachable: int = canvas.check_result.surfaces.filter(func(s: Dictionary) -> bool: return s.reachable).size()
+	if issues.is_empty():
+		status_message.emit("%s passes the room checks: gates open, platforms clear, objects grounded, exits reachable (%d of %d floors reachable)." % [room_id, reachable, c.surfaces.size()])
+	else:
+		status_message.emit("%d problem(s): %s" % [issues.size(), "; ".join(issues.slice(0, 3).map(func(i: Dictionary) -> String: return i.message))])
+	return issues
+
+func _host() -> Node:
+	if not _check_host:
+		_check_host = SubViewport.new()
+		_check_host.disable_3d = true
+		_check_host.size = Vector2i(4, 4)
+		_check_host.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		add_child(_check_host)
+	return _check_host
+
+## Stands the room's standing objects on the floor (undoable). Returns how many moved.
+func fit_props_to_floor() -> int:
+	if not painter or not world:
+		return 0
+	var c := IDPRoomDressing.ground_check(_host(), painter.root, painter, world.get_local_rects(room_id))
+	var edits := IDPRoomDressing.fit_to_floor(painter.root, c, painter)
+	c.free_proxy()
+	if edits.is_empty():
+		status_message.emit("Every object that stands is on the floor already (or has no floor under it).")
+		return 0
+	painter.checkpoint()
+	IDPRoomDressing.apply(edits, painter)
+	canvas.refresh_scene_edits()
+	_changed("Stood %d object(s) on the floor: %s. Ctrl+Z undoes it; Save keeps it." % [edits.size(), ", ".join(edits.map(func(e: Dictionary) -> String: return String(e.node.name)))])
+	return edits.size()
+
+## Separates the room's objects that overlap (undoable). Returns the edits made.
+func declutter_room() -> Array:
+	if not painter or not world:
+		return []
+	var c := IDPRoomDressing.ground_check(_host(), painter.root, painter, world.get_local_rects(room_id))
+	var edits := IDPRoomDressing.declutter(painter.root, c, painter)
+	c.free_proxy()
+	if edits.is_empty():
+		status_message.emit("No objects stand in or behind each other.")
+		return edits
+	painter.checkpoint()
+	IDPRoomDressing.apply(edits, painter)
+	canvas.refresh_scene_edits()
+	var moved := edits.filter(func(e: Dictionary) -> bool: return e.kind == "move").size()
+	_changed("Decluttered: %d object(s) moved, %d decoration(s) with nowhere to go removed. Ctrl+Z undoes it; Save keeps it." % [moved, edits.size() - moved])
+	return edits
+
+func open_convert_dialog() -> void:
+	if not painter:
+		return
+	if not _convert_dialog:
+		_convert_dialog = IDPConvertDialog.new()
+		add_child(_convert_dialog)
+	_convert_dialog.open(self, _styles, canvas.freeform_style)
+
+func open_decorate_dialog() -> void:
+	if not painter:
+		return
+	if not _decorate_dialog:
+		_decorate_dialog = IDPDecorateDialog.new()
+		add_child(_decorate_dialog)
+	_decorate_dialog.open(self, _styles, _stamp_sets)
+
+## Status after Convert to freeform (or its preview).
+func report_conversion(r: Dictionary, preview: bool) -> void:
+	canvas.selected = null
+	if r.is_empty():
+		_changed("Converted %s to freeform. Ctrl+Z undoes it; Check room checks it." % room_id)
+		return
+	if not str(r.get("error", "")).is_empty():
+		_changed(r.error)
+		return
+	var text := "%s %d rock shape(s), %d ledge(s)%s%s; %d opening(s) kept clear; %d old tile(s) and node(s) %s." % [
+		"Preview:" if preview else "Converted:", r.rock, r.ledges,
+		", %d background shape(s)" % r.back if r.back > 0 else "", ", %d foreground shape(s)" % r.front if r.front > 0 else "",
+		r.openings, r.old, "taken out" if preview else "hidden or removed"]
+	if not r.warnings.is_empty():
+		text += " " + " ".join(r.warnings)
+	_changed(text)
+
+## The style picked for Fill outside shape.
+func _fill_style() -> IDPFreeformStyle:
+	var i := _fill_style_opt.selected
+	return _styles[_fill_style_opt.get_item_id(i)] if i >= 0 and _fill_style_opt.get_item_id(i) < _styles.size() else IDPFreeform._default_style()
+
+func fill_outside() -> void:
+	if not painter:
+		return
+	var rects := world.get_local_rects(room_id)
+	if IDPNotchFill.outside_polygons(rects).is_empty() and IDPNotchFill.shapes_of(painter).is_empty():
+		status_message.emit("%s's shape is its whole box: there is nothing outside it to fill." % room_id)
+		return
+	painter.checkpoint()
+	var n := IDPNotchFill.fill(painter, rects, _fill_style())
+	_changed("Filled outside %s's shape: %d shape(s) of %s (decoration: no collision)." % [room_id, n, _fill_style().get_display_name()])
+
+## A room whose shape changed on the map gets its outside fill redone (undoable).
+func _refresh_outside_fill() -> void:
+	var rects := world.get_local_rects(room_id)
+	if IDPNotchFill.shapes_of(painter).is_empty() or not IDPNotchFill.is_stale(painter, rects):
+		return
+	var st: IDPFreeformStyle = IDPNotchFill.shapes_of(painter)[0].style
+	painter.checkpoint()
+	var n := IDPNotchFill.fill(painter, rects, st if st else _fill_style())
+	status_message.emit("%s's shape changed on the map: its outside fill was redone (%d shape(s)). Ctrl+Z undoes it." % [room_id, n])
 
 func generate(new_variation: bool) -> void:
 	if not painter or not painter.has_terrains():
@@ -405,15 +638,16 @@ func _terrain_for_generation() -> Vector2i:
 	return Vector2i(t[0], t[1])
 
 func _changed(message: String) -> void:
+	canvas.check_result = {}
 	canvas._overlay.queue_redraw()
 	status_message.emit(message)
 
 func _update_shape_controls() -> void:
-	var curved := IDPTerrainShapes.is_curved(canvas.shape)
+	var curved := IDPTerrainShapes.is_curved(canvas.shape) and canvas.shape < IDPRoomCanvas.GENERATOR_BASE
 	curve_opt.disabled = not curved
 	flip_check.disabled = not curved
 	count_spin.editable = curved and canvas.curve in [IDPTerrainShapes.CurveType.WAVE, IDPTerrainShapes.CurveType.STEPS, IDPTerrainShapes.CurveType.SPIKES]
-	rough_spin.editable = canvas.shape != Shape.BRUSH and canvas.shape != Shape.RECT
+	rough_spin.editable = canvas.shape != Shape.BRUSH and canvas.shape != Shape.RECT and canvas.shape < IDPRoomCanvas.GENERATOR_BASE
 	brush_spin.editable = canvas.shape == Shape.BRUSH
 
 # --- Fills ---------------------------------------------------------------------------------------
@@ -493,7 +727,7 @@ func _fill_pickers(validate: bool) -> void:
 	fill_opt.disabled = false
 	if canvas.tool == IDPRoomCanvas.Tool.FREEFORM:
 		for i in _styles.size():
-			fill_opt.add_item(_styles[i].get_display_name(), i)
+			fill_opt.add_item(_styles[i].get_list_name(), i)
 		fill_opt.select(maxi(0, _styles.find(canvas.freeform_style)))
 		fill_opt.tooltip_text = "Style of new freeform shapes (and of the selected one). Styles are *.freeform.tres files in the project"
 		color_button.visible = false
@@ -572,7 +806,7 @@ func _set_freeform_style(st: IDPFreeformStyle, apply_to_selected: bool) -> void:
 	canvas.freeform_style = st
 	var idx := {"terrain": 0, "back": 1, "front": 2}.get(st.default_layer, 0)
 	canvas.freeform_group = FREEFORM_GROUPS[idx]
-	canvas.freeform_solid = st.solid and idx == 0
+	canvas.freeform_solid = st.solid and idx == 0 and st.get_role() != IDPFreeformStyle.Role.DECOR
 	if apply_to_selected and is_instance_valid(canvas.selected) and painter and canvas.freeform_mode == IDPRoomCanvas.FreeformMode.EDIT:
 		painter.checkpoint()
 		canvas.selected.style = st
@@ -584,10 +818,23 @@ func _load_styles() -> void:
 	_styles = IDPFreeformStyle.builtins()
 	_styles.append_array(IDPFreeformStyle.find_in_project())
 	_stamp_sets = IDPStampSet.find_in_project()
+	var keep := _fill_style_opt.get_item_text(_fill_style_opt.selected) if _fill_style_opt.selected >= 0 else ""
+	var preset_path := str(world.get_setting("notch_fill_style", "")) if world else ""
+	var preset: IDPFreeformStyle = load(preset_path) as IDPFreeformStyle if not preset_path.is_empty() and ResourceLoader.exists(preset_path) else null
+	if keep.is_empty() and preset:
+		keep = preset.get_display_name()
+	_fill_style_opt.clear()
+	var deep := 0
+	for i in _styles.size():
+		_fill_style_opt.add_item(_styles[i].get_display_name(), i)
+		var lower := _styles[i].get_display_name().to_lower()
+		if (keep.is_empty() and (lower.contains("deep") or lower.contains("dark"))) or _styles[i].get_display_name() == keep:
+			deep = _fill_style_opt.item_count - 1
+	_fill_style_opt.select(deep)
 	if not canvas.freeform_style or not canvas.freeform_style in _styles:
 		# Prefer a textured style from the project (a mossy one if there is).
 		var pick := _styles[0]
-		for st in _styles.slice(3):
+		for st in _styles.slice(IDPFreeformStyle.BUILTIN_COUNT):
 			if pick == _styles[0] or st.get_display_name().to_lower().contains("moss"):
 				pick = st
 		_set_freeform_style(pick, false)

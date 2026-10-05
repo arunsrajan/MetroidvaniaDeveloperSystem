@@ -97,12 +97,21 @@ var _gate_timer: Timer
 var _gate_log: Array = [] ## automatic writes to saved scenes, for undo
 var map_view_button: Button
 var room_view_button: Button
+## Physics checks of the room scenes (Issues > Geometry), in the background.
+var geometry_checker: IDPGeometryChecker
 
 func _ready() -> void:
 	if is_part_of_edited_scene():
 		return
 	_build_ui()
 	_setup_filters()
+	geometry_checker = IDPGeometryChecker.new()
+	add_child(geometry_checker)
+	geometry_checker.progress.connect(func(current: int, total: int, path: String) -> void:
+		_set_status("Checking room geometry %d/%d: %s" % [current, total, path.get_file()]))
+	geometry_checker.finished.connect(func(paths: Array) -> void:
+		_refresh_timer.start()
+		_set_status("Checked the geometry of %d room(s): see Issues > Geometry." % paths.size()))
 	_save_timer = _make_timer(0.5, _save_world)
 	_refresh_timer = _make_timer(0.2, _refresh)
 	_file_timer = _make_timer(1.5, _check_world_file_changed)
@@ -254,7 +263,7 @@ func _build_ui() -> void:
 	vp.hide_on_checkable_item_selection = false
 	var view_items := [
 		[ViewItem.LABELS, "Room labels", "labels"], [ViewItem.AREA_LABELS, "Area names", "area_labels"],
-		[ViewItem.TERRAIN, "Terrain silhouettes", "terrain"], [ViewItem.PREVIEWS, "Live scene previews (slow)", "previews"],
+		[ViewItem.TERRAIN, "Terrain silhouettes", "terrain"], [ViewItem.PREVIEWS, "Scene previews (room pictures, else live)", "previews"],
 		[ViewItem.GATES, "Gates && connections", "gates"], [ViewItem.MARKERS, "Markers", "markers"],
 		[ViewItem.PINS, "Pins", "pins"], [ViewItem.ISSUES, "Issue badges", "issues"],
 		[ViewItem.GRID, "Grid", "grid"], [ViewItem.LEGEND, "Legend", "legend"],
@@ -846,6 +855,8 @@ func _sync_gate_nodes() -> void:
 		else:
 			var before := FileAccess.get_file_as_bytes(path)
 			names = IDPWorldSceneTools.ensure_gate_nodes(world, id)
+			if names.is_empty() and not IDPWorldSceneTools.last_error.is_empty():
+				_set_status(IDPWorldSceneTools.last_error)
 			if not names.is_empty():
 				_gate_log.append({"room": id, "path": path, "gates": names, "before": before, "after": FileAccess.get_file_as_bytes(path)})
 				if _gate_log.size() > 50:
@@ -1043,7 +1054,7 @@ func show_room_view(id: String) -> void:
 		var path := _default_scene_path(id)
 		var err := IDPWorldSceneTools.create_scene_for_room(world, id, path)
 		if err != OK:
-			_set_status("Could not create a scene for %s (error %d)." % [id, err])
+			_set_status(IDPWorldSceneTools.last_error if not IDPWorldSceneTools.last_error.is_empty() else "Could not create a scene for %s (error %d)." % [id, err])
 			map_view_button.set_pressed_no_signal(true)
 			return
 		EditorInterface.get_resource_filesystem().update_file(path)
@@ -1082,6 +1093,9 @@ func _on_room_saved(path: String) -> void:
 func _refresh() -> void:
 	if not world:
 		return
+	var geometry_on := geometry_checks_enabled()
+	for p in scene_database:
+		scene_database[p].geometry = geometry_checker.issues_of(p) if geometry_on else []
 	graph = IDPGraph.from_world(world, scene_database)
 	analysis = IDPAnalysis.new(graph, world, scene_database).run()
 	issues = IDPWorldValidator.run(world, analysis, scene_database)
@@ -1104,6 +1118,22 @@ func _refresh() -> void:
 		_rebuild_inspector()
 	else:
 		_update_inspector_info()
+	# Rooms whose scene, shape, gates or player settings changed are checked again.
+	if geometry_on and _files_ready:
+		geometry_checker.check(geometry_jobs())
+
+func geometry_checks_enabled() -> bool:
+	return world != null and bool(world.get_setting("geometry_checks", true))
+
+## One room check per room with a scene (see IDPGeometryChecker).
+func geometry_jobs() -> Array:
+	var jobs: Array = []
+	for id in world.get_room_ids():
+		var p := world.get_scene_path(id)
+		if p.is_empty() or not scene_database.has(p):
+			continue
+		jobs.append({"path": p, "name": id, "rects": world.get_local_rects(id), "passages": IDPRoomCheck.passages_from_world(world, id), "player": world.get_setting("player", {})})
+	return jobs
 
 func _refresh_room_list() -> void:
 	room_tree.clear()
@@ -1189,6 +1219,32 @@ func _rebuild_area_editor() -> void:
 	var zone := IDPUi.field_line(grid, "Map zone", str(world.get_areas()[a].get("map_zone", "")), "e.g. GREENHOUSE")
 	zone.tooltip_text = "Id your game uses for this area (Hollow Knight calls these map zones)."
 	IDPUi.commit_line(zone, func(t: String) -> void: world.set_area_value(a, "map_zone", t.strip_edges()))
+	# Presentation: IDPAreaTitle, IDPMusic, IDPObjectiveBanner and IDPWorldGame read these.
+	var data: Dictionary = world.get_areas()[a]
+	var fields := [
+		["Title", "title", "", a, "Shown by IDPAreaTitle when the player arrives. Empty: the area's name"],
+		["Subtitle", "subtitle", "", "smaller line under the title", ""],
+		["Music", "music", "path", "res://.../music.ogg", "Loops while the player is in this area. IDPMusic crossfades between areas and keeps playing when two areas share it"],
+		["Music volume (dB)", "music_volume_db", "float", "0", ""],
+		["Boss music", "boss_music", "path", "res://.../boss.ogg", "IDPMusic.play_boss() starts it from silence; end_boss() returns to the area's music"],
+		["Backdrop", "backdrop", "path", "world default", "IDPBackdrop (.tres) drawn in the distance behind the area's rooms. A room can have its own"],
+		["Darkness", "darkness", "float", "auto", "0 lit, 0.05 to 0.8 dimmed (lights carve pools around the player and enemies). Empty: automatic, from the world's Dark room share. A room can have its own"],
+		["Objective", "objective", "", "e.g. Find the crypt key", "Shown by IDPObjectiveBanner on arrival and on the map until done"],
+		["Done when", "objective_done_when", "", "ability:x, object:id or boss:name", "The objective completes when the player has this ability (ability:dash or just dash), this stored object (object:Room/Node) or has defeated this boss (boss:Warden)"],
+	]
+	for f in fields:
+		var key: String = f[1]
+		var kind: String = f[2]
+		var edit := IDPUi.field_line(grid, f[0], str(data.get(key, "")), f[3])
+		edit.tooltip_text = f[4]
+		IDPUi.commit_line(edit, func(t: String) -> void:
+			world.checkpoint()
+			var value: Variant = t.strip_edges()
+			if kind == "float" and not str(value).is_empty():
+				value = str(value).to_float()
+			world.set_area_value(a, key, value))
+		if kind == "path":
+			IDPUi.path_drop(edit)
 	var row := HFlowContainer.new()
 	area_box.add_child(row)
 	var for_new := IDPUi.button("Use for new rooms", "Rooms drawn with the Room tool join this area")
@@ -1497,6 +1553,20 @@ func _rebuild_inspector() -> void:
 		world._touch()
 		_rebuild_layer_picker())
 	grid.add_child(layer_spin)
+	var area_data: Dictionary = world.get_areas().get(world.get_room_area(id), {})
+	var inherited := str(area_data.get("backdrop", world.get_setting("backdrop", "")))
+	var backdrop_edit := IDPUi.field_line(grid, "Backdrop", str(world.get_room_value(id, "backdrop", "")), inherited.get_file() if not inherited.is_empty() else "none")
+	backdrop_edit.tooltip_text = "IDPBackdrop (.tres) drawn in the distance behind this room. Empty: the area's, else the world's"
+	IDPUi.path_drop(backdrop_edit)
+	IDPUi.commit_line(backdrop_edit, func(t: String) -> void:
+		world.checkpoint()
+		world.set_room_value(id, "backdrop", t.strip_edges()))
+	var dark: Variant = world.get_room_value(id, "darkness", null)
+	var dark_edit := IDPUi.field_line(grid, "Darkness", str(dark) if dark != null else "", "area: %s" % area_data.darkness if area_data.has("darkness") else "auto")
+	dark_edit.tooltip_text = "0 lit, 0.05 to 0.8 dimmed: a subtractive light darkens the room and the player, enemies and lanterns carry soft lights. Empty: the area's, else automatic (the world's Dark room share)"
+	IDPUi.commit_line(dark_edit, func(t: String) -> void:
+		world.checkpoint()
+		world.set_room_value(id, "darkness", null if t.strip_edges().is_empty() else clampf(t.to_float(), 0.0, 0.95)))
 
 	inspector.add_child(IDPUi.label("Notes (TODO lines show up in Issues)"))
 	var notes := TextEdit.new()
@@ -1676,6 +1746,28 @@ func _build_link_section(id: String) -> void:
 			world.checkpoint()
 			world.remove_link(index))
 		row.add_child(rm)
+		# The gates that make it a fast-travel pair at runtime: using one (an interact door
+		# with "link" on) takes the player to the other.
+		var gates_row := HBoxContainer.new()
+		inspector.add_child(gates_row)
+		var here_key := "a_gate" if links[i].a == id else "b_gate"
+		var there_key := "b_gate" if links[i].a == id else "a_gate"
+		for side in [[id, here_key, "here"], [other, there_key, "there"]]:
+			var opt := OptionButton.new()
+			opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			opt.add_item("%s gate: none" % side[2])
+			opt.set_item_metadata(0, "")
+			for g in world.get_gates(side[0]):
+				opt.add_item("%s gate: %s" % [side[2], g])
+				opt.set_item_metadata(opt.item_count - 1, g)
+				if g == str(links[i].get(side[1], "")):
+					opt.select(opt.item_count - 1)
+			opt.tooltip_text = "Gate of %s that the link starts or ends at. With both set, IDPWorldGame makes the link a fast-travel pair: an IDPGate with link on travels to the other end (if the link's requires are met)" % side[0]
+			var key: String = side[1]
+			opt.item_selected.connect(func(idx: int) -> void:
+				world.checkpoint()
+				world.set_link_value(index, key, opt.get_item_metadata(idx)))
+			gates_row.add_child(opt)
 	var add := IDPUi.button("Add link... (then click the target room)", "Connect rooms that have no gate between them on the map")
 	add.pressed.connect(func() -> void:
 		_link_source = id
@@ -1732,7 +1824,7 @@ func create_scene_for_room(id: String, scene_path: String) -> void:
 	world.checkpoint()
 	var err := IDPWorldSceneTools.create_scene_for_room(world, id, scene_path)
 	if err != OK:
-		_set_status("Could not create %s (error %d)" % [scene_path, err])
+		_set_status(IDPWorldSceneTools.last_error if not IDPWorldSceneTools.last_error.is_empty() else "Could not create %s (error %d)" % [scene_path, err])
 		return
 	EditorInterface.get_resource_filesystem().update_file(scene_path)
 	_scan_paths([scene_path])
@@ -1759,7 +1851,7 @@ func _write_gates_to_scene(id: String) -> void:
 		return
 	var n := IDPWorldSceneTools.write_gates(world, id)
 	if n < 0:
-		_set_status("Could not write gates to %s" % p)
+		_set_status(IDPWorldSceneTools.last_error if not IDPWorldSceneTools.last_error.is_empty() else "Could not write gates to %s" % p)
 		return
 	EditorInterface.get_resource_filesystem().update_file(p)
 	_scan_paths([p])
@@ -1934,9 +2026,19 @@ func _show_settings() -> void:
 	auto_gates.tooltip_text = "Adding or connecting gates on the map adds the matching IDPGate nodes to the rooms' scenes (and turns plain gate nodes into IDPGates). Open scenes get them as an undoable edit."
 	auto_gates.toggled.connect(func(on: bool) -> void: world.set_setting("auto_gate_nodes", on))
 	grid.add_child(auto_gates)
+	grid.add_child(IDPUi.label("Geometry checks"))
+	var geo := CheckBox.new()
+	geo.text = "Check rooms with physics"
+	geo.button_pressed = geometry_checks_enabled()
+	geo.tooltip_text = "Load every room's terrain into an off-screen physics space and check that gates are open, platforms have headroom, objects stand on ground and exits up can be climbed (Issues > Geometry). Uses the Player settings below"
+	geo.toggled.connect(func(on: bool) -> void: world.set_setting("geometry_checks", on))
+	grid.add_child(geo)
 	var tiles_edit := IDPUi.field_line(grid, "Room tileset", world.get_setting("room_tileset", ""), "starter mossy cave tileset")
 	tiles_edit.tooltip_text = "TileSet (.tres) the Room view paints new rooms with, e.g. an asset pack's tileset. Rooms that already have tiles keep theirs."
 	IDPUi.commit_line(tiles_edit, func(t: String) -> void: world.set_setting("room_tileset", t.strip_edges()))
+	var fill_edit := IDPUi.field_line(grid, "Notch fill style", world.get_setting("notch_fill_style", ""), "optional .freeform.tres")
+	fill_edit.tooltip_text = "Create scene fills the cells of an irregular room's box outside its shape with non-solid shapes of this style (Room view > Fill outside shape does it for existing rooms)"
+	IDPUi.commit_line(fill_edit, func(t: String) -> void: world.set_setting("notch_fill_style", t.strip_edges()))
 	var warn_edit := IDPUi.field_line(grid, "Save distance warning", str(world.get_setting("save_distance_warn", 4)), "4")
 	IDPUi.commit_line(warn_edit, func(t: String) -> void: world.set_setting("save_distance_warn", maxi(1, t.to_int())))
 	var layers_edit := IDPUi.field_line(grid, "Layer names", ", ".join(world.get_layer_names()), "Main, Dream")
@@ -1947,6 +2049,48 @@ func _show_settings() -> void:
 		world.data.layers = names
 		world._touch()
 		_rebuild_layer_picker())
+	# Presentation (IDPWorldGame applies these to every room).
+	var pres_title := IDPUi.label("Presentation")
+	pres_title.add_theme_color_override("font_color", get_theme_color(&"accent_color", &"Editor"))
+	grid.add_child(pres_title)
+	grid.add_child(IDPUi.hint("Used by IDPWorldGame in the game scene"))
+	grid.add_child(IDPUi.label("2.5D"))
+	var depth := CheckBox.new()
+	depth.text = "Extrude every room (IDPDepth25D)"
+	depth.button_pressed = bool(world.get_setting("depth_25d", false))
+	depth.tooltip_text = "Walls, floors and platforms get the side faces of solid blocks running back to the middle of the view, floors become paved planes, faces are lit around the player and bodies cast soft shadows. Drawing only: nothing collides differently"
+	depth.toggled.connect(func(on: bool) -> void: world.set_setting("depth_25d", on))
+	grid.add_child(depth)
+	var depth_style_edit := IDPUi.field_line(grid, "2.5D style", world.get_setting("depth_style", ""), "optional IDPDepthStyle .tres")
+	IDPUi.commit_line(depth_style_edit, func(t: String) -> void: world.set_setting("depth_style", t.strip_edges()))
+	IDPUi.path_drop(depth_style_edit)
+	var backdrop_edit := IDPUi.field_line(grid, "Backdrop", world.get_setting("backdrop", ""), "optional IDPBackdrop .tres")
+	backdrop_edit.tooltip_text = "Distance drawn behind every room whose area and room set none (Areas tab, Inspect tab)"
+	IDPUi.path_drop(backdrop_edit)
+	IDPUi.commit_line(backdrop_edit, func(t: String) -> void: world.set_setting("backdrop", t.strip_edges()))
+	var share_edit := IDPUi.field_line(grid, "Dark room share", str(world.get_setting("dark_room_share", 0.0)), "0")
+	share_edit.tooltip_text = "0 to 1: this share of the rooms with automatic darkness (no darkness on the room or its area) is dimmed by 0.35 to 0.55. Picked from the room id, so a room is always the same"
+	IDPUi.commit_line(share_edit, func(t: String) -> void: world.set_setting("dark_room_share", clampf(t.to_float(), 0.0, 1.0)))
+	var groups: Variant = world.get_setting("light_groups", null)
+	var groups_edit := IDPUi.field_line(grid, "Light groups", ", ".join(PackedStringArray(groups)) if groups is Array else "", "player, enemy, lantern")
+	groups_edit.tooltip_text = "Nodes in these groups carry a soft light in dark rooms. Empty: IDPWorldGame's light_groups"
+	IDPUi.commit_line(groups_edit, func(t: String) -> void:
+		if t.strip_edges().is_empty():
+			world.data.get("settings", {}).erase("light_groups")
+			world._touch()
+		else:
+			# Group names are kept as typed (groups are case-sensitive).
+			var names: Array = []
+			for n in t.split(",", false):
+				if not n.strip_edges().is_empty():
+					names.append(n.strip_edges())
+			world.set_setting("light_groups", names))
+	# Player (the room checks: openings, headroom, the climb test, reachability).
+	var player_title := IDPUi.label("Player")
+	player_title.add_theme_color_override("font_color", get_theme_color(&"accent_color", &"Editor"))
+	grid.add_child(player_title)
+	grid.add_child(IDPUi.hint("Used by the Geometry checks and the Room view's Check room"))
+	IDPUi.player_fields(grid, world.get_setting("player", {}), func(d: Dictionary) -> void: world.set_setting("player", d))
 	# Camera (IDPRoomCamera reads these when its use_world_settings is on).
 	var cam: Dictionary = world.get_setting("camera", {})
 	var set_cam := func(key: String, value: Variant) -> void:
@@ -1961,6 +2105,7 @@ func _show_settings() -> void:
 		["Camera backend", "backend", IDPRoomCamera.BACKEND_NAMES, "Auto uses PhantomCamera2D when the Phantom Camera addon is enabled, else Camera2D."],
 		["Irregular rooms", "confine", IDPRoomCamera.CONFINE_NAMES, "Room shape: the camera is limited to the zone (largest rectangle of the room's shape) the player is in and glides between zones, so notches of L- or U-shaped rooms stay hidden."],
 		["Room transition", "room_transition", IDPRoomCamera.TRANSITION_NAMES, "Fade to black, cut, slide the view to the new room (player waits), or blend (the camera glides over while the player keeps moving)."],
+		["Camera motion", "transition_style", IDPRoomCamera.MOTION_NAMES, "Glide, or cut and never glide: zone changes, room slides and blends, follow smoothing and the camera director's moves all cut (a camera that eases late makes the parallax late too)."],
 	]
 	for o in options:
 		grid.add_child(IDPUi.label(o[0]))

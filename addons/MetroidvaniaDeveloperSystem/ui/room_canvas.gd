@@ -18,8 +18,15 @@ extends Control
 
 signal painted
 signal status_message(text: String)
+## The selected freeform shape changed (null: none).
+signal selection_changed(shape: IDPFreeform)
 
 enum Tool { TERRAIN, BACKGROUND, DECOR, ERASE, FOREGROUND, FREEFORM, STAMP }
+## Collision role of new (and the selected) freeform shapes: the style's, or an override.
+enum RoleChoice { STYLE, TERRAIN, PLATFORM_ONE_WAY, PLATFORM, DECOR }
+## Freeform tool shapes from IDPShapeGenerators have ids from here on (Column = 100...).
+const GENERATOR_BASE := 100
+const ROLE_CHOICE_NAMES: PackedStringArray = ["Style's role", "Terrain", "Platform, one-way", "Platform, two-way", "Decoration (no collision)"]
 enum EraseMode { TOP, DECOR, TERRAIN, BACKGROUND, ALL, FOREGROUND }
 const ERASE_MODE_NAMES: PackedStringArray = ["Top tile (stamp, foreground, decor, terrain, then background)", "Decor only", "Terrain only", "Background only", "All layers", "Foreground only"]
 const TOOL_COLORS: Array[Color] = [Color(0.5, 1, 0.4), Color(0.3, 0.8, 1), Color(1, 0.8, 0.3), Color(1, 0.35, 0.35), Color(0.75, 0.6, 1), Color(0.4, 1, 0.85), Color(1, 0.6, 0.85)]
@@ -50,12 +57,25 @@ var freeform_mode: int = FreeformMode.DRAW
 var freeform_style: IDPFreeformStyle
 var freeform_group := "Freeform" ## "FreeformBack", "Freeform" or "FreeformFront"
 var freeform_solid := true
-var selected: IDPFreeform
+var freeform_role: int = RoleChoice.STYLE
+var selected: IDPFreeform:
+	set(v):
+		if v != selected:
+			selected = v
+			selection_changed.emit(v)
 ## Stamps tool.
 var stamp_set: IDPStampSet
 var stamp_category := ""
 var stamp_group := "StampsFront"
 var stamp_scale := 1.0
+## Last Check room result: {issues, surfaces} (see IDPRoomCheck), drawn over the room until
+## the next edit.
+var check_result: Dictionary = {}
+## Draw the floors of the last check: green where the player gets, red where not.
+var show_reachability := true
+## Show the room as IDPDepth25D will draw it in the game.
+var depth_preview := false
+var _depth: IDPDepth25D
 
 var _view: Node2D
 var _display_scene: Node
@@ -132,9 +152,13 @@ func open(p_world: IDPWorld, id: String, p_painter: IDPRoomPainter) -> void:
 	_view.add_child(painter.items_root)
 	selected = null
 	_draft.clear()
+	set_depth_preview(depth_preview)
 	fit()
 
 func close() -> void:
+	if is_instance_valid(_depth):
+		_depth.queue_free()
+	_depth = null
 	if painter:
 		for l in painter.layers.values():
 			if l.get_parent() == _view:
@@ -168,9 +192,34 @@ func set_zoom(value: float, anchor := Vector2(-1, -1)) -> void:
 	pan = anchor - local * zoom
 	_apply_view()
 
+## Turns the 2.5D preview on or off: the room's terrain extruded toward the middle of the view,
+## lit like in the game (see IDPDepth25D).
+func set_depth_preview(on: bool) -> void:
+	depth_preview = on
+	if on and not is_instance_valid(_depth) and painter:
+		_depth = IDPDepth25D.new()
+		_depth.name = "DepthPreview"
+		_depth.preview_in_editor = true
+		var srcs: Array[Node] = [painter.items_root]
+		for l in painter.layers.values():
+			srcs.append(l)
+		if is_instance_valid(_display_scene):
+			srcs.append(_display_scene)
+		_depth.sources = srcs
+		_view.add_child(_depth)
+		_update_depth_view()
+	elif not on and is_instance_valid(_depth):
+		_depth.queue_free()
+		_depth = null
+
+func _update_depth_view() -> void:
+	if is_instance_valid(_depth) and zoom > 0.0:
+		_depth.view_override = Rect2(screen_to_local(Vector2.ZERO), size / zoom)
+
 func _apply_view() -> void:
 	_view.position = pan
 	_view.scale = Vector2(zoom, zoom)
+	_update_depth_view()
 	queue_redraw()
 	_overlay.queue_redraw()
 
@@ -180,9 +229,27 @@ func screen_to_local(p: Vector2) -> Vector2:
 func local_to_screen(p: Vector2) -> Vector2:
 	return pan + p * zoom
 
+## Shows the Room view's changes to the scene's other nodes (hidden, removed, moved) on the
+## displayed copy of the scene, and undoes the ones undone.
+func refresh_scene_edits() -> void:
+	if not painter or not is_instance_valid(_display_scene):
+		return
+	var originals := painter.scene_originals()
+	for p in originals:
+		var n := _display_scene.get_node_or_null(NodePath(p))
+		if not n:
+			continue
+		var o: Dictionary = originals[p]
+		var e: Dictionary = painter.scene_edits.get(p, {})
+		if n is CanvasItem:
+			n.visible = o.visible and not e.get("hidden", false) and not e.get("removed", false)
+		if n is Node2D:
+			n.position = e.get("position", o.position)
+
 func _draw_overlay() -> void:
 	if not painter or not world or not world.has_room(room_id):
 		return
+	refresh_scene_edits()
 	var ci := _overlay
 	var rects := world.get_local_rects(room_id)
 	# Shade what lies outside the room's shape on the map.
@@ -212,13 +279,22 @@ func _draw_overlay() -> void:
 		ci.draw_rect(Rect2(p - Vector2(6, 6), Vector2(12, 12)), Color(1, 0.9, 0.3))
 		ci.draw_string_outline(font, p + Vector2(9, -8), g, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 3, Color.BLACK)
 		ci.draw_string(font, p + Vector2(9, -8), g, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 0.9, 0.3))
+	_draw_check(ci, font)
 	# Brush / shape preview.
 	var color: Color = TOOL_COLORS[tool]
 	if tool == Tool.FREEFORM:
 		_draw_freeform_overlay(ci, color)
 	if tool == Tool.STAMP and get_rect().has_point(_mouse):
 		ci.draw_arc(_mouse, 48.0 * stamp_scale * zoom, 0, TAU, 32, color, 1.5)
-	if _shaping:
+	if _shaping and shape >= GENERATOR_BASE:
+		var d := _generated(_shape_seed)
+		var pts := PackedVector2Array()
+		for q in IDPFreeform.outline_of(d.points, d.smooth):
+			pts.append(local_to_screen(q))
+		if pts.size() >= 2:
+			pts.append(pts[0])
+			ci.draw_polyline(pts, color, 2.0, true)
+	elif _shaping:
 		_draw_cells(ci, shape_cells(), color)
 		var a := painter.cell_rect("Terrain", Vector2i(mini(_shape_from.x, _shape_to.x), mini(_shape_from.y, _shape_to.y)))
 		var bb := painter.cell_rect("Terrain", Vector2i(maxi(_shape_from.x, _shape_to.x), maxi(_shape_from.y, _shape_to.y)))
@@ -237,6 +313,28 @@ func _draw_overlay() -> void:
 	var title := "%s  (actual view)%s" % [room_id, "  *unsaved" if painter.dirty else ""]
 	ci.draw_rect(Rect2(Vector2(6, 6), font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 14) + Vector2(12, 8)), Color(0, 0, 0, 0.6))
 	ci.draw_string(font, Vector2(12, 23), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+
+## The last Check room: reachable (green) and unreachable (red) floors, and issue markers.
+func _draw_check(ci: CanvasItem, font: Font) -> void:
+	if check_result.is_empty():
+		return
+	if show_reachability:
+		for s in check_result.get("surfaces", []):
+			var pts := PackedVector2Array()
+			for q in s.points:
+				pts.append(local_to_screen(q))
+			var c := Color(0.35, 1.0, 0.45, 0.9) if s.reachable else Color(1.0, 0.3, 0.3, 0.9)
+			if pts.size() >= 2:
+				ci.draw_polyline(pts, c, 4.0)
+			elif pts.size() == 1:
+				ci.draw_circle(pts[0], 3.0, c)
+	for i in check_result.get("issues", []):
+		var p := local_to_screen(i.pos)
+		ci.draw_circle(p, 9.0, Color(1, 0.25, 0.2, 0.85))
+		ci.draw_arc(p, 12.0, 0, TAU, 24, Color.WHITE, 1.5)
+		var label: String = IDPRoomCheck.KINDS.get(i.kind, i.kind)
+		ci.draw_string_outline(font, p + Vector2(15, 5), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 3, Color.BLACK)
+		ci.draw_string(font, p + Vector2(15, 5), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 0.7, 0.6))
 
 ## Darkens [param outer] except the room rectangles (row by row over the rect edges).
 func _shade_outside(ci: CanvasItem, rects: Array[Rect2], outer: Rect2, color: Color) -> void:
@@ -264,6 +362,15 @@ func _shade_outside(ci: CanvasItem, rects: Array[Rect2], outer: Rect2, color: Co
 			ci.draw_rect(Rect2(local_to_screen(Vector2(x, y0)), Vector2(outer.end.x - x, y1 - y0) * zoom), color)
 
 func _draw_freeform_overlay(ci: CanvasItem, color: Color) -> void:
+	if freeform_mode == FreeformMode.EDIT:
+		# One-way shapes: their tops (where bodies land) dashed.
+		for f in IDPFreeform.shapes_in(painter.items_root):
+			if not f.is_collider() or not f.is_one_way() or f.points.size() < 3:
+				continue
+			var outline := f.get_outline()
+			for run in IDPFreeform.edge_runs(outline, IDPFreeform.outward_normals(outline), Vector2.UP, 60.0):
+				for i in range(1, run.size()):
+					ci.draw_dashed_line(local_to_screen(run[i - 1] + f.position) + Vector2(0, -3), local_to_screen(run[i] + f.position) + Vector2(0, -3), Color(0.45, 0.9, 1.0), 2.0, 7.0)
 	if _draft.size() > 0:
 		var pts := PackedVector2Array()
 		for q in _draft:
@@ -324,7 +431,28 @@ func _draw_cells(ci: CanvasItem, cells: Array, color: Color) -> void:
 
 ## Cells of the shape being dragged.
 func shape_cells() -> Array[Vector2i]:
+	if shape >= GENERATOR_BASE:
+		var none: Array[Vector2i] = []
+		return none
 	return IDPTerrainShapes.cells(shape, _shape_from, _shape_to, curve, roughness, mirror, _shape_seed, curve_count)
+
+## Name of a Shape list entry (brushes, shapes and scenery generators).
+static func shape_name(id: int) -> String:
+	if id >= GENERATOR_BASE:
+		return IDPShapeGenerators.NAMES[id - GENERATOR_BASE]
+	return IDPTerrainShapes.SHAPE_NAMES[id]
+
+## The box being dragged, in scene space (whole cells).
+func _shape_box() -> Rect2:
+	var a := painter.cell_rect("Terrain", Vector2i(mini(_shape_from.x, _shape_to.x), mini(_shape_from.y, _shape_to.y)))
+	var b := painter.cell_rect("Terrain", Vector2i(maxi(_shape_from.x, _shape_to.x), maxi(_shape_from.y, _shape_to.y)))
+	return Rect2(a.position, b.end - a.position)
+
+## The generator's outline in the dragged box: {points, smooth}.
+func _generated(seed_value: int) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	return IDPShapeGenerators.make(shape - GENERATOR_BASE, _shape_box(), rng)
 
 ## Paints a shape spanning cells [param a] to [param b] with the current tool (also used
 ## by tests).
@@ -333,7 +461,14 @@ func paint_shape(a: Vector2i, b: Vector2i, shift := false) -> void:
 	_shape_to = b
 	_stroke_erased.clear()
 	painter.checkpoint()
-	_apply(shape_cells(), shift)
+	if shape >= GENERATOR_BASE and tool == Tool.FREEFORM:
+		var d := _generated(_shape_seed)
+		var f := add_freeform(d.points)
+		if f:
+			f.smooth = d.smooth
+			f.name = shape_name(shape).get_slice(" ", 0) + str(f.get_index() + 1)
+	else:
+		_apply(shape_cells(), shift)
 	_shape_seed += 1
 
 func _paint_line(a: Vector2i, b: Vector2i, shift: bool) -> void:
@@ -408,7 +543,9 @@ func add_freeform(points: PackedVector2Array) -> IDPFreeform:
 	if points.size() < 3:
 		return null
 	var st := freeform_style if freeform_style else IDPFreeform._default_style()
-	selected = painter.add_freeform(points, st, freeform_group, freeform_solid)
+	var f := painter.add_freeform(points, st, freeform_group, freeform_solid)
+	apply_role_choice(f, freeform_role)
+	selected = f
 	painted.emit()
 	status_message.emit("Freeform shape added (%d points). Edit mode drags its points; Delete removes it." % points.size())
 	return selected
@@ -568,6 +705,31 @@ func _freeform_motion(mm: InputEventMouseMotion) -> void:
 		_drag_move = p
 		painter.dirty = true
 
+## Gives [param f] the collision role picked in the Role list (see [enum RoleChoice]).
+static func apply_role_choice(f: IDPFreeform, choice: int) -> void:
+	match choice:
+		RoleChoice.TERRAIN:
+			f.set_collision_override(IDPFreeformStyle.Role.TERRAIN, false)
+		RoleChoice.PLATFORM_ONE_WAY:
+			f.set_collision_override(IDPFreeformStyle.Role.PLATFORM, true)
+		RoleChoice.PLATFORM:
+			f.set_collision_override(IDPFreeformStyle.Role.PLATFORM, false)
+		RoleChoice.DECOR:
+			f.set_collision_override(IDPFreeformStyle.Role.DECOR, false)
+		_:
+			f.override_collision = false
+
+## The Role list entry matching [param f]'s settings.
+static func role_choice_of(f: IDPFreeform) -> int:
+	if not f.override_collision:
+		return RoleChoice.STYLE
+	match f.role:
+		IDPFreeformStyle.Role.PLATFORM:
+			return RoleChoice.PLATFORM_ONE_WAY if f.one_way else RoleChoice.PLATFORM
+		IDPFreeformStyle.Role.DECOR:
+			return RoleChoice.DECOR
+	return RoleChoice.TERRAIN
+
 func delete_selected() -> void:
 	if is_instance_valid(selected):
 		painter.checkpoint()
@@ -653,7 +815,7 @@ func _gui_input(event: InputEvent) -> void:
 				_shaping = false
 				_shape_to = cell
 				paint_shape(_shape_from, _shape_to, mb.shift_pressed)
-				status_message.emit("%s shape painted (%d x %d tiles). Ctrl+Z undoes it." % [IDPTerrainShapes.SHAPE_NAMES[shape], absi(_shape_to.x - _shape_from.x) + 1, absi(_shape_to.y - _shape_from.y) + 1])
+				status_message.emit("%s shape painted (%d x %d tiles). Ctrl+Z undoes it." % [shape_name(shape), absi(_shape_to.x - _shape_from.x) + 1, absi(_shape_to.y - _shape_from.y) + 1])
 			elif _painting:
 				_painting = false
 				status_message.emit("Painted %s. Save writes it into the scene; the map silhouette updates after saving." % room_id)
@@ -712,3 +874,4 @@ func _gui_input(event: InputEvent) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED and _overlay:
 		_overlay.queue_redraw()
+		_update_depth_view()

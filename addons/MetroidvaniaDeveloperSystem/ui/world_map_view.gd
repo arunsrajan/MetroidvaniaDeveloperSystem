@@ -29,6 +29,9 @@ extends Control
 		queue_redraw()
 @export var show_area_names := true
 @export var show_room_names := false
+## Draw the current area's objective under the map ([member objective], set by
+## IDPWorldGame).
+@export var show_objective := true
 @export var background := Color(0.08, 0.07, 0.07, 0.92)
 @export var padding := 24.0
 
@@ -37,6 +40,15 @@ var visited_rooms: Dictionary = {}
 var mapped_areas: Dictionary = {}
 var current_room := ""
 var player_local_pos := Vector2.INF
+## The current area's objective and whether it is done.
+var objective := "":
+	set(v):
+		objective = v
+		queue_redraw()
+var objective_done := false:
+	set(v):
+		objective_done = v
+		queue_redraw()
 
 func mark_visited(room_id: String) -> void:
 	visited_rooms[room_id] = true
@@ -71,6 +83,10 @@ func is_room_revealed(id: String) -> bool:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), background)
+	if show_objective and not objective.is_empty():
+		var f := get_theme_default_font()
+		var line := ("Done: " if objective_done else "Objective: ") + objective
+		draw_string(f, Vector2(padding * 0.5, size.y - padding * 0.35), line, HORIZONTAL_ALIGNMENT_LEFT, size.x - padding, 12, Color(0.65, 1.0, 0.6) if objective_done else Color(0.95, 0.9, 0.75))
 	if not world:
 		return
 	var shown: Array[String] = []

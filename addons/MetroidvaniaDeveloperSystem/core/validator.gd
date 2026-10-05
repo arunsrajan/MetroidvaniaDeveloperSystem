@@ -11,6 +11,7 @@ const CATEGORY_LAYOUT := "Room layout"
 const CATEGORY_PROGRESSION := "Progression"
 const CATEGORY_DESIGN := "Design"
 const CATEGORY_NOTES := "Pins & notes"
+const CATEGORY_GEOMETRY := "Geometry"
 
 ## Returns an Array of {severity, category, message, room_id, cell: Vector3i}.
 static func run(model: IDPMapModel, ann: IDPAnnotations, analysis: IDPAnalysis, scene_db: Dictionary, scanned_scene_paths: Array = []) -> Array:
@@ -66,6 +67,18 @@ static func run(model: IDPMapModel, ann: IDPAnnotations, analysis: IDPAnalysis, 
 		for c in room.cells:
 			if not occupied.has(Vector2i(c.x, c.y) - room.min_cell):
 				_add(issues, Severity.INFO, CATEGORY_LAYOUT, "%s: assigned cell %s has no terrain yet" % [name, _fmt(c)], room.id, c)
+	for room: IDPMapModel.Room in model.rooms.values():
+		var meta: Dictionary = scene_db.get(room.scene_path, {})
+		for t in meta.get("twisted", []):
+			var cell: Vector2i = room.min_cell + Vector2i(t.get("cell", Vector2i.ZERO))
+			add_twisted_issue(issues, analysis.get_room_name(room.id), t, room.id, Vector3i(cell.x, cell.y, room.layer))
+		for o in meta.get("overlaps", []):
+			var cell: Vector2i = room.min_cell + Vector2i(o.get("cell", Vector2i.ZERO))
+			add_overlap_issue(issues, analysis.get_room_name(room.id), o, room.id, Vector3i(cell.x, cell.y, room.layer))
+		# Physics checks (IDPRoomCheck), run in the background by the panel.
+		for g in meta.get("geometry", []):
+			var cell: Vector2i = room.min_cell + Vector2i(g.get("cell", Vector2i.ZERO))
+			_add(issues, Severity.WARNING, CATEGORY_GEOMETRY, g.message, room.id, Vector3i(cell.x, cell.y, room.layer))
 	for path in scanned_scene_paths:
 		if not placed_paths.has(path) and scene_db.has(path):
 			_add(issues, Severity.INFO, CATEGORY_LAYOUT, "%s has a RoomInstance but is not placed on this map" % path.get_file())
@@ -97,6 +110,11 @@ static func run_common(issues: Array, ann: IDPAnnotations, analysis: IDPAnalysis
 		if not ability in analysis.all_required:
 			_add(issues, Severity.INFO, CATEGORY_PROGRESSION, "'%s' is granted but no door requires it (no backtracking payoff)" % ability, analysis.get_ability_sources(ability)[0])
 
+	for o in analysis.get_objectives():
+		if not str(o.problem).is_empty():
+			var where: String = o.rooms[0] if not o.rooms.is_empty() else ""
+			_add(issues, Severity.ERROR, CATEGORY_PROGRESSION, "The objective of %s (\"%s\") can never complete: %s" % [o.area, o.text if not str(o.text).is_empty() else o.condition, o.problem], where)
+
 	# --- Design heuristics -------------------------------------------------------
 	var warn_distance: int = int(ann.get_setting("save_distance_warn", 4))
 	var any_save := analysis.room_info.values().any(func(i: Dictionary) -> bool: return i.is_save)
@@ -125,6 +143,16 @@ static func run_common(issues: Array, ann: IDPAnnotations, analysis: IDPAnalysis
 		var notes: String = ann.get_room_value(id, "notes", "")
 		if notes.to_lower().contains("todo"):
 			_add(issues, Severity.INFO, CATEGORY_NOTES, "%s: %s" % [analysis.get_room_name(id), notes.get_slice("\n", 0)], id)
+
+## A scanned outline that crosses itself ({path, kind, position} from the scanner).
+static func add_twisted_issue(issues: Array, room_name: String, t: Dictionary, room_id: String, cell := Vector3i.MAX, pos := Vector2.INF, layer := 0) -> void:
+	var what := "freeform shape %s" % t.path if t.get("kind", "") == "freeform" else "collision polygon %s" % t.path
+	var fix := "select it in the Room view and press Repair" if t.get("kind", "") == "freeform" else "move its points apart in the scene"
+	_add(issues, Severity.ERROR, CATEGORY_GEOMETRY, "%s: %s crosses itself (no fill, no collision); %s" % [room_name, what, fix], room_id, cell, pos, layer)
+
+## Two objects that stand in or behind each other ({a, b, position} from the scanner).
+static func add_overlap_issue(issues: Array, room_name: String, o: Dictionary, room_id: String, cell := Vector3i.MAX, pos := Vector2.INF, layer := 0) -> void:
+	_add(issues, Severity.INFO, CATEGORY_GEOMETRY, "%s: objects overlap: %s and %s (Room view > Declutter separates them)" % [room_name, o.a, o.b], room_id, cell, pos, layer)
 
 static func sort_issues(issues: Array) -> Array:
 	issues.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:

@@ -71,12 +71,17 @@ static func import_gates(world: IDPWorld, id: String, meta: Dictionary) -> int:
 	return count
 
 ## Creates a new scene for a room drawn on the map: a Node2D (or the world's
-## "scene_template") with a MapBounds guide per rectangle and an IDPGate per map gate.
+## "scene_template") with a MapBounds guide per rectangle and an IDPGate per map gate. With
+## the world setting "notch_fill_style" (a .freeform.tres), an irregular room's notches are
+## filled with that style (see [IDPNotchFill]).
 static func create_scene_for_room(world: IDPWorld, id: String, scene_path: String) -> Error:
+	last_error = ""
 	var root: Node
+	var template_scene: PackedScene = null
 	var template: String = world.get_setting("scene_template", "")
 	if not template.is_empty() and ResourceLoader.exists(template):
-		root = (load(template) as PackedScene).instantiate(PackedScene.GEN_EDIT_STATE_MAIN_INHERITED)
+		template_scene = load(template) as PackedScene
+		root = template_scene.instantiate(PackedScene.GEN_EDIT_STATE_MAIN_INHERITED)
 	else:
 		root = Node2D.new()
 		var terrain := TileMapLayer.new()
@@ -102,13 +107,15 @@ static func create_scene_for_room(world: IDPWorld, id: String, scene_path: Strin
 		bounds.add_child(guide)
 		guide.owner = root
 	apply_gate_nodes(world, id, root)
-	var packed := PackedScene.new()
-	var err := packed.pack(root)
-	root.free()
-	if err != OK:
-		return err
+	# Irregular rooms: the notches of their box drawn as deep ground (Fill outside shape).
+	var fill_path := str(world.get_setting("notch_fill_style", ""))
+	if not fill_path.is_empty() and ResourceLoader.exists(fill_path):
+		var fill_style := load(fill_path) as IDPFreeformStyle
+		if fill_style:
+			IDPNotchFill.add_to_scene(root, rects, fill_style)
 	DirAccess.make_dir_recursive_absolute(scene_path.get_base_dir())
-	err = ResourceSaver.save(packed, scene_path)
+	var err := repack_safely(root, template_scene, scene_path)
+	root.free()
 	if err == OK:
 		world.set_room_scene(id, scene_path)
 	return err
@@ -117,6 +124,7 @@ static func create_scene_for_room(world: IDPWorld, id: String, scene_path: Strin
 ## into IDPGates, and moves existing ones to their map position. Never deletes nodes.
 ## Returns the number of gates in the scene that match the map, or -1 on error.
 static func write_gates(world: IDPWorld, id: String) -> int:
+	last_error = ""
 	var path := world.get_scene_path(id)
 	if path.is_empty():
 		return -1
@@ -131,26 +139,23 @@ static func write_gates(world: IDPWorld, id: String) -> int:
 	for g in world.get_gates(id):
 		if existing.has(g):
 			count += 1
-	packed.pack(root)
+	var err := repack_safely(root, packed, path)
 	root.free()
-	if save_keeping_uid(packed, path) != OK:
-		return -1
-	return count
+	return count if err == OK else -1
 
 ## Adds the IDPGate nodes the room's saved scene lacks (and converts plain gate nodes),
 ## without moving anything already there. Saves only when something changed. Returns the
 ## gate names added or converted.
 static func ensure_gate_nodes(world: IDPWorld, id: String) -> PackedStringArray:
+	last_error = ""
 	var path := world.get_scene_path(id)
 	var packed: PackedScene = load(path) as PackedScene if not path.is_empty() and ResourceLoader.exists(path) else null
 	if not packed:
 		return PackedStringArray()
 	var root := packed.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
 	var changed := apply_gate_nodes(world, id, root, false)
-	if not changed.is_empty():
-		packed.pack(root)
-		if save_keeping_uid(packed, path) != OK:
-			changed = PackedStringArray()
+	if not changed.is_empty() and repack_safely(root, packed, path) != OK:
+		changed = PackedStringArray()
 	root.free()
 	return changed
 
@@ -244,18 +249,105 @@ static func apply_gate_nodes(world: IDPWorld, id: String, root: Node, move_exist
 				node.position = gate_position(world, id, gate_name, node.get_parent(), root)
 	return done
 
+## Why the last [method repack_safely] failed, for the panel's status line ("" after a
+## success).
+static var last_error := ""
+
+## Saves [param root], an instance of [param packed] (made with
+## [code]PackedScene.GEN_EDIT_STATE_INSTANCE[/code]) that was edited, back to [param path]
+## without losing anything silently:
+## - properties the scene sets on nodes inside an instanced scene are kept (packing drops
+##   them unless the instance is marked as having editable children, so it is marked);
+## - a node whose script did not load (a compile error, or an autoload it needs missing)
+##   would be saved with [code]script = null[/code]: the scene is not saved, and
+##   [member last_error] names the node;
+## - the UID stays the same.
+## Every place MDS writes a room scene goes through here.
+static func repack_safely(root: Node, packed: PackedScene, path: String) -> Error:
+	last_error = ""
+	if packed:
+		keep_child_overrides(root, packed)
+		var lost := lost_scripts(root, packed)
+		if not lost.is_empty():
+			last_error = "%s was not saved: %s lost %s script (it failed to load or compile, for example because an autoload it uses is missing). Fix the script, then reopen the scene." % [path.get_file(), ", ".join(lost), "its" if lost.size() == 1 else "their"]
+			push_error("Metroidvania Developer System: " + last_error)
+			return ERR_SCRIPT_FAILED
+	var out := PackedScene.new()
+	var err := out.pack(root)
+	if err == OK:
+		err = save_keeping_uid(out, path)
+	if err != OK:
+		last_error = "Could not save %s (error %d)." % [path.get_file(), err]
+	return err
+
+## Marks every instanced scene that [param packed] sets properties inside as having
+## editable children, so packing [param root] again keeps those properties.
+static func keep_child_overrides(root: Node, packed: PackedScene) -> void:
+	var state := packed.get_state()
+	for i in state.get_node_count():
+		# A node with no type and no instance of its own is a node of an instanced scene
+		# that this scene overrides.
+		if not state.get_node_type(i).is_empty() or state.get_node_instance(i) != null or state.get_node_path(i) == NodePath("."):
+			continue
+		var n := root.get_node_or_null(state.get_node_path(i, true))
+		while n and n != root and n.scene_file_path.is_empty():
+			n = n.get_parent()
+		if n and n != root and not root.is_editable_instance(n):
+			root.set_editable_instance(n, true)
+
+## Nodes of [param root] whose scene ([param packed], or a scene it instances) gives them a
+## script they no longer have: the script failed to load. Paths relative to [param root].
+static func lost_scripts(root: Node, packed: PackedScene) -> PackedStringArray:
+	var expected: Dictionary = {}
+	_scripted_paths(packed.get_state(), "", expected, 0)
+	var out: PackedStringArray = []
+	for p: String in expected:
+		var n := root.get_node_or_null(NodePath(p if not p.is_empty() else "."))
+		if n and n.get_script() == null:
+			out.append(String(n.name) if n == root else p)
+	return out
+
+static func _scripted_paths(state: SceneState, prefix: String, out: Dictionary, depth: int) -> void:
+	if depth > 8:
+		return
+	for i in state.get_node_count():
+		var p := String(state.get_node_path(i)).trim_prefix("./")
+		var full := prefix if p == "." else (p if prefix.is_empty() else prefix + "/" + p)
+		for j in state.get_node_property_count(i):
+			if state.get_node_property_name(i, j) == &"script":
+				out[full] = true
+		var inst := state.get_node_instance(i)
+		if inst:
+			_scripted_paths(inst.get_state(), full, out, depth + 1)
+
 ## Re-saves an existing scene without changing its UID. Maps (MetSys and worlds) point at
 ## rooms by UID, and some Godot versions drop it when a scene is re-saved from a script.
 static func save_keeping_uid(packed: PackedScene, path: String) -> Error:
-	var uid := ResourceLoader.get_resource_uid(path) if ResourceLoader.exists(path) else ResourceUID.INVALID_ID
+	var uid := file_uid(path)
 	var err := ResourceSaver.save(packed, path)
 	if err == OK and uid != ResourceUID.INVALID_ID:
 		err = ResourceSaver.set_uid(path, uid)
 	return err
 
+static var _uid_re := RegEx.create_from_string("uid=\"(uid://[^\"]+)\"")
+
+## The UID of the resource file at [param path]. A text file's header is read first: outside
+## the editor (tools, CI) Godot's UID cache can be missing files saved since the project was
+## imported, or hold the UID a file had before.
+static func file_uid(path: String) -> int:
+	if not FileAccess.file_exists(path):
+		return ResourceUID.INVALID_ID
+	if path.ends_with(".tscn") or path.ends_with(".tres"):
+		var f := FileAccess.open(path, FileAccess.READ)
+		var m := _uid_re.search(f.get_line()) if f else null
+		if m and ResourceUID.text_to_id(m.get_string(1)) != ResourceUID.INVALID_ID:
+			return ResourceUID.text_to_id(m.get_string(1))
+	return ResourceLoader.get_resource_uid(path)
+
 ## Creates a ready-to-run game scene for the world: an IDPWorldGame root, a placeholder
-## player (CharacterBody2D in the "player" group) with a following camera, and an in-game
-## map (IDPWorldMapView) in the top-right corner.
+## player (CharacterBody2D in the "player" group) with a following camera, a room camera with a
+## camera director, area music, and a UI with an in-game map (IDPWorldMapView) in the
+## top-right corner, area titles and objective banners.
 static func create_game_scene(world: IDPWorld, scene_path: String) -> Error:
 	var game := IDPWorldGame.new()
 	game.name = world.get_world_name().to_pascal_case() + "Game" if not world.get_world_name().is_empty() else "WorldGame"
@@ -286,6 +378,14 @@ static func create_game_scene(world: IDPWorld, scene_path: String) -> Error:
 	room_camera.camera = camera
 	room_camera.target = player
 	game.room_camera = room_camera
+	var director := IDPCameraDirector.new()
+	director.name = "Director"
+	room_camera.add_child(director)
+	director.owner = game
+	var music := IDPMusic.new()
+	music.name = "Music"
+	game.add_child(music)
+	music.owner = game
 	var ui := CanvasLayer.new()
 	ui.name = "UI"
 	game.add_child(ui)
@@ -300,6 +400,14 @@ static func create_game_scene(world: IDPWorld, scene_path: String) -> Error:
 	map.offset_right = -12
 	ui.add_child(map)
 	map.owner = game
+	var title := IDPAreaTitle.new()
+	title.name = "AreaTitle"
+	ui.add_child(title)
+	title.owner = game
+	var banner := IDPObjectiveBanner.new()
+	banner.name = "ObjectiveBanner"
+	ui.add_child(banner)
+	banner.owner = game
 	game.player = player
 	game.camera = camera
 	game.map_view = map

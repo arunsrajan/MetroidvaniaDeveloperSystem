@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="IDPFreeformStyle" format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_freeform_style.gd" id="1_style"]
+[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/fill_limestone.png" id="2_fill"]
+[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/edge_grass.png" id="3_top"]
+[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/edge_roots.png" id="4_bottom"]
+[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/sunken_gardens.stamps.tres" id="5_stamps"]
+
+[resource]
+script = ExtResource("1_style")
+display_name = "Garden ledge"
+fill_texture = ExtResource("2_fill")
+fill_color = Color(0.52, 0.47, 0.33, 1)
+outline_color = Color(0.1, 0.085, 0.05, 1)
+outline_width = 3.0
+top_texture = ExtResource("3_top")
+top_color = Color(0.36, 0.55, 0.2, 1)
+top_width = 52.0
+top_inset = 2.0
+top_angle = 50.0
+bottom_texture = ExtResource("4_bottom")
+bottom_color = Color(0.1, 0.085, 0.05, 1)
+bottom_width = 44.0
+bottom_inset = -5.5
+stamp_set = ExtResource("5_stamps")
+bottom_clumps = "ivy"
+clump_spacing = 90.0
+clump_scale = Vector2(0.35, 0.65)
+role = 1
+one_way = true

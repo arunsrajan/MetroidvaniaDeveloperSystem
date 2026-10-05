@@ -180,9 +180,13 @@ func rename_area(old_name: String, new_name: String) -> void:
 			data.rooms[id].area = new_name
 	_touch()
 
+## Sets an area's [param key]; an empty string or array (or null) removes it.
 func set_area_value(area: String, key: String, value: Variant) -> void:
 	if data.areas.has(area):
-		data.areas[area][key] = value
+		if value == null or (value is String and value.is_empty()) or (value is Array and value.is_empty()):
+			data.areas[area].erase(key)
+		else:
+			data.areas[area][key] = value
 		_touch()
 
 func get_area_color(area: String) -> Color:
@@ -894,6 +898,34 @@ func get_transition(room_id: String, gate_name: String) -> Dictionary:
 		"entry_pos": get_gate_local_pos(to, to_gate) if has_gate(to, to_gate) else Vector2.ZERO,
 		"side": get_gate_side(to, to_gate) if has_gate(to, to_gate) else "",
 	}
+
+## Runtime lookup of a map link used as a fast-travel pair (an [IDPGate] with
+## [member IDPGate.link] on): the link of [param room_id] whose end here is
+## [param gate_name] (a link with no gate named at this end matches any gate). Returns
+## {room, gate, scene_path, entry_pos, side, link: true, requires, note} or {}.
+func get_link_transition(room_id: String, gate_name: String) -> Dictionary:
+	for link in get_links():
+		for ends in [["a", "b"], ["b", "a"]]:
+			if link.get(ends[0], "") != room_id:
+				continue
+			var here := str(link.get(ends[0] + "_gate", ""))
+			if not here.is_empty() and here != gate_name:
+				continue
+			var to: String = link.get(ends[1], "")
+			if not has_room(to):
+				continue
+			var there := str(link.get(ends[1] + "_gate", ""))
+			return {
+				"room": to,
+				"gate": there,
+				"scene_path": get_scene_path(to),
+				"entry_pos": get_gate_local_pos(to, there) if has_gate(to, there) else Vector2.ZERO,
+				"side": get_gate_side(to, there) if has_gate(to, there) else "door",
+				"link": true,
+				"requires": link.get("requires", []),
+				"note": link.get("note", ""),
+			}
+	return {}
 
 # --- IDPAnnotations overrides (world stores door data on gates) -----------------------------
 

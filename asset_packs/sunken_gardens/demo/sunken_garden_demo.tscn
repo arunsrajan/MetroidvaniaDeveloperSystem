@@ -1,0 +1,836 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_backdrop_view.gd" id="1_xcp45"]
+[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/backdrop/garden.backdrop.tres" id="2_uh7jd"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_freeform.gd" id="3_rqsf4"]
+[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/garden_limestone.freeform.tres" id="4_26x4r"]
+[ext_resource type="Script" path="res://asset_packs/sunken_gardens/demo/demo_player.gd" id="4_vvqq8"]
+[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/garden_ledge.freeform.tres" id="5_547uy"]
+[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/sunken_deep.freeform.tres" id="6_dbn6p"]
+[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/sunken_ruin.freeform.tres" id="8_o86ki"]
+[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/clumps.png" id="9_ho7jo"]
+[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/garden_foreground.freeform.tres" id="10_wiw62"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_b38m8"]
+radius = 16.0
+height = 64.0
+
+[node name="SunkenGardenDemo" type="Node2D" unique_id=955925159]
+
+[node name="Distance" type="Node2D" parent="." unique_id=1325285403]
+script = ExtResource("1_xcp45")
+backdrop = ExtResource("2_uh7jd")
+room_size = Vector2(2304, 1296)
+
+[node name="Freeform" type="Node2D" parent="." unique_id=771242699]
+z_index = 1
+
+[node name="Rock" type="Node2D" parent="Freeform" unique_id=733474043]
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(2400, 648, 2338.5, 648, 2277, 664.6273, 2215.5, 662.22595, 2154, 664.76556, 2092.5, 657.0186, 2031, 666.64606, 1969.5, 680.06854, 1908, 694.93024, 1846.5, 668.9322, 1785, 665.84717, 1723.5, 665.79126, 1662, 669.7812, 1600.5, 675.1426, 1539, 675.65344, 1477.5, 663.4977, 1416, 669.74664, 1354.5, 668.2626, 1293, 669.00696, 1231.5, 664.39624, 1170, 648, 1152, 630, 1152, 570, 1170, 552, 1239.5714, 545.2208, 1309.1428, 544.21533, 1378.7144, 552, 1448.2858, 552, 1517.8572, 552, 1587.4286, 552, 1657, 552, 1726.5715, 552, 1796.1428, 543.3351, 1865.7144, 552, 1935.2856, 552, 2004.8572, 545.9316, 2074.4285, 552, 2144, 552, 2187.2, 531.2, 2208, 488, 2191.918, 422.4, 2192.7993, 356.8, 2188.0378, 291.2, 2178, 225.6, 2208, 160, 2187.2, 116.8, 2144, 96, 2082, 112.84126, 2020, 109.68509, 1958, 118.50369, 1896, 116.060104, 1834, 118.24806, 1772, 118.413895, 1710, 126, 1648, 116.12876, 1586, 113.60849, 1524, 117.88117, 1462, 121.28151, 1400, 119.14151, 1338, 104.5224, 1276, 104, 1214, 104, 1152, 116.965614, 1090, 124.46467, 1028, 125.53204, 966, 113.475075, 904, 108.53489, 842, 119.76506, 780, 120.77752, 718, 116.00467, 656, 109.95467, 594, 104.900925, 532, 109.28729, 470, 123.10661, 408, 121.28102, 346, 108.82286, 284, 113.321, 222, 148.34009, 160, 96, 116.8, 116.8, 96, 160, 111.68404, 225.6, 118.8512, 291.2, 121.21962, 356.8, 106.60176, 422.4, 96, 488, 116.8, 531.2, 160, 552, 222.57143, 552, 285.14285, 552, 347.7143, 552, 410.2857, 552, 472.85715, 552, 535.4286, 552, 598, 552, 616, 570, 616, 630, 598, 648, 535.4286, 668.9933, 472.85715, 670.98474, 410.2857, 671.4956, 347.7143, 671.2166, 285.14285, 706.24994, 222.57141, 670.8572, 160, 648, 116.8, 668.8, 96, 712, 112.43848, 782.6667, 119.19856, 853.3334, 116.38291, 924, 114.75666, 994.6667, 110.650696, 1065.3333, 96, 1136, 116.8, 1179.2, 160, 1200, 228.88889, 1200, 297.77777, 1200, 366.6667, 1200, 435.55557, 1185.3303, 504.44446, 1192.165, 573.3334, 1200, 642.2222, 1200, 711.11115, 1200, 780, 1200, 807, 1187, 820, 1160, 820, 1118, 838, 1100, 889.3333, 1100, 940.6667, 1100, 992, 1100, 1035.2, 1079.2, 1056, 1036, 1034.1356, 974.3333, 1031.715, 912.6667, 1027.8386, 851, 1041.2043, 789.3333, 1046.9063, 727.6667, 1056, 666, 1074, 648, 1134, 648, 1152, 666, 1182, 732, 1181.6294, 798, 1170.7617, 864, 1174.8148, 930, 1178.7097, 996, 1161.3059, 1062, 1167.463, 1128, 1180.8444, 1194, 1165.7307, 1260, 1152, 1326, 1152, 1392, 1089.6, 1392, 1027.2, 1392, 964.8, 1392, 902.4, 1392, 840, 1392, 777.6, 1392, 715.2, 1392, 652.8, 1392, 590.4, 1392, 528, 1392, 465.59998, 1392, 403.19995, 1392, 340.80005, 1392, 278.40002, 1392, 216, 1392, 153.59998, 1392, 91.19995, 1392, 28.800049, 1392, -33.599976, 1392, -96, 1392, -96, 1321.1428, -96, 1250.2856, -96, 1179.4286, -96, 1108.5714, -96, 1037.7144, -96, 966.8571, -96, 896, -96, 825.1428, -96, 754.2857, -96, 683.4286, -96, 612.5714, -96, 541.71423, -96, 470.85712, -96, 400, -96, 329.14282, -96, 258.28564, -96, 187.42859, -96, 116.57141, -96, 45.714233, -96, -25.142822, -96, -96, -24.685715, -96, 46.62857, -96, 117.942856, -96, 189.25714, -96, 260.57144, -96, 331.8857, -96, 403.2, -96, 474.51428, -96, 545.8286, -96, 617.1429, -96, 688.45715, -96, 759.7714, -96, 831.08575, -96, 902.4, -96, 973.71436, -96, 1045.0286, -96, 1116.3429, -96, 1187.6572, -96, 1258.9714, -96, 1330.2858, -96, 1401.6001, -96, 1472.9143, -96, 1544.2286, -96, 1615.5428, -96, 1686.8572, -96, 1758.1715, -96, 1829.4857, -96, 1900.8, -96, 1972.1143, -96, 2043.4287, -96, 2114.743, -96, 2186.0571, -96, 2257.3713, -96, 2328.6858, -96, 2400, -96, 2400, -28.363632, 2400, 39.272736, 2400, 106.9091, 2400, 174.54547, 2400, 242.18182, 2400, 309.8182, 2400, 377.45453, 2400, 445.09094, 2400, 512.7273, 2400, 580.36365)
+style = ExtResource("4_26x4r")
+seed_value = 74212
+
+[node name="LedgeHigh" type="Node2D" parent="Freeform" unique_id=879679919]
+position = Vector2(760, 700)
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(-120, 0, -110, 0, -55, 0, 0, 0, 55, 0, 110, 0, 120, 0, 123, 15.2, 81.10598, 32.50479, 29.25749, 42.326183, -39.21639, 36.462215, -78.27671, 34.666157, -123, 15.2)
+style = ExtResource("5_547uy")
+seed_value = 89804
+role = 1
+one_way = true
+
+[node name="LedgeMid" type="Node2D" parent="Freeform" unique_id=1968459685]
+position = Vector2(870, 860)
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(-110, 0, -100, 0, -33.333332, 0, 33.333332, 0, 100, 0, 110, 0, 113, 15.2, 68.87622, 33.920742, 21.179848, 42.575474, -31.013973, 37.51809, -82.515305, 31.5307, -113, 15.2)
+style = ExtResource("5_547uy")
+seed_value = 9673
+role = 1
+one_way = true
+
+[node name="LedgeLow" type="Node2D" parent="Freeform" unique_id=2030063559]
+position = Vector2(640, 1010)
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(-120, 0, -110, 0, -55, 0, 0, 0, 55, 0, 110, 0, 120, 0, 123, 15.2, 70.85434, 32.73027, 30.342693, 39.79511, -47.781525, 38.99573, -79.32127, 30.185717, -123, 15.2)
+style = ExtResource("5_547uy")
+seed_value = 67694
+role = 1
+one_way = true
+
+[node name="OutsideShape" type="Node2D" parent="Freeform" unique_id=1474681156]
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(2400, 1392, 1152, 1392, 1152, 648, 2400, 648)
+style = ExtResource("6_dbn6p")
+solid = false
+smooth = false
+edge_clumps = false
+seed_value = 50597
+override_collision = true
+role = 2
+metadata/idp_fill_outside = "[[0.0,0.0,2304.0,648.0],[0.0,648.0,1152.0,648.0]]"
+
+[node name="Player" type="CharacterBody2D" parent="." unique_id=1537884416 groups=["player"]]
+position = Vector2(300, 1150)
+script = ExtResource("4_vvqq8")
+
+[node name="Body" type="Polygon2D" parent="Player" unique_id=580820438]
+color = Color(0.9098039, 0.8627451, 0.7058824, 1)
+polygon = PackedVector2Array(-14, -32, 14, -32, 16, 30, -16, 30)
+
+[node name="Shape" type="CollisionShape2D" parent="Player" unique_id=1448349735]
+shape = SubResource("CapsuleShape2D_b38m8")
+
+[node name="Camera2D" type="Camera2D" parent="Player" unique_id=1714190507]
+limit_left = 0
+limit_top = 0
+limit_right = 2304
+limit_bottom = 1296
+position_smoothing_enabled = true
+
+[node name="FreeformBack" type="Node2D" parent="." unique_id=721334347]
+z_index = -8
+
+[node name="Arch1" type="Node2D" parent="FreeformBack" unique_id=865387581]
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(226.49084, 592, 226.49084, 460.35114, 232.49084, 460.35114, 234.41536, 435.3549, 240.14354, 410.9478, 249.54037, 387.70526, 262.38437, 366.17508, 278.37274, 346.86475, 297.12866, 330.2295, 318.21, 316.66138, 341.11984, 306.48022, 365.31818, 299.92603, 390.23462, 297.15332, 415.28183, 298.2274, 439.86945, 303.12296, 440.40793, 341.19885, 427.5252, 347.14685, 409.82214, 343.62204, 391.78815, 342.8487, 373.84833, 344.84506, 356.4255, 349.5641, 339.93042, 356.8945, 324.75186, 366.66354, 311.24762, 378.64093, 299.73596, 392.54437, 290.4883, 408.0461, 283.7226, 424.78073, 279.5983, 442.35382, 278.21265, 460.35114, 282.21265, 564, 509.35327, 564, 513.3533, 495.15253, 540.7864, 464.34454, 565.0751, 503.9473, 565.0751, 592)
+style = ExtResource("8_o86ki")
+solid = false
+smooth = false
+seed_value = 78819
+metadata/idp_decor = true
+
+[node name="Column2" type="Node2D" parent="FreeformBack" unique_id=1587299443]
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(1960.498, 578, 1960.498, 534, 1972.498, 522, 1974.498, 378.01202, 1977.498, 234.02402, 1977.498, 222.95, 2014.5681, 206.97795, 2051.6382, 238.23306, 2088.7083, 208.32501, 2091.7083, 378.01202, 2093.7083, 522, 2105.7083, 534, 2105.7083, 578)
+style = ExtResource("8_o86ki")
+solid = false
+smooth = false
+seed_value = 13601
+metadata/idp_decor = true
+
+[node name="Column3" type="Node2D" parent="FreeformBack" unique_id=1060644900]
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(1540.9698, 582, 1540.9698, 538, 1552.9698, 526, 1554.9698, 367, 1557.9698, 208, 1557.9698, 190.57057, 1578.8152, 185.95251, 1599.6606, 207.5436, 1620.5061, 186.5053, 1641.3516, 213.513, 1662.1969, 187.7905, 1665.1969, 367, 1667.1969, 526, 1679.1969, 538, 1679.1969, 582)
+style = ExtResource("8_o86ki")
+solid = false
+smooth = false
+seed_value = 56839
+metadata/idp_decor = true
+
+[node name="Column4" type="Node2D" parent="FreeformBack" unique_id=377191323]
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(112.30553, 1214, 112.30553, 1170, 124.30553, 1158, 126.30553, 1030.2053, 129.30553, 902.41077, 129.30553, 900.17456, 164.88255, 877.9515, 200.45958, 895.65027, 236.0366, 879.1518, 239.0366, 1030.2053, 241.0366, 1158, 253.0366, 1170, 253.0366, 1214)
+style = ExtResource("8_o86ki")
+solid = false
+smooth = false
+seed_value = 34769
+metadata/idp_decor = true
+
+[node name="Garden5" type="Node2D" parent="FreeformBack" unique_id=773848923]
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(417.81735, 1218, 417.81735, 1157.3894, 462.51376, 1110.0566, 507.2102, 1091.2966, 551.9066, 1079.8044, 596.603, 1087.8645, 641.29944, 1128.1603, 685.99585, 1142.5568, 685.99585, 1218)
+style = ExtResource("8_o86ki")
+solid = false
+seed_value = 45003
+metadata/idp_decor = true
+
+[node name="StampsBack" type="Node2D" parent="." unique_id=1116181883]
+z_index = -6
+
+[node name="Stamp1" type="Sprite2D" parent="StampsBack" unique_id=18676255]
+position = Vector2(566.44446, 1038.1066)
+rotation = 0.03454758
+scale = Vector2(0.91096956, 0.91096956)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(768, 128, 128, 128)
+metadata/idp_stamp = 14
+metadata/idp_decor = true
+
+[node name="Stamp2" type="Sprite2D" parent="StampsBack" unique_id=586196356]
+position = Vector2(747.3418, 1029.7256)
+rotation = -3.1364532
+scale = Vector2(0.88121593, -0.88121593)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/idp_stamp = 15
+metadata/idp_decor = true
+
+[node name="Stamp3" type="Sprite2D" parent="StampsBack" unique_id=947532617]
+position = Vector2(279.0463, 111.53278)
+rotation = -0.0044451063
+scale = Vector2(0.6122592, 0.6122592)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/idp_stamp = 15
+metadata/idp_decor = true
+
+[node name="Stamp4" type="Sprite2D" parent="StampsBack" unique_id=181386258]
+position = Vector2(443.71387, 119.90763)
+rotation = 0.034182176
+scale = Vector2(0.7249288, 0.7249288)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(768, 128, 128, 128)
+metadata/idp_stamp = 14
+metadata/idp_decor = true
+
+[node name="Stamp5" type="Sprite2D" parent="StampsBack" unique_id=634967053]
+position = Vector2(605.2126, 101.241585)
+rotation = -3.0929954
+scale = Vector2(0.9338062, -0.9338062)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(0, 256, 128, 128)
+metadata/idp_stamp = 16
+metadata/idp_decor = true
+
+[node name="Stamp6" type="Sprite2D" parent="StampsBack" unique_id=505084519]
+position = Vector2(772.84576, 116.46915)
+rotation = -3.1142573
+scale = Vector2(0.6643195, -0.6643195)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/idp_stamp = 15
+metadata/idp_decor = true
+
+[node name="Stamp7" type="Sprite2D" parent="StampsBack" unique_id=1722996185]
+position = Vector2(944.63654, 106.636)
+rotation = -3.1086857
+scale = Vector2(0.80727375, -0.80727375)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(0, 256, 128, 128)
+metadata/idp_stamp = 16
+metadata/idp_decor = true
+
+[node name="Stamp8" type="Sprite2D" parent="StampsBack" unique_id=1871747098]
+position = Vector2(1034.4719, 121.93767)
+rotation = 0.04465077
+scale = Vector2(0.9213962, 0.9213962)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/idp_stamp = 15
+metadata/idp_decor = true
+
+[node name="Stamp9" type="Sprite2D" parent="StampsBack" unique_id=1915261075]
+position = Vector2(1210.1361, 100.547676)
+rotation = 0.04701523
+scale = Vector2(0.97798634, 0.97798634)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(768, 128, 128, 128)
+metadata/idp_stamp = 14
+metadata/idp_decor = true
+
+[node name="Stamp10" type="Sprite2D" parent="StampsBack" unique_id=1329584826]
+position = Vector2(1329.7964, 99.81087)
+rotation = 3.094754
+scale = Vector2(0.78636694, -0.78636694)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(768, 128, 128, 128)
+metadata/idp_stamp = 14
+metadata/idp_decor = true
+
+[node name="Stamp11" type="Sprite2D" parent="StampsBack" unique_id=814334904]
+position = Vector2(1464.4594, 117.22538)
+rotation = -0.048406865
+scale = Vector2(0.6006684, 0.6006684)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(0, 256, 128, 128)
+metadata/idp_stamp = 16
+metadata/idp_decor = true
+
+[node name="Stamp12" type="Sprite2D" parent="StampsBack" unique_id=1448490040]
+position = Vector2(1604.7545, 109.6533)
+rotation = -0.0061687455
+scale = Vector2(0.9314941, 0.9314941)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/idp_stamp = 15
+metadata/idp_decor = true
+
+[node name="Stamp13" type="Sprite2D" parent="StampsBack" unique_id=1602936700]
+position = Vector2(1798.7203, 113.951065)
+rotation = 0.029121207
+scale = Vector2(0.64822924, 0.64822924)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/idp_stamp = 15
+metadata/idp_decor = true
+
+[node name="Stamp14" type="Sprite2D" parent="StampsBack" unique_id=1999037788]
+position = Vector2(1891.3331, 112.114334)
+rotation = 0.00983673
+scale = Vector2(0.7282803, 0.7282803)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(768, 128, 128, 128)
+metadata/idp_stamp = 14
+metadata/idp_decor = true
+
+[node name="Stamp15" type="Sprite2D" parent="StampsBack" unique_id=470632742]
+position = Vector2(2059.113, 108.56238)
+rotation = -0.007820446
+scale = Vector2(0.9284104, 0.9284104)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/idp_stamp = 15
+metadata/idp_decor = true
+
+[node name="Stamp16" type="Sprite2D" parent="StampsBack" unique_id=1593741092]
+position = Vector2(2191.6138, 117.94526)
+rotation = -3.132481
+scale = Vector2(0.95754105, -0.95754105)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(768, 128, 128, 128)
+metadata/idp_stamp = 14
+metadata/idp_decor = true
+
+[node name="Stamp17" type="Sprite2D" parent="StampsBack" unique_id=2115737638]
+position = Vector2(166.70729, 94.60784)
+rotation = -0.026537664
+scale = Vector2(0.77655697, 0.77655697)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(0, 256, 128, 128)
+metadata/idp_stamp = 16
+metadata/idp_decor = true
+
+[node name="Stamp18" type="Sprite2D" parent="StampsBack" unique_id=91293458]
+position = Vector2(210.58235, 661.0532)
+rotation = 0.0038920306
+scale = Vector2(0.84919566, 0.84919566)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(768, 128, 128, 128)
+metadata/idp_stamp = 14
+metadata/idp_decor = true
+
+[node name="Stamp19" type="Sprite2D" parent="StampsBack" unique_id=466583250]
+position = Vector2(372.59323, 665.1569)
+rotation = 0.008559172
+scale = Vector2(0.6488235, 0.6488235)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(768, 128, 128, 128)
+metadata/idp_stamp = 14
+metadata/idp_decor = true
+
+[node name="Stamp20" type="Sprite2D" parent="StampsBack" unique_id=566784992]
+position = Vector2(465.62064, 667.1096)
+rotation = 0.052902155
+scale = Vector2(0.6187224, 0.6187224)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/idp_stamp = 15
+metadata/idp_decor = true
+
+[node name="Stamp21" type="Sprite2D" parent="StampsBack" unique_id=152618958]
+position = Vector2(1224.6454, 549.74854)
+rotation = -3.1313074
+scale = Vector2(0.5503911, -0.5503911)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(256, 128, 128, 128)
+metadata/idp_stamp = 10
+metadata/idp_decor = true
+
+[node name="Stamp22" type="Sprite2D" parent="StampsBack" unique_id=2055466933]
+position = Vector2(1297.561, 547.81)
+rotation = 0.00226463
+scale = Vector2(0.5599845, 0.5599845)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(256, 128, 128, 128)
+metadata/idp_stamp = 10
+metadata/idp_decor = true
+
+[node name="Stamp23" type="Sprite2D" parent="StampsBack" unique_id=1462733643]
+position = Vector2(1373.4647, 555.5884)
+rotation = -3.138052
+scale = Vector2(0.6398156, -0.6398156)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(0, 128, 128, 128)
+metadata/idp_stamp = 8
+metadata/idp_decor = true
+
+[node name="Stamp24" type="Sprite2D" parent="StampsBack" unique_id=1975166643]
+position = Vector2(1469.4437, 555.9999)
+rotation = -3.119185
+scale = Vector2(0.8439581, -0.8439581)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(512, 0, 128, 128)
+metadata/idp_stamp = 4
+metadata/idp_decor = true
+
+[node name="Stamp25" type="Sprite2D" parent="StampsBack" unique_id=1473407192]
+position = Vector2(1521.1669, 556)
+rotation = 0.005864419
+scale = Vector2(0.6969514, 0.6969514)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(512, 0, 128, 128)
+metadata/idp_stamp = 4
+metadata/idp_decor = true
+
+[node name="Stamp26" type="Sprite2D" parent="StampsBack" unique_id=563542820]
+position = Vector2(1599.9813, 555.99994)
+rotation = 0.010783889
+scale = Vector2(0.7215545, 0.7215545)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(512, 0, 128, 128)
+metadata/idp_stamp = 4
+metadata/idp_decor = true
+
+[node name="Stamp27" type="Sprite2D" parent="StampsBack" unique_id=1292940083]
+position = Vector2(1663.1039, 556.0524)
+rotation = -3.1100397
+scale = Vector2(0.70806116, -0.70806116)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(128, 0, 128, 128)
+metadata/idp_stamp = 1
+metadata/idp_decor = true
+
+[node name="Stamp28" type="Sprite2D" parent="StampsBack" unique_id=1817658478]
+position = Vector2(1730.4342, 555.6375)
+rotation = 3.122858
+scale = Vector2(0.6112484, -0.6112484)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(0, 0, 128, 128)
+metadata/idp_stamp = 0
+metadata/idp_decor = true
+
+[node name="Stamp29" type="Sprite2D" parent="StampsBack" unique_id=2080866053]
+position = Vector2(1795.7964, 547.3492)
+rotation = -3.139461
+scale = Vector2(0.6127038, -0.6127038)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(0, 0, 128, 128)
+metadata/idp_stamp = 0
+metadata/idp_decor = true
+
+[node name="Stamp30" type="Sprite2D" parent="StampsBack" unique_id=741362013]
+position = Vector2(1843.6608, 553.29004)
+rotation = -3.0961351
+scale = Vector2(0.55685, -0.55685)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(640, 0, 128, 128)
+metadata/idp_stamp = 5
+metadata/idp_decor = true
+
+[node name="Stamp31" type="Sprite2D" parent="StampsBack" unique_id=1647961880]
+position = Vector2(1906.5605, 556.8385)
+rotation = 3.1300848
+scale = Vector2(0.56298286, -0.56298286)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(256, 0, 128, 128)
+metadata/idp_stamp = 2
+metadata/idp_decor = true
+
+[node name="Stamp32" type="Sprite2D" parent="StampsBack" unique_id=2057448799]
+position = Vector2(1989.0497, 550.6633)
+rotation = 0.026723871
+scale = Vector2(0.6456062, 0.6456062)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(128, 128, 128, 128)
+metadata/idp_stamp = 9
+metadata/idp_decor = true
+
+[node name="Stamp33" type="Sprite2D" parent="StampsBack" unique_id=247563532]
+position = Vector2(2064.3481, 555.3046)
+rotation = -0.03171377
+scale = Vector2(0.85668087, 0.85668087)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(896, 0, 128, 128)
+metadata/idp_stamp = 7
+metadata/idp_decor = true
+
+[node name="Stamp34" type="Sprite2D" parent="StampsBack" unique_id=1974843681]
+position = Vector2(2168.9966, 547.5341)
+rotation = 3.1080139
+scale = Vector2(0.57748127, -0.57748127)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(128, 128, 128, 128)
+metadata/idp_stamp = 9
+metadata/idp_decor = true
+
+[node name="Stamp35" type="Sprite2D" parent="StampsBack" unique_id=461131592]
+position = Vector2(164.46791, 556.68164)
+rotation = -0.026128253
+scale = Vector2(0.71455836, 0.71455836)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(768, 0, 128, 128)
+metadata/idp_stamp = 6
+metadata/idp_decor = true
+
+[node name="Stamp36" type="Sprite2D" parent="StampsBack" unique_id=292964760]
+position = Vector2(255.27032, 556)
+rotation = -0.015935168
+scale = Vector2(0.8596688, 0.8596688)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(256, 128, 128, 128)
+metadata/idp_stamp = 10
+metadata/idp_decor = true
+
+[node name="Stamp37" type="Sprite2D" parent="StampsBack" unique_id=1491911360]
+position = Vector2(354.60452, 556)
+rotation = 0.007190455
+scale = Vector2(0.5542247, 0.5542247)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(0, 0, 128, 128)
+metadata/idp_stamp = 0
+metadata/idp_decor = true
+
+[node name="Stamp38" type="Sprite2D" parent="StampsBack" unique_id=1285903605]
+position = Vector2(404.93472, 556)
+rotation = -0.012379799
+scale = Vector2(0.6259196, 0.6259196)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(896, 0, 128, 128)
+metadata/idp_stamp = 7
+metadata/idp_decor = true
+
+[node name="Stamp39" type="Sprite2D" parent="StampsBack" unique_id=1603605515]
+position = Vector2(499.08896, 556)
+rotation = 3.1372507
+scale = Vector2(0.70997375, -0.70997375)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(896, 0, 128, 128)
+metadata/idp_stamp = 7
+metadata/idp_decor = true
+
+[node name="Stamp40" type="Sprite2D" parent="StampsBack" unique_id=1424565933]
+position = Vector2(185.53593, 1205.9073)
+rotation = 3.100596
+scale = Vector2(0.8573427, -0.8573427)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(512, 0, 128, 128)
+metadata/idp_stamp = 4
+metadata/idp_decor = true
+
+[node name="Stamp41" type="Sprite2D" parent="StampsBack" unique_id=516481496]
+position = Vector2(508.02615, 1196.5828)
+rotation = -0.03348427
+scale = Vector2(0.8154222, 0.8154222)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(0, 0, 128, 128)
+metadata/idp_stamp = 0
+metadata/idp_decor = true
+
+[node name="Stamp42" type="Sprite2D" parent="StampsBack" unique_id=975030699]
+position = Vector2(556.0786, 1202.5327)
+rotation = -0.036665697
+scale = Vector2(0.59074193, 0.59074193)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(128, 128, 128, 128)
+metadata/idp_stamp = 9
+metadata/idp_decor = true
+
+[node name="Stamp43" type="Sprite2D" parent="StampsBack" unique_id=1364304397]
+position = Vector2(647.2905, 1204)
+rotation = 0.0044978745
+scale = Vector2(0.606148, 0.606148)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(256, 128, 128, 128)
+metadata/idp_stamp = 10
+metadata/idp_decor = true
+
+[node name="Stamp44" type="Sprite2D" parent="StampsBack" unique_id=2139338922]
+position = Vector2(711.13434, 1204.0005)
+rotation = 3.117992
+scale = Vector2(0.7626652, -0.7626652)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(896, 0, 128, 128)
+metadata/idp_stamp = 7
+metadata/idp_decor = true
+
+[node name="Stamp45" type="Sprite2D" parent="StampsBack" unique_id=1075144395]
+position = Vector2(806.65314, 1191.2375)
+rotation = 0.025582384
+scale = Vector2(0.70571584, 0.70571584)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(512, 0, 128, 128)
+metadata/idp_stamp = 4
+metadata/idp_decor = true
+
+[node name="Stamp46" type="Sprite2D" parent="StampsBack" unique_id=717818933]
+position = Vector2(889.10693, 1103.9899)
+rotation = 3.1318946
+scale = Vector2(0.75969535, -0.75969535)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(0, 128, 128, 128)
+metadata/idp_stamp = 8
+metadata/idp_decor = true
+
+[node name="Stamp47" type="Sprite2D" parent="StampsBack" unique_id=977106859]
+position = Vector2(991.17126, 1104.118)
+rotation = 3.112521
+scale = Vector2(0.8616958, -0.8616958)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(768, 0, 128, 128)
+metadata/idp_stamp = 6
+metadata/idp_decor = true
+
+[node name="Stamp48" type="Sprite2D" parent="StampsBack" unique_id=1558563935]
+position = Vector2(1038.5107, 1079.2865)
+rotation = -0.04101197
+scale = Vector2(0.8440364, 0.8440364)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(256, 128, 128, 128)
+metadata/idp_stamp = 10
+metadata/idp_decor = true
+
+[node name="Stamp49" type="Sprite2D" parent="StampsBack" unique_id=1688300839]
+position = Vector2(518.49536, 296.37476)
+scale = Vector2(0.63689005, 0.63689005)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(128, 256, 128, 128)
+metadata/idp_stamp = 17
+metadata/idp_decor = true
+
+[node name="Stamp50" type="Sprite2D" parent="StampsBack" unique_id=2114617740]
+position = Vector2(395.43768, 328.2364)
+rotation = -3.1415927
+scale = Vector2(0.7223255, -0.7223255)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(256, 256, 128, 128)
+metadata/idp_stamp = 18
+metadata/idp_decor = true
+
+[node name="Stamp51" type="Sprite2D" parent="StampsBack" unique_id=1157585999]
+position = Vector2(2074.7974, 257.45728)
+scale = Vector2(0.9368089, 0.9368089)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(256, 256, 128, 128)
+metadata/idp_stamp = 18
+metadata/idp_decor = true
+
+[node name="Stamp52" type="Sprite2D" parent="StampsBack" unique_id=1002257409]
+position = Vector2(1972.3927, 221.1015)
+scale = Vector2(0.6338612, 0.6338612)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(384, 256, 128, 128)
+metadata/idp_stamp = 19
+metadata/idp_decor = true
+
+[node name="Stamp53" type="Sprite2D" parent="StampsBack" unique_id=1051832844]
+position = Vector2(1631.4294, 205.83702)
+rotation = -3.1415927
+scale = Vector2(0.6205521, -0.6205521)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(256, 256, 128, 128)
+metadata/idp_stamp = 18
+metadata/idp_decor = true
+
+[node name="Stamp54" type="Sprite2D" parent="StampsBack" unique_id=1477136298]
+position = Vector2(1635.6742, 225.17218)
+rotation = -3.1415927
+scale = Vector2(0.73378044, -0.73378044)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(128, 256, 128, 128)
+metadata/idp_stamp = 17
+metadata/idp_decor = true
+
+[node name="Stamp55" type="Sprite2D" parent="StampsBack" unique_id=136734638]
+position = Vector2(214.36827, 870.53107)
+scale = Vector2(0.86264765, 0.86264765)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(128, 256, 128, 128)
+metadata/idp_stamp = 17
+metadata/idp_decor = true
+
+[node name="Stamp56" type="Sprite2D" parent="StampsBack" unique_id=134945807]
+position = Vector2(161.10997, 900.42017)
+scale = Vector2(0.710599, 0.710599)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(256, 256, 128, 128)
+metadata/idp_stamp = 18
+metadata/idp_decor = true
+
+[node name="Stamp57" type="Sprite2D" parent="StampsBack" unique_id=1522733368]
+position = Vector2(455.03064, 1136.1934)
+scale = Vector2(0.92585206, 0.92585206)
+texture = ExtResource("9_ho7jo")
+centered = false
+offset = Vector2(-64, -64)
+region_enabled = true
+region_rect = Rect2(256, 256, 128, 128)
+metadata/idp_stamp = 18
+metadata/idp_decor = true
+
+[node name="FreeformFront" type="Node2D" parent="." unique_id=98660314]
+z_index = 22
+
+[node name="Leaves1" type="Node2D" parent="FreeformFront" unique_id=2007046381]
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(-96, -96, 270.87234, -96, 270.87234, 135.36649, 216.69788, 141.94809, 162.5234, 139.53345, 108.34894, 154.6648, 54.17447, 178.2862, 0, 188.85013, -96, 180.22473)
+style = ExtResource("10_wiw62")
+solid = false
+seed_value = 18465
+metadata/idp_decor = true
+
+[node name="Leaves2" type="Node2D" parent="FreeformFront" unique_id=1382123232]
+script = ExtResource("3_rqsf4")
+points = PackedVector2Array(2400, -96, 1990.0615, -96, 1990.0615, 115.03214, 2052.849, 107.12125, 2115.637, 117.0992, 2178.4246, 116.118935, 2241.2124, 131.31238, 2304, 149.11739, 2400, 137.39532)
+style = ExtResource("10_wiw62")
+solid = false
+seed_value = 79078
+metadata/idp_decor = true

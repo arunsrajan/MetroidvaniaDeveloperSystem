@@ -783,6 +783,20 @@ func _update_previews() -> void:
 		var path := world.get_scene_path(id)
 		if world.get_room_layer(id) != layer or path.is_empty():
 			continue
+		# A picture made while the game was played (IDPRoomPictures) is much cheaper than the
+		# live scene, and is only used while the scene is unchanged since.
+		var tex := IDPRoomPictures.load_cached(path)
+		if tex:
+			var pic := Sprite2D.new()
+			pic.centered = false
+			pic.texture = tex
+			var r := IDPRoomPictures.room_rect(world, id)
+			pic.position = world.get_origin(id) + r.position
+			pic.scale = r.size / Vector2(tex.get_size())
+			pic.set_meta(&"idp_offset", r.position)
+			_preview_root.add_child(pic)
+			_preview_nodes[id] = pic
+			continue
 		var packed := load(path) as PackedScene
 		if not packed:
 			continue
@@ -799,7 +813,7 @@ func _update_previews() -> void:
 func _sync_preview_position(id: String) -> void:
 	var node = _preview_nodes.get(id)
 	if node is Node2D and is_instance_valid(node):
-		node.position = world.get_origin(id)
+		node.position = world.get_origin(id) + node.get_meta(&"idp_offset", Vector2.ZERO)
 
 # --- Hit testing -------------------------------------------------------------------------------
 

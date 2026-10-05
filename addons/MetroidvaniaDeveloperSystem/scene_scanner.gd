@@ -144,6 +144,12 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 		"silhouette_rect": Rect2(),
 		"content_rect": Rect2(),
 		"occupied_cells": [],
+		# One-way bodies and freeform shapes with the Platform role: {name, path, rect, one_way}.
+		"platforms": [],
+		# Outlines that cross themselves (no fill, no collision): {path, kind, position}.
+		"twisted": [],
+		# Objects standing in or behind each other: {a, b, position, cell} (IDPRoomDressing).
+		"overlaps": [],
 	}
 	if not ResourceLoader.exists(scene_path):
 		return metadata
@@ -173,6 +179,13 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 		metadata.groups = instance.get_groups()
 		metadata.node_count = count_nodes(instance)
 		_build_silhouette(metadata, solids, polygons)
+		for o in IDPRoomDressing.overlaps(instance):
+			var pos: Vector2 = (o.rect as Rect2).get_center()
+			metadata.overlaps.append({"a": o.a, "b": o.b, "position": pos, "cell": Vector2i((pos / in_game_cell_size).floor())})
+		# Godot reports a twisted collision polygon as "Convex decomposing failed!" without
+		# saying where: name it.
+		for t in metadata.twisted:
+			push_warning("%s: %s %s crosses itself, so it has no fill and no collision (see Map Dev's Issues tab)." % [scene_path, "Freeform shape" if t.kind == "freeform" else "CollisionPolygon2D", t.path])
 	instance.free()
 	return metadata
 
@@ -236,7 +249,10 @@ func _scan_node(node: Node, root: Node, metadata: Dictionary, solids: Array[Rect
 			"position": _local_transform(node, root).origin,
 			"name": String(node.name),
 		})
-	_collect_solids(node, root, solids, polygons)
+	# Old terrain hidden by Convert to freeform: not part of the room any more.
+	if node.has_meta(&"idp_blockout"):
+		return
+	_collect_solids(node, root, metadata, solids, polygons)
 	for child in node.get_children():
 		_scan_node(child, root, metadata, solids, polygons)
 
@@ -306,7 +322,7 @@ func create_feature_entry(node: Node, root: Node, feature_type: String) -> Dicti
 		"node_class": node.get_class(),
 	}
 
-func _collect_solids(node: Node, root: Node, solids: Array[Rect2], polygons: Array[PackedVector2Array]) -> void:
+func _collect_solids(node: Node, root: Node, metadata: Dictionary, solids: Array[Rect2], polygons: Array[PackedVector2Array]) -> void:
 	if node is TileMapLayer:
 		var layer := node as TileMapLayer
 		if layer.tile_set and layer.enabled and _is_terrain_layer(layer):
@@ -323,18 +339,44 @@ func _collect_solids(node: Node, root: Node, solids: Array[Rect2], polygons: Arr
 			for i in node.call("get_layers_count"):
 				_add_tile_rects(node, node.call("get_used_cells", i), tile_set.tile_size, _local_transform(node, root), solids)
 	elif node is IDPFreeform:
-		# Freeform terrain builds its collision at runtime: use its outline.
-		if node.solid and node.points.size() >= 3:
-			polygons.append(_local_transform(node, root) * node.get_outline())
+		# Freeform terrain builds its collision at runtime: use its outline. Only terrain is
+		# part of the room's shape; platforms are listed, decorations ignored.
+		var f := node as IDPFreeform
+		if f.points.size() < 3:
+			return
+		var xform := _local_transform(node, root)
+		var outline := f.get_outline()
+		if not IDPGeometry.is_simple(outline):
+			_add_twisted(metadata, root, node, "freeform", xform * IDPGeometry.bounds(outline).get_center())
+		if f.is_terrain():
+			polygons.append(xform * outline)
+		elif f.is_platform():
+			metadata.platforms.append({"name": String(node.name), "path": String(root.get_path_to(node)), "rect": xform * IDPGeometry.bounds(outline), "one_way": f.is_one_way()})
 	elif node is CollisionShape2D and node.get_parent() is StaticBody2D:
-		var shape := (node as CollisionShape2D).shape
-		if shape is RectangleShape2D and not (node as CollisionShape2D).disabled:
+		var cs := node as CollisionShape2D
+		var shape := cs.shape
+		if shape is RectangleShape2D and not cs.disabled:
 			var size: Vector2 = (shape as RectangleShape2D).size
-			solids.append(_local_transform(node, root) * Rect2(-size / 2.0, size))
+			var r := _local_transform(node, root) * Rect2(-size / 2.0, size)
+			if cs.one_way_collision:
+				metadata.platforms.append({"name": String(node.get_parent().name), "path": String(root.get_path_to(node)), "rect": r, "one_way": true})
+			else:
+				solids.append(r)
 	elif node is CollisionPolygon2D and node.get_parent() is StaticBody2D:
-		var poly := (node as CollisionPolygon2D).polygon
-		if poly.size() >= 3 and not (node as CollisionPolygon2D).disabled:
-			polygons.append(_local_transform(node, root) * poly)
+		var cp := node as CollisionPolygon2D
+		var poly := cp.polygon
+		if poly.size() >= 3 and not cp.disabled:
+			var xform := _local_transform(node, root)
+			if cp.build_mode == CollisionPolygon2D.BUILD_SOLIDS and not IDPGeometry.is_simple(poly):
+				_add_twisted(metadata, root, node, "collision", xform * IDPGeometry.bounds(poly).get_center())
+			if cp.one_way_collision:
+				metadata.platforms.append({"name": String(node.get_parent().name), "path": String(root.get_path_to(node)), "rect": xform * IDPGeometry.bounds(poly), "one_way": true})
+			else:
+				polygons.append(xform * poly)
+
+## Records an outline that crosses itself, with the map cell it is in (MetSys mode).
+func _add_twisted(metadata: Dictionary, root: Node, node: Node, kind: String, pos: Vector2) -> void:
+	metadata.twisted.append({"path": String(root.get_path_to(node)), "kind": kind, "position": pos, "cell": Vector2i((pos / in_game_cell_size).floor())})
 
 ## Background/decoration layers are art, not the room's shape.
 func _is_terrain_layer(layer: TileMapLayer) -> bool:

@@ -188,6 +188,16 @@ func get_known_abilities() -> PackedStringArray:
 	return ret
 
 ## Splits "dash, double jump" into ["dash", "double_jump"].
+## An objective's completion condition ([code]areas[name].objective_done_when[/code]) as
+## [kind, target]: [code]ability:dash[/code] (or just [code]dash[/code]), [code]object:<id>[/code]
+## (a stored object) or [code]boss:<name>[/code] (a defeated boss).
+static func parse_condition(condition: String) -> Array:
+	var c := condition.strip_edges()
+	for kind in ["ability", "object", "boss"]:
+		if c.begins_with(kind + ":"):
+			return [kind, c.substr(kind.length() + 1).strip_edges()]
+	return ["ability", c]
+
 static func parse_list(text: String) -> PackedStringArray:
 	var ret: PackedStringArray = []
 	for part in text.split(",", false):
