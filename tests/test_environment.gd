@@ -9,6 +9,12 @@ const WEATHER_SCENE := TMP + "/env_weather.tscn"
 
 const HURTABLE := "extends CharacterBody2D\nvar hurt := 0.0\nvar hits := 0\nfunc take_damage(amount: float) -> void:\n\thurt += amount\n\thits += 1\n"
 
+## Collects the engine errors logged while it is added (OS.add_logger).
+class ErrorCatcher extends Logger:
+	var errors: PackedStringArray = []
+	func _log_error(function: String, _file: String, _line: int, code: String, rationale: String, _editor_notify: bool, _error_type: int, _script_backtraces: Array[ScriptBacktrace]) -> void:
+		errors.append("%s: %s %s" % [function, code, rationale])
+
 func _run() -> void:
 	_catalog()
 	_specs()
@@ -16,6 +22,7 @@ func _run() -> void:
 	await _build_and_fit()
 	_data()
 	await _bodies()
+	await _held_bodies()
 	_steam_cycle()
 	await _activation()
 	_lightning()
@@ -204,6 +211,44 @@ func _bodies() -> void:
 	wind.free()
 	own.free()
 
+## A body held still (process_mode disabled, as MDSWorldGame holds the player during a room
+## change) is out of the physics space: effects leave it alone instead of moving it.
+func _held_bodies() -> void:
+	var catcher := ErrorCatcher.new()
+	OS.add_logger(catcher)
+	var storm := MDSDustStorm.new()
+	storm.gustiness = 0.0
+	storm.push = 300.0
+	add_child(storm)
+	var vent := MDSSteamVent.new()
+	vent.cycle = MDSSteamVent.Cycle.CONSTANT
+	vent.damage = 5.0
+	vent.position = Vector2(600, 600)
+	add_child(vent)
+	var lava := MDSLava.new()
+	lava.position = Vector2(800, 400)
+	add_child(lava)
+	var blown := _body(Vector2(200, 200))
+	var thrown := _body(Vector2(600, 450), HURTABLE)
+	var burned := _body(Vector2(900, 400), HURTABLE)
+	await physics_frames(2)
+	for b in [blown, thrown, burned]:
+		b.process_mode = Node.PROCESS_MODE_DISABLED
+		b.velocity = Vector2.ZERO
+	thrown.hits = 0
+	burned.hits = 0
+	var at := blown.position
+	await physics_frames(6)
+	OS.remove_logger(catcher)
+	check(catcher.errors.is_empty(), "no physics errors while bodies are held still (%s)" % "; ".join(catcher.errors))
+	check(blown.position == at and thrown.velocity == Vector2.ZERO and thrown.hits == 0 and burned.hits == 0, "and they aren't pushed, thrown or hurt")
+	for b in [blown, thrown, burned]:
+		b.process_mode = Node.PROCESS_MODE_INHERIT
+	await physics_frames(4)
+	check(blown.position.x > at.x and thrown.velocity.y < 0.0, "once released, the effects act on them again")
+	for n in [storm, vent, lava, blown, thrown, burned]:
+		n.free()
+
 func _steam_cycle() -> void:
 	var vent := MDSSteamVent.new()
 	vent.rest_time = 0.2
@@ -390,6 +435,16 @@ func _area_weather() -> void:
 	var x := game.player.global_position.x
 	await physics_frames(10)
 	check(game.player.global_position.x < x - 10.0, "and pushes the player (%.0f -> %.0f)" % [x, game.player.global_position.x])
+	# Leaving through a gate with a fade: the player is held still while the storm still blows.
+	var catcher := ErrorCatcher.new()
+	OS.add_logger(catcher)
+	game.fade_time = 0.15
+	game.load_room("Garden_02", "right1")
+	await game.room_loaded
+	await physics_frames(4)
+	OS.remove_logger(catcher)
+	check(game.current_room == "Garden_02", "the player leaves the storm through a fading gate")
+	check(catcher.errors.is_empty(), "with no physics errors while the player is held during the fade (%s)" % "; ".join(catcher.errors))
 	game.queue_free()
 	await get_tree().process_frame
 	var calm := Fixture.make_game()
