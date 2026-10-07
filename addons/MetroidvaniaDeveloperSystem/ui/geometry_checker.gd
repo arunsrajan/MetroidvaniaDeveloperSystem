@@ -1,7 +1,7 @@
 @tool
-class_name IDPGeometryChecker
+class_name MDSGeometryChecker
 extends Node
-## Runs [IDPRoomCheck] on room scenes in the background, one room per frame, for the Issues
+## Runs [MDSRoomCheck] on room scenes in the background, one room per frame, for the Issues
 ## tab's Geometry category. Each room is checked in an off-screen [SubViewport] with a
 ## physics space of its own. Results are cached until the scene file, the room's shape, its
 ## passages or the player settings change.
@@ -73,7 +73,7 @@ static func check_now(job: Dictionary, host: Node) -> Array:
 		return []
 	var scene := packed.instantiate(PackedScene.GEN_EDIT_STATE_DISABLED)
 	scene.set_meta(&"fake_map", true)
-	var c := IDPRoomCheck.new(job.get("player", {}))
+	var c := MDSRoomCheck.new(job.get("player", {}))
 	c.room_rects.assign(job.rects)
 	c.passages = job.passages
 	c.build_from_scene(scene, host)

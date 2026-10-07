@@ -1,5 +1,5 @@
 @tool
-class_name IDPSidePanel
+class_name MDSSidePanel
 extends VBoxContainer
 ## The left tool panel of Map Dev, like MetSys' editor: every button and picker stacked
 ## in foldable sections, so the map canvas gets the rest of the screen. The « button
@@ -16,15 +16,15 @@ var _title: Label
 var _sections: Dictionary = {} ## title -> [header Button, content Container]
 
 func _init() -> void:
-	custom_minimum_size.x = WIDTH * IDPUi.editor_scale()
+	custom_minimum_size.x = WIDTH * MDSUi.editor_scale()
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var head := HBoxContainer.new()
 	header = head
 	add_child(head)
-	_title = IDPUi.title("Map Dev", 14)
+	_title = MDSUi.title("Map Dev", 14)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(_title)
-	_collapse = IDPUi.button("«", "Collapse the tool panel (more room for the map)")
+	_collapse = MDSUi.button("«", "Collapse the tool panel (more room for the map)")
 	_collapse.flat = true
 	_collapse.pressed.connect(func() -> void: set_collapsed(_scroll.visible))
 	head.add_child(_collapse)
@@ -42,7 +42,7 @@ func set_collapsed(collapsed: bool) -> void:
 	_title.visible = not collapsed
 	_collapse.text = "»" if collapsed else "«"
 	_collapse.tooltip_text = "Show the tool panel" if collapsed else "Collapse the tool panel (more room for the map)"
-	custom_minimum_size.x = 0.0 if collapsed else WIDTH * IDPUi.editor_scale()
+	custom_minimum_size.x = 0.0 if collapsed else WIDTH * MDSUi.editor_scale()
 
 func is_collapsed() -> bool:
 	return not _scroll.visible
@@ -90,8 +90,8 @@ static func row(parent: Control, controls: Array) -> HBoxContainer:
 
 ## "Label  [control]" on one line.
 static func field(parent: Control, text: String, control: Control) -> HBoxContainer:
-	var l := IDPUi.label(text)
-	l.custom_minimum_size.x = 52 * IDPUi.editor_scale()
+	var l := MDSUi.label(text)
+	l.custom_minimum_size.x = 52 * MDSUi.editor_scale()
 	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if control is OptionButton:
 		control.fit_to_longest_item = false

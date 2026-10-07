@@ -16,12 +16,12 @@ const MUSIC_A := DIR + "/music_gardens.tres"
 const MUSIC_B := DIR + "/music_crypt.tres"
 const BOSS := DIR + "/music_boss.tres"
 
-static func build() -> IDPWorld:
+static func build() -> MDSWorld:
 	DirAccess.make_dir_recursive_absolute(DIR)
 	for p in [MUSIC_A, MUSIC_B, BOSS]:
 		ResourceSaver.save(_wav(p.length()), p)
 	_save_follower()
-	var world := IDPWorld.new()
+	var world := MDSWorld.new()
 	world.path = WORLD
 	world.data.areas["Gardens"] = {"color": "#5a8a3c", "title": "The Sunken Gardens", "subtitle": "Where the old city drowned",
 		"music": MUSIC_A, "music_volume_db": -6.0, "objective": "Find the crypt key", "objective_done_when": "ability:crypt_key"}
@@ -50,7 +50,7 @@ static func build() -> IDPWorld:
 		root.free()
 		world.set_room_scene(id, path)
 	world.save()
-	IDPWorld._cache.erase(WORLD)
+	MDSWorld._cache.erase(WORLD)
 	return world
 
 static func _own(n: Node, root: Node) -> void:
@@ -89,7 +89,7 @@ static func _save_follower() -> void:
 	ResourceSaver.save(packed, FOLLOWER)
 	f.free()
 
-static func _room(world: IDPWorld, id: String) -> Node2D:
+static func _room(world: MDSWorld, id: String) -> Node2D:
 	var root := Node2D.new()
 	root.name = id.to_pascal_case()
 	var floor_body := StaticBody2D.new()
@@ -105,10 +105,10 @@ static func _room(world: IDPWorld, id: String) -> Node2D:
 	gates.name = "Gates"
 	root.add_child(gates)
 	for g in world.get_gates(id):
-		var gate := IDPWorldSceneTools.new_gate_node(world, id, g)
+		var gate := MDSWorldSceneTools.new_gate_node(world, id, g)
 		gate.position = world.get_gate_local_pos(id, g)
 		if g == "door1":
-			gate.mode = IDPGate.Mode.INTERACT
+			gate.mode = MDSGate.Mode.INTERACT
 			gate.link = true
 		gates.add_child(gate)
 	match id:
@@ -122,7 +122,7 @@ static func _room(world: IDPWorld, id: String) -> Node2D:
 			var follower := (load(FOLLOWER) as PackedScene).instantiate()
 			follower.position = Vector2(1000, 540)
 			root.add_child(follower)
-			var barrier := IDPGateBarrier.new()
+			var barrier := MDSGateBarrier.new()
 			barrier.name = "Barrier"
 			barrier.requires = PackedStringArray(["crypt_key"])
 			barrier.position = Vector2(1100, 500)
@@ -141,9 +141,9 @@ static func _room(world: IDPWorld, id: String) -> Node2D:
 	return root
 
 ## A game for the world: a player with a capsule and camera, UI with title, music, banner and
-## map. Add it to the tree and await [signal IDPWorldGame.room_loaded].
-static func make_game(exploration := "") -> IDPWorldGame:
-	var game := IDPWorldGame.new()
+## map. Add it to the tree and await [signal MDSWorldGame.room_loaded].
+static func make_game(exploration := "") -> MDSWorldGame:
+	var game := MDSWorldGame.new()
 	game.world_file = WORLD
 	game.fade_time = 0.0
 	game.gate_cooldown = 0.0
@@ -162,18 +162,18 @@ static func make_game(exploration := "") -> IDPWorldGame:
 	var ui := CanvasLayer.new()
 	ui.name = "UI"
 	game.add_child(ui)
-	var title := IDPAreaTitle.new()
+	var title := MDSAreaTitle.new()
 	title.name = "Title"
 	ui.add_child(title)
-	var banner := IDPObjectiveBanner.new()
+	var banner := MDSObjectiveBanner.new()
 	banner.name = "Banner"
 	ui.add_child(banner)
-	var map := IDPWorldMapView.new()
+	var map := MDSWorldMapView.new()
 	map.name = "Map"
 	map.world_file = WORLD
 	ui.add_child(map)
 	game.map_view = map
-	var music := IDPMusic.new()
+	var music := MDSMusic.new()
 	music.name = "Music"
 	music.crossfade_time = 0.2
 	music.boss_fade_in = 0.2

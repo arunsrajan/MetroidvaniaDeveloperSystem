@@ -1,11 +1,11 @@
 @tool
-class_name IDPRoomDressing
+class_name MDSRoomDressing
 extends RefCounted
 ## Room dressing helpers for quickly dressed or generated rooms, where props float, sink into
 ## floors or stand inside each other:
 ##
 ## - [method fit_to_floor]: objects that stand (save points, shops, NPCs, see
-##   [method IDPRoomObjects.stands]) are put on the floor under them, or lifted out of the
+##   [method MDSRoomObjects.stands]) are put on the floor under them, or lifted out of the
 ##   ground they are buried in, then stepped along their floor out of any platform.
 ## - [method declutter]: taking objects in order of importance, each one that overlaps another
 ##   steps sideways along its own floor to the nearest clear spot, at least a gap away from
@@ -17,16 +17,16 @@ extends RefCounted
 ## enemies never move, then objects that stand move first, then everything else, bigger first.
 ## Art drawn behind the room (z below 0) is scenery, not an object.
 ##
-## The ground comes from an [IDPRoomCheck] built for the room (its physics copy: tiles,
+## The ground comes from an [MDSRoomCheck] built for the room (its physics copy: tiles,
 ## freeform shapes by role, static bodies). Rects are the objects' visible art
-## ([method IDPRoomObjects.visual_rect], trimmed). Both return edits
+## ([method MDSRoomObjects.visual_rect], trimmed). Both return edits
 ## [code]{node, kind ("move" or "remove"), from, to}[/code] (positions in the node's parent's
 ## space) that [method apply] makes, or the Room view records as undoable scene edits.
 ## [codeblock]
-## var check := IDPRoomCheck.new()
+## var check := MDSRoomCheck.new()
 ## check.build_from_scene(room, host)
-## IDPRoomDressing.apply(IDPRoomDressing.fit_to_floor(room, check))
-## IDPRoomDressing.apply(IDPRoomDressing.declutter(room, check))
+## MDSRoomDressing.apply(MDSRoomDressing.fit_to_floor(room, check))
+## MDSRoomDressing.apply(MDSRoomDressing.declutter(room, check))
 ## check.free_proxy()
 ## [/codeblock]
 
@@ -53,7 +53,7 @@ const ENEMY_GROUPS: PackedStringArray = ["enemy", "enemies", "boss", "bosses", "
 # --- What objects are ----------------------------------------------------------------------------
 
 static func rank(node: Node) -> Rank:
-	if IDPRoomObjects.is_protected(node) or node.is_in_group(&"idp_fixed") or bool(node.get_meta(&"idp_fixed", false)):
+	if MDSRoomObjects.is_protected(node) or node.is_in_group(&"idp_fixed") or bool(node.get_meta(&"idp_fixed", false)):
 		return Rank.FIXED
 	if node is AnimatableBody2D or node is Path2D or node is PathFollow2D:
 		return Rank.FIXED
@@ -64,7 +64,7 @@ static func rank(node: Node) -> Rank:
 	for g in ENEMY_GROUPS:
 		if node.is_in_group(g):
 			return Rank.ENEMY
-	if IDPRoomObjects.stands(node):
+	if MDSRoomObjects.stands(node):
 		return Rank.STANDS
 	return Rank.OTHER
 
@@ -97,9 +97,9 @@ static func effective_z(node: Node, root: Node) -> int:
 
 ## The objects the tools work on, with their rects ([code]{node, rect, rank}[/code]): visible,
 ## not drawn behind the room, not as wide as scenery, not removed in the Room view.
-static func objects(root: Node, painter: IDPRoomPainter = null) -> Array:
+static func objects(root: Node, painter: MDSRoomPainter = null) -> Array:
 	var out: Array = []
-	for o in IDPRoomObjects.objects(root):
+	for o in MDSRoomObjects.objects(root):
 		if painter and painter.is_scene_node_hidden(o):
 			continue
 		# Static bodies are terrain and platforms, never props.
@@ -116,8 +116,8 @@ static func objects(root: Node, painter: IDPRoomPainter = null) -> Array:
 	return out
 
 ## The visible art of [param node] relative to [param root], with the Room view's moves.
-static func rect_of(node: Node, root: Node, painter: IDPRoomPainter = null) -> Rect2:
-	var r := IDPRoomObjects.visual_rect(node, root, true)
+static func rect_of(node: Node, root: Node, painter: MDSRoomPainter = null) -> Rect2:
+	var r := MDSRoomObjects.visual_rect(node, root, true)
 	if painter:
 		r.position += painter.scene_offset(node)
 	return r
@@ -129,7 +129,7 @@ static func _hits(r: Rect2, b: Rect2) -> bool:
 ## Pairs of objects that stand in or behind each other: [code]{a, b, rect}[/code] (paths from
 ## [param root], the overlap). Two fixtures or two enemies overlapping are left alone (a guard
 ## pair, a door in its frame).
-static func overlaps(root: Node, painter: IDPRoomPainter = null) -> Array:
+static func overlaps(root: Node, painter: MDSRoomPainter = null) -> Array:
 	var out: Array = []
 	var objs := objects(root, painter)
 	for i in objs.size():
@@ -146,11 +146,11 @@ static func overlaps(root: Node, painter: IDPRoomPainter = null) -> Array:
 
 # --- The floor ------------------------------------------------------------------------------------
 
-## Builds the ground the tools stand objects on: an [IDPRoomCheck] of the room (the Room view's
+## Builds the ground the tools stand objects on: an [MDSRoomCheck] of the room (the Room view's
 ## [param painter], else the scene [param root]) under [param host] (a node in the tree), without
-## the objects' own bodies. Free it with [method IDPRoomCheck.free_proxy].
-static func ground_check(host: Node, root: Node, painter: IDPRoomPainter = null, room_rects: Array[Rect2] = []) -> IDPRoomCheck:
-	var c := IDPRoomCheck.new()
+## the objects' own bodies. Free it with [method MDSRoomCheck.free_proxy].
+static func ground_check(host: Node, root: Node, painter: MDSRoomPainter = null, room_rects: Array[Rect2] = []) -> MDSRoomCheck:
+	var c := MDSRoomCheck.new()
 	c.room_rects = room_rects
 	for o in objects(root, painter):
 		c.skip_nodes[o.node] = true
@@ -162,29 +162,29 @@ static func ground_check(host: Node, root: Node, painter: IDPRoomPainter = null,
 
 ## The floor under [param feet] (room space): the top of the ground or platform below it, or of
 ## the ground it is buried in. NAN when there is none in reach.
-static func floor_under(check: IDPRoomCheck, feet: Vector2) -> float:
-	var mask := IDPRoomCheck.GROUND | IDPRoomCheck.PLATFORM
+static func floor_under(check: MDSRoomCheck, feet: Vector2) -> float:
+	var mask := MDSRoomCheck.GROUND | MDSRoomCheck.PLATFORM
 	if check.solid_at(feet + Vector2(0, -2.0)):
 		# Buried: up to where the ground ends.
 		var y := feet.y - 2.0
 		while y > feet.y - MAX_LIFT:
 			y -= 8.0
 			if not check.solid_at(Vector2(feet.x, y)):
-				var hit := check.ray(Vector2(feet.x, y), Vector2(feet.x, feet.y + 4.0), IDPRoomCheck.GROUND)
+				var hit := check.ray(Vector2(feet.x, y), Vector2(feet.x, feet.y + 4.0), MDSRoomCheck.GROUND)
 				return hit.position.y if not hit.is_empty() else y
 		return NAN
 	var down := check.ray(feet + Vector2(0, -4.0), feet + Vector2(0, MAX_DROP), mask)
 	return down.position.y if not down.is_empty() else NAN
 
 ## Moves [param node] by [param delta] (room space) in its parent's space: the new position.
-static func _moved(node: Node2D, root: Node, delta: Vector2, painter: IDPRoomPainter) -> Vector2:
+static func _moved(node: Node2D, root: Node, delta: Vector2, painter: MDSRoomPainter) -> Vector2:
 	var parent := node.get_parent()
-	var basis := IDPRoomObjects.local_transform(parent, root) if parent and parent != root else Transform2D.IDENTITY
+	var basis := MDSRoomObjects.local_transform(parent, root) if parent and parent != root else Transform2D.IDENTITY
 	basis.origin = Vector2.ZERO
 	var from := painter.scene_position(node) if painter else node.position
 	return from + basis.affine_inverse() * delta
 
-static func _edit(node: Node2D, root: Node, delta: Vector2, painter: IDPRoomPainter) -> Dictionary:
+static func _edit(node: Node2D, root: Node, delta: Vector2, painter: MDSRoomPainter) -> Dictionary:
 	var from := painter.scene_position(node) if painter else node.position
 	return {"node": node, "kind": "move", "from": from, "to": _moved(node, root, delta, painter)}
 
@@ -192,11 +192,11 @@ static func _edit(node: Node2D, root: Node, delta: Vector2, painter: IDPRoomPain
 
 ## Stands every standing object (or those in [param nodes]) on the floor under it, then steps it
 ## along that floor out of the platforms. Returns the edits.
-static func fit_to_floor(root: Node, check: IDPRoomCheck, painter: IDPRoomPainter = null, nodes: Array = []) -> Array:
+static func fit_to_floor(root: Node, check: MDSRoomCheck, painter: MDSRoomPainter = null, nodes: Array = []) -> Array:
 	var edits: Array = []
 	var platforms: Array[Rect2] = []
 	for p in check.platforms:
-		platforms.append(IDPGeometry.bounds(p.outline))
+		platforms.append(MDSGeometry.bounds(p.outline))
 	for o in objects(root, painter):
 		var node: Node2D = o.node
 		if not nodes.is_empty() and not node in nodes:
@@ -226,7 +226,7 @@ static func fit_to_floor(root: Node, check: IDPRoomCheck, painter: IDPRoomPainte
 ## [param blockers] (and at least [param gap] from [param spaced]) on the same floor as
 ## [param floor_y] (any height when it is NAN: a hanging object), out of the ground. INF when
 ## there is none.
-static func _clear_spot(check: IDPRoomCheck, r: Rect2, floor_y: float, blockers: Array[Rect2], spaced: Array[Rect2], gap := GAP) -> float:
+static func _clear_spot(check: MDSRoomCheck, r: Rect2, floor_y: float, blockers: Array[Rect2], spaced: Array[Rect2], gap := GAP) -> float:
 	var room := check.room_bounds()
 	var d := STEP
 	while d <= REACH:
@@ -255,12 +255,12 @@ static func _clear_spot(check: IDPRoomCheck, r: Rect2, floor_y: float, blockers:
 ## overlaps one already placed (or a platform, for objects that aren't fixed) steps sideways along
 ## its floor to the nearest spot at least [param gap] from everything; a decoration with nowhere
 ## to go is removed, anything else stays. Returns the edits.
-static func declutter(root: Node, check: IDPRoomCheck, painter: IDPRoomPainter = null, gap := GAP) -> Array:
+static func declutter(root: Node, check: MDSRoomCheck, painter: MDSRoomPainter = null, gap := GAP) -> Array:
 	var edits: Array = []
 	var objs := objects(root, painter)
 	var platforms: Array[Rect2] = []
 	for p in check.platforms:
-		platforms.append(IDPGeometry.bounds(p.outline))
+		platforms.append(MDSGeometry.bounds(p.outline))
 	# Fixtures and enemies first (never moved), then what stands, then the rest; big first.
 	objs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		if a.rank != b.rank:
@@ -297,7 +297,7 @@ static func declutter(root: Node, check: IDPRoomCheck, painter: IDPRoomPainter =
 
 ## Makes [param edits]: in the Room view's [param painter] (undoable scene edits: call its
 ## checkpoint() first), or on the nodes themselves.
-static func apply(edits: Array, painter: IDPRoomPainter = null) -> void:
+static func apply(edits: Array, painter: MDSRoomPainter = null) -> void:
 	for e in edits:
 		var node: Node2D = e.node
 		if not is_instance_valid(node):

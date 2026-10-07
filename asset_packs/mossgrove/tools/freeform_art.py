@@ -1,4 +1,4 @@
-"""Art for freeform terrain (IDPFreeform) and stamps (IDPStampSet).
+"""Art for freeform terrain (MDSFreeform) and stamps (MDSStampSet).
 
 - freeform/fill_*.png: 256 x 256 fills that repeat in both directions.
 - freeform/edge_*.png: 512 x 64 strips that repeat horizontally. For top strips the top

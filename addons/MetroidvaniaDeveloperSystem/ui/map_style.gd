@@ -1,7 +1,7 @@
 @tool
-class_name IDPMapStyle
+class_name MDSMapStyle
 extends RefCounted
-## How rooms are drawn on the non-linear map, in the editor and in-game (IDPWorldMapView).
+## How rooms are drawn on the non-linear map, in the editor and in-game (MDSWorldMapView).
 ##
 ## Rooms are drawn cell by cell on the world's paint grid, each cell picking the tile that
 ## matches which of its sides are room edges, tinted with the room's area color:
@@ -33,12 +33,12 @@ var tile_size := Vector2(TILE, TILE)
 var has_corners := true
 var theme: Resource
 
-static func get_style(style_id: String) -> IDPMapStyle:
+static func get_style(style_id: String) -> MDSMapStyle:
 	if style_id.is_empty():
 		style_id = "handdrawn"
 	if _cache.has(style_id):
 		return _cache[style_id]
-	var s := IDPMapStyle.new()
+	var s := MDSMapStyle.new()
 	s.id = style_id
 	if style_id in BUILTIN and style_id != "flat":
 		s.kind = Kind.ATLAS

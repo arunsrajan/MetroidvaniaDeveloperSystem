@@ -1,12 +1,12 @@
 @tool
-class_name IDPExporters
+class_name MDSExporters
 extends RefCounted
 ## Text exports of the map: JSON (tools/pipelines), Graphviz DOT (room graph) and a
 ## Markdown design document (reviews, sharing with the team).
 
-static func to_json(model: IDPMapModel, ann: IDPAnnotations, analysis: IDPAnalysis, scene_db: Dictionary, filter_categories: Array) -> String:
+static func to_json(model: MDSMapModel, ann: MDSAnnotations, analysis: MDSAnalysis, scene_db: Dictionary, filter_categories: Array) -> String:
 	var rooms: Array = []
-	for room: IDPMapModel.Room in model.rooms.values():
+	for room: MDSMapModel.Room in model.rooms.values():
 		var info := analysis.get_info(room.id)
 		rooms.append({
 			"id": room.id,
@@ -22,15 +22,15 @@ static func to_json(model: IDPMapModel, ann: IDPAnnotations, analysis: IDPAnalys
 			"grants": Array(info.get("grants", PackedStringArray())),
 			"sphere": analysis.sphere_of.get(room.id, -1),
 			"save_distance": analysis.save_distance.get(room.id, -1),
-			"neighbors": room.get_neighbor_rooms().map(func(r: IDPMapModel.Room) -> String: return r.id),
+			"neighbors": room.get_neighbor_rooms().map(func(r: MDSMapModel.Room) -> String: return r.id),
 		})
 	var doors: Array = []
-	for door: IDPMapModel.Door in model.doors.values():
+	for door: MDSMapModel.Door in model.doors.values():
 		doors.append({
 			"key": door.key,
 			"a": door.a_room.id,
 			"b": door.b_room.id if door.b_room else "",
-			"direction": IDPMapModel.DIR_NAMES[door.a_dir],
+			"direction": MDSMapModel.DIR_NAMES[door.a_dir],
 			"border": door.get_border_type(),
 			"one_sided": door.is_one_sided(),
 			"one_way_from": analysis.get_one_way_from(door.key),
@@ -39,7 +39,7 @@ static func to_json(model: IDPMapModel, ann: IDPAnnotations, analysis: IDPAnalys
 	# Legacy keys ("layers", "cells", "scene_database") kept for existing consumers.
 	var cells: Dictionary = {}
 	for coords: Vector3i in model.cells:
-		var cell: IDPMapModel.Cell = model.cells[coords]
+		var cell: MDSMapModel.Cell = model.cells[coords]
 		cells["%d,%d,%d" % [coords.z, coords.x, coords.y]] = {
 			"x": coords.x, "y": coords.y, "layer": coords.z,
 			"connections": Array(cell.borders),
@@ -91,11 +91,11 @@ static func _sanitize(value: Variant) -> Variant:
 	return value
 
 ## Room graph for Graphviz, clustered by area. Works for both modes.
-static func to_dot(analysis: IDPAnalysis, area_colors := {}) -> String:
+static func to_dot(analysis: MDSAnalysis, area_colors := {}) -> String:
 	var graph := analysis.graph
 	var lines: PackedStringArray = ["graph MetroidvaniaMap {", "\tgraph [overlap=false, splines=true, fontname=\"Helvetica\"];", "\tnode [style=filled, fontname=\"Helvetica\", fontcolor=white];"]
 	var by_area: Dictionary = {}
-	for room: IDPGraph.GRoom in graph.rooms.values():
+	for room: MDSGraph.GRoom in graph.rooms.values():
 		if not room.has_scene:
 			continue
 		var area: String = analysis.get_info(room.id).get("area", "")
@@ -111,9 +111,9 @@ static func to_dot(analysis: IDPAnalysis, area_colors := {}) -> String:
 			lines.append("\t\tlabel=%s; color=\"#%s\";" % [_q(area), area_color.to_html(false)])
 			indent = "\t\t"
 			cluster += 1
-		for room: IDPGraph.GRoom in by_area[area]:
+		for room: MDSGraph.GRoom in by_area[area]:
 			var info := analysis.get_info(room.id)
-			var color: Color = IDPMapCanvas.TYPE_COLORS.get(info.get("type", ""), IDPMapCanvas.TYPE_COLORS[""])
+			var color: Color = MDSMapCanvas.TYPE_COLORS.get(info.get("type", ""), MDSMapCanvas.TYPE_COLORS[""])
 			var shape := "box"
 			if info.get("is_boss", false):
 				shape = "doubleoctagon"
@@ -127,14 +127,14 @@ static func to_dot(analysis: IDPAnalysis, area_colors := {}) -> String:
 			lines.append("%s%s [label=%s, shape=%s, fillcolor=\"#%s\"%s];" % [indent, _q(room.id), _q(label), shape, color.to_html(false), ", penwidth=3" if room.id == analysis.start_room_id else ""])
 		if not area.is_empty():
 			lines.append("\t}")
-	for e: IDPGraph.GEdge in graph.edges:
+	for e: MDSGraph.GEdge in graph.edges:
 		if e.b.is_empty() or not graph.rooms[e.a].has_scene or not graph.rooms[e.b].has_scene:
 			continue
 		var attrs: PackedStringArray = []
 		var reqs := analysis.get_door_requires(e.key)
 		if not reqs.is_empty():
 			attrs.append("label=%s" % _q(", ".join(reqs)))
-			attrs.append("color=\"#%s\"" % IDPMapCanvas.ability_color(reqs[0]).to_html(false))
+			attrs.append("color=\"#%s\"" % MDSMapCanvas.ability_color(reqs[0]).to_html(false))
 			attrs.append("penwidth=2")
 		var one_way := analysis.get_one_way_from(e.key)
 		if not one_way.is_empty():
@@ -156,7 +156,7 @@ static func _q(s: String) -> String:
 	return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\""
 
 ## Progression summary shared by the JSON exports.
-static func progression_to_dict(analysis: IDPAnalysis) -> Dictionary:
+static func progression_to_dict(analysis: MDSAnalysis) -> Dictionary:
 	return {
 		"start_room": analysis.start_room_id,
 		"spheres": analysis.spheres.map(func(s: Dictionary) -> Dictionary: return {"index": s.index, "rooms": s.rooms, "gained": Array(s.gained)}),
@@ -170,11 +170,11 @@ static func progression_to_dict(analysis: IDPAnalysis) -> Dictionary:
 
 ## Design document. [param summary] is an ordered Dictionary of headline numbers and
 ## [param size_of] an optional Callable(room_id) -> String for the size column.
-static func to_markdown(title: String, summary: Dictionary, ann: IDPAnnotations, analysis: IDPAnalysis, issues: Array, size_of := Callable()) -> String:
+static func to_markdown(title: String, summary: Dictionary, ann: MDSAnnotations, analysis: MDSAnalysis, issues: Array, size_of := Callable()) -> String:
 	var md: PackedStringArray = []
 	md.append("# Map design document: %s" % title)
 	md.append("")
-	md.append("Generated %s by Interactive Dev Panel." % Time.get_datetime_string_from_system(false, true))
+	md.append("Generated %s by the Metroidvania Developer System." % Time.get_datetime_string_from_system(false, true))
 	md.append("")
 	md.append("| " + " | ".join(summary.keys()) + " |")
 	md.append("|" + "---|".repeat(summary.size()))
@@ -208,7 +208,7 @@ static func to_markdown(title: String, summary: Dictionary, ann: IDPAnnotations,
 
 	md.append("## Rooms by area")
 	var by_area: Dictionary = {}
-	for room: IDPGraph.GRoom in analysis.graph.rooms.values():
+	for room: MDSGraph.GRoom in analysis.graph.rooms.values():
 		if not room.has_scene:
 			continue
 		var area: String = analysis.get_info(room.id).get("area", "")

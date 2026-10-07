@@ -1,8 +1,8 @@
 @tool
-class_name IDPEdgeBand
+class_name MDSEdgeBand
 extends RefCounted
-## Meshes for shader-skinned freeform shapes ([member IDPFreeformStyle.fill_material],
-## [member IDPFreeformStyle.edge_material]). No editor dependencies.
+## Meshes for shader-skinned freeform shapes ([member MDSFreeformStyle.fill_material],
+## [member MDSFreeformStyle.edge_material]). No editor dependencies.
 ##
 ## The edge band is one continuous strip along each run of visible edges, [code]outside[/code]
 ## px beyond the outline and [code]inside[/code] px into the shape. Where two edges meet, the
@@ -53,7 +53,7 @@ static func edge_mesh(poly: PackedVector2Array, inside: float, outside: float, s
 		return null
 	var visible: Array[bool] = []
 	var normals: Array[Vector2] = []
-	var sgn := 1.0 if IDPGeometry.signed_area(poly) > 0.0 else -1.0
+	var sgn := 1.0 if MDSGeometry.signed_area(poly) > 0.0 else -1.0
 	for i in n:
 		var a := poly[i]
 		var b := poly[(i + 1) % n]

@@ -1,5 +1,5 @@
 @tool
-class_name IDPMetSysPanel
+class_name MDSMetSysPanel
 extends Control
 ## MetSys mode: map viewer, room annotator and progression analyzer for MetSys'
 ## grid-based MapData.txt.
@@ -19,9 +19,9 @@ enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, SET_START, ADD_PIN, REMOVE_PIN, R
 
 # Data
 var map_data_path := ""
-var model: IDPMapModel
-var annotations: IDPAnnotations
-var analysis: IDPAnalysis
+var model: MDSMapModel
+var annotations: MDSAnnotations
+var analysis: MDSAnalysis
 var scene_database: Dictionary = {}
 var scanned_paths: Array = []
 var issues: Array = []
@@ -29,7 +29,7 @@ var current_filters: Dictionary = {}
 var filter_categories: Array = []
 
 # UI
-var canvas: IDPMapCanvas
+var canvas: MDSMapCanvas
 var map_picker: OptionButton
 var layer_picker: OptionButton
 var color_picker: OptionButton
@@ -41,7 +41,7 @@ var route_button: Button
 var filter_box: HFlowContainer
 ## The host inserts the mode switch at the start of this box (the Map section).
 var toolbar: Container
-var side_panel: IDPSidePanel
+var side_panel: MDSSidePanel
 var side_tabs_check: CheckBox
 var sidebar: TabContainer
 var room_search: LineEdit
@@ -49,7 +49,7 @@ var room_filter_toggle: CheckBox
 var room_tree: Tree
 var inspector_scroll: ScrollContainer
 var inspector: VBoxContainer
-var views: IDPAnalysisViews
+var views: MDSAnalysisViews
 var status_label: Label
 var progress_bar: ProgressBar
 var context_menu: PopupMenu
@@ -60,7 +60,7 @@ var pin_text: LineEdit
 var pin_kind: OptionButton
 
 # State
-var _scanner: IDPSceneScanner
+var _scanner: MDSSceneScanner
 var _save_timer: Timer
 var _refresh_timer: Timer
 var _file_timer: Timer
@@ -74,7 +74,7 @@ var _filling_room_list := false
 var _inspector_info: RichTextLabel
 var _export_viewport: SubViewport
 ## Physics checks of the room scenes (Issues > Geometry), in the background.
-var geometry_checker: IDPGeometryChecker
+var geometry_checker: MDSGeometryChecker
 var _player_dialog: AcceptDialog
 
 func _ready() -> void:
@@ -82,7 +82,7 @@ func _ready() -> void:
 		return
 	_build_ui()
 	_setup_filters()
-	geometry_checker = IDPGeometryChecker.new()
+	geometry_checker = MDSGeometryChecker.new()
 	add_child(geometry_checker)
 	geometry_checker.progress.connect(func(current: int, total: int, path: String) -> void:
 		_set_status("Checking room geometry %d/%d: %s" % [current, total, path.get_file()]))
@@ -153,7 +153,7 @@ func _build_ui() -> void:
 	var main := HBoxContainer.new()
 	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(main)
-	side_panel = IDPSidePanel.new()
+	side_panel = MDSSidePanel.new()
 	main.add_child(side_panel)
 
 	# Map file ---------------------------------------------------------------------------
@@ -165,7 +165,7 @@ func _build_ui() -> void:
 	map_picker.item_selected.connect(_on_map_picked)
 	toolbar.add_child(map_picker)
 
-	var reload := IDPUi.button("Reload", "Reload the map file and re-run analysis")
+	var reload := MDSUi.button("Reload", "Reload the map file and re-run analysis")
 	reload.pressed.connect(func() -> void: load_map(map_data_path))
 	scan_menu = MenuButton.new()
 	scan_menu.text = "Scan"
@@ -179,7 +179,7 @@ func _build_ui() -> void:
 	sp.add_check_item("Check room geometry (physics)", ScanItem.GEOMETRY)
 	sp.add_item("Player settings for the checks...", ScanItem.PLAYER)
 	sp.id_pressed.connect(_on_scan_menu)
-	IDPSidePanel.row(toolbar, [reload, scan_menu])
+	MDSSidePanel.row(toolbar, [reload, scan_menu])
 	export_menu = MenuButton.new()
 	export_menu.text = "Export"
 	export_menu.flat = false
@@ -189,7 +189,7 @@ func _build_ui() -> void:
 	ep.add_item("Room graph (Graphviz .dot)", ExportItem.DOT)
 	ep.add_item("Design document (Markdown)", ExportItem.MARKDOWN)
 	ep.id_pressed.connect(_on_export_menu)
-	toolbar.add_child(IDPSidePanel.fill(export_menu))
+	toolbar.add_child(MDSSidePanel.fill(export_menu))
 	side_tabs_check = CheckBox.new()
 	side_tabs_check.text = "Side tabs"
 	side_tabs_check.button_pressed = true
@@ -201,15 +201,15 @@ func _build_ui() -> void:
 	var display := side_panel.add_section("Map display")
 	layer_picker = OptionButton.new()
 	layer_picker.item_selected.connect(func(idx: int) -> void: _set_layer(layer_picker.get_item_id(idx)))
-	IDPSidePanel.field(display, "Layer", layer_picker)
+	MDSSidePanel.field(display, "Layer", layer_picker)
 	color_picker = OptionButton.new()
-	for i in IDPMapCanvas.COLOR_MODE_NAMES.size():
-		color_picker.add_item(IDPMapCanvas.COLOR_MODE_NAMES[i], i)
-	color_picker.select(IDPMapCanvas.ColorMode.ROOM_TYPE)
+	for i in MDSMapCanvas.COLOR_MODE_NAMES.size():
+		color_picker.add_item(MDSMapCanvas.COLOR_MODE_NAMES[i], i)
+	color_picker.select(MDSMapCanvas.ColorMode.ROOM_TYPE)
 	color_picker.item_selected.connect(func(idx: int) -> void:
 		canvas.color_mode = idx
 		canvas.redraw())
-	IDPSidePanel.field(display, "Color", color_picker)
+	MDSSidePanel.field(display, "Color", color_picker)
 
 	view_menu = MenuButton.new()
 	view_menu.text = "Show on map..."
@@ -229,20 +229,20 @@ func _build_ui() -> void:
 	vp.add_separator()
 	vp.add_check_item("Auto-scan map scenes on load", ViewItem.AUTO_SCAN)
 	vp.id_pressed.connect(_on_view_menu)
-	display.add_child(IDPSidePanel.fill(view_menu))
+	display.add_child(MDSSidePanel.fill(view_menu))
 
-	var zoom_out := IDPUi.button("-", "Zoom out")
-	var zoom_in := IDPUi.button("+", "Zoom in (or mouse wheel over the map)")
-	var fit := IDPUi.button("Fit", "Fit the layer in view (F)")
+	var zoom_out := MDSUi.button("-", "Zoom out")
+	var zoom_in := MDSUi.button("+", "Zoom in (or mouse wheel over the map)")
+	var fit := MDSUi.button("Fit", "Fit the layer in view (F)")
 	zoom_out.pressed.connect(func() -> void: canvas.set_zoom(canvas.zoom / 1.25))
 	zoom_in.pressed.connect(func() -> void: canvas.set_zoom(canvas.zoom * 1.25))
 	fit.pressed.connect(func() -> void: canvas.fit_to_layer())
-	zoom_label = IDPUi.label("100%")
+	zoom_label = MDSUi.label("100%")
 	zoom_label.custom_minimum_size.x = 44
 	zoom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	IDPSidePanel.row(display, [zoom_out, zoom_label, zoom_in, fit])
+	MDSSidePanel.row(display, [zoom_out, zoom_label, zoom_in, fit])
 
-	route_button = IDPUi.button("Clear route", "Clear the highlighted route / selection highlight (Esc)")
+	route_button = MDSUi.button("Clear route", "Clear the highlighted route / selection highlight (Esc)")
 	route_button.visible = false
 	route_button.pressed.connect(_clear_route_and_highlight)
 	display.add_child(route_button)
@@ -258,7 +258,7 @@ func _build_ui() -> void:
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main.add_child(split)
 
-	canvas = IDPMapCanvas.new()
+	canvas = MDSMapCanvas.new()
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	canvas.custom_minimum_size = Vector2(200, 200)
@@ -276,12 +276,12 @@ func _build_ui() -> void:
 	split.add_child(sidebar)
 	_build_rooms_tab()
 	_build_inspector_tab()
-	views = IDPAnalysisViews.new(self, sidebar)
+	views = MDSAnalysisViews.new(self, sidebar)
 
 	# Status bar -------------------------------------------------------------------------
 	var status := HBoxContainer.new()
 	root.add_child(status)
-	status_label = IDPUi.label("")
+	status_label = MDSUi.label("")
 	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_label.clip_text = true
 	status.add_child(status_label)
@@ -320,7 +320,7 @@ func _build_ui() -> void:
 		pin_dialog.hide()
 		_confirm_pin())
 	pin_kind = OptionButton.new()
-	for k in IDPAnnotations.PIN_KINDS:
+	for k in MDSAnnotations.PIN_KINDS:
 		pin_kind.add_item(k.capitalize())
 	pin_box.add_child(pin_text)
 	pin_box.add_child(pin_kind)
@@ -362,7 +362,7 @@ func _build_rooms_tab() -> void:
 			select_room(room_tree.get_selected().get_metadata(0), true))
 	room_tree.item_activated.connect(func() -> void: _open_room_scene(room_tree.get_selected().get_metadata(0)))
 	box.add_child(room_tree)
-	var hint := IDPUi.label("Click: select   Double-click: open scene")
+	var hint := MDSUi.label("Click: select   Double-click: open scene")
 	hint.modulate.a = 0.6
 	box.add_child(hint)
 
@@ -430,7 +430,7 @@ func _on_filter_toggled(checked: bool, category: String) -> void:
 
 ## Same rule as the original panel: with no filter active every room passes, otherwise a
 ## room must match at least one active category. Only applies when the Rooms tab asks.
-func _passes_filters(room: IDPMapModel.Room) -> bool:
+func _passes_filters(room: MDSMapModel.Room) -> bool:
 	var any_active := current_filters.values().has(true)
 	if not any_active or not room_filter_toggle.button_pressed:
 		return true
@@ -523,8 +523,8 @@ func load_map(path: String) -> void:
 		annotations.changed.disconnect(_on_annotations_changed)
 	map_data_path = path
 	_last_modified = FileAccess.get_modified_time(path)
-	model = IDPMapModel.load_file(path)
-	annotations = IDPAnnotations.load_for_map(path)
+	model = MDSMapModel.load_file(path)
+	annotations = MDSAnnotations.load_for_map(path)
 	_sync_scan_menu()
 	annotations.changed.connect(_on_annotations_changed)
 	canvas.in_game_cell_size = _get_cell_size()
@@ -553,7 +553,7 @@ func load_map(path: String) -> void:
 		else:
 			# Map edited in MetSys: only scan rooms that are new since the last scan.
 			var missing: Array[String] = []
-			for room: IDPMapModel.Room in model.rooms.values():
+			for room: MDSMapModel.Room in model.rooms.values():
 				if not room.scene_path.is_empty() and not scene_database.has(room.scene_path) and not room.scene_path in missing:
 					missing.append(room.scene_path)
 			if not missing.is_empty():
@@ -608,15 +608,15 @@ func _sync_scan_menu() -> void:
 func geometry_checks_enabled() -> bool:
 	return annotations != null and bool(annotations.get_setting("geometry_checks", true))
 
-## One room check per room with a scanned scene (see IDPGeometryChecker).
+## One room check per room with a scanned scene (see MDSGeometryChecker).
 func geometry_jobs() -> Array:
 	var jobs: Array = []
 	var cell := _get_cell_size()
-	for room: IDPMapModel.Room in model.rooms.values():
+	for room: MDSMapModel.Room in model.rooms.values():
 		if room.scene_path.is_empty() or not scene_database.has(room.scene_path):
 			continue
-		jobs.append({"path": room.scene_path, "name": analysis.get_room_name(room.id) if analysis else room.id, "rects": IDPRoomCheck.rects_from_metsys(room, cell),
-			"passages": IDPRoomCheck.passages_from_metsys(model, room, cell), "player": annotations.get_setting("player", {}), "cell_size": cell})
+		jobs.append({"path": room.scene_path, "name": analysis.get_room_name(room.id) if analysis else room.id, "rects": MDSRoomCheck.rects_from_metsys(room, cell),
+			"passages": MDSRoomCheck.passages_from_metsys(model, room, cell), "player": annotations.get_setting("player", {}), "cell_size": cell})
 	return jobs
 
 func _show_player_settings() -> void:
@@ -632,14 +632,14 @@ func _show_player_settings() -> void:
 	var grid := GridContainer.new()
 	grid.columns = 2
 	_player_dialog.add_child(grid)
-	IDPUi.player_fields(grid, annotations.get_setting("player", {}), func(d: Dictionary) -> void: annotations.set_setting("player", d))
+	MDSUi.player_fields(grid, annotations.get_setting("player", {}), func(d: Dictionary) -> void: annotations.set_setting("player", d))
 	_player_dialog.popup_centered(Vector2i(380, 0))
 
 func _scan_map_scenes() -> void:
 	if not model:
 		return
 	var paths: Array[String] = []
-	for room: IDPMapModel.Room in model.rooms.values():
+	for room: MDSMapModel.Room in model.rooms.values():
 		if not room.scene_path.is_empty() and not room.scene_path in paths:
 			paths.append(room.scene_path)
 	_run_scan(paths, false)
@@ -652,7 +652,7 @@ func on_scene_saved(path: String) -> void:
 		_run_scan(paths, false, true)
 
 func _scan_folder(dir: String) -> void:
-	var finder := IDPSceneScanner.new(_get_cell_size())
+	var finder := MDSSceneScanner.new(_get_cell_size())
 	var files: Array[String] = []
 	finder.scan_map_data_txt_completed.connect(func(p: String) -> void: _add_map_to_picker(p))
 	finder.find_scene_files(dir, files)
@@ -664,7 +664,7 @@ func _run_scan(paths: Array[String], remember_paths: bool, merge := false) -> vo
 		if merge:
 			return # a full scan is already running and will include these scenes
 		_scanner.cancel()
-	_scanner = IDPSceneScanner.new(_get_cell_size())
+	_scanner = MDSSceneScanner.new(_get_cell_size())
 	_scanner.scan_progress_updated.connect(func(current: int, total: int, file: String) -> void:
 		progress_bar.visible = true
 		progress_bar.max_value = total
@@ -715,8 +715,8 @@ func _refresh_analysis() -> void:
 	var geometry_on := geometry_checks_enabled()
 	for p in scene_database:
 		scene_database[p].geometry = geometry_checker.issues_of(p) if geometry_on else []
-	analysis = IDPAnalysis.new(IDPGraph.from_metsys(model, scene_database, _get_cell_size()), annotations, scene_database).run()
-	issues = IDPValidator.run(model, annotations, analysis, scene_database, scanned_paths)
+	analysis = MDSAnalysis.new(MDSGraph.from_metsys(model, scene_database, _get_cell_size()), annotations, scene_database).run()
+	issues = MDSValidator.run(model, annotations, analysis, scene_database, scanned_paths)
 	canvas.issue_cells.clear()
 	for issue in issues:
 		var cell: Vector3i = issue.cell
@@ -741,11 +741,11 @@ func _refresh_room_list() -> void:
 	var root := room_tree.create_item()
 	var search := room_search.text.strip_edges().to_lower()
 	var rooms: Array = model.rooms.values()
-	rooms.sort_custom(func(a: IDPMapModel.Room, b: IDPMapModel.Room) -> bool:
+	rooms.sort_custom(func(a: MDSMapModel.Room, b: MDSMapModel.Room) -> bool:
 		if a.layer != b.layer:
 			return a.layer < b.layer
 		return analysis.get_room_name(a.id).naturalnocasecmp_to(analysis.get_room_name(b.id)) < 0)
-	for room: IDPMapModel.Room in rooms:
+	for room: MDSMapModel.Room in rooms:
 		if room.scene_uid.is_empty() or not _passes_filters(room):
 			continue
 		var info := analysis.get_info(room.id)
@@ -758,7 +758,7 @@ func _refresh_room_list() -> void:
 		if room.layer != canvas.layer:
 			label += "  [L%d]" % room.layer
 		item.set_text(0, label)
-		item.set_icon(0, IDPUi.type_icon(info.type))
+		item.set_icon(0, MDSUi.type_icon(info.type))
 		item.set_tooltip_text(0, "%s\n%s" % [str(info.type).capitalize() if not str(info.type).is_empty() else "Normal", room.scene_path])
 		item.set_text(1, info.area)
 		var sphere: int = analysis.sphere_of.get(room.id, -1)
@@ -858,7 +858,7 @@ func _rebuild_inspector() -> void:
 	_inspector_room = canvas.selected_room if canvas else ""
 	var room := model.get_room(_inspector_room) if model else null
 	if not room:
-		var hint := IDPUi.label("Select a room on the map to inspect and annotate it.\n\nRight-click the map for more actions: pins, play from here, routes, links.\nShift+click a second room to show the route between them.")
+		var hint := MDSUi.label("Select a room on the map to inspect and annotate it.\n\nRight-click the map for more actions: pins, play from here, routes, links.\nShift+click a second room to show the route between them.")
 		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		inspector.add_child(hint)
 		return
@@ -866,30 +866,30 @@ func _rebuild_inspector() -> void:
 	var info := analysis.get_info(id)
 	var meta: Dictionary = scene_database.get(room.scene_path, {})
 
-	var title := IDPUi.label(info.get("name", room.get_display_name()))
+	var title := MDSUi.label(info.get("name", room.get_display_name()))
 	title.add_theme_font_size_override("font_size", 18)
 	title.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
 	inspector.add_child(title)
-	var path_label := IDPUi.label(room.scene_path if not room.scene_path.is_empty() else room.scene_uid)
+	var path_label := MDSUi.label(room.scene_path if not room.scene_path.is_empty() else room.scene_uid)
 	path_label.modulate.a = 0.6
 	path_label.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
 	inspector.add_child(path_label)
 
 	var actions := HFlowContainer.new()
 	inspector.add_child(actions)
-	var open_btn := IDPUi.button("Open scene", "Open the room scene in the editor")
+	var open_btn := MDSUi.button("Open scene", "Open the room scene in the editor")
 	open_btn.pressed.connect(_open_room_scene.bind(id))
 	open_btn.disabled = room.scene_path.is_empty()
 	actions.add_child(open_btn)
-	var play_btn := IDPUi.button("Play from here", "Run the game starting in this room, at its save point if it has one. Right-click the map to start at an exact spot.")
+	var play_btn := MDSUi.button("Play from here", "Run the game starting in this room, at its save point if it has one. Right-click the map to start at an exact spot.")
 	play_btn.pressed.connect(func() -> void: _play_from(id, Vector2(room.get_label_cell()) + Vector2(0.5, 0.5), true))
 	play_btn.disabled = room.scene_path.is_empty()
 	actions.add_child(play_btn)
-	var start_btn := IDPUi.button("Start room" if id == analysis.start_room_id else "Set as start", "Progression spheres are computed from the start room")
+	var start_btn := MDSUi.button("Start room" if id == analysis.start_room_id else "Set as start", "Progression spheres are computed from the start room")
 	start_btn.disabled = id == analysis.start_room_id
 	start_btn.pressed.connect(func() -> void: annotations.set_start_room(id))
 	actions.add_child(start_btn)
-	var center_btn := IDPUi.button("Center", "Center the map on this room")
+	var center_btn := MDSUi.button("Center", "Center the map on this room")
 	center_btn.pressed.connect(func() -> void: canvas.center_on_room(id))
 	actions.add_child(center_btn)
 
@@ -898,34 +898,34 @@ func _rebuild_inspector() -> void:
 	grid.columns = 2
 	inspector.add_child(grid)
 
-	var name_edit := IDPUi.field_line(grid, "Name", annotations.get_room_value(id, "name", ""), room.get_display_name())
-	IDPUi.commit_line(name_edit, func(t: String) -> void: annotations.set_room_value(id, "name", t.strip_edges()))
+	var name_edit := MDSUi.field_line(grid, "Name", annotations.get_room_value(id, "name", ""), room.get_display_name())
+	MDSUi.commit_line(name_edit, func(t: String) -> void: annotations.set_room_value(id, "name", t.strip_edges()))
 
-	var type_opt := IDPUi.field_option(grid, "Type", IDPAnnotations.ROOM_TYPES, annotations.get_room_value(id, "type", ""), "(auto: %s)" % (str(info.type).capitalize() if not str(info.type).is_empty() else "normal"))
-	type_opt.item_selected.connect(func(idx: int) -> void: annotations.set_room_value(id, "type", IDPAnnotations.ROOM_TYPES[idx]))
+	var type_opt := MDSUi.field_option(grid, "Type", MDSAnnotations.ROOM_TYPES, annotations.get_room_value(id, "type", ""), "(auto: %s)" % (str(info.type).capitalize() if not str(info.type).is_empty() else "normal"))
+	type_opt.item_selected.connect(func(idx: int) -> void: annotations.set_room_value(id, "type", MDSAnnotations.ROOM_TYPES[idx]))
 
-	var status_opt := IDPUi.field_option(grid, "Status", IDPAnnotations.STATUSES, annotations.get_room_value(id, "status", ""), "(none)")
-	status_opt.item_selected.connect(func(idx: int) -> void: annotations.set_room_value(id, "status", IDPAnnotations.STATUSES[idx]))
+	var status_opt := MDSUi.field_option(grid, "Status", MDSAnnotations.STATUSES, annotations.get_room_value(id, "status", ""), "(none)")
+	status_opt.item_selected.connect(func(idx: int) -> void: annotations.set_room_value(id, "status", MDSAnnotations.STATUSES[idx]))
 
 	var groups := model.get_room_group_names(room)
-	var area_edit := IDPUi.field_line(grid, "Area", annotations.get_room_value(id, "area", ""), groups[0] if not groups.is_empty() else "e.g. Mossy Hollows")
-	IDPUi.commit_line(area_edit, func(t: String) -> void: annotations.set_room_value(id, "area", t.strip_edges()))
+	var area_edit := MDSUi.field_line(grid, "Area", annotations.get_room_value(id, "area", ""), groups[0] if not groups.is_empty() else "e.g. Mossy Hollows")
+	MDSUi.commit_line(area_edit, func(t: String) -> void: annotations.set_room_value(id, "area", t.strip_edges()))
 
 	var scanned_boss: PackedStringArray = []
 	for b in meta.get("bosses", []):
 		scanned_boss.append(b.name)
-	var boss_edit := IDPUi.field_line(grid, "Boss", annotations.get_room_value(id, "boss", ""), ", ".join(scanned_boss) if not scanned_boss.is_empty() else "boss name (marks a boss room)")
-	IDPUi.commit_line(boss_edit, func(t: String) -> void:
+	var boss_edit := MDSUi.field_line(grid, "Boss", annotations.get_room_value(id, "boss", ""), ", ".join(scanned_boss) if not scanned_boss.is_empty() else "boss name (marks a boss room)")
+	MDSUi.commit_line(boss_edit, func(t: String) -> void:
 		annotations.set_room_value(id, "boss", t.strip_edges())
 		if not t.strip_edges().is_empty() and str(annotations.get_room_value(id, "type", "")).is_empty():
 			annotations.set_room_value(id, "type", "boss"))
 
 	var scanned_grants: PackedStringArray = meta.get("grants", PackedStringArray())
-	var grants_edit := IDPUi.field_line(grid, "Grants", ", ".join(annotations.get_room_grants(id)), ("scanned: " + ", ".join(scanned_grants)) if not scanned_grants.is_empty() else "abilities/keys found here, e.g. dash")
+	var grants_edit := MDSUi.field_line(grid, "Grants", ", ".join(annotations.get_room_grants(id)), ("scanned: " + ", ".join(scanned_grants)) if not scanned_grants.is_empty() else "abilities/keys found here, e.g. dash")
 	grants_edit.tooltip_text = "Comma separated. Abilities from idp_grants node metadata are added automatically."
-	IDPUi.commit_line(grants_edit, func(t: String) -> void: annotations.set_room_value(id, "grants", Array(IDPAnnotations.parse_list(t))))
+	MDSUi.commit_line(grants_edit, func(t: String) -> void: annotations.set_room_value(id, "grants", Array(MDSAnnotations.parse_list(t))))
 
-	inspector.add_child(IDPUi.label("Notes (TODO lines show up in Issues)"))
+	inspector.add_child(MDSUi.label("Notes (TODO lines show up in Issues)"))
 	var notes := TextEdit.new()
 	notes.custom_minimum_size.y = 70
 	notes.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
@@ -948,17 +948,17 @@ func _rebuild_inspector() -> void:
 
 	# Exits: one row per door, with ability requirement and one-way flag.
 	inspector.add_child(HSeparator.new())
-	var exits_title := IDPUi.label("Exits (%d)" % room.doors.size())
+	var exits_title := MDSUi.label("Exits (%d)" % room.doors.size())
 	exits_title.add_theme_font_size_override("font_size", 15)
 	inspector.add_child(exits_title)
 	for door in room.doors:
 		_add_exit_row(room, door)
 	if room.doors.is_empty():
-		inspector.add_child(IDPUi.label("No passages. Paint passages in the MetSys editor."))
+		inspector.add_child(MDSUi.label("No passages. Paint passages in the MetSys editor."))
 
 	# Links: elevators, teleporters, cross-layer transitions MetSys can't express.
 	inspector.add_child(HSeparator.new())
-	var links_title := IDPUi.label("Links (elevators, teleports, layer transitions)")
+	var links_title := MDSUi.label("Links (elevators, teleports, layer transitions)")
 	links_title.add_theme_font_size_override("font_size", 15)
 	links_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	inspector.add_child(links_title)
@@ -966,7 +966,7 @@ func _rebuild_inspector() -> void:
 	for i in links.size():
 		if links[i].a == id or links[i].b == id:
 			_add_link_row(id, i)
-	var add_link := IDPUi.button("Add link... (then click the target room)", "Connect this room to another room, e.g. on another layer")
+	var add_link := MDSUi.button("Add link... (then click the target room)", "Connect this room to another room, e.g. on another layer")
 	add_link.pressed.connect(func() -> void:
 		_link_source = id
 		canvas.grab_focus()
@@ -1019,17 +1019,17 @@ func _update_inspector_info() -> void:
 			t += "[b]Bosses:[/b] %s\n" % ", ".join(meta.bosses.map(func(b: Dictionary) -> String: return b.name))
 	var neighbors := room.get_neighbor_rooms()
 	if not neighbors.is_empty():
-		t += "[b]Neighbors:[/b] %s" % ", ".join(neighbors.map(func(n: IDPMapModel.Room) -> String: return "[url=room:%s]%s[/url]" % [n.id, analysis.get_room_name(n.id)]))
+		t += "[b]Neighbors:[/b] %s" % ", ".join(neighbors.map(func(n: MDSMapModel.Room) -> String: return "[url=room:%s]%s[/url]" % [n.id, analysis.get_room_name(n.id)]))
 	_inspector_info.text = t
 
-func _add_exit_row(room: IDPMapModel.Room, door: IDPMapModel.Door) -> void:
+func _add_exit_row(room: MDSMapModel.Room, door: MDSMapModel.Door) -> void:
 	var box := VBoxContainer.new()
 	inspector.add_child(box)
 	var other := door.other(room)
 	var c := door.cell_of(room)
 	var head := HBoxContainer.new()
 	box.add_child(head)
-	var text := "%s at (%d,%d) -> " % [IDPMapModel.DIR_NAMES[door.dir_of(room)], c.x, c.y]
+	var text := "%s at (%d,%d) -> " % [MDSMapModel.DIR_NAMES[door.dir_of(room)], c.x, c.y]
 	var link := LinkButton.new()
 	if other:
 		link.text = text + analysis.get_room_name(other.id)
@@ -1055,10 +1055,10 @@ func _add_exit_row(room: IDPMapModel.Room, door: IDPMapModel.Door) -> void:
 			var scanned := analysis.get_door_requires(door.key)
 			req.placeholder_text = "scanned gate: " + ", ".join(scanned)
 			req.tooltip_text = "Gate node(s) %s set idp_requires = %s" % [", ".join(gate_sources), ", ".join(scanned)]
-		IDPUi.commit_line(req, func(t: String) -> void: annotations.set_door_value(door.key, "requires", Array(IDPAnnotations.parse_list(t))))
+		MDSUi.commit_line(req, func(t: String) -> void: annotations.set_door_value(door.key, "requires", Array(MDSAnnotations.parse_list(t))))
 		box.add_child(req)
 	if door.is_one_sided() and annotations.get_door_one_way_from(door.key).is_empty():
-		var warn := IDPUi.label("Passage only painted on one side.")
+		var warn := MDSUi.label("Passage only painted on one side.")
 		warn.modulate = Color(1, 0.8, 0.3)
 		box.add_child(warn)
 
@@ -1073,7 +1073,7 @@ func _add_link_row(id: String, index: int) -> void:
 	target.pressed.connect(func() -> void: select_room(other_id, true))
 	target.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(target)
-	var remove := IDPUi.button("x", "Remove link")
+	var remove := MDSUi.button("x", "Remove link")
 	remove.pressed.connect(func() -> void: annotations.remove_link(index))
 	row.add_child(remove)
 	var fields := HBoxContainer.new()
@@ -1082,16 +1082,16 @@ func _add_link_row(id: String, index: int) -> void:
 	note.placeholder_text = "note (Elevator...)"
 	note.text = link.get("note", "")
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	IDPUi.commit_line(note, func(t: String) -> void: annotations.set_link_value(index, "note", t.strip_edges()))
+	MDSUi.commit_line(note, func(t: String) -> void: annotations.set_link_value(index, "note", t.strip_edges()))
 	fields.add_child(note)
 	var req := LineEdit.new()
 	req.placeholder_text = "requires"
 	req.text = ", ".join(link.get("requires", []))
 	req.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	IDPUi.commit_line(req, func(t: String) -> void: annotations.set_link_value(index, "requires", Array(IDPAnnotations.parse_list(t))))
+	MDSUi.commit_line(req, func(t: String) -> void: annotations.set_link_value(index, "requires", Array(MDSAnnotations.parse_list(t))))
 	fields.add_child(req)
 
-# --- IDPAnalysisViews host callbacks ---------------------------------------------------
+# --- MDSAnalysisViews host callbacks ---------------------------------------------------
 
 func ui_select_room(id: String) -> void:
 	canvas.highlight_rooms.clear()
@@ -1131,11 +1131,11 @@ func ui_set_start_from_selection() -> void:
 		annotations.set_start_room(canvas.selected_room)
 
 func ui_area_color(area: String) -> Color:
-	return IDPMapCanvas.area_color(area)
+	return MDSMapCanvas.area_color(area)
 
 func ui_stats_header() -> String:
-	var assigned := model.rooms.values().filter(func(r: IDPMapModel.Room) -> bool: return not r.scene_uid.is_empty())
-	var irregular := assigned.filter(func(r: IDPMapModel.Room) -> bool: return r.is_irregular())
+	var assigned := model.rooms.values().filter(func(r: MDSMapModel.Room) -> bool: return not r.scene_uid.is_empty())
+	var irregular := assigned.filter(func(r: MDSMapModel.Room) -> bool: return r.is_irregular())
 	var t := "[b]%s[/b]\n" % map_data_path
 	t += "%d rooms (%d irregular), %d cells, %d doors, %d layer(s)\n" % [assigned.size(), irregular.size(), model.cells.size(), model.doors.size(), model.layers.size()]
 	for l in model.layers:
@@ -1228,7 +1228,7 @@ func _confirm_pin() -> void:
 	var text := pin_text.text.strip_edges()
 	if text.is_empty():
 		return
-	annotations.add_pin(canvas.layer, _pending_pin_cell, text, IDPAnnotations.PIN_KINDS[pin_kind.selected])
+	annotations.add_pin(canvas.layer, _pending_pin_cell, text, MDSAnnotations.PIN_KINDS[pin_kind.selected])
 	pin_text.text = ""
 
 func _open_room_scene(id: String) -> void:
@@ -1238,7 +1238,7 @@ func _open_room_scene(id: String) -> void:
 	EditorInterface.open_scene_from_path(room.scene_path)
 	_set_status("Opened: %s" % room.scene_path.get_file())
 
-## Runs the game starting in this room (see IDPPlayHere). With [param prefer_save_point]
+## Runs the game starting in this room (see MDSPlayHere). With [param prefer_save_point]
 ## the player starts at the room's save point when it has one, else at [param cell_pos].
 func _play_from(id: String, cell_pos: Vector2, prefer_save_point := false) -> void:
 	var room := model.get_room(id)
@@ -1248,7 +1248,7 @@ func _play_from(id: String, cell_pos: Vector2, prefer_save_point := false) -> vo
 	var saves: Array = scene_database.get(room.scene_path, {}).get("save_points", [])
 	if prefer_save_point and not saves.is_empty():
 		local = saves[0].position
-	_set_status(IDPPlayHere.play(room.scene_path, room.scene_uid, room.layer, local))
+	_set_status(MDSPlayHere.play(room.scene_path, room.scene_uid, room.layer, local))
 
 # --- Export -------------------------------------------------------------------------------------
 
@@ -1260,11 +1260,11 @@ func _on_export_menu(id: int) -> void:
 	DirAccess.make_dir_recursive_absolute(EXPORT_DIR)
 	match id:
 		ExportItem.JSON:
-			_write_export(base + ".json", IDPExporters.to_json(model, annotations, analysis, scene_database, filter_categories))
+			_write_export(base + ".json", MDSExporters.to_json(model, annotations, analysis, scene_database, filter_categories))
 		ExportItem.DOT:
-			_write_export(base + ".dot", IDPExporters.to_dot(analysis))
+			_write_export(base + ".dot", MDSExporters.to_dot(analysis))
 		ExportItem.MARKDOWN:
-			var assigned := model.rooms.values().filter(func(r: IDPMapModel.Room) -> bool: return not r.scene_uid.is_empty())
+			var assigned := model.rooms.values().filter(func(r: MDSMapModel.Room) -> bool: return not r.scene_uid.is_empty())
 			var collectibles := 0
 			for meta in scene_database.values():
 				collectibles += meta.get("collectibles", []).size()
@@ -1272,7 +1272,7 @@ func _on_export_menu(id: int) -> void:
 			var size_of := func(id: String) -> String:
 				var room := model.get_room(id)
 				return "%d cells%s" % [room.cells.size(), " (irregular)" if room.is_irregular() else ""]
-			_write_export(base + ".md", IDPExporters.to_markdown(map_data_path.get_file(), summary, annotations, analysis, issues, size_of))
+			_write_export(base + ".md", MDSExporters.to_markdown(map_data_path.get_file(), summary, annotations, analysis, issues, size_of))
 		ExportItem.PNG:
 			_export_png(base + ".png")
 
@@ -1302,7 +1302,7 @@ func _export_png(path: String) -> void:
 		_set_status("Export failed: empty layer")
 		return
 	var margin := 40.0
-	var clone := IDPMapCanvas.new()
+	var clone := MDSMapCanvas.new()
 	clone.in_game_cell_size = canvas.in_game_cell_size
 	clone.metsys_default_color = canvas.metsys_default_color
 	clone.color_mode = canvas.color_mode
@@ -1315,7 +1315,7 @@ func _export_png(path: String) -> void:
 	clone.layer = canvas.layer
 	# Aim for ~160 px per cell, capped to a sane texture size.
 	var cell_w := clampf(8192.0 / maxf(1.0, bounds.size.x), 24.0, 160.0)
-	clone.zoom = cell_w / IDPMapCanvas.BASE_CELL_WIDTH
+	clone.zoom = cell_w / MDSMapCanvas.BASE_CELL_WIDTH
 	var cell_px := clone.get_cell_px()
 	var img_size := Vector2(bounds.size) * cell_px + Vector2(margin, margin) * 2.0
 	img_size.y = minf(img_size.y, 8192.0)

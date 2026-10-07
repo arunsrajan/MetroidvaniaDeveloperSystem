@@ -1,6 +1,6 @@
 @tool
-class_name IDPWorld
-extends IDPAnnotations
+class_name MDSWorld
+extends MDSAnnotations
 ## Non-linear world map: rooms (scenes) placed freely in world pixels and connected by
 ## Hollow Knight-style named gates. Saved as [code]*.idpworld.json[/code].
 ##
@@ -32,9 +32,9 @@ extends IDPAnnotations
 ##   "links": [], "pins": [], "start_room": "Greenhouse_01"
 ## }
 ## [/codeblock]
-## Rooms, gates and areas are also plain annotations, so [IDPAnalysis] and [IDPValidator]
+## Rooms, gates and areas are also plain annotations, so [MDSAnalysis] and [MDSValidator]
 ## work on worlds exactly like on MetSys maps. At runtime use [method get_transition]
-## (see [IDPGate]).
+## (see [MDSGate]).
 
 const FORMAT := "idp_world"
 const WORLD_VERSION := 1
@@ -64,8 +64,8 @@ func clear() -> void:
 static func is_world_file(file_path: String) -> bool:
 	return file_path.ends_with(EXTENSION)
 
-static func load_world(file_path: String) -> IDPWorld:
-	var world := IDPWorld.new()
+static func load_world(file_path: String) -> MDSWorld:
+	var world := MDSWorld.new()
 	world.path = file_path
 	if FileAccess.file_exists(file_path):
 		var parsed = JSON.parse_string(FileAccess.get_file_as_string(file_path))
@@ -77,7 +77,7 @@ static func load_world(file_path: String) -> IDPWorld:
 	return world
 
 ## Loads once and caches; for runtime lookups from many gates.
-static func get_cached(file_path: String) -> IDPWorld:
+static func get_cached(file_path: String) -> MDSWorld:
 	if not _cache.has(file_path):
 		_cache[file_path] = load_world(file_path)
 	return _cache[file_path]
@@ -159,7 +159,7 @@ func add_area(area: String, color := Color.TRANSPARENT) -> void:
 	if area.is_empty() or data.areas.has(area):
 		return
 	if color.a == 0:
-		color = IDPMapCanvas.area_color(area)
+		color = MDSMapCanvas.area_color(area)
 	data.areas[area] = {"color": "#" + color.to_html(false), "map_zone": area.to_upper().replace(" ", "_")}
 	_touch()
 
@@ -192,7 +192,7 @@ func set_area_value(area: String, key: String, value: Variant) -> void:
 func get_area_color(area: String) -> Color:
 	if data.areas.has(area) and data.areas[area].has("color"):
 		return Color(data.areas[area].color)
-	return IDPMapCanvas.area_color(area)
+	return MDSMapCanvas.area_color(area)
 
 ## Custom label position (world px) or Vector2.INF to place it automatically.
 func get_area_label_pos(area: String) -> Vector2:
@@ -899,8 +899,8 @@ func get_transition(room_id: String, gate_name: String) -> Dictionary:
 		"side": get_gate_side(to, to_gate) if has_gate(to, to_gate) else "",
 	}
 
-## Runtime lookup of a map link used as a fast-travel pair (an [IDPGate] with
-## [member IDPGate.link] on): the link of [param room_id] whose end here is
+## Runtime lookup of a map link used as a fast-travel pair (an [MDSGate] with
+## [member MDSGate.link] on): the link of [param room_id] whose end here is
 ## [param gate_name] (a link with no gate named at this end matches any gate). Returns
 ## {room, gate, scene_path, entry_pos, side, link: true, requires, note} or {}.
 func get_link_transition(room_id: String, gate_name: String) -> Dictionary:
@@ -927,7 +927,7 @@ func get_link_transition(room_id: String, gate_name: String) -> Dictionary:
 			}
 	return {}
 
-# --- IDPAnnotations overrides (world stores door data on gates) -----------------------------
+# --- MDSAnnotations overrides (world stores door data on gates) -----------------------------
 
 func _gates_of_key(key: String) -> Array:
 	var ret: Array = []
@@ -958,7 +958,7 @@ func set_door_value(key: String, field: String, value: Variant) -> void:
 	for i in range(1, parts.size()):
 		set_gate_value(parts[i][0], parts[i][1], field, null)
 
-## One-way-ness is structural in worlds (see IDPGraph.from_world).
+## One-way-ness is structural in worlds (see MDSGraph.from_world).
 func get_door_one_way_from(_key: String) -> String:
 	return ""
 
@@ -979,8 +979,8 @@ func get_known_abilities() -> PackedStringArray:
 
 ## Builds a world from a MetSys map (and its panel annotations): each room becomes a scene
 ## placed at its cell position, cells merge into rects, passages become named gates.
-static func from_metsys(model: IDPMapModel, ann: IDPAnnotations, cell_size: Vector2) -> IDPWorld:
-	var world := IDPWorld.new()
+static func from_metsys(model: MDSMapModel, ann: MDSAnnotations, cell_size: Vector2) -> MDSWorld:
+	var world := MDSWorld.new()
 	world.data.name = model.source_path.get_file().get_basename()
 	world.data.settings.default_room_size = [cell_size.x, cell_size.y]
 	world.data.settings.grid = 32
@@ -992,9 +992,9 @@ static func from_metsys(model: IDPMapModel, ann: IDPAnnotations, cell_size: Vect
 	world.data.layers = layer_names if not layer_names.is_empty() else ["Main"]
 	var ids: Dictionary = {} # MetSys room id -> world id
 	var sorted: Array = model.rooms.values()
-	sorted.sort_custom(func(a: IDPMapModel.Room, b: IDPMapModel.Room) -> bool:
+	sorted.sort_custom(func(a: MDSMapModel.Room, b: MDSMapModel.Room) -> bool:
 		return [a.layer, a.min_cell.y, a.min_cell.x] < [b.layer, b.min_cell.y, b.min_cell.x])
-	for room: IDPMapModel.Room in sorted:
+	for room: MDSMapModel.Room in sorted:
 		var base := room.scene_path.get_file().get_basename() if not room.scene_path.is_empty() else "Room_%d_%d" % [room.min_cell.x, room.min_cell.y]
 		var id := world.unique_room_id(base)
 		ids[room.id] = id
@@ -1015,11 +1015,11 @@ static func from_metsys(model: IDPMapModel, ann: IDPAnnotations, cell_size: Vect
 		if not area.is_empty():
 			entry.area = area
 			if not world.data.areas.has(area):
-				world.data.areas[area] = {"color": "#" + IDPMapCanvas.area_color(area).to_html(false), "map_zone": area.to_upper().replace(" ", "_")}
+				world.data.areas[area] = {"color": "#" + MDSMapCanvas.area_color(area).to_html(false), "map_zone": area.to_upper().replace(" ", "_")}
 		world.data.rooms[id] = entry
 	# Passages -> gates, named per side like Hollow Knight (left1, right1, ...).
 	var dir_side := ["right", "bot", "left", "top"]
-	for door: IDPMapModel.Door in model.doors.values():
+	for door: MDSMapModel.Door in model.doors.values():
 		var a_id: String = ids[door.a_room.id]
 		var ga := _add_metsys_gate(world, a_id, door.a_room, door.a_cell, door.a_dir, dir_side, cell_size)
 		var reqs := ann.get_door_requires(door.key)
@@ -1056,17 +1056,17 @@ static func from_metsys(model: IDPMapModel, ann: IDPAnnotations, cell_size: Vect
 	world.data.start_room = ids.get(ann.get_start_room(), "")
 	return world
 
-static func _add_metsys_gate(world: IDPWorld, id: String, room: IDPMapModel.Room, cell: Vector3i, dir: int, dir_side: Array, cell_size: Vector2) -> String:
+static func _add_metsys_gate(world: MDSWorld, id: String, room: MDSMapModel.Room, cell: Vector3i, dir: int, dir_side: Array, cell_size: Vector2) -> String:
 	var side: String = dir_side[dir]
 	var gate_name := world.next_gate_name(id, side)
 	var local_cell := Vector2(cell.x - room.min_cell.x, cell.y - room.min_cell.y)
-	var pos := (local_cell + Vector2(0.5, 0.5) + Vector2(IDPMapModel.FWD[dir]) * 0.5) * cell_size
+	var pos := (local_cell + Vector2(0.5, 0.5) + Vector2(MDSMapModel.FWD[dir]) * 0.5) * cell_size
 	world.data.rooms[id].gates[gate_name] = {"pos": [pos.x, pos.y], "side": side}
 	return gate_name
 
 ## Merges a room's cells into few rects: horizontal runs per row, then identical runs on
 ## consecutive rows.
-static func _cells_to_rects(room: IDPMapModel.Room, cell_size: Vector2) -> Array:
+static func _cells_to_rects(room: MDSMapModel.Room, cell_size: Vector2) -> Array:
 	var runs: Array = [] # [x0, x1, y0, y1] in local cells
 	for y in range(room.min_cell.y, room.max_cell.y + 1):
 		var x := room.min_cell.x

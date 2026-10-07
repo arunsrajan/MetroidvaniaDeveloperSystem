@@ -1,5 +1,5 @@
 @tool
-class_name IDPUi
+class_name MDSUi
 extends RefCounted
 ## Small widget helpers shared by the MetSys and non-linear panels.
 
@@ -78,11 +78,62 @@ static func path_drop(edit: LineEdit) -> void:
 			edit.text = str(d.files[0])
 			edit.text_submitted.emit(edit.text))
 
+## A weather field ([MDSEnvironment]): typed in ("storm", "rain, fog(ground=1)"), a scene of
+## effect nodes dropped on it, or picked from its menu of presets and effects. [param commit]
+## gets the new text.
+static func weather_field(grid: GridContainer, text: String, value: String, placeholder: String, commit: Callable) -> LineEdit:
+	grid.add_child(label(text))
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var edit := LineEdit.new()
+	edit.text = value
+	edit.placeholder_text = placeholder
+	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	edit.tooltip_text = "Weather and effects: presets (storm, sandstorm, blizzard...), effects (rain, fog(ground=1), dust_storm(blows_toward=left)...), comma-separated, or a .tscn of effect nodes. none: no weather"
+	row.add_child(edit)
+	var menu := menu_button("+", "Pick a weather preset, or add an effect")
+	var popup := menu.get_popup()
+	popup.add_separator("Presets")
+	for id in MDSEnvironment.PRESETS:
+		popup.add_icon_item(MDSEnvironment.icon(id), MDSEnvironment.display_name(id))
+		popup.set_item_metadata(popup.item_count - 1, ["preset", id])
+		popup.set_item_tooltip(popup.item_count - 1, MDSEnvironment.describe(id))
+	popup.add_separator("Add an effect")
+	for id in MDSEnvironment.ambient_ids():
+		popup.add_icon_item(MDSEnvironment.icon(id), MDSEnvironment.display_name(id))
+		popup.set_item_metadata(popup.item_count - 1, ["effect", id])
+		popup.set_item_tooltip(popup.item_count - 1, MDSEnvironment.describe(id))
+	popup.add_separator()
+	popup.add_item("None (no weather here)")
+	popup.set_item_metadata(popup.item_count - 1, ["none", ""])
+	popup.add_item("Clear")
+	popup.set_item_metadata(popup.item_count - 1, ["clear", ""])
+	popup.index_pressed.connect(func(i: int) -> void:
+		var m: Variant = popup.get_item_metadata(i)
+		if not m is Array:
+			return
+		var current := edit.text.strip_edges()
+		match str(m[0]):
+			"preset":
+				edit.text = m[1]
+			"effect":
+				edit.text = m[1] if current.is_empty() or MDSEnvironment.is_none(current) else "%s, %s" % [current, m[1]]
+			"none":
+				edit.text = "none"
+			"clear":
+				edit.text = ""
+		edit.text_submitted.emit(edit.text))
+	row.add_child(menu)
+	grid.add_child(row)
+	path_drop(edit)
+	commit_line(edit, commit)
+	return edit
+
 ## Fields describing the player for the room checks ([code]settings.player[/code], see
-## [constant IDPRoomCheck.PLAYER_DEFAULTS]). [param apply] gets the whole new dictionary on
+## [constant MDSRoomCheck.PLAYER_DEFAULTS]). [param apply] gets the whole new dictionary on
 ## every change. Max jump height and jump velocity are two views of one value.
 static func player_fields(grid: GridContainer, current: Dictionary, apply: Callable) -> void:
-	var d := IDPRoomCheck.PLAYER_DEFAULTS.duplicate()
+	var d := MDSRoomCheck.PLAYER_DEFAULTS.duplicate()
 	d.merge(current, true)
 	var state := [d]
 	var size_edit := field_line(grid, "Player size", "%dx%d" % [int(d.size[0]), int(d.size[1])], "32x64")
@@ -94,10 +145,10 @@ static func player_fields(grid: GridContainer, current: Dictionary, apply: Calla
 			apply.call(state[0].duplicate()))
 	var vel_edit := field_line(grid, "Jump velocity (px/s)", str(d.jump_velocity), "700")
 	var grav_edit := field_line(grid, "Gravity (px/s²)", str(d.gravity), "900")
-	var height_edit := field_line(grid, "Max jump height (px)", str(int(IDPRoomCheck.max_jump_height(d.jump_velocity, d.gravity))), "")
+	var height_edit := field_line(grid, "Max jump height (px)", str(int(MDSRoomCheck.max_jump_height(d.jump_velocity, d.gravity))), "")
 	height_edit.tooltip_text = "How high a jump rises: v² / 2g. Editing it sets the jump velocity"
 	var refresh_height := func() -> void:
-		height_edit.text = str(int(IDPRoomCheck.max_jump_height(float(state[0].jump_velocity), float(state[0].gravity))))
+		height_edit.text = str(int(MDSRoomCheck.max_jump_height(float(state[0].jump_velocity), float(state[0].gravity))))
 	commit_line(vel_edit, func(t: String) -> void:
 		state[0].jump_velocity = absf(t.to_float())
 		refresh_height.call()
@@ -124,7 +175,7 @@ static func player_fields(grid: GridContainer, current: Dictionary, apply: Calla
 static func type_icon(type: String) -> Texture2D:
 	if _type_icons.has(type):
 		return _type_icons[type]
-	var tex := color_icon(IDPMapCanvas.TYPE_COLORS.get(type, IDPMapCanvas.TYPE_COLORS[""]))
+	var tex := color_icon(MDSMapCanvas.TYPE_COLORS.get(type, MDSMapCanvas.TYPE_COLORS[""]))
 	_type_icons[type] = tex
 	return tex
 

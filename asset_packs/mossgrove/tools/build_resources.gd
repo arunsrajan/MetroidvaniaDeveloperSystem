@@ -4,8 +4,8 @@ extends SceneTree
 ##   mossgrove_tileset.tres   terrains (autotiling, collision) + decorations (idp_kind tags)
 ##   frames/*.tres            SpriteFrames for the player, enemies and effects
 ##   demo/mossgrove_demo.tscn a small level with parallax, the player, enemies and props
-##   freeform/*.freeform.tres  styles for IDP's freeform terrain (needs the IDP addon)
-##   freeform/mossgrove.stamps.tres  clumps for IDP's Stamps tool and the styles' edges
+##   freeform/*.freeform.tres  styles for MDS's freeform terrain (needs the MDS addon)
+##   freeform/mossgrove.stamps.tres  clumps for MDS's Stamps tool and the styles' edges
 ##
 ## Run from the project folder (after the editor has imported the PNGs):
 ##   godot --headless --script res://asset_packs/mossgrove/tools/build_resources.gd
@@ -21,7 +21,7 @@ func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(root_dir.path_join("frames"))
 	for sprite_name in pack.sprites:
 		ResourceSaver.save(build_frames(pack.sprites[sprite_name]), root_dir.path_join("frames/%s_frames.tres" % sprite_name))
-	if pack.has("freeform") and _has_class("IDPFreeformStyle"):
+	if pack.has("freeform") and _has_class("MDSFreeformStyle"):
 		build_freeform()
 	DirAccess.make_dir_recursive_absolute(root_dir.path_join("demo"))
 	var demo := build_demo(load(root_dir.path_join("mossgrove_tileset.tres")))
@@ -38,11 +38,11 @@ func _has_class(n: String) -> bool:
 			return true
 	return false
 
-# --- Freeform styles and stamps (IDP) ----------------------------------------------------------
+# --- Freeform styles and stamps (MDS) ----------------------------------------------------------
 
 func build_freeform() -> void:
 	var ff: Dictionary = pack.freeform
-	var stamps: Resource = load("res://addons/MetroidvaniaDeveloperSystem/nodes/idp_stamp_set.gd").new()
+	var stamps: Resource = load("res://addons/MetroidvaniaDeveloperSystem/nodes/mds_stamp_set.gd").new()
 	stamps.display_name = "Mossgrove clumps"
 	stamps.texture = tex(ff.clumps.texture)
 	var regions: Array[Rect2] = []
@@ -57,7 +57,7 @@ func build_freeform() -> void:
 	stamps.anchors = anchors
 	ResourceSaver.save(stamps, root_dir.path_join("freeform/mossgrove.stamps.tres"))
 	stamps = load(root_dir.path_join("freeform/mossgrove.stamps.tres"))
-	var style_script: Script = load("res://addons/MetroidvaniaDeveloperSystem/nodes/idp_freeform_style.gd")
+	var style_script: Script = load("res://addons/MetroidvaniaDeveloperSystem/nodes/mds_freeform_style.gd")
 	var specs := {
 		"mossy_rock": {"display_name": "Mossy rock", "fill": "rock", "outline_color": Color("#080b10"), "outline_width": 3.0,
 			"top": "moss", "top_width": 58.0, "top_inset": 4.0, "top_angle": 78.0, "bottom": "under", "bottom_width": 40.0, "bottom_inset": 2.0,

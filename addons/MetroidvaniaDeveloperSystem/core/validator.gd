@@ -1,5 +1,5 @@
 @tool
-class_name IDPValidator
+class_name MDSValidator
 extends RefCounted
 ## Checks the map for data errors and common metroidvania design problems.
 ## Every issue points at a room or cell so the panel can jump to it.
@@ -14,11 +14,11 @@ const CATEGORY_NOTES := "Pins & notes"
 const CATEGORY_GEOMETRY := "Geometry"
 
 ## Returns an Array of {severity, category, message, room_id, cell: Vector3i}.
-static func run(model: IDPMapModel, ann: IDPAnnotations, analysis: IDPAnalysis, scene_db: Dictionary, scanned_scene_paths: Array = []) -> Array:
+static func run(model: MDSMapModel, ann: MDSAnnotations, analysis: MDSAnalysis, scene_db: Dictionary, scanned_scene_paths: Array = []) -> Array:
 	var issues: Array = []
 
 	# --- Map data -------------------------------------------------------------
-	for room: IDPMapModel.Room in model.rooms.values():
+	for room: MDSMapModel.Room in model.rooms.values():
 		var name := analysis.get_room_name(room.id)
 		if room.scene_uid.is_empty():
 			_add(issues, Severity.WARNING, CATEGORY_DATA, "No scene assigned to %d cell(s) at %s" % [room.cells.size(), _fmt(room.cells[0])], room.id, room.cells[0])
@@ -27,18 +27,18 @@ static func run(model: IDPMapModel, ann: IDPAnnotations, analysis: IDPAnalysis, 
 		for c in room.cells:
 			var cell := model.get_cell(c)
 			for d in 4:
-				if cell.borders[d] != IDPMapModel.BORDER_NONE:
+				if cell.borders[d] != MDSMapModel.BORDER_NONE:
 					continue
-				var n := c + Vector3i(IDPMapModel.FWD[d].x, IDPMapModel.FWD[d].y, 0)
+				var n := c + Vector3i(MDSMapModel.FWD[d].x, MDSMapModel.FWD[d].y, 0)
 				if not model.cells.has(n):
-					_add(issues, Severity.WARNING, CATEGORY_DATA, "%s: open edge (%s side of %s) leads outside the map" % [name, IDPMapModel.DIR_NAMES[d], _fmt(c)], room.id, c)
+					_add(issues, Severity.WARNING, CATEGORY_DATA, "%s: open edge (%s side of %s) leads outside the map" % [name, MDSMapModel.DIR_NAMES[d], _fmt(c)], room.id, c)
 	for uid in model.split_scenes:
 		var room := model.get_room(uid)
 		_add(issues, Severity.ERROR, CATEGORY_DATA, "%s is assigned to several disconnected cell regions; MetSys only keeps one" % analysis.get_room_name(uid), uid, room.cells[0] if room else Vector3i.MAX)
-	for door: IDPMapModel.Door in model.doors.values():
+	for door: MDSMapModel.Door in model.doors.values():
 		var a_name := analysis.get_room_name(door.a_room.id)
 		if door.leads_nowhere():
-			_add(issues, Severity.WARNING, CATEGORY_DATA, "%s: passage to nowhere (%s side of %s)" % [a_name, IDPMapModel.DIR_NAMES[door.a_dir], _fmt(door.a_cell)], door.a_room.id, door.a_cell)
+			_add(issues, Severity.WARNING, CATEGORY_DATA, "%s: passage to nowhere (%s side of %s)" % [a_name, MDSMapModel.DIR_NAMES[door.a_dir], _fmt(door.a_cell)], door.a_room.id, door.a_cell)
 		elif door.is_one_sided() and ann.get_door_one_way_from(door.key).is_empty():
 			var open_room := door.a_room if door.a_border > 0 else door.b_room
 			var wall_room := door.b_room if door.a_border > 0 else door.a_room
@@ -46,7 +46,7 @@ static func run(model: IDPMapModel, ann: IDPAnnotations, analysis: IDPAnalysis, 
 
 	# --- Room layout vs. scene content -----------------------------------------
 	var placed_paths: Dictionary = {}
-	for room: IDPMapModel.Room in model.rooms.values():
+	for room: MDSMapModel.Room in model.rooms.values():
 		if room.scene_path.is_empty():
 			continue
 		placed_paths[room.scene_path] = true
@@ -67,7 +67,7 @@ static func run(model: IDPMapModel, ann: IDPAnnotations, analysis: IDPAnalysis, 
 		for c in room.cells:
 			if not occupied.has(Vector2i(c.x, c.y) - room.min_cell):
 				_add(issues, Severity.INFO, CATEGORY_LAYOUT, "%s: assigned cell %s has no terrain yet" % [name, _fmt(c)], room.id, c)
-	for room: IDPMapModel.Room in model.rooms.values():
+	for room: MDSMapModel.Room in model.rooms.values():
 		var meta: Dictionary = scene_db.get(room.scene_path, {})
 		for t in meta.get("twisted", []):
 			var cell: Vector2i = room.min_cell + Vector2i(t.get("cell", Vector2i.ZERO))
@@ -75,7 +75,7 @@ static func run(model: IDPMapModel, ann: IDPAnnotations, analysis: IDPAnalysis, 
 		for o in meta.get("overlaps", []):
 			var cell: Vector2i = room.min_cell + Vector2i(o.get("cell", Vector2i.ZERO))
 			add_overlap_issue(issues, analysis.get_room_name(room.id), o, room.id, Vector3i(cell.x, cell.y, room.layer))
-		# Physics checks (IDPRoomCheck), run in the background by the panel.
+		# Physics checks (MDSRoomCheck), run in the background by the panel.
 		for g in meta.get("geometry", []):
 			var cell: Vector2i = room.min_cell + Vector2i(g.get("cell", Vector2i.ZERO))
 			_add(issues, Severity.WARNING, CATEGORY_GEOMETRY, g.message, room.id, Vector3i(cell.x, cell.y, room.layer))
@@ -92,7 +92,7 @@ static func run(model: IDPMapModel, ann: IDPAnnotations, analysis: IDPAnalysis, 
 
 ## Checks shared by every mode: progression, design heuristics, pins and notes.
 ## [param pin_locator] maps a pin Dictionary to {room_id, cell?, pos?} for jumping.
-static func run_common(issues: Array, ann: IDPAnnotations, analysis: IDPAnalysis, pin_locator: Callable) -> void:
+static func run_common(issues: Array, ann: MDSAnnotations, analysis: MDSAnalysis, pin_locator: Callable) -> void:
 	var graph := analysis.graph
 	# --- Progression -------------------------------------------------------------
 	if not analysis.start_room_id.is_empty():

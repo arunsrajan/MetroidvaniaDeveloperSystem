@@ -1,11 +1,11 @@
 @tool
-class_name IDPFreeformDecorator
+class_name MDSFreeformDecorator
 extends RefCounted
 ## Decorate freeform: scenery placed relative to a room's freeform rock, kept out of
 ## doorways and away from everything in the room.
 ## - [b]Hanging[/b]: stamps (ivy, hanging moss...) hung under ceilings and ledges.
 ## - [b]Floor plants[/b]: stamps (ferns, flowers, grass...) along floors.
-## - [b]Structures[/b]: background shapes from [IDPShapeGenerators] (broken columns, ruined
+## - [b]Structures[/b]: background shapes from [MDSShapeGenerators] (broken columns, ruined
 ##   arches, garden walls, mounds) standing on flat floors, with leaf stamps on top; and
 ##   stalactite curtains under flat ceilings.
 ## - [b]Foreground framing[/b]: leaf silhouettes in the room's free corners.
@@ -17,7 +17,7 @@ const META := &"idp_decor"
 ## Structures and plants are spread over regions of this size (a screen).
 const REGION := Vector2(1152, 648)
 
-var stamp_set: IDPStampSet
+var stamp_set: MDSStampSet
 var hanging := true
 ## Stamp category hung under ceilings ("" = none).
 var hanging_category := ""
@@ -25,15 +25,15 @@ var floor_plants := true
 ## Stamp categories placed on floors.
 var floor_categories: PackedStringArray = []
 var structures := true
-## [enum IDPShapeGenerators.Kind]s to build.
-var structure_kinds: Array[int] = [IDPShapeGenerators.Kind.COLUMN, IDPShapeGenerators.Kind.ARCH, IDPShapeGenerators.Kind.GARDEN_WALL]
+## [enum MDSShapeGenerators.Kind]s to build.
+var structure_kinds: Array[int] = [MDSShapeGenerators.Kind.COLUMN, MDSShapeGenerators.Kind.ARCH, MDSShapeGenerators.Kind.GARDEN_WALL]
 ## Style of the structures (non-solid, behind). Empty: the built-in plain background.
-var structure_style: IDPFreeformStyle
+var structure_style: MDSFreeformStyle
 ## Stamp category put on top of structures ("" = none).
 var leaf_category := ""
 var foreground := true
 ## Style of the foreground leaves. Empty: the built-in foreground silhouette.
-var foreground_style: IDPFreeformStyle
+var foreground_style: MDSFreeformStyle
 ## More or less of everything (1 = normal).
 var density := 1.0
 var seed_value := 0
@@ -50,26 +50,26 @@ var rect := Rect2()
 var _rock: Array[PackedVector2Array] = []
 var _rng := RandomNumberGenerator.new()
 
-func use_world_room(world: IDPWorld, id: String) -> void:
+func use_world_room(world: MDSWorld, id: String) -> void:
 	room_rects = world.get_local_rects(id)
-	gates = IDPRoomCheck.passages_from_world(world, id)
+	gates = MDSRoomCheck.passages_from_world(world, id)
 
-## Decorates the room [param painter] edits (call [method IDPRoomPainter.checkpoint]
+## Decorates the room [param painter] edits (call [method MDSRoomPainter.checkpoint]
 ## first). Returns {hanging, plants, structures, foreground, removed (earlier decoration)}.
-func decorate(painter: IDPRoomPainter) -> Dictionary:
+func decorate(painter: MDSRoomPainter) -> Dictionary:
 	var report := {"hanging": 0, "plants": 0, "structures": 0, "foreground": 0, "removed": 0}
 	placed.clear()
 	_rng.seed = hash("idp_decor_%d" % seed_value)
-	for g in IDPRoomPainter.ITEM_GROUPS:
+	for g in MDSRoomPainter.ITEM_GROUPS:
 		for item in painter.items(g):
 			if item.has_meta(META):
 				painter.remove_item(item)
 				report.removed += 1
 	_rock.clear()
 	var platforms: Array = []
-	for f in IDPFreeform.shapes_in(painter.items_root):
+	for f in MDSFreeform.shapes_in(painter.items_root):
 		if f.is_collider() and f.points.size() >= 3:
-			var poly := IDPRoomObjects.local_transform(f, painter.items_root) * f.get_outline()
+			var poly := MDSRoomObjects.local_transform(f, painter.items_root) * f.get_outline()
 			_rock.append(poly)
 			if f.is_platform():
 				platforms.append(poly)
@@ -77,13 +77,13 @@ func decorate(painter: IDPRoomPainter) -> Dictionary:
 	if room_rects.is_empty():
 		var b := Rect2()
 		for i in _rock.size():
-			b = IDPGeometry.bounds(_rock[i]) if i == 0 else b.merge(IDPGeometry.bounds(_rock[i]))
+			b = MDSGeometry.bounds(_rock[i]) if i == 0 else b.merge(MDSGeometry.bounds(_rock[i]))
 		room_rects = [b]
 	rect = room_rects[0]
 	for r in room_rects:
 		rect = rect.merge(r)
 	# Keep-out: the converter's doorways and zones.
-	var conv := IDPFreeformConverter.new()
+	var conv := MDSFreeformConverter.new()
 	conv.set_room(room_rects, gates)
 	var doors := conv.find_openings(_rock)
 	conv.find_zones(painter, platforms, doors)
@@ -115,12 +115,12 @@ func _tile_rock(layer: TileMapLayer) -> Array[PackedVector2Array]:
 		if ts.get_physics_layers_count() == 0 or (td and td.get_collision_polygons_count(0) > 0):
 			cells[c] = true
 	var half := Vector2(ts.tile_size) / 2.0
-	for r in IDPGeometry.cells_to_rects(cells, Vector2(ts.tile_size), layer.map_to_local(Vector2i.ZERO) - half):
-		out.append(layer.transform * IDPGeometry.rect_polygon(r))
+	for r in MDSGeometry.cells_to_rects(cells, Vector2(ts.tile_size), layer.map_to_local(Vector2i.ZERO) - half):
+		out.append(layer.transform * MDSGeometry.rect_polygon(r))
 	return out
 
 func _in_rock(p: Vector2) -> bool:
-	return IDPGeometry.point_in_any(_rock, p)
+	return MDSGeometry.point_in_any(_rock, p)
 
 func _in_room(p: Vector2, inset := 8.0) -> bool:
 	for r in room_rects:
@@ -143,7 +143,7 @@ func _stamp_rect(index: int, pos: Vector2, size: float) -> Rect2:
 	var region := stamp_set.regions[index].size * size
 	return Rect2(pos - stamp_set.anchor(index) * region, region)
 
-func _stamp(painter: IDPRoomPainter, category: String, pos: Vector2, size: float, rot: float, group: String, kind: String) -> Sprite2D:
+func _stamp(painter: MDSRoomPainter, category: String, pos: Vector2, size: float, rot: float, group: String, kind: String) -> Sprite2D:
 	var picks := stamp_set.indices(category)
 	if picks.is_empty():
 		return null
@@ -159,7 +159,7 @@ func _stamp(painter: IDPRoomPainter, category: String, pos: Vector2, size: float
 func _along(dir: Vector2, spacing: float) -> Array:
 	var out: Array = []
 	for poly in _rock:
-		for run in IDPFreeform.edge_runs(poly, IDPFreeform.outward_normals(poly), dir, 50.0):
+		for run in MDSFreeform.edge_runs(poly, MDSFreeform.outward_normals(poly), dir, 50.0):
 			var travelled := 0.0
 			var next := spacing * _rng.randf_range(0.3, 1.0)
 			for i in range(1, run.size()):
@@ -171,7 +171,7 @@ func _along(dir: Vector2, spacing: float) -> Array:
 				travelled += ln
 	return out
 
-func _hang(painter: IDPRoomPainter) -> int:
+func _hang(painter: MDSRoomPainter) -> int:
 	var n := 0
 	for p: Vector2 in _along(Vector2.DOWN, 150.0 / maxf(density, 0.1)):
 		if not _in_room(p) or _in_rock(p + Vector2(0, 16)):
@@ -180,7 +180,7 @@ func _hang(painter: IDPRoomPainter) -> int:
 			n += 1
 	return n
 
-func _plants(painter: IDPRoomPainter) -> int:
+func _plants(painter: MDSRoomPainter) -> int:
 	var n := 0
 	for p: Vector2 in _along(Vector2.UP, 80.0 / maxf(density, 0.1)):
 		if not _in_room(p) or _in_rock(p + Vector2(0, -16)):
@@ -237,10 +237,10 @@ func _regions() -> Array[Rect2]:
 				out.append(Rect2(r.position + Vector2(x, y) * size, size))
 	return out
 
-func _structures(painter: IDPRoomPainter) -> int:
+func _structures(painter: MDSRoomPainter) -> int:
 	var count := 0
 	var taken: Array[Rect2] = []
-	var st := structure_style if structure_style else IDPFreeformStyle.builtins()[1]
+	var st := structure_style if structure_style else MDSFreeformStyle.builtins()[1]
 	var per_region := maxi(1, roundi(2.0 * density))
 	for region in _regions():
 		var made := 0
@@ -248,12 +248,12 @@ func _structures(painter: IDPRoomPainter) -> int:
 			if made >= per_region:
 				break
 			var kind: int = structure_kinds[_rng.randi_range(0, structure_kinds.size() - 1)]
-			var w := IDPShapeGenerators.WIDTHS[kind] * _rng.randf_range(0.85, 1.15)
+			var w := MDSShapeGenerators.WIDTHS[kind] * _rng.randf_range(0.85, 1.15)
 			if w > region.size.x - 120.0:
 				continue
 			var x := _rng.randf_range(region.position.x + w * 0.5 + 60.0, region.end.x - w * 0.5 - 60.0)
 			var box: Rect2
-			if IDPShapeGenerators.is_standing(kind):
+			if MDSShapeGenerators.is_standing(kind):
 				var floor_y := _flat_floor(x - w * 0.5, x + w * 0.5, region)
 				if floor_y < 0.0:
 					continue
@@ -261,11 +261,11 @@ func _structures(painter: IDPRoomPainter) -> int:
 				var room_h := floor_y - ceil_y
 				var h := 0.0
 				match kind:
-					IDPShapeGenerators.Kind.COLUMN, IDPShapeGenerators.Kind.ARCH:
+					MDSShapeGenerators.Kind.COLUMN, MDSShapeGenerators.Kind.ARCH:
 						h = minf(_rng.randf_range(250.0, 400.0), room_h - 70.0)
 						if h < 120.0:
 							continue
-					IDPShapeGenerators.Kind.MOUND:
+					MDSShapeGenerators.Kind.MOUND:
 						h = _rng.randf_range(50.0, 90.0)
 					_:
 						h = _rng.randf_range(70.0, 110.0)
@@ -288,8 +288,8 @@ func _structures(painter: IDPRoomPainter) -> int:
 				box = Rect2(x - w * 0.5, top, w, _rng.randf_range(60.0, 140.0))
 			if not _in_room(box.get_center(), 0.0) or _blocked(box) or taken.any(func(t: Rect2) -> bool: return t.grow(80.0).intersects(box)):
 				continue
-			var d := IDPShapeGenerators.make(kind, box, _rng)
-			if not IDPGeometry.is_simple(IDPFreeform.outline_of(d.points, d.smooth)):
+			var d := MDSShapeGenerators.make(kind, box, _rng)
+			if not MDSGeometry.is_simple(MDSFreeform.outline_of(d.points, d.smooth)):
 				continue
 			taken.append(box)
 			count += 1
@@ -297,18 +297,18 @@ func _structures(painter: IDPRoomPainter) -> int:
 			var f := painter.add_freeform(d.points, st, "FreeformBack", false)
 			f.smooth = d.smooth
 			f.seed_value = _rng.randi() % 100000
-			f.name = "%s%d" % [IDPShapeGenerators.NAMES[kind].get_slice(" ", 0), count]
+			f.name = "%s%d" % [MDSShapeGenerators.NAMES[kind].get_slice(" ", 0), count]
 			_tag(f, "structure", box)
-			if stamp_set and not leaf_category.is_empty() and IDPShapeGenerators.is_standing(kind):
+			if stamp_set and not leaf_category.is_empty() and MDSShapeGenerators.is_standing(kind):
 				for k in _rng.randi_range(1, 2):
 					_stamp(painter, leaf_category, Vector2(x + _rng.randf_range(-w * 0.5, w * 0.5), box.position.y + _rng.randf_range(-10.0, 50.0)), _rng.randf_range(0.6, 0.95), 0.0, "StampsBack", "leaves")
 	return count
 
 ## Leaves in front of the room in its corners: a bush where a floor meets a side wall and a
 ## hanging mass where the ceiling does, only where nothing in the room is behind them.
-func _foreground(painter: IDPRoomPainter) -> int:
+func _foreground(painter: MDSRoomPainter) -> int:
 	var count := 0
-	var st := foreground_style if foreground_style else IDPFreeformStyle.builtins()[2]
+	var st := foreground_style if foreground_style else MDSFreeformStyle.builtins()[2]
 	var margin := 96.0
 	for side in [-1, 1]:
 		var edge_x: float = rect.position.x if side < 0 else rect.end.x
@@ -342,8 +342,8 @@ func _foreground(painter: IDPRoomPainter) -> int:
 				count += _front_shape(painter, pts, st, area, count)
 	return count
 
-func _front_shape(painter: IDPRoomPainter, pts: PackedVector2Array, st: IDPFreeformStyle, area: Rect2, count: int) -> int:
-	if not IDPGeometry.is_simple(IDPFreeform.outline_of(pts, true)):
+func _front_shape(painter: MDSRoomPainter, pts: PackedVector2Array, st: MDSFreeformStyle, area: Rect2, count: int) -> int:
+	if not MDSGeometry.is_simple(MDSFreeform.outline_of(pts, true)):
 		return 0
 	var f := painter.add_freeform(pts, st, "FreeformFront", false)
 	f.seed_value = _rng.randi() % 100000
@@ -353,7 +353,7 @@ func _front_shape(painter: IDPRoomPainter, pts: PackedVector2Array, st: IDPFreef
 
 ## Stamp categories of [param set] that hang (anchored at their top) and that stand
 ## (anchored at their bottom), for the dialog's defaults.
-static func categories_by_anchor(set: IDPStampSet) -> Dictionary:
+static func categories_by_anchor(set: MDSStampSet) -> Dictionary:
 	var hang: PackedStringArray = []
 	var stand: PackedStringArray = []
 	for cat in set.get_categories():

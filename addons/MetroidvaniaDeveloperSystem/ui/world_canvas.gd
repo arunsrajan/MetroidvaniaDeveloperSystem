@@ -1,5 +1,5 @@
 @tool
-class_name IDPWorldCanvas
+class_name MDSWorldCanvas
 extends Control
 ## Free-form world map editor for non-linear mode.
 ##
@@ -47,11 +47,11 @@ const COLOR_NO_AREA := Color(0.55, 0.55, 0.6)
 const MIN_ZOOM := 0.003
 const MAX_ZOOM := 2.0
 
-var world: IDPWorld
-var analysis: IDPAnalysis
+var world: MDSWorld
+var analysis: MDSAnalysis
 var scene_db: Dictionary = {}
 var layer := 0
-var color_mode: int = IDPMapCanvas.ColorMode.AREA
+var color_mode: int = MDSMapCanvas.ColorMode.AREA
 var tool: int = Tool.SELECT
 var show := {
 	"labels": true, "area_labels": true, "terrain": true, "previews": false, "gates": true,
@@ -112,7 +112,7 @@ func _init() -> void:
 
 # --- Public API ------------------------------------------------------------------------
 
-func set_data(p_world: IDPWorld, p_analysis: IDPAnalysis, p_scene_db: Dictionary) -> void:
+func set_data(p_world: MDSWorld, p_analysis: MDSAnalysis, p_scene_db: Dictionary) -> void:
 	if not is_same(p_scene_db, scene_db) or p_world != world:
 		_silhouettes.clear()
 		_preview_layer = -9999
@@ -207,59 +207,59 @@ func _after_view_change() -> void:
 func get_room_color(id: String) -> Color:
 	var info: Dictionary = analysis.get_info(id) if analysis else {}
 	match color_mode:
-		IDPMapCanvas.ColorMode.AREA, IDPMapCanvas.ColorMode.METSYS:
+		MDSMapCanvas.ColorMode.AREA, MDSMapCanvas.ColorMode.METSYS:
 			var area := world.get_room_area(id)
 			return world.get_area_color(area) if not area.is_empty() else COLOR_NO_AREA
-		IDPMapCanvas.ColorMode.ROOM_TYPE:
-			return IDPMapCanvas.TYPE_COLORS.get(info.get("type", ""), IDPMapCanvas.TYPE_COLORS[""])
-		IDPMapCanvas.ColorMode.PROGRESSION:
+		MDSMapCanvas.ColorMode.ROOM_TYPE:
+			return MDSMapCanvas.TYPE_COLORS.get(info.get("type", ""), MDSMapCanvas.TYPE_COLORS[""])
+		MDSMapCanvas.ColorMode.PROGRESSION:
 			if analysis and analysis.sphere_of.has(id):
-				return IDPMapCanvas.sphere_color(analysis.sphere_of[id], analysis.spheres.size())
-			return IDPMapCanvas.COLOR_LOCKED if analysis and id in analysis.locked else IDPMapCanvas.COLOR_DISCONNECTED
-		IDPMapCanvas.ColorMode.SAVE_DISTANCE:
+				return MDSMapCanvas.sphere_color(analysis.sphere_of[id], analysis.spheres.size())
+			return MDSMapCanvas.COLOR_LOCKED if analysis and id in analysis.locked else MDSMapCanvas.COLOR_DISCONNECTED
+		MDSMapCanvas.ColorMode.SAVE_DISTANCE:
 			return _save_distance_color(analysis.save_distance.get(id, -1) if analysis else -1)
-		IDPMapCanvas.ColorMode.STATUS:
-			return IDPMapCanvas.STATUS_COLORS.get(info.get("status", ""), IDPMapCanvas.STATUS_COLORS[""])
+		MDSMapCanvas.ColorMode.STATUS:
+			return MDSMapCanvas.STATUS_COLORS.get(info.get("status", ""), MDSMapCanvas.STATUS_COLORS[""])
 	return COLOR_NO_AREA
 
 func _save_distance_color(d: int) -> Color:
 	if d < 0:
-		return IDPMapCanvas.COLOR_DISCONNECTED
+		return MDSMapCanvas.COLOR_DISCONNECTED
 	if d == 0:
-		return IDPMapCanvas.TYPE_COLORS.save
+		return MDSMapCanvas.TYPE_COLORS.save
 	var warn: int = int(world.get_setting("save_distance_warn", 4))
 	return Color(0.25, 0.7, 0.35).lerp(Color(0.85, 0.2, 0.2), clampf(float(d - 1) / maxf(1.0, float(warn)), 0.0, 1.0))
 
 func get_legend() -> Array:
 	var items: Array = []
 	match color_mode:
-		IDPMapCanvas.ColorMode.AREA, IDPMapCanvas.ColorMode.METSYS:
+		MDSMapCanvas.ColorMode.AREA, MDSMapCanvas.ColorMode.METSYS:
 			for a in world.get_areas():
 				items.append([a, world.get_area_color(a)])
-		IDPMapCanvas.ColorMode.ROOM_TYPE:
+		MDSMapCanvas.ColorMode.ROOM_TYPE:
 			var seen := {}
 			for id in world.get_room_ids():
 				if analysis:
 					seen[analysis.get_info(id).get("type", "")] = true
-			for t in IDPMapCanvas.TYPE_COLORS:
+			for t in MDSMapCanvas.TYPE_COLORS:
 				if seen.has(t) and not (t == "" and seen.has("normal")):
-					items.append([t.capitalize() if not t.is_empty() else "Normal", IDPMapCanvas.TYPE_COLORS[t]])
-		IDPMapCanvas.ColorMode.PROGRESSION:
+					items.append([t.capitalize() if not t.is_empty() else "Normal", MDSMapCanvas.TYPE_COLORS[t]])
+		MDSMapCanvas.ColorMode.PROGRESSION:
 			if analysis:
 				for s in analysis.spheres:
 					var text := "Start" if s.index == 0 else "After %s" % ", ".join(analysis.spheres[s.index - 1].gained)
-					items.append(["Sphere %d: %s" % [s.index, text], IDPMapCanvas.sphere_color(s.index, analysis.spheres.size())])
-			items.append(["Locked", IDPMapCanvas.COLOR_LOCKED])
-			items.append(["Not connected", IDPMapCanvas.COLOR_DISCONNECTED])
-		IDPMapCanvas.ColorMode.SAVE_DISTANCE:
+					items.append(["Sphere %d: %s" % [s.index, text], MDSMapCanvas.sphere_color(s.index, analysis.spheres.size())])
+			items.append(["Locked", MDSMapCanvas.COLOR_LOCKED])
+			items.append(["Not connected", MDSMapCanvas.COLOR_DISCONNECTED])
+		MDSMapCanvas.ColorMode.SAVE_DISTANCE:
 			var warn: int = int(world.get_setting("save_distance_warn", 4))
 			items.append(["Save room", _save_distance_color(0)])
 			items.append(["1 room away", _save_distance_color(1)])
 			items.append(["%d+ rooms" % (warn + 1), _save_distance_color(warn + 1)])
-			items.append(["No save reachable", IDPMapCanvas.COLOR_DISCONNECTED])
-		IDPMapCanvas.ColorMode.STATUS:
-			for s in IDPMapCanvas.STATUS_COLORS:
-				items.append([s.capitalize() if not s.is_empty() else "No status", IDPMapCanvas.STATUS_COLORS[s]])
+			items.append(["No save reachable", MDSMapCanvas.COLOR_DISCONNECTED])
+		MDSMapCanvas.ColorMode.STATUS:
+			for s in MDSMapCanvas.STATUS_COLORS:
+				items.append([s.capitalize() if not s.is_empty() else "No status", MDSMapCanvas.STATUS_COLORS[s]])
 	return items
 
 func _border_px() -> float:
@@ -291,9 +291,9 @@ func _draw() -> void:
 		# Rooms without a scene keep their full color (a freshly painted map is all of them);
 		# their label says "(no scene)".
 		var fill := color
-		if style.kind == IDPMapStyle.Kind.ATLAS:
+		if style.kind == MDSMapStyle.Kind.ATLAS:
 			fill = color.lightened(0.2)
-		if style.kind != IDPMapStyle.Kind.FLAT:
+		if style.kind != MDSMapStyle.Kind.FLAT:
 			style.draw_room(self, get_cells(id), world.get_paint_cell(), world_to_screen, zoom, fill, _style_border_color(style, color), _passages(id))
 		else:
 			# Border first, fill on top: rects of one room merge into a single shape.
@@ -314,11 +314,11 @@ func set_brush_size(value: int) -> void:
 	status_message.emit("Brush %dx%d cells" % [brush_size, brush_size])
 	_overlay.queue_redraw()
 
-func get_style() -> IDPMapStyle:
-	return IDPMapStyle.get_style(str(world.get_setting("map_style", "handdrawn")))
+func get_style() -> MDSMapStyle:
+	return MDSMapStyle.get_style(str(world.get_setting("map_style", "handdrawn")))
 
-func _style_border_color(style: IDPMapStyle, color: Color) -> Color:
-	if style.kind == IDPMapStyle.Kind.METSYS and style.theme.get("default_border_color") is Color:
+func _style_border_color(style: MDSMapStyle, color: Color) -> Color:
+	if style.kind == MDSMapStyle.Kind.METSYS and style.theme.get("default_border_color") is Color:
 		return style.theme.default_border_color
 	return color.lightened(0.3)
 
@@ -494,7 +494,7 @@ func _draw_connections(ci: CanvasItem, ids: Array[String]) -> void:
 				continue # drawn from the other side
 			var p1 := world_to_screen(world.get_gate_world_pos(id, gate_name))
 			var p2 := world_to_screen(world.get_gate_world_pos(to, gate.to_gate))
-			var reqs: PackedStringArray = analysis.get_door_requires(IDPWorld.edge_key(id, gate_name, to, gate.to_gate)) if analysis else PackedStringArray()
+			var reqs: PackedStringArray = analysis.get_door_requires(MDSWorld.edge_key(id, gate_name, to, gate.to_gate)) if analysis else PackedStringArray()
 			var color := get_room_color(id).lightened(0.15)
 			var near := p1.distance_to(p2) < maxf(world.get_grid() * 4.0 * zoom, 18.0)
 			if near:
@@ -505,7 +505,7 @@ func _draw_connections(ci: CanvasItem, ids: Array[String]) -> void:
 				ci.draw_dashed_line(p1, p2, Color(color, 0.8), 2.0, 8.0)
 			var mid := (p1 + p2) / 2.0
 			if not reqs.is_empty():
-				_draw_lock(ci, mid, 6.0, IDPMapCanvas.ability_color(reqs[0]))
+				_draw_lock(ci, mid, 6.0, MDSMapCanvas.ability_color(reqs[0]))
 			if not two_way or gate.get("one_way", false):
 				var dir := (p2 - p1).normalized() if p1.distance_to(p2) > 1 else Vector2.RIGHT
 				var tip := mid + dir * 7.0
@@ -535,7 +535,7 @@ func _draw_gates(ci: CanvasItem, id: String) -> void:
 			color = Color(1, 0.85, 0.2)
 		var reqs: Array = gate.get("requires", [])
 		if not reqs.is_empty():
-			color = IDPMapCanvas.ability_color(reqs[0])
+			color = MDSMapCanvas.ability_color(reqs[0])
 		var r := Rect2(p - Vector2(s, s) / 2.0, Vector2(s, s))
 		if gate.get("side", "") == "door":
 			ci.draw_circle(p, s * 0.6, color)
@@ -616,9 +616,9 @@ func _draw_markers(ci: CanvasItem, id: String) -> void:
 	var origin := world.get_origin(id)
 	var icon := clampf(zoom * 250.0, 8.0, 26.0)
 	var groups := [
-		["Save Points", "save_points", IDPMapCanvas.SAVEPOINT_TEXTURE],
-		["Collectibles", "collectibles", IDPMapCanvas.COLLECTIBLE_TEXTURE],
-		["Teleporters", "teleporters", IDPMapCanvas.TELEPORTER_TEXTURE],
+		["Save Points", "save_points", MDSMapCanvas.SAVEPOINT_TEXTURE],
+		["Collectibles", "collectibles", MDSMapCanvas.COLLECTIBLE_TEXTURE],
+		["Teleporters", "teleporters", MDSMapCanvas.TELEPORTER_TEXTURE],
 		["Shops", "shops", null],
 		["Enemies", "enemies", null],
 	]
@@ -661,7 +661,7 @@ func _draw_pins(ci: CanvasItem) -> void:
 		if int(pin.layer) != layer:
 			continue
 		var p := world_to_screen(Vector2(float(pin.x), float(pin.y)))
-		var color: Color = IDPMapCanvas.PIN_COLORS.get(pin.get("kind", "note"), Color.WHITE)
+		var color: Color = MDSMapCanvas.PIN_COLORS.get(pin.get("kind", "note"), Color.WHITE)
 		ci.draw_line(p, p - Vector2(0, 14), Color.BLACK, 2.0)
 		ci.draw_circle(p - Vector2(0, 16), 5.0, color)
 		ci.draw_string_outline(font, p + Vector2(8, -12), pin.text, HORIZONTAL_ALIGNMENT_LEFT, 200, 12, 3, Color.BLACK)
@@ -783,14 +783,14 @@ func _update_previews() -> void:
 		var path := world.get_scene_path(id)
 		if world.get_room_layer(id) != layer or path.is_empty():
 			continue
-		# A picture made while the game was played (IDPRoomPictures) is much cheaper than the
+		# A picture made while the game was played (MDSRoomPictures) is much cheaper than the
 		# live scene, and is only used while the scene is unchanged since.
-		var tex := IDPRoomPictures.load_cached(path)
+		var tex := MDSRoomPictures.load_cached(path)
 		if tex:
 			var pic := Sprite2D.new()
 			pic.centered = false
 			pic.texture = tex
-			var r := IDPRoomPictures.room_rect(world, id)
+			var r := MDSRoomPictures.room_rect(world, id)
 			pic.position = world.get_origin(id) + r.position
 			pic.scale = r.size / Vector2(tex.get_size())
 			pic.set_meta(&"idp_offset", r.position)

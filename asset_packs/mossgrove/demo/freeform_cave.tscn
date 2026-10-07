@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="TileSet" path="res://asset_packs/mossgrove/mossgrove_tileset.tres" id="1_6u3r6"]
-[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_freeform.gd" id="2_ejss3"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_freeform.gd" id="2_ejss3"]
 [ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/styles/jungle_foliage.freeform.tres" id="3_tihsv"]
 [ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/clumps.png" id="4_asnth"]
 [ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/styles/mossy_rock.freeform.tres" id="5_j8kej"]

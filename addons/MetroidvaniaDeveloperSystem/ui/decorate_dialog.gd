@@ -1,14 +1,14 @@
 @tool
-class_name IDPDecorateDialog
+class_name MDSDecorateDialog
 extends ConfirmationDialog
-## The Room view's "Decorate freeform..." dialog (see [IDPFreeformDecorator]): what to place
+## The Room view's "Decorate freeform..." dialog (see [MDSFreeformDecorator]): what to place
 ## (hanging stamps, floor plants, background structures, foreground leaves), from which
 ## stamp set and styles, how much, and a seed. Preview places it so it can be looked at;
 ## Cancel takes it back out. Running it again replaces the earlier decoration.
 
-var view: IDPRoomView
-var _styles: Array[IDPFreeformStyle] = []
-var _sets: Array[IDPStampSet] = []
+var view: MDSRoomView
+var _styles: Array[MDSFreeformStyle] = []
+var _sets: Array[MDSStampSet] = []
 var _set: OptionButton
 var _hang: CheckBox
 var _hang_cat: OptionButton
@@ -30,11 +30,11 @@ func _init() -> void:
 	var box := VBoxContainer.new()
 	box.custom_minimum_size.x = 440
 	add_child(box)
-	box.add_child(IDPUi.hint("Places scenery relative to the room's freeform rock, never over doorways, platforms or anything in the room. Running it again replaces what it placed before."))
+	box.add_child(MDSUi.hint("Places scenery relative to the room's freeform rock, never over doorways, platforms or anything in the room. Running it again replaces what it placed before."))
 	var grid := GridContainer.new()
 	grid.columns = 2
 	box.add_child(grid)
-	grid.add_child(IDPUi.label("Stamp set"))
+	grid.add_child(MDSUi.label("Stamp set"))
 	_set = OptionButton.new()
 	_set.item_selected.connect(func(_i: int) -> void: _fill_categories())
 	grid.add_child(_set)
@@ -52,33 +52,33 @@ func _init() -> void:
 	grid2.add_child(Control.new())
 	_kind_box = HFlowContainer.new()
 	box.add_child(_kind_box)
-	for i in IDPShapeGenerators.NAMES.size():
+	for i in MDSShapeGenerators.NAMES.size():
 		var cb := CheckBox.new()
-		cb.text = IDPShapeGenerators.NAMES[i]
-		cb.tooltip_text = IDPShapeGenerators.TIPS[i]
-		cb.button_pressed = i in [IDPShapeGenerators.Kind.COLUMN, IDPShapeGenerators.Kind.ARCH, IDPShapeGenerators.Kind.GARDEN_WALL]
+		cb.text = MDSShapeGenerators.NAMES[i]
+		cb.tooltip_text = MDSShapeGenerators.TIPS[i]
+		cb.button_pressed = i in [MDSShapeGenerators.Kind.COLUMN, MDSShapeGenerators.Kind.ARCH, MDSShapeGenerators.Kind.GARDEN_WALL]
 		cb.set_meta(&"kind", i)
 		_kind_box.add_child(cb)
 	var grid3 := GridContainer.new()
 	grid3.columns = 2
 	box.add_child(grid3)
-	grid3.add_child(IDPUi.label("Structure style"))
+	grid3.add_child(MDSUi.label("Structure style"))
 	_struct_style = OptionButton.new()
 	grid3.add_child(_struct_style)
-	grid3.add_child(IDPUi.label("Leaves on them"))
+	grid3.add_child(MDSUi.label("Leaves on them"))
 	_leaf_cat = OptionButton.new()
 	grid3.add_child(_leaf_cat)
 	_front = _toggle(grid3, "Foreground", "Leaf silhouettes framing the room's free corners, in front of everything")
 	_front_style = OptionButton.new()
 	grid3.add_child(_front_style)
-	grid3.add_child(IDPUi.label("Density"))
+	grid3.add_child(MDSUi.label("Density"))
 	_density = SpinBox.new()
 	_density.min_value = 10
 	_density.max_value = 300
 	_density.value = 100
 	_density.suffix = "%"
 	grid3.add_child(_density)
-	grid3.add_child(IDPUi.label("Seed"))
+	grid3.add_child(MDSUi.label("Seed"))
 	_seed = SpinBox.new()
 	_seed.max_value = 99999
 	_seed.tooltip_text = "Same seed, same decoration"
@@ -102,7 +102,7 @@ func _toggle(grid: GridContainer, text: String, tip: String) -> CheckBox:
 	grid.add_child(cb)
 	return cb
 
-func open(p_view: IDPRoomView, styles: Array[IDPFreeformStyle], sets: Array[IDPStampSet]) -> void:
+func open(p_view: MDSRoomView, styles: Array[MDSFreeformStyle], sets: Array[MDSStampSet]) -> void:
 	view = p_view
 	_styles = styles
 	_sets = sets
@@ -119,7 +119,7 @@ func open(p_view: IDPRoomView, styles: Array[IDPFreeformStyle], sets: Array[IDPS
 	_seed.value = absi(hash(view.room_id)) % 10000
 	popup_centered()
 
-func _stamp_set() -> IDPStampSet:
+func _stamp_set() -> MDSStampSet:
 	return _sets[_set.selected] if _set.selected >= 0 and _set.selected < _sets.size() else null
 
 func _fill_categories() -> void:
@@ -132,7 +132,7 @@ func _fill_categories() -> void:
 	if not st:
 		_hang_cat.add_item("(none)")
 		return
-	var by := IDPFreeformDecorator.categories_by_anchor(st)
+	var by := MDSFreeformDecorator.categories_by_anchor(st)
 	for cat in st.get_categories():
 		_hang_cat.add_item(cat)
 		_leaf_cat.add_item(cat)
@@ -167,7 +167,7 @@ func _fill_styles(o: OptionButton, layer: String, words: Array) -> void:
 func _run() -> Dictionary:
 	var painter := view.painter
 	painter.checkpoint()
-	var d := IDPFreeformDecorator.new()
+	var d := MDSFreeformDecorator.new()
 	d.stamp_set = _stamp_set()
 	d.hanging = _hang.button_pressed and d.stamp_set != null
 	d.hanging_category = _hang_cat.get_item_text(_hang_cat.selected) if d.hanging and _hang_cat.selected >= 0 else ""

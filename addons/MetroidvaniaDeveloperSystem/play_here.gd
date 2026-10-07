@@ -1,5 +1,5 @@
 @tool
-class_name IDPPlayHere
+class_name MDSPlayHere
 extends RefCounted
 ## Editor side of "Play from here": picks the game scene that should host the room, writes
 ## a play request and runs the launcher scene, which boots that game scene in the room.
@@ -11,7 +11,7 @@ extends RefCounted
 ## wins. Override with the project setting [code]interactive_dev_panel/play_scene[/code]
 ## (or the world's "Play scene" setting in non-linear mode).
 
-const LAUNCHER := "res://addons/MetroidvaniaDeveloperSystem/nodes/idp_play_launcher.tscn"
+const LAUNCHER := "res://addons/MetroidvaniaDeveloperSystem/nodes/mds_play_launcher.tscn"
 const SETTING_PLAY_SCENE := "interactive_dev_panel/play_scene"
 const CACHE_SECONDS := 60.0
 
@@ -28,7 +28,7 @@ static func play(scene_path: String, room_uid: String, layer: int, local_pos: Ve
 		game_scene = ""
 	if game_scene.is_empty():
 		game_scene = pick_game_scene(scene_path)
-	var err := IDPRuntime.write_play_request(scene_path, room_uid, Vector3i(0, 0, layer), local_pos, game_scene)
+	var err := MDSRuntime.write_play_request(scene_path, room_uid, Vector3i(0, 0, layer), local_pos, game_scene)
 	if err != OK:
 		return "Could not write the play request (error %d)." % err
 	EditorInterface.play_custom_scene(LAUNCHER)
@@ -58,7 +58,7 @@ static func _common_dir_length(a: String, b: String) -> int:
 	return n
 
 ## Scenes that can host a room: root script extends MetSysGame, has a starting_map
-## property, or implements idp_play_from(request) or load_room(path). Cached for a minute.
+## property, or implements mds_play_from(request) (idp_play_from before 3.0) or load_room(path). Cached for a minute.
 static func find_game_scenes() -> Array:
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - _cache_time < CACHE_SECONDS:
@@ -130,7 +130,7 @@ static func is_game_script(script_path: String) -> bool:
 			if p.name == "starting_map":
 				return true
 		for m in script.get_script_method_list():
-			if m.name == "idp_play_from" or m.name == "load_room":
+			if m.name in ["mds_play_from", "idp_play_from", "load_room"]:
 				return true
 		script = script.get_base_script()
 	return false

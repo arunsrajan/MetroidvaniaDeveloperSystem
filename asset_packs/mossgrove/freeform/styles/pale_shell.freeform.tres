@@ -1,8 +1,8 @@
-[gd_resource type="Resource" script_class="IDPFreeformStyle" format=3]
+[gd_resource type="Resource" script_class="MDSFreeformStyle" format=3]
 
 [ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_under.png" id="1_4tp3h"]
 [ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/fill_shell.png" id="2_1rwhm"]
-[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_freeform_style.gd" id="3_ptgb1"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_freeform_style.gd" id="3_ptgb1"]
 [ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/edge_shell.png" id="4_ddsfb"]
 
 [resource]

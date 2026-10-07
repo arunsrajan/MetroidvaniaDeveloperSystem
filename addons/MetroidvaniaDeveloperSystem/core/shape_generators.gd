@@ -1,5 +1,5 @@
 @tool
-class_name IDPShapeGenerators
+class_name MDSShapeGenerators
 extends RefCounted
 ## Scenery outlines made from a few parameters, for freeform shapes: ruins and rock that stand
 ## on a floor (column, broken arch, garden wall, mound) or hang from a ceiling (stalactite
@@ -25,12 +25,12 @@ static func is_standing(kind: int) -> bool:
 	return kind in STANDING
 
 ## The outline of [param kind] filling [param box]: {points, smooth}. Points are in the box's
-## space (absolute). The outline is simple (see [method IDPGeometry.is_simple]); a few random
+## space (absolute). The outline is simple (see [method MDSGeometry.is_simple]); a few random
 ## variations are tried, then a plainer one.
 static func make(kind: int, box: Rect2, rng: RandomNumberGenerator) -> Dictionary:
 	for attempt in 6:
 		var d := _make(kind, box, rng, attempt >= 4)
-		if d.points.size() >= 3 and IDPGeometry.is_simple(IDPFreeform.outline_of(d.points, d.smooth)):
+		if d.points.size() >= 3 and MDSGeometry.is_simple(MDSFreeform.outline_of(d.points, d.smooth)):
 			return d
 	var plain := _make(kind, box, rng, true)
 	plain.smooth = false

@@ -1,9 +1,9 @@
 @tool
-class_name IDPWorldPanel
+class_name MDSWorldPanel
 extends Control
 ## Non-linear mode: draw rooms freely on a world map, place scenes on it, connect them
 ## with Hollow Knight-style gates and group them into areas. Data lives in a
-## [code].idpworld.json[/code] file ([IDPWorld]); MetSys is not needed.
+## [code].idpworld.json[/code] file ([MDSWorld]); MetSys is not needed.
 
 const DEFAULT_FILTERS: PackedStringArray = ["Save Points", "Bosses", "Collectibles", "Teleporters", "Shops", "Enemies"]
 const DEFAULT_FILTERS_ON: PackedStringArray = ["Save Points", "Bosses"]
@@ -23,9 +23,9 @@ enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, 
 
 # Data
 var world_path := ""
-var world: IDPWorld
-var analysis: IDPAnalysis
-var graph: IDPGraph
+var world: MDSWorld
+var analysis: MDSAnalysis
+var graph: MDSGraph
 var scene_database: Dictionary = {}
 var issues: Array = []
 var current_filters: Dictionary = {}
@@ -33,9 +33,9 @@ var current_filters: Dictionary = {}
 # UI
 ## The host inserts the mode switch at the start of this box (the World section).
 var toolbar: Container
-var side_panel: IDPSidePanel
+var side_panel: MDSSidePanel
 var side_tabs_check: CheckBox
-var canvas: IDPWorldCanvas
+var canvas: MDSWorldCanvas
 var world_picker: OptionButton
 var tool_buttons: Array[Button] = []
 var layer_picker: OptionButton
@@ -60,7 +60,7 @@ var inspector_scroll: ScrollContainer
 var inspector: VBoxContainer
 var area_tree: Tree
 var area_box: VBoxContainer
-var views: IDPAnalysisViews
+var views: MDSAnalysisViews
 var status_label: Label
 var progress_bar: ProgressBar
 var context_menu: PopupMenu
@@ -72,7 +72,7 @@ var settings_dialog: AcceptDialog
 
 # State
 var _files_ready := false ## the editor finished its startup scan and imports
-var _scanner: IDPSceneScanner
+var _scanner: MDSSceneScanner
 var _save_timer: Timer
 var _refresh_timer: Timer
 var _file_timer: Timer
@@ -89,7 +89,7 @@ var _inspector_info: RichTextLabel
 var _selected_area := ""
 var _filling_list := false
 var _export_viewport: SubViewport
-var room_view: IDPRoomView
+var room_view: MDSRoomView
 ## Gate nodes are added to room scenes when gates are added or connected on the map.
 var _gate_state: Dictionary = {} ## room -> {gate: "to|to_gate"} at the last change
 var _gate_rooms: Dictionary = {} ## rooms waiting for their gate nodes
@@ -98,14 +98,14 @@ var _gate_log: Array = [] ## automatic writes to saved scenes, for undo
 var map_view_button: Button
 var room_view_button: Button
 ## Physics checks of the room scenes (Issues > Geometry), in the background.
-var geometry_checker: IDPGeometryChecker
+var geometry_checker: MDSGeometryChecker
 
 func _ready() -> void:
 	if is_part_of_edited_scene():
 		return
 	_build_ui()
 	_setup_filters()
-	geometry_checker = IDPGeometryChecker.new()
+	geometry_checker = MDSGeometryChecker.new()
 	add_child(geometry_checker)
 	geometry_checker.progress.connect(func(current: int, total: int, path: String) -> void:
 		_set_status("Checking room geometry %d/%d: %s" % [current, total, path.get_file()]))
@@ -149,7 +149,7 @@ func _build_ui() -> void:
 	var main := HBoxContainer.new()
 	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(main)
-	side_panel = IDPSidePanel.new()
+	side_panel = MDSSidePanel.new()
 	main.add_child(side_panel)
 
 	# World: mode switch (added by the host), world file, scenes, export.
@@ -161,38 +161,38 @@ func _build_ui() -> void:
 	world_picker.item_selected.connect(_on_world_picked)
 	toolbar.add_child(world_picker)
 
-	scenes_menu = IDPUi.menu_button("Scenes", "Scan, place and connect scenes")
+	scenes_menu = MDSUi.menu_button("Scenes", "Scan, place and connect scenes")
 	var sp := scenes_menu.get_popup()
 	sp.add_item("Rescan world scenes", ScenesItem.RESCAN)
 	sp.add_item("Add scenes to map...", ScenesItem.ADD_SCENES)
 	sp.add_item("Add doors between touching rooms", ScenesItem.AUTO_DOORS)
 	sp.add_item("Auto-connect facing gates", ScenesItem.AUTO_CONNECT)
 	sp.add_separator()
-	sp.add_item("Create game scene (IDPWorldGame)...", ScenesItem.GAME_SCENE)
+	sp.add_item("Create game scene (MDSWorldGame)...", ScenesItem.GAME_SCENE)
 	sp.add_item("World settings...", ScenesItem.SETTINGS)
 	sp.id_pressed.connect(_on_scenes_menu)
-	export_menu = IDPUi.menu_button("Export")
+	export_menu = MDSUi.menu_button("Export")
 	var ep := export_menu.get_popup()
 	ep.add_item("World + analysis (JSON)", ExportItem.JSON)
 	ep.add_item("Map image (PNG)", ExportItem.PNG)
 	ep.add_item("Room graph (Graphviz .dot)", ExportItem.DOT)
 	ep.add_item("Design document (Markdown)", ExportItem.MARKDOWN)
 	ep.id_pressed.connect(_on_export_menu)
-	IDPSidePanel.row(toolbar, [scenes_menu, export_menu])
+	MDSSidePanel.row(toolbar, [scenes_menu, export_menu])
 
 	# View: map or the selected room's actual contents.
 	var view_section := side_panel.add_section("View")
 	var view_group := ButtonGroup.new()
-	map_view_button = IDPUi.button("Map view", "The world map")
+	map_view_button = MDSUi.button("Map view", "The world map")
 	map_view_button.toggle_mode = true
 	map_view_button.button_group = view_group
 	map_view_button.button_pressed = true
 	map_view_button.pressed.connect(show_map_view)
-	room_view_button = IDPUi.button("Room view", "Paint the selected room's actual contents (terrain, background, decorations)")
+	room_view_button = MDSUi.button("Room view", "Paint the selected room's actual contents (terrain, background, decorations)")
 	room_view_button.toggle_mode = true
 	room_view_button.button_group = view_group
 	room_view_button.pressed.connect(func() -> void: show_room_view(canvas.selected_room))
-	IDPSidePanel.row(view_section, [map_view_button, room_view_button])
+	MDSSidePanel.row(view_section, [map_view_button, room_view_button])
 	side_tabs_check = CheckBox.new()
 	side_tabs_check.text = "Side tabs"
 	side_tabs_check.button_pressed = true
@@ -202,11 +202,11 @@ func _build_ui() -> void:
 
 	# Map tools.
 	var tools := side_panel.add_section(SECTION_TOOLS)
-	var tool_grid := IDPSidePanel.grid(tools, 2)
+	var tool_grid := MDSSidePanel.grid(tools, 2)
 	var group := ButtonGroup.new()
 	var short_names := ["Select", "Room", "Extend", "Gate", "Pin", "Paint", "Erase"]
-	for i in IDPWorldCanvas.TOOL_NAMES.size():
-		var b := IDPUi.button(short_names[i], IDPWorldCanvas.TOOL_NAMES[i] + "\n" + IDPWorldCanvas.TOOL_HINTS[i])
+	for i in MDSWorldCanvas.TOOL_NAMES.size():
+		var b := MDSUi.button(short_names[i], MDSWorldCanvas.TOOL_NAMES[i] + "\n" + MDSWorldCanvas.TOOL_HINTS[i])
 		b.toggle_mode = true
 		b.button_group = group
 		b.button_pressed = i == 0
@@ -214,7 +214,7 @@ func _build_ui() -> void:
 			canvas.set_tool(i)
 			canvas.grab_focus())
 		tool_buttons.append(b)
-		tool_grid.add_child(IDPSidePanel.fill(b))
+		tool_grid.add_child(MDSSidePanel.fill(b))
 	brush_spin = SpinBox.new()
 	brush_spin.min_value = 1
 	brush_spin.max_value = 8
@@ -224,16 +224,16 @@ func _build_ui() -> void:
 	brush_spin.value_changed.connect(func(v: float) -> void:
 		if int(v) != canvas.brush_size:
 			canvas.set_brush_size(int(v)))
-	tool_grid.add_child(IDPSidePanel.fill(brush_spin))
-	undo_button = IDPUi.button("Undo", "Undo (Ctrl+Z on the map)")
+	tool_grid.add_child(MDSSidePanel.fill(brush_spin))
+	undo_button = MDSUi.button("Undo", "Undo (Ctrl+Z on the map)")
 	undo_button.pressed.connect(func() -> void:
 		if world:
 			world.undo())
-	redo_button = IDPUi.button("Redo", "Redo (Ctrl+Y on the map)")
+	redo_button = MDSUi.button("Redo", "Redo (Ctrl+Y on the map)")
 	redo_button.pressed.connect(func() -> void:
 		if world:
 			world.redo())
-	IDPSidePanel.row(tools, [undo_button, redo_button])
+	MDSSidePanel.row(tools, [undo_button, redo_button])
 
 	# Map display.
 	var display := side_panel.add_section(SECTION_DISPLAY)
@@ -244,21 +244,21 @@ func _build_ui() -> void:
 			_add_layer()
 		else:
 			_set_layer(id))
-	IDPSidePanel.field(display, "Layer", layer_picker)
+	MDSSidePanel.field(display, "Layer", layer_picker)
 	style_picker = OptionButton.new()
-	style_picker.tooltip_text = "Tileset used to draw rooms (also used by the in-game IDPWorldMapView)"
+	style_picker.tooltip_text = "Tileset used to draw rooms (also used by the in-game MDSWorldMapView)"
 	style_picker.item_selected.connect(_on_style_picked)
-	IDPSidePanel.field(display, "Style", style_picker)
+	MDSSidePanel.field(display, "Style", style_picker)
 	color_picker = OptionButton.new()
-	var modes := [[IDPMapCanvas.ColorMode.AREA, "Area"], [IDPMapCanvas.ColorMode.ROOM_TYPE, "Room type"], [IDPMapCanvas.ColorMode.PROGRESSION, "Progression"], [IDPMapCanvas.ColorMode.SAVE_DISTANCE, "Save distance"], [IDPMapCanvas.ColorMode.STATUS, "Build status"]]
+	var modes := [[MDSMapCanvas.ColorMode.AREA, "Area"], [MDSMapCanvas.ColorMode.ROOM_TYPE, "Room type"], [MDSMapCanvas.ColorMode.PROGRESSION, "Progression"], [MDSMapCanvas.ColorMode.SAVE_DISTANCE, "Save distance"], [MDSMapCanvas.ColorMode.STATUS, "Build status"]]
 	for m in modes:
 		color_picker.add_item(m[1], m[0])
 	color_picker.item_selected.connect(func(idx: int) -> void:
 		canvas.color_mode = color_picker.get_item_id(idx)
 		canvas.redraw())
-	IDPSidePanel.field(display, "Color", color_picker)
+	MDSSidePanel.field(display, "Color", color_picker)
 
-	view_menu = IDPUi.menu_button("Show on map...")
+	view_menu = MDSUi.menu_button("Show on map...")
 	var vp := view_menu.get_popup()
 	vp.hide_on_checkable_item_selection = false
 	var view_items := [
@@ -275,19 +275,19 @@ func _build_ui() -> void:
 		var idx := vp.get_item_index(id)
 		vp.set_item_checked(idx, not vp.is_item_checked(idx))
 		canvas.set_show(vp.get_item_metadata(idx), vp.is_item_checked(idx)))
-	display.add_child(IDPSidePanel.fill(view_menu))
+	display.add_child(MDSSidePanel.fill(view_menu))
 
-	var zoom_out := IDPUi.button("-", "Zoom out")
+	var zoom_out := MDSUi.button("-", "Zoom out")
 	zoom_out.pressed.connect(func() -> void: canvas.set_zoom(canvas.zoom / 1.25))
-	zoom_label = IDPUi.label("")
+	zoom_label = MDSUi.label("")
 	zoom_label.custom_minimum_size.x = 44
 	zoom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var zoom_in := IDPUi.button("+", "Zoom in (or mouse wheel over the map)")
+	var zoom_in := MDSUi.button("+", "Zoom in (or mouse wheel over the map)")
 	zoom_in.pressed.connect(func() -> void: canvas.set_zoom(canvas.zoom * 1.25))
-	var fit := IDPUi.button("Fit", "Fit the layer in view (F)")
+	var fit := MDSUi.button("Fit", "Fit the layer in view (F)")
 	fit.pressed.connect(func() -> void: canvas.fit_to_layer())
-	IDPSidePanel.row(display, [zoom_out, zoom_label, zoom_in, fit])
-	route_button = IDPUi.button("Clear route", "Clear the highlighted route / highlight (Esc)")
+	MDSSidePanel.row(display, [zoom_out, zoom_label, zoom_in, fit])
+	route_button = MDSUi.button("Clear route", "Clear the highlighted route / highlight (Esc)")
 	route_button.visible = false
 	route_button.pressed.connect(_clear_route_and_highlight)
 	display.add_child(route_button)
@@ -300,7 +300,7 @@ func _build_ui() -> void:
 	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main.add_child(split)
-	canvas = IDPWorldCanvas.new()
+	canvas = MDSWorldCanvas.new()
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	canvas.custom_minimum_size = Vector2(200, 200)
@@ -321,7 +321,7 @@ func _build_ui() -> void:
 	view_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	split.add_child(view_box)
 	view_box.add_child(canvas)
-	room_view = IDPRoomView.new()
+	room_view = MDSRoomView.new()
 	room_view.visible = false
 	room_view.saved.connect(_on_room_saved)
 	room_view.status_message.connect(_set_status)
@@ -337,7 +337,7 @@ func _build_ui() -> void:
 	_build_palette_tab()
 	_build_inspector_tab()
 	_build_areas_tab()
-	views = IDPAnalysisViews.new(self, sidebar)
+	views = MDSAnalysisViews.new(self, sidebar)
 	# The Room view's tile palette is a tab, shown with the Room view.
 	room_view.palette.name = "Tiles"
 	sidebar.add_child(room_view.palette)
@@ -348,7 +348,7 @@ func _build_ui() -> void:
 
 	var status := HBoxContainer.new()
 	root.add_child(status)
-	status_label = IDPUi.label("")
+	status_label = MDSUi.label("")
 	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_label.clip_text = true
 	status.add_child(status_label)
@@ -401,7 +401,7 @@ func _build_rooms_tab() -> void:
 			select_room(room_tree.get_selected().get_metadata(0), true))
 	room_tree.item_activated.connect(func() -> void: _on_room_activated(room_tree.get_selected().get_metadata(0)))
 	box.add_child(room_tree)
-	var add := IDPUi.button("Add scenes to map...", "Pick .tscn files to place on the map (or drag them from the FileSystem dock)")
+	var add := MDSUi.button("Add scenes to map...", "Pick .tscn files to place on the map (or drag them from the FileSystem dock)")
 	add.pressed.connect(func() -> void: _on_scenes_menu(ScenesItem.ADD_SCENES))
 	box.add_child(add)
 
@@ -409,21 +409,21 @@ func _build_palette_tab() -> void:
 	var box := VBoxContainer.new()
 	box.name = "Scenes"
 	sidebar.add_child(box)
-	box.add_child(IDPUi.hint("Drag scenes onto the map: onto a painted room without a scene to fill it, or onto empty space to place it at its own size. Double-click places a scene in the middle of the view."))
+	box.add_child(MDSUi.hint("Drag scenes onto the map: onto a painted room without a scene to fill it, or onto empty space to place it at its own size. Double-click places a scene in the middle of the view."))
 	var row := HBoxContainer.new()
 	box.add_child(row)
 	palette_folder = LineEdit.new()
 	palette_folder.placeholder_text = "res://rooms"
 	palette_folder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	IDPUi.commit_line(palette_folder, func(t: String) -> void:
+	MDSUi.commit_line(palette_folder, func(t: String) -> void:
 		if world:
 			world.set_setting("scene_folder", t.strip_edges())
 			_refresh_palette())
 	row.add_child(palette_folder)
-	var browse := IDPUi.button("...", "Pick the scene folder")
+	var browse := MDSUi.button("...", "Pick the scene folder")
 	browse.pressed.connect(func() -> void: _open_file_dialog("palette_folder", EditorFileDialog.FILE_MODE_OPEN_DIR, []))
 	row.add_child(browse)
-	var refresh := IDPUi.button("Refresh", "Reload the scene list")
+	var refresh := MDSUi.button("Refresh", "Reload the scene list")
 	refresh.pressed.connect(_refresh_palette)
 	row.add_child(refresh)
 	palette_hide_placed = CheckBox.new()
@@ -451,7 +451,7 @@ func _refresh_palette() -> void:
 	if not DirAccess.dir_exists_absolute(folder):
 		return
 	var files: Array[String] = []
-	IDPSceneScanner.new().find_scene_files(folder, files)
+	MDSSceneScanner.new().find_scene_files(folder, files)
 	var placed: Dictionary = {}
 	for id in world.get_room_ids():
 		placed[world.get_scene_path(id)] = true
@@ -491,13 +491,13 @@ func _rebuild_style_picker() -> void:
 	style_picker.clear()
 	var current: String = world.get_setting("map_style", "handdrawn") if world else "handdrawn"
 	var ids: PackedStringArray = []
-	ids.append_array(IDPMapStyle.BUILTIN)
-	for t in IDPMapStyle.find_metsys_themes():
+	ids.append_array(MDSMapStyle.BUILTIN)
+	for t in MDSMapStyle.find_metsys_themes():
 		ids.append("metsys:" + t)
 	if not current in ids:
 		ids.append(current)
 	for sid in ids:
-		style_picker.add_item(IDPMapStyle.style_display_name(sid))
+		style_picker.add_item(MDSMapStyle.style_display_name(sid))
 		style_picker.set_item_metadata(style_picker.item_count - 1, sid)
 		if sid == current:
 			style_picker.select(style_picker.item_count - 1)
@@ -522,7 +522,7 @@ func _on_style_picked(idx: int) -> void:
 			world.checkpoint()
 			world.set_setting("map_style", sid)
 			canvas.redraw()
-			_set_status("Map style: %s" % IDPMapStyle.style_display_name(sid))
+			_set_status("Map style: %s" % MDSMapStyle.style_display_name(sid))
 
 func _build_inspector_tab() -> void:
 	inspector_scroll = ScrollContainer.new()
@@ -537,14 +537,14 @@ func _build_areas_tab() -> void:
 	var box := VBoxContainer.new()
 	box.name = "Areas"
 	sidebar.add_child(box)
-	box.add_child(IDPUi.hint("Areas are map zones (Hollow Knight: Crossroads, Greenpath...). Rooms take their color; new rooms drawn with the Room tool join the area marked \"new rooms\"."))
+	box.add_child(MDSUi.hint("Areas are map zones (Hollow Knight: Crossroads, Greenpath...). Rooms take their color; new rooms drawn with the Room tool join the area marked \"new rooms\"."))
 	var row := HBoxContainer.new()
 	box.add_child(row)
 	var name_edit := LineEdit.new()
 	name_edit.placeholder_text = "New area name"
 	name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_edit)
-	var add := IDPUi.button("Add", "Create an area")
+	var add := MDSUi.button("Add", "Create an area")
 	var create := func() -> void:
 		if world and not name_edit.text.strip_edges().is_empty():
 			world.checkpoint()
@@ -581,7 +581,7 @@ func _build_pin_dialog() -> void:
 		pin_dialog.hide()
 		_confirm_pin())
 	pin_kind = OptionButton.new()
-	for k in IDPAnnotations.PIN_KINDS:
+	for k in MDSAnnotations.PIN_KINDS:
 		pin_kind.add_item(k.capitalize())
 	box.add_child(pin_text)
 	box.add_child(pin_kind)
@@ -631,7 +631,7 @@ func _find_world_files(dir_path: String, out: PackedStringArray, depth: int) -> 
 	if depth > 6:
 		return
 	for f in DirAccess.get_files_at(dir_path):
-		if IDPWorld.is_world_file(f):
+		if MDSWorld.is_world_file(f):
 			out.append(dir_path.path_join(f))
 	for d in DirAccess.get_directories_at(dir_path):
 		if not d.begins_with(".") and d != "addons" and d != EXPORT_DIR.get_file():
@@ -650,9 +650,9 @@ func _on_world_picked(idx: int) -> void:
 	_select_world_in_picker()
 	match id:
 		WorldItem.NEW:
-			_open_file_dialog("new_world", EditorFileDialog.FILE_MODE_SAVE_FILE, ["*.idpworld.json ; IDP World"], "res://world.idpworld.json")
+			_open_file_dialog("new_world", EditorFileDialog.FILE_MODE_SAVE_FILE, ["*.idpworld.json ; MDS World"], "res://world.idpworld.json")
 		WorldItem.OPEN:
-			_open_file_dialog("open_world", EditorFileDialog.FILE_MODE_OPEN_FILE, ["*.idpworld.json ; IDP World"])
+			_open_file_dialog("open_world", EditorFileDialog.FILE_MODE_OPEN_FILE, ["*.idpworld.json ; MDS World"])
 		WorldItem.IMPORT_METSYS:
 			_open_file_dialog("import_metsys", EditorFileDialog.FILE_MODE_OPEN_FILE, ["*.txt ; MetSys map data"], _metsys_map_path())
 		WorldItem.RELOAD:
@@ -690,7 +690,7 @@ func _on_file_dialog_file(p: String) -> void:
 		"add_scenes":
 			_on_file_dialog_files(PackedStringArray([p]))
 		"tileset":
-			IDPMapStyle.clear_cache()
+			MDSMapStyle.clear_cache()
 			world.checkpoint()
 			world.set_setting("map_style", "tileset:" + p)
 			_rebuild_style_picker()
@@ -698,7 +698,7 @@ func _on_file_dialog_file(p: String) -> void:
 			_set_status("Map style: %s. Layout: 4 x 5 square tiles (16 edge masks + 4 inner corners), drawn in white/gray to be tinted by area color." % p.get_file())
 		"template":
 			var current: String = world.get_setting("map_style", "handdrawn")
-			var err := IDPMapStyle.save_template(current, p)
+			var err := MDSMapStyle.save_template(current, p)
 			EditorInterface.get_resource_filesystem().scan()
 			_set_status("Saved %s. Edit it, then pick it with Style > Custom tileset PNG..." % p if err == OK else "Could not save %s (error %d)" % [p, err])
 
@@ -707,27 +707,27 @@ func _on_file_dialog_files(paths: PackedStringArray) -> void:
 		_on_scenes_dropped(paths, canvas.screen_to_world(canvas.size / 2.0))
 
 func create_world(p: String) -> void:
-	if not IDPWorld.is_world_file(p):
-		p = p.get_basename().get_basename() + IDPWorld.EXTENSION
-	var w := IDPWorld.new()
+	if not MDSWorld.is_world_file(p):
+		p = p.get_basename().get_basename() + MDSWorld.EXTENSION
+	var w := MDSWorld.new()
 	w.path = p
-	w.data.name = p.get_file().trim_suffix(IDPWorld.EXTENSION).capitalize()
+	w.data.name = p.get_file().trim_suffix(MDSWorld.EXTENSION).capitalize()
 	w.save()
 	load_world(p)
 	_set_status("Created %s. Press R and drag to draw a room, or drop scenes on the map." % p)
 
 ## Converts a MetSys MapData.txt (and its panel annotations) into a world file next to it.
 func import_metsys_map(map_path: String) -> void:
-	var model := IDPMapModel.load_file(map_path)
+	var model := MDSMapModel.load_file(map_path)
 	if model.rooms.is_empty():
 		_set_status("No rooms found in %s" % map_path)
 		return
-	var ann := IDPAnnotations.load_for_map(map_path)
-	var w := IDPWorld.from_metsys(model, ann, _metsys_cell_size())
-	var target := map_path.get_basename() + IDPWorld.EXTENSION
+	var ann := MDSAnnotations.load_for_map(map_path)
+	var w := MDSWorld.from_metsys(model, ann, _metsys_cell_size())
+	var target := map_path.get_basename() + MDSWorld.EXTENSION
 	var n := 2
 	while FileAccess.file_exists(target):
-		target = "%s_%d%s" % [map_path.get_basename(), n, IDPWorld.EXTENSION]
+		target = "%s_%d%s" % [map_path.get_basename(), n, MDSWorld.EXTENSION]
 		n += 1
 	w.path = target
 	w.save()
@@ -755,7 +755,7 @@ func load_world(p: String) -> void:
 			_save_world()
 		world.changed.disconnect(_on_world_changed)
 	world_path = p
-	world = IDPWorld.load_world(p)
+	world = MDSWorld.load_world(p)
 	world.changed.connect(_on_world_changed)
 	_gate_state = _gate_signature()
 	_gate_rooms.clear()
@@ -818,8 +818,8 @@ func _gate_signature() -> Dictionary:
 func auto_gate_nodes_enabled() -> bool:
 	return world != null and bool(world.get_setting("auto_gate_nodes", true))
 
-## Rooms whose gates were added or re-connected get their IDPGate nodes (batched); gates
-## removed again (undo, delete) take back the nodes IDP added, if the scene is unchanged.
+## Rooms whose gates were added or re-connected get their MDSGate nodes (batched); gates
+## removed again (undo, delete) take back the nodes MDS added, if the scene is unchanged.
 func _track_gate_changes() -> void:
 	var now := _gate_signature()
 	if auto_gate_nodes_enabled():
@@ -854,9 +854,9 @@ func _sync_gate_nodes() -> void:
 			names = _ensure_gates_in_open_scene(id, open_root)
 		else:
 			var before := FileAccess.get_file_as_bytes(path)
-			names = IDPWorldSceneTools.ensure_gate_nodes(world, id)
-			if names.is_empty() and not IDPWorldSceneTools.last_error.is_empty():
-				_set_status(IDPWorldSceneTools.last_error)
+			names = MDSWorldSceneTools.ensure_gate_nodes(world, id)
+			if names.is_empty() and not MDSWorldSceneTools.last_error.is_empty():
+				_set_status(MDSWorldSceneTools.last_error)
 			if not names.is_empty():
 				_gate_log.append({"room": id, "path": path, "gates": names, "before": before, "after": FileAccess.get_file_as_bytes(path)})
 				if _gate_log.size() > 50:
@@ -869,17 +869,17 @@ func _sync_gate_nodes() -> void:
 	if not paths.is_empty():
 		_scan_paths(paths)
 	if not written.is_empty():
-		_set_status("Added IDPGate nodes to the scenes: %s. (Turn this off in World settings > Auto-add gate nodes.)" % ", ".join(written))
+		_set_status("Added MDSGate nodes to the scenes: %s. (Turn this off in World settings > Auto-add gate nodes.)" % ", ".join(written))
 
 ## Adds the missing gate nodes to a scene open in the editor, as one undoable action in
 ## that scene's history (the scene is marked unsaved).
 func _ensure_gates_in_open_scene(id: String, root: Node) -> PackedStringArray:
-	var changes := IDPWorldSceneTools.gate_node_changes(world, id, root)
+	var changes := MDSWorldSceneTools.gate_node_changes(world, id, root)
 	var done: PackedStringArray = []
 	if changes.add.is_empty() and changes.convert.is_empty():
 		return done
 	var ur := EditorInterface.get_editor_undo_redo()
-	ur.create_action("Add IDPGate nodes (%s)" % id, UndoRedo.MERGE_DISABLE, root)
+	ur.create_action("Add MDSGate nodes (%s)" % id, UndoRedo.MERGE_DISABLE, root)
 	var container: Node = root.get_node_or_null(^"Gates")
 	if not container and not changes.add.is_empty():
 		container = Node2D.new()
@@ -889,8 +889,8 @@ func _ensure_gates_in_open_scene(id: String, root: Node) -> PackedStringArray:
 		ur.add_do_reference(container)
 		ur.add_undo_method(root, "remove_child", container)
 	for gate_name in changes.add:
-		var gate := IDPWorldSceneTools.new_gate_node(world, id, gate_name)
-		gate.position = IDPWorldSceneTools.gate_position(world, id, gate_name, container, root)
+		var gate := MDSWorldSceneTools.new_gate_node(world, id, gate_name)
+		gate.position = MDSWorldSceneTools.gate_position(world, id, gate_name, container, root)
 		ur.add_do_method(container, "add_child", gate, true)
 		ur.add_do_method(gate, "set_owner", root)
 		for c in gate.get_children():
@@ -900,10 +900,10 @@ func _ensure_gates_in_open_scene(id: String, root: Node) -> PackedStringArray:
 		done.append(gate_name)
 	for node: Node2D in changes.convert:
 		if node is Area2D:
-			ur.add_do_method(node, "set_script", IDPGate)
+			ur.add_do_method(node, "set_script", MDSGate)
 			ur.add_undo_method(node, "set_script", null)
 		else:
-			var gate := IDPWorldSceneTools.new_gate_node(world, id, String(node.name))
+			var gate := MDSWorldSceneTools.new_gate_node(world, id, String(node.name))
 			gate.transform = node.transform
 			ur.add_do_method(node, "replace_by", gate, true)
 			ur.add_do_method(gate, "set_owner", root)
@@ -917,7 +917,7 @@ func _ensure_gates_in_open_scene(id: String, root: Node) -> PackedStringArray:
 	return done
 
 ## When every gate an automatic write added is gone from the map again (undo or delete)
-## and the scene file is still exactly as IDP wrote it, the file is put back.
+## and the scene file is still exactly as MDS wrote it, the file is put back.
 func _take_back_gate_writes(now: Dictionary) -> void:
 	for i in range(_gate_log.size() - 1, -1, -1):
 		var e: Dictionary = _gate_log[i]
@@ -935,7 +935,7 @@ func _take_back_gate_writes(now: Dictionary) -> void:
 				ResourceLoader.load(e.path, "", ResourceLoader.CACHE_MODE_REPLACE) # drop the cached copy
 				EditorInterface.get_resource_filesystem().update_file(e.path)
 				_scan_paths([e.path])
-				_set_status("Removed the IDPGate nodes IDP had added to %s." % e.path.get_file())
+				_set_status("Removed the MDSGate nodes MDS had added to %s." % e.path.get_file())
 		_gate_log.remove_at(i)
 
 func _save_world() -> void:
@@ -990,7 +990,7 @@ func _scan_paths(paths: Array) -> void:
 	typed.assign(paths)
 	if _scanner and _scanner.is_scanning:
 		_scanner.cancel()
-	_scanner = IDPSceneScanner.new(world.get_default_room_size() if world else Vector2(1152, 648))
+	_scanner = MDSSceneScanner.new(world.get_default_room_size() if world else Vector2(1152, 648))
 	var scanner := _scanner
 	await _editor_files_ready()
 	if scanner != _scanner:
@@ -1044,6 +1044,17 @@ func show_map_view() -> void:
 	canvas.redraw()
 
 ## Paints the room's actual contents. A room without a scene gets one first.
+## After a weather field changed: the Room view shows the new weather, and a spec with
+## mistakes is reported.
+func _weather_changed(spec: String) -> void:
+	var problem := MDSEnvironment.check(spec)
+	if not problem.is_empty():
+		_set_status("Weather: %s. Presets: %s." % [problem, ", ".join(MDSEnvironment.preset_ids())])
+	elif not spec.strip_edges().is_empty():
+		_set_status("Weather: %s." % MDSEnvironment.summary(spec))
+	if room_view and room_view.visible:
+		room_view.refresh_weather()
+
 func show_room_view(id: String) -> void:
 	if not world or not world.has_room(id):
 		_set_status("Select a room on the map first, then open the Room view.")
@@ -1052,9 +1063,9 @@ func show_room_view(id: String) -> void:
 	if world.get_scene_path(id).is_empty():
 		world.checkpoint()
 		var path := _default_scene_path(id)
-		var err := IDPWorldSceneTools.create_scene_for_room(world, id, path)
+		var err := MDSWorldSceneTools.create_scene_for_room(world, id, path)
 		if err != OK:
-			_set_status(IDPWorldSceneTools.last_error if not IDPWorldSceneTools.last_error.is_empty() else "Could not create a scene for %s (error %d)." % [id, err])
+			_set_status(MDSWorldSceneTools.last_error if not MDSWorldSceneTools.last_error.is_empty() else "Could not create a scene for %s (error %d)." % [id, err])
 			map_view_button.set_pressed_no_signal(true)
 			return
 		EditorInterface.get_resource_filesystem().update_file(path)
@@ -1096,9 +1107,9 @@ func _refresh() -> void:
 	var geometry_on := geometry_checks_enabled()
 	for p in scene_database:
 		scene_database[p].geometry = geometry_checker.issues_of(p) if geometry_on else []
-	graph = IDPGraph.from_world(world, scene_database)
-	analysis = IDPAnalysis.new(graph, world, scene_database).run()
-	issues = IDPWorldValidator.run(world, analysis, scene_database)
+	graph = MDSGraph.from_world(world, scene_database)
+	analysis = MDSAnalysis.new(graph, world, scene_database).run()
+	issues = MDSWorldValidator.run(world, analysis, scene_database)
 	canvas.issue_rooms.clear()
 	for issue in issues:
 		if not issue.room_id.is_empty():
@@ -1125,14 +1136,14 @@ func _refresh() -> void:
 func geometry_checks_enabled() -> bool:
 	return world != null and bool(world.get_setting("geometry_checks", true))
 
-## One room check per room with a scene (see IDPGeometryChecker).
+## One room check per room with a scene (see MDSGeometryChecker).
 func geometry_jobs() -> Array:
 	var jobs: Array = []
 	for id in world.get_room_ids():
 		var p := world.get_scene_path(id)
 		if p.is_empty() or not scene_database.has(p):
 			continue
-		jobs.append({"path": p, "name": id, "rects": world.get_local_rects(id), "passages": IDPRoomCheck.passages_from_world(world, id), "player": world.get_setting("player", {})})
+		jobs.append({"path": p, "name": id, "rects": world.get_local_rects(id), "passages": MDSRoomCheck.passages_from_world(world, id), "player": world.get_setting("player", {})})
 	return jobs
 
 func _refresh_room_list() -> void:
@@ -1163,7 +1174,7 @@ func _refresh_room_list() -> void:
 		if not world.has_scene_reference(id):
 			text += "  (no scene)"
 		item.set_text(0, text)
-		item.set_icon(0, IDPUi.type_icon(info.type))
+		item.set_icon(0, MDSUi.type_icon(info.type))
 		item.set_tooltip_text(0, "%s\n%s" % [id, world.get_scene_path(id)])
 		item.set_text(1, info.area)
 		if not str(info.area).is_empty():
@@ -1183,7 +1194,7 @@ func _refresh_area_list() -> void:
 		var item := area_tree.create_item(root)
 		var n := world.get_area_rooms(a).size()
 		item.set_text(0, "%s  (%d room%s)%s" % [a, n, "" if n == 1 else "s", "  - new rooms" if a == canvas.new_room_area else ""])
-		item.set_icon(0, IDPUi.color_icon(world.get_area_color(a), 14))
+		item.set_icon(0, MDSUi.color_icon(world.get_area_color(a), 14))
 		item.set_metadata(0, a)
 		if a == _selected_area:
 			item.select(0)
@@ -1200,14 +1211,14 @@ func _rebuild_area_editor() -> void:
 	var grid := GridContainer.new()
 	grid.columns = 2
 	area_box.add_child(grid)
-	var name_edit := IDPUi.field_line(grid, "Name", a, "")
-	IDPUi.commit_line(name_edit, func(t: String) -> void:
+	var name_edit := MDSUi.field_line(grid, "Name", a, "")
+	MDSUi.commit_line(name_edit, func(t: String) -> void:
 		world.checkpoint()
 		if canvas.new_room_area == a:
 			canvas.new_room_area = t.strip_edges()
 		_selected_area = t.strip_edges()
 		world.rename_area(a, t.strip_edges()))
-	grid.add_child(IDPUi.label("Color"))
+	grid.add_child(MDSUi.label("Color"))
 	var picker := ColorPickerButton.new()
 	picker.color = world.get_area_color(a)
 	picker.edit_alpha = false
@@ -1216,55 +1227,63 @@ func _rebuild_area_editor() -> void:
 		world.checkpoint()
 		world.set_area_value(a, "color", "#" + picker.color.to_html(false)))
 	grid.add_child(picker)
-	var zone := IDPUi.field_line(grid, "Map zone", str(world.get_areas()[a].get("map_zone", "")), "e.g. GREENHOUSE")
+	var zone := MDSUi.field_line(grid, "Map zone", str(world.get_areas()[a].get("map_zone", "")), "e.g. GREENHOUSE")
 	zone.tooltip_text = "Id your game uses for this area (Hollow Knight calls these map zones)."
-	IDPUi.commit_line(zone, func(t: String) -> void: world.set_area_value(a, "map_zone", t.strip_edges()))
-	# Presentation: IDPAreaTitle, IDPMusic, IDPObjectiveBanner and IDPWorldGame read these.
+	MDSUi.commit_line(zone, func(t: String) -> void: world.set_area_value(a, "map_zone", t.strip_edges()))
+	# Presentation: MDSAreaTitle, MDSMusic, MDSObjectiveBanner and MDSWorldGame read these.
 	var data: Dictionary = world.get_areas()[a]
 	var fields := [
-		["Title", "title", "", a, "Shown by IDPAreaTitle when the player arrives. Empty: the area's name"],
+		["Title", "title", "", a, "Shown by MDSAreaTitle when the player arrives. Empty: the area's name"],
 		["Subtitle", "subtitle", "", "smaller line under the title", ""],
-		["Music", "music", "path", "res://.../music.ogg", "Loops while the player is in this area. IDPMusic crossfades between areas and keeps playing when two areas share it"],
+		["Music", "music", "path", "res://.../music.ogg", "Loops while the player is in this area. MDSMusic crossfades between areas and keeps playing when two areas share it"],
 		["Music volume (dB)", "music_volume_db", "float", "0", ""],
-		["Boss music", "boss_music", "path", "res://.../boss.ogg", "IDPMusic.play_boss() starts it from silence; end_boss() returns to the area's music"],
-		["Backdrop", "backdrop", "path", "world default", "IDPBackdrop (.tres) drawn in the distance behind the area's rooms. A room can have its own"],
+		["Boss music", "boss_music", "path", "res://.../boss.ogg", "MDSMusic.play_boss() starts it from silence; end_boss() returns to the area's music"],
+		["Backdrop", "backdrop", "path", "world default", "MDSBackdrop (.tres) drawn in the distance behind the area's rooms. A room can have its own"],
+		["Weather", "weather", "weather", "world default", "Weather and effects in every room of the area (MDSWorldGame adds them as each room loads; the Room view shows them): presets like storm or sandstorm, effects like rain or fog(ground=1), comma-separated, or a .tscn of effect nodes. A room can have its own, or none"],
 		["Darkness", "darkness", "float", "auto", "0 lit, 0.05 to 0.8 dimmed (lights carve pools around the player and enemies). Empty: automatic, from the world's Dark room share. A room can have its own"],
-		["Objective", "objective", "", "e.g. Find the crypt key", "Shown by IDPObjectiveBanner on arrival and on the map until done"],
+		["Objective", "objective", "", "e.g. Find the crypt key", "Shown by MDSObjectiveBanner on arrival and on the map until done"],
 		["Done when", "objective_done_when", "", "ability:x, object:id or boss:name", "The objective completes when the player has this ability (ability:dash or just dash), this stored object (object:Room/Node) or has defeated this boss (boss:Warden)"],
 	]
 	for f in fields:
 		var key: String = f[1]
 		var kind: String = f[2]
-		var edit := IDPUi.field_line(grid, f[0], str(data.get(key, "")), f[3])
+		if kind == "weather":
+			var weather_edit := MDSUi.weather_field(grid, f[0], str(data.get(key, "")), f[3], func(t: String) -> void:
+				world.checkpoint()
+				world.set_area_value(a, key, t.strip_edges())
+				_weather_changed(t))
+			weather_edit.tooltip_text = f[4]
+			continue
+		var edit := MDSUi.field_line(grid, f[0], str(data.get(key, "")), f[3])
 		edit.tooltip_text = f[4]
-		IDPUi.commit_line(edit, func(t: String) -> void:
+		MDSUi.commit_line(edit, func(t: String) -> void:
 			world.checkpoint()
 			var value: Variant = t.strip_edges()
 			if kind == "float" and not str(value).is_empty():
 				value = str(value).to_float()
 			world.set_area_value(a, key, value))
 		if kind == "path":
-			IDPUi.path_drop(edit)
+			MDSUi.path_drop(edit)
 	var row := HFlowContainer.new()
 	area_box.add_child(row)
-	var for_new := IDPUi.button("Use for new rooms", "Rooms drawn with the Room tool join this area")
+	var for_new := MDSUi.button("Use for new rooms", "Rooms drawn with the Room tool join this area")
 	for_new.pressed.connect(func() -> void:
 		canvas.new_room_area = a
 		_refresh_area_list())
 	row.add_child(for_new)
-	var assign := IDPUi.button("Assign selected room", "Move the selected room into this area")
+	var assign := MDSUi.button("Assign selected room", "Move the selected room into this area")
 	assign.disabled = not world.has_room(canvas.selected_room)
 	assign.pressed.connect(func() -> void:
 		world.checkpoint()
 		world.set_room_value(canvas.selected_room, "area", a))
 	row.add_child(assign)
-	var reset_label := IDPUi.button("Reset label position", "Place the area name automatically again")
+	var reset_label := MDSUi.button("Reset label position", "Place the area name automatically again")
 	reset_label.pressed.connect(func() -> void:
 		world.checkpoint()
 		world.data.areas[a].erase("label_pos")
 		world._touch())
 	row.add_child(reset_label)
-	var remove := IDPUi.button("Delete area", "Rooms keep existing but leave the area")
+	var remove := MDSUi.button("Delete area", "Rooms keep existing but leave the area")
 	remove.pressed.connect(func() -> void:
 		world.checkpoint()
 		world.remove_area(a))
@@ -1358,7 +1377,7 @@ func _confirm_pin() -> void:
 	if text.is_empty() or not world:
 		return
 	world.checkpoint()
-	world.add_pin(canvas.layer, _pending_pin_pos, text, IDPAnnotations.PIN_KINDS[pin_kind.selected])
+	world.add_pin(canvas.layer, _pending_pin_pos, text, MDSAnnotations.PIN_KINDS[pin_kind.selected])
 	pin_text.text = ""
 
 func _nearest_pin(world_pos: Vector2) -> int:
@@ -1389,21 +1408,21 @@ func _on_scenes_dropped(files: PackedStringArray, world_pos: Vector2) -> void:
 		world.set_room_scene(target, files[0])
 		if RegEx.create_from_string("^Room(_[0-9]+)?$").search(target):
 			target = world.rename_room(target, files[0].get_file().get_basename())
-		var meta := IDPSceneScanner.new(world.get_default_room_size()).analyze_scene_any(files[0])
+		var meta := MDSSceneScanner.new(world.get_default_room_size()).analyze_scene_any(files[0])
 		if world.get_gates(target).is_empty():
-			IDPWorldSceneTools.import_gates(world, target, meta)
+			MDSWorldSceneTools.import_gates(world, target, meta)
 		canvas.selected_room = target
 		_scan_paths([files[0]])
 		_refresh_palette()
 		_set_status("Filled painted room %s with %s." % [target, files[0].get_file()])
 		return
-	var scanner := IDPSceneScanner.new(world.get_default_room_size())
+	var scanner := MDSSceneScanner.new(world.get_default_room_size())
 	var pos := world_pos
 	var created: Array[String] = []
 	for f in files:
 		var meta := scanner.analyze_scene_any(f)
 		scene_database[f] = meta
-		var id := IDPWorldSceneTools.place_scene(world, f, meta, pos, canvas.layer, canvas.new_room_area)
+		var id := MDSWorldSceneTools.place_scene(world, f, meta, pos, canvas.layer, canvas.new_room_area)
 		created.append(id)
 		pos.x = world.get_room_bounds(id).end.x + world.get_grid() * 2
 	scene_database = scene_database.duplicate()
@@ -1429,10 +1448,10 @@ func _rebuild_inspector() -> void:
 	_inspector_room = canvas.selected_room
 	_inspector_signature = _inspector_sig(_inspector_room)
 	if not world:
-		inspector.add_child(IDPUi.hint("Non-linear mode: draw rooms freely and connect them with gates, like a Hollow Knight map.\n\nOpen the world picker in the tool panel on the left:\n- New world... starts an empty map.\n- Import from MetSys map... converts a MetSys MapData.txt."))
+		inspector.add_child(MDSUi.hint("Non-linear mode: draw rooms freely and connect them with gates, like a Hollow Knight map.\n\nOpen the world picker in the tool panel on the left:\n- New world... starts an empty map.\n- Import from MetSys map... converts a MetSys MapData.txt."))
 		return
 	if not world.has_room(_inspector_room):
-		inspector.add_child(IDPUi.hint("Select a room to edit it.\n\nR: draw a room, E: extend the selected room, G: add gates, P: pins.\nDrag .tscn files from the FileSystem dock onto the map to place scenes.\nDrag from a gate to another gate to connect rooms.\nDouble-click a room to open (or create) its scene. Right-click for more."))
+		inspector.add_child(MDSUi.hint("Select a room to edit it.\n\nR: draw a room, E: extend the selected room, G: add gates, P: pins.\nDrag .tscn files from the FileSystem dock onto the map to place scenes.\nDrag from a gate to another gate to connect rooms.\nDouble-click a room to open (or create) its scene. Right-click for more."))
 		return
 	var id := _inspector_room
 	if not analysis or not analysis.room_info.has(id):
@@ -1443,9 +1462,9 @@ func _rebuild_inspector() -> void:
 	var info := analysis.get_info(id)
 	var meta: Dictionary = scene_database.get(world.get_scene_path(id), {})
 
-	inspector.add_child(IDPUi.title(id, 18))
+	inspector.add_child(MDSUi.title(id, 18))
 	var scene_path := world.get_scene_path(id)
-	var path_label := IDPUi.label(scene_path if not scene_path.is_empty() else ("Missing scene: " + str(world.data.rooms[id].get("scene", "")) if world.has_scene_reference(id) else "No scene assigned"))
+	var path_label := MDSUi.label(scene_path if not scene_path.is_empty() else ("Missing scene: " + str(world.data.rooms[id].get("scene", "")) if world.has_scene_reference(id) else "No scene assigned"))
 	path_label.modulate.a = 0.65
 	path_label.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
 	inspector.add_child(path_label)
@@ -1453,41 +1472,41 @@ func _rebuild_inspector() -> void:
 	var actions := HFlowContainer.new()
 	inspector.add_child(actions)
 	if scene_path.is_empty():
-		var create := IDPUi.button("Create scene...", "Create a new scene for this room with bounds guides and one IDPGate per gate")
+		var create := MDSUi.button("Create scene...", "Create a new scene for this room with bounds guides and one MDSGate per gate")
 		create.pressed.connect(func() -> void:
 			_dialog_room = id
 			_open_file_dialog("create_scene", EditorFileDialog.FILE_MODE_SAVE_FILE, ["*.tscn ; Scene"], _default_scene_path(id)))
 		actions.add_child(create)
-		var pick := IDPUi.button("Assign scene...", "Use an existing scene for this room")
+		var pick := MDSUi.button("Assign scene...", "Use an existing scene for this room")
 		pick.pressed.connect(func() -> void:
 			_dialog_room = id
 			_open_file_dialog("assign_scene", EditorFileDialog.FILE_MODE_OPEN_FILE, ["*.tscn, *.scn ; Scenes"]))
 		actions.add_child(pick)
 	else:
-		var open := IDPUi.button("Open scene", "Open the room scene in the editor")
+		var open := MDSUi.button("Open scene", "Open the room scene in the editor")
 		open.pressed.connect(func() -> void: EditorInterface.open_scene_from_path(scene_path))
 		actions.add_child(open)
-		var play := IDPUi.button("Play from here", "Run the game starting in this room, at its save point if it has one. Right-click the map to start at an exact spot.")
+		var play := MDSUi.button("Play from here", "Run the game starting in this room, at its save point if it has one. Right-click the map to start at an exact spot.")
 		play.pressed.connect(func() -> void: _play_from(id, world.get_room_label_pos(id), true))
 		actions.add_child(play)
-	var start := IDPUi.button("Start room" if id == analysis.start_room_id else "Set as start", "Progression is computed from the start room")
+	var start := MDSUi.button("Start room" if id == analysis.start_room_id else "Set as start", "Progression is computed from the start room")
 	start.disabled = id == analysis.start_room_id
 	start.pressed.connect(func() -> void:
 		world.checkpoint()
 		world.set_start_room(id))
 	actions.add_child(start)
-	var paint_room := IDPUi.button("Paint room", "Open the Room view to paint this room's terrain, background and decorations")
+	var paint_room := MDSUi.button("Paint room", "Open the Room view to paint this room's terrain, background and decorations")
 	paint_room.pressed.connect(func() -> void: show_room_view(id))
 	actions.add_child(paint_room)
-	var center := IDPUi.button("Center", "Center the map on this room")
+	var center := MDSUi.button("Center", "Center the map on this room")
 	center.pressed.connect(func() -> void: canvas.center_on_room(id))
 	actions.add_child(center)
-	var dup := IDPUi.button("Duplicate", "Copy this room's shape and gates (Ctrl+D)")
+	var dup := MDSUi.button("Duplicate", "Copy this room's shape and gates (Ctrl+D)")
 	dup.pressed.connect(func() -> void:
 		world.checkpoint()
 		canvas.selected_room = world.duplicate_room(id))
 	actions.add_child(dup)
-	var del := IDPUi.button("Delete", "Delete this room (Ctrl+Z to undo)")
+	var del := MDSUi.button("Delete", "Delete this room (Ctrl+Z to undo)")
 	del.pressed.connect(func() -> void:
 		canvas.selected_gate = ""
 		canvas.delete_selection())
@@ -1497,22 +1516,22 @@ func _rebuild_inspector() -> void:
 	var grid := GridContainer.new()
 	grid.columns = 2
 	inspector.add_child(grid)
-	var id_edit := IDPUi.field_line(grid, "Room ID", id, "")
+	var id_edit := MDSUi.field_line(grid, "Room ID", id, "")
 	id_edit.tooltip_text = "Unique id used by gates and at runtime (Hollow Knight uses scene names like Crossroads_01)."
-	IDPUi.commit_line(id_edit, func(t: String) -> void:
+	MDSUi.commit_line(id_edit, func(t: String) -> void:
 		world.checkpoint()
 		canvas.selected_room = world.rename_room(id, t))
-	var name_edit := IDPUi.field_line(grid, "Name", world.get_room_value(id, "name", ""), id)
-	IDPUi.commit_line(name_edit, func(t: String) -> void:
+	var name_edit := MDSUi.field_line(grid, "Name", world.get_room_value(id, "name", ""), id)
+	MDSUi.commit_line(name_edit, func(t: String) -> void:
 		world.checkpoint()
 		world.set_room_value(id, "name", t.strip_edges()))
-	grid.add_child(IDPUi.label("Area"))
+	grid.add_child(MDSUi.label("Area"))
 	var area_opt := OptionButton.new()
 	area_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	area_opt.add_item("(none)")
 	area_opt.set_item_metadata(0, "")
 	for a in world.get_areas():
-		area_opt.add_icon_item(IDPUi.color_icon(world.get_area_color(a)), a)
+		area_opt.add_icon_item(MDSUi.color_icon(world.get_area_color(a)), a)
 		area_opt.set_item_metadata(area_opt.item_count - 1, a)
 		if a == world.get_room_area(id):
 			area_opt.select(area_opt.item_count - 1)
@@ -1520,29 +1539,29 @@ func _rebuild_inspector() -> void:
 		world.checkpoint()
 		world.set_room_value(id, "area", area_opt.get_item_metadata(idx)))
 	grid.add_child(area_opt)
-	var type_opt := IDPUi.field_option(grid, "Type", IDPAnnotations.ROOM_TYPES, world.get_room_value(id, "type", ""), "(auto: %s)" % (str(info.type).capitalize() if not str(info.type).is_empty() else "normal"))
+	var type_opt := MDSUi.field_option(grid, "Type", MDSAnnotations.ROOM_TYPES, world.get_room_value(id, "type", ""), "(auto: %s)" % (str(info.type).capitalize() if not str(info.type).is_empty() else "normal"))
 	type_opt.item_selected.connect(func(idx: int) -> void:
 		world.checkpoint()
-		world.set_room_value(id, "type", IDPAnnotations.ROOM_TYPES[idx]))
-	var status_opt := IDPUi.field_option(grid, "Status", IDPAnnotations.STATUSES, world.get_room_value(id, "status", ""), "(none)")
+		world.set_room_value(id, "type", MDSAnnotations.ROOM_TYPES[idx]))
+	var status_opt := MDSUi.field_option(grid, "Status", MDSAnnotations.STATUSES, world.get_room_value(id, "status", ""), "(none)")
 	status_opt.item_selected.connect(func(idx: int) -> void:
 		world.checkpoint()
-		world.set_room_value(id, "status", IDPAnnotations.STATUSES[idx]))
+		world.set_room_value(id, "status", MDSAnnotations.STATUSES[idx]))
 	var scanned_boss: PackedStringArray = []
 	for b in meta.get("bosses", []):
 		scanned_boss.append(b.name)
-	var boss_edit := IDPUi.field_line(grid, "Boss", world.get_room_value(id, "boss", ""), ", ".join(scanned_boss) if not scanned_boss.is_empty() else "boss name (marks a boss room)")
-	IDPUi.commit_line(boss_edit, func(t: String) -> void:
+	var boss_edit := MDSUi.field_line(grid, "Boss", world.get_room_value(id, "boss", ""), ", ".join(scanned_boss) if not scanned_boss.is_empty() else "boss name (marks a boss room)")
+	MDSUi.commit_line(boss_edit, func(t: String) -> void:
 		world.checkpoint()
 		world.set_room_value(id, "boss", t.strip_edges())
 		if not t.strip_edges().is_empty() and str(world.get_room_value(id, "type", "")).is_empty():
 			world.set_room_value(id, "type", "boss"))
 	var scanned_grants: PackedStringArray = meta.get("grants", PackedStringArray())
-	var grants_edit := IDPUi.field_line(grid, "Grants", ", ".join(world.get_room_grants(id)), ("scanned: " + ", ".join(scanned_grants)) if not scanned_grants.is_empty() else "abilities/keys found here, e.g. dash")
-	IDPUi.commit_line(grants_edit, func(t: String) -> void:
+	var grants_edit := MDSUi.field_line(grid, "Grants", ", ".join(world.get_room_grants(id)), ("scanned: " + ", ".join(scanned_grants)) if not scanned_grants.is_empty() else "abilities/keys found here, e.g. dash")
+	MDSUi.commit_line(grants_edit, func(t: String) -> void:
 		world.checkpoint()
-		world.set_room_value(id, "grants", Array(IDPAnnotations.parse_list(t))))
-	grid.add_child(IDPUi.label("Layer"))
+		world.set_room_value(id, "grants", Array(MDSAnnotations.parse_list(t))))
+	grid.add_child(MDSUi.label("Layer"))
 	var layer_spin := SpinBox.new()
 	layer_spin.min_value = 0
 	layer_spin.max_value = 64
@@ -1555,20 +1574,26 @@ func _rebuild_inspector() -> void:
 	grid.add_child(layer_spin)
 	var area_data: Dictionary = world.get_areas().get(world.get_room_area(id), {})
 	var inherited := str(area_data.get("backdrop", world.get_setting("backdrop", "")))
-	var backdrop_edit := IDPUi.field_line(grid, "Backdrop", str(world.get_room_value(id, "backdrop", "")), inherited.get_file() if not inherited.is_empty() else "none")
-	backdrop_edit.tooltip_text = "IDPBackdrop (.tres) drawn in the distance behind this room. Empty: the area's, else the world's"
-	IDPUi.path_drop(backdrop_edit)
-	IDPUi.commit_line(backdrop_edit, func(t: String) -> void:
+	var backdrop_edit := MDSUi.field_line(grid, "Backdrop", str(world.get_room_value(id, "backdrop", "")), inherited.get_file() if not inherited.is_empty() else "none")
+	backdrop_edit.tooltip_text = "MDSBackdrop (.tres) drawn in the distance behind this room. Empty: the area's, else the world's"
+	MDSUi.path_drop(backdrop_edit)
+	MDSUi.commit_line(backdrop_edit, func(t: String) -> void:
 		world.checkpoint()
 		world.set_room_value(id, "backdrop", t.strip_edges()))
+	var inherited_weather := str(area_data.get("weather", world.get_setting("weather", ""))).strip_edges()
+	var weather_edit := MDSUi.weather_field(grid, "Weather", str(world.get_room_value(id, "weather", "")), "area: %s" % MDSEnvironment.summary(inherited_weather) if not inherited_weather.is_empty() else "none", func(t: String) -> void:
+		world.checkpoint()
+		world.set_room_value(id, "weather", t.strip_edges())
+		_weather_changed(t))
+	weather_edit.tooltip_text = "Weather and effects in this room (MDSWorldGame adds them as it loads). Empty: the area's, else the world's; none: no weather here (a room under cover in a stormy area)"
 	var dark: Variant = world.get_room_value(id, "darkness", null)
-	var dark_edit := IDPUi.field_line(grid, "Darkness", str(dark) if dark != null else "", "area: %s" % area_data.darkness if area_data.has("darkness") else "auto")
+	var dark_edit := MDSUi.field_line(grid, "Darkness", str(dark) if dark != null else "", "area: %s" % area_data.darkness if area_data.has("darkness") else "auto")
 	dark_edit.tooltip_text = "0 lit, 0.05 to 0.8 dimmed: a subtractive light darkens the room and the player, enemies and lanterns carry soft lights. Empty: the area's, else automatic (the world's Dark room share)"
-	IDPUi.commit_line(dark_edit, func(t: String) -> void:
+	MDSUi.commit_line(dark_edit, func(t: String) -> void:
 		world.checkpoint()
 		world.set_room_value(id, "darkness", null if t.strip_edges().is_empty() else clampf(t.to_float(), 0.0, 0.95)))
 
-	inspector.add_child(IDPUi.label("Notes (TODO lines show up in Issues)"))
+	inspector.add_child(MDSUi.label("Notes (TODO lines show up in Issues)"))
 	var notes := TextEdit.new()
 	notes.custom_minimum_size.y = 60
 	notes.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
@@ -1583,29 +1608,29 @@ func _rebuild_inspector() -> void:
 	inspector.add_child(HSeparator.new())
 	var rects := world.get_local_rects(id)
 	var bounds := world.get_room_bounds(id)
-	inspector.add_child(IDPUi.title("Shape: %d x %d px, %d rectangle(s)" % [bounds.size.x, bounds.size.y, rects.size()]))
+	inspector.add_child(MDSUi.title("Shape: %d x %d px, %d rectangle(s)" % [bounds.size.x, bounds.size.y, rects.size()]))
 	var shape_row := HFlowContainer.new()
 	inspector.add_child(shape_row)
-	var fit := IDPUi.button("Fit to scene", "Resize the room to the scene's terrain")
+	var fit := MDSUi.button("Fit to scene", "Resize the room to the scene's terrain")
 	fit.disabled = not meta.get("content_rect", Rect2()).has_area()
 	fit.pressed.connect(func() -> void:
 		world.checkpoint()
-		IDPWorldSceneTools.fit_room_to_scene(world, id, meta))
+		MDSWorldSceneTools.fit_room_to_scene(world, id, meta))
 	shape_row.add_child(fit)
-	var extend := IDPUi.button("Extend (E)", "Drag on the map to add a rectangle to this room")
+	var extend := MDSUi.button("Extend (E)", "Drag on the map to add a rectangle to this room")
 	extend.pressed.connect(func() -> void:
-		canvas.set_tool(IDPWorldCanvas.Tool.RECT)
+		canvas.set_tool(MDSWorldCanvas.Tool.RECT)
 		canvas.grab_focus())
 	shape_row.add_child(extend)
 	for i in rects.size():
 		var row := HBoxContainer.new()
 		inspector.add_child(row)
 		var r := rects[i]
-		var l := IDPUi.label("  #%d  %d,%d  %dx%d" % [i + 1, r.position.x, r.position.y, r.size.x, r.size.y])
+		var l := MDSUi.label("  #%d  %d,%d  %dx%d" % [i + 1, r.position.x, r.position.y, r.size.x, r.size.y])
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(l)
 		if rects.size() > 1:
-			var rm := IDPUi.button("x", "Remove this rectangle")
+			var rm := MDSUi.button("x", "Remove this rectangle")
 			rm.pressed.connect(func() -> void:
 				world.checkpoint()
 				world.remove_rect(id, i))
@@ -1628,28 +1653,28 @@ func _rebuild_inspector() -> void:
 func _build_gate_section(id: String, meta: Dictionary) -> void:
 	inspector.add_child(HSeparator.new())
 	var gates := world.get_gates(id)
-	inspector.add_child(IDPUi.title("Gates (%d)" % gates.size()))
+	inspector.add_child(MDSUi.title("Gates (%d)" % gates.size()))
 	var row := HFlowContainer.new()
 	inspector.add_child(row)
-	var add := IDPUi.menu_button("Add gate", "Add a transition on a side of the room")
-	for s in IDPWorld.SIDES:
+	var add := MDSUi.menu_button("Add gate", "Add a transition on a side of the room")
+	for s in MDSWorld.SIDES:
 		add.get_popup().add_item(s.capitalize())
 	add.get_popup().index_pressed.connect(func(idx: int) -> void:
-		var side: String = IDPWorld.SIDES[idx]
+		var side: String = MDSWorld.SIDES[idx]
 		var b := world.get_room_bounds(id)
 		var p: Vector2 = {"left": Vector2(b.position.x, b.get_center().y), "right": Vector2(b.end.x, b.get_center().y), "top": Vector2(b.get_center().x, b.position.y), "bot": Vector2(b.get_center().x, b.end.y), "door": b.get_center()}[side]
 		world.checkpoint()
 		canvas.selected_gate = world.add_gate(id, p, side if side == "door" else "", "", side != "door"))
 	row.add_child(add)
 	var has_transitions: bool = not meta.get("transitions", []).is_empty()
-	var imp := IDPUi.button("Import from scene", "Add/move map gates to match the scene's gate nodes (left1, right1, IDPGate...)")
+	var imp := MDSUi.button("Import from scene", "Add/move map gates to match the scene's gate nodes (left1, right1, MDSGate...)")
 	imp.disabled = not has_transitions
 	imp.pressed.connect(func() -> void:
 		world.checkpoint()
-		var n := IDPWorldSceneTools.import_gates(world, id, meta)
+		var n := MDSWorldSceneTools.import_gates(world, id, meta)
 		_set_status("Imported %d gate(s) from the scene." % n))
 	row.add_child(imp)
-	var write := IDPUi.button("Write to scene", "Add an IDPGate node to the scene for every map gate it's missing (never deletes)")
+	var write := MDSUi.button("Write to scene", "Add an MDSGate node to the scene for every map gate it's missing (never deletes)")
 	write.disabled = world.get_scene_path(id).is_empty() or gates.is_empty()
 	write.pressed.connect(func() -> void: _write_gates_to_scene(id))
 	row.add_child(write)
@@ -1666,7 +1691,7 @@ func _add_gate_row(id: String, gate_name: String) -> void:
 	name_edit.text = gate_name
 	name_edit.custom_minimum_size.x = 70
 	name_edit.tooltip_text = "Gate name (Hollow Knight style: left1, right1, top1, bot1, door1)"
-	IDPUi.commit_line(name_edit, func(t: String) -> void:
+	MDSUi.commit_line(name_edit, func(t: String) -> void:
 		world.checkpoint()
 		world.rename_gate(id, gate_name, t))
 	head.add_child(name_edit)
@@ -1684,12 +1709,12 @@ func _add_gate_row(id: String, gate_name: String) -> void:
 		target.tooltip_text = "Drag from this gate on the map to another gate to connect."
 	head.add_child(target)
 	if not to.is_empty():
-		var disc := IDPUi.button("Unlink", "Disconnect this gate")
+		var disc := MDSUi.button("Unlink", "Disconnect this gate")
 		disc.pressed.connect(func() -> void:
 			world.checkpoint()
 			world.disconnect_gate(id, gate_name))
 		head.add_child(disc)
-	var rm := IDPUi.button("x", "Delete this gate")
+	var rm := MDSUi.button("x", "Delete this gate")
 	rm.pressed.connect(func() -> void:
 		world.checkpoint()
 		world.remove_gate(id, gate_name))
@@ -1700,9 +1725,9 @@ func _add_gate_row(id: String, gate_name: String) -> void:
 	req.placeholder_text = "requires (e.g. dash)"
 	req.text = ", ".join(gate.get("requires", []))
 	req.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	IDPUi.commit_line(req, func(t: String) -> void:
+	MDSUi.commit_line(req, func(t: String) -> void:
 		world.checkpoint()
-		world.set_gate_value(id, gate_name, "requires", Array(IDPAnnotations.parse_list(t))))
+		world.set_gate_value(id, gate_name, "requires", Array(MDSAnnotations.parse_list(t))))
 	fields.add_child(req)
 	var one_way := CheckBox.new()
 	one_way.text = "One-way"
@@ -1715,7 +1740,7 @@ func _add_gate_row(id: String, gate_name: String) -> void:
 
 func _build_link_section(id: String) -> void:
 	inspector.add_child(HSeparator.new())
-	inspector.add_child(IDPUi.title("Links (elevators, stag stations, cross-layer)"))
+	inspector.add_child(MDSUi.title("Links (elevators, stag stations, cross-layer)"))
 	var links := world.get_links()
 	for i in links.size():
 		if links[i].a != id and links[i].b != id:
@@ -1733,15 +1758,15 @@ func _build_link_section(id: String) -> void:
 		note.text = links[i].get("note", "")
 		note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var index := i
-		IDPUi.commit_line(note, func(t: String) -> void: world.set_link_value(index, "note", t.strip_edges()))
+		MDSUi.commit_line(note, func(t: String) -> void: world.set_link_value(index, "note", t.strip_edges()))
 		row.add_child(note)
 		var req := LineEdit.new()
 		req.placeholder_text = "requires"
 		req.text = ", ".join(links[i].get("requires", []))
 		req.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		IDPUi.commit_line(req, func(t: String) -> void: world.set_link_value(index, "requires", Array(IDPAnnotations.parse_list(t))))
+		MDSUi.commit_line(req, func(t: String) -> void: world.set_link_value(index, "requires", Array(MDSAnnotations.parse_list(t))))
 		row.add_child(req)
-		var rm := IDPUi.button("x", "Remove link")
+		var rm := MDSUi.button("x", "Remove link")
 		rm.pressed.connect(func() -> void:
 			world.checkpoint()
 			world.remove_link(index))
@@ -1762,13 +1787,13 @@ func _build_link_section(id: String) -> void:
 				opt.set_item_metadata(opt.item_count - 1, g)
 				if g == str(links[i].get(side[1], "")):
 					opt.select(opt.item_count - 1)
-			opt.tooltip_text = "Gate of %s that the link starts or ends at. With both set, IDPWorldGame makes the link a fast-travel pair: an IDPGate with link on travels to the other end (if the link's requires are met)" % side[0]
+			opt.tooltip_text = "Gate of %s that the link starts or ends at. With both set, MDSWorldGame makes the link a fast-travel pair: an MDSGate with link on travels to the other end (if the link's requires are met)" % side[0]
 			var key: String = side[1]
 			opt.item_selected.connect(func(idx: int) -> void:
 				world.checkpoint()
 				world.set_link_value(index, key, opt.get_item_metadata(idx)))
 			gates_row.add_child(opt)
-	var add := IDPUi.button("Add link... (then click the target room)", "Connect rooms that have no gate between them on the map")
+	var add := MDSUi.button("Add link... (then click the target room)", "Connect rooms that have no gate between them on the map")
 	add.pressed.connect(func() -> void:
 		_link_source = id
 		canvas.grab_focus()
@@ -1822,20 +1847,20 @@ func create_scene_for_room(id: String, scene_path: String) -> void:
 	if not scene_path.ends_with(".tscn") and not scene_path.ends_with(".scn"):
 		scene_path += ".tscn"
 	world.checkpoint()
-	var err := IDPWorldSceneTools.create_scene_for_room(world, id, scene_path)
+	var err := MDSWorldSceneTools.create_scene_for_room(world, id, scene_path)
 	if err != OK:
-		_set_status(IDPWorldSceneTools.last_error if not IDPWorldSceneTools.last_error.is_empty() else "Could not create %s (error %d)" % [scene_path, err])
+		_set_status(MDSWorldSceneTools.last_error if not MDSWorldSceneTools.last_error.is_empty() else "Could not create %s (error %d)" % [scene_path, err])
 		return
 	EditorInterface.get_resource_filesystem().update_file(scene_path)
 	_scan_paths([scene_path])
 	EditorInterface.open_scene_from_path(scene_path)
 	_set_status("Created %s with %d gate(s); MapBounds shows the room's shape." % [scene_path, world.get_gates(id).size()])
 
-## Generates a runnable IDPWorldGame scene for this world and makes it the Play-from-here host.
+## Generates a runnable MDSWorldGame scene for this world and makes it the Play-from-here host.
 func create_game_scene(scene_path: String) -> void:
 	if not scene_path.ends_with(".tscn"):
 		scene_path += ".tscn"
-	var err := IDPWorldSceneTools.create_game_scene(world, scene_path)
+	var err := MDSWorldSceneTools.create_game_scene(world, scene_path)
 	if err != OK:
 		_set_status("Could not create %s (error %d)" % [scene_path, err])
 		return
@@ -1849,13 +1874,13 @@ func _write_gates_to_scene(id: String) -> void:
 	if p in EditorInterface.get_open_scenes():
 		_set_status("Close %s first (or add the gates there by hand): writing to an open scene would be overwritten when you save it." % p.get_file())
 		return
-	var n := IDPWorldSceneTools.write_gates(world, id)
+	var n := MDSWorldSceneTools.write_gates(world, id)
 	if n < 0:
-		_set_status(IDPWorldSceneTools.last_error if not IDPWorldSceneTools.last_error.is_empty() else "Could not write gates to %s" % p)
+		_set_status(MDSWorldSceneTools.last_error if not MDSWorldSceneTools.last_error.is_empty() else "Could not write gates to %s" % p)
 		return
 	EditorInterface.get_resource_filesystem().update_file(p)
 	_scan_paths([p])
-	_set_status("%s: %d IDPGate node(s), at their map positions." % [p.get_file(), n])
+	_set_status("%s: %d MDSGate node(s), at their map positions." % [p.get_file(), n])
 
 # --- Context menu, play ------------------------------------------------------------------------
 
@@ -1914,7 +1939,7 @@ func _on_context_menu(item: int) -> void:
 			show_room_view(id)
 		ContextItem.FIT:
 			world.checkpoint()
-			if not IDPWorldSceneTools.fit_room_to_scene(world, id, scene_database.get(world.get_scene_path(id), {})):
+			if not MDSWorldSceneTools.fit_room_to_scene(world, id, scene_database.get(world.get_scene_path(id), {})):
 				_set_status("The scene has no terrain to fit to (TileMapLayer or StaticBody2D shapes).")
 		ContextItem.ADD_GATE:
 			world.checkpoint()
@@ -1949,7 +1974,7 @@ func _on_context_menu(item: int) -> void:
 			world.checkpoint()
 			world.remove_pin(_nearest_pin(_context_pos))
 
-## Runs the game starting in this room (see IDPPlayHere). With [param prefer_save_point]
+## Runs the game starting in this room (see MDSPlayHere). With [param prefer_save_point]
 ## the player starts at the room's save point when it has one.
 func _play_from(id: String, world_pos: Vector2, prefer_save_point := false) -> void:
 	var p := world.get_scene_path(id)
@@ -1960,7 +1985,7 @@ func _play_from(id: String, world_pos: Vector2, prefer_save_point := false) -> v
 	var saves: Array = scene_database.get(p, {}).get("save_points", [])
 	if prefer_save_point and not saves.is_empty():
 		local = saves[0].position
-	_set_status(IDPPlayHere.play(p, uid, world.get_room_layer(id), local, world.get_setting("play_scene", "")))
+	_set_status(MDSPlayHere.play(p, uid, world.get_room_layer(id), local, world.get_setting("play_scene", "")))
 
 func _on_scenes_menu(item: int) -> void:
 	if not world:
@@ -1991,90 +2016,94 @@ func _show_settings() -> void:
 	var grid := GridContainer.new()
 	grid.columns = 2
 	settings_dialog.add_child(grid)
-	var name_edit := IDPUi.field_line(grid, "World name", world.get_world_name(), "")
-	IDPUi.commit_line(name_edit, func(t: String) -> void:
+	var name_edit := MDSUi.field_line(grid, "World name", world.get_world_name(), "")
+	MDSUi.commit_line(name_edit, func(t: String) -> void:
 		world.data.name = t
 		world._touch())
-	var grid_edit := IDPUi.field_line(grid, "Grid (px)", str(int(world.get_grid())), "32")
+	var grid_edit := MDSUi.field_line(grid, "Grid (px)", str(int(world.get_grid())), "32")
 	grid_edit.tooltip_text = "Rooms, rects and gates snap to this. Use your tile size or a multiple of it."
-	IDPUi.commit_line(grid_edit, func(t: String) -> void: world.set_setting("grid", maxi(1, t.to_int())))
+	MDSUi.commit_line(grid_edit, func(t: String) -> void: world.set_setting("grid", maxi(1, t.to_int())))
 	var s := world.get_default_room_size()
-	var size_edit := IDPUi.field_line(grid, "Default room size", "%dx%d" % [s.x, s.y], "1152x648")
-	IDPUi.commit_line(size_edit, func(t: String) -> void:
+	var size_edit := MDSUi.field_line(grid, "Default room size", "%dx%d" % [s.x, s.y], "1152x648")
+	MDSUi.commit_line(size_edit, func(t: String) -> void:
 		var parts := t.split("x")
 		if parts.size() == 2:
 			world.set_setting("default_room_size", [parts[0].to_float(), parts[1].to_float()]))
 	var cell := world.get_paint_cell()
-	var cell_edit := IDPUi.field_line(grid, "Paint cell", "%dx%d" % [cell.x, cell.y], "e.g. 288x162")
+	var cell_edit := MDSUi.field_line(grid, "Paint cell", "%dx%d" % [cell.x, cell.y], "e.g. 288x162")
 	cell_edit.tooltip_text = "Size of one brush cell in world pixels. Default: a quarter of the default room size."
-	IDPUi.commit_line(cell_edit, func(t: String) -> void:
+	MDSUi.commit_line(cell_edit, func(t: String) -> void:
 		var parts := t.split("x")
 		if parts.size() == 2 and parts[0].to_float() > 0 and parts[1].to_float() > 0:
 			world.set_setting("paint_cell", [parts[0].to_float(), parts[1].to_float()])
 			canvas.redraw())
-	var folder_edit := IDPUi.field_line(grid, "New scene folder", world.get_setting("scene_folder", "res://rooms"), "res://rooms")
-	IDPUi.commit_line(folder_edit, func(t: String) -> void: world.set_setting("scene_folder", t.strip_edges()))
-	var template_edit := IDPUi.field_line(grid, "Scene template", world.get_setting("scene_template", ""), "optional .tscn used by Create scene")
-	IDPUi.commit_line(template_edit, func(t: String) -> void: world.set_setting("scene_template", t.strip_edges()))
-	var play_edit := IDPUi.field_line(grid, "Play scene", world.get_setting("play_scene", ""), "auto: game scene hosting the room")
+	var folder_edit := MDSUi.field_line(grid, "New scene folder", world.get_setting("scene_folder", "res://rooms"), "res://rooms")
+	MDSUi.commit_line(folder_edit, func(t: String) -> void: world.set_setting("scene_folder", t.strip_edges()))
+	var template_edit := MDSUi.field_line(grid, "Scene template", world.get_setting("scene_template", ""), "optional .tscn used by Create scene")
+	MDSUi.commit_line(template_edit, func(t: String) -> void: world.set_setting("scene_template", t.strip_edges()))
+	var play_edit := MDSUi.field_line(grid, "Play scene", world.get_setting("play_scene", ""), "auto: game scene hosting the room")
 	play_edit.tooltip_text = "Scene that Play from here boots with the room as its start. Empty: detected automatically."
-	IDPUi.commit_line(play_edit, func(t: String) -> void: world.set_setting("play_scene", t.strip_edges()))
-	grid.add_child(IDPUi.label("Auto-add gate nodes"))
+	MDSUi.commit_line(play_edit, func(t: String) -> void: world.set_setting("play_scene", t.strip_edges()))
+	grid.add_child(MDSUi.label("Auto-add gate nodes"))
 	var auto_gates := CheckBox.new()
 	auto_gates.text = "When gates are added or connected"
 	auto_gates.button_pressed = auto_gate_nodes_enabled()
-	auto_gates.tooltip_text = "Adding or connecting gates on the map adds the matching IDPGate nodes to the rooms' scenes (and turns plain gate nodes into IDPGates). Open scenes get them as an undoable edit."
+	auto_gates.tooltip_text = "Adding or connecting gates on the map adds the matching MDSGate nodes to the rooms' scenes (and turns plain gate nodes into MDSGates). Open scenes get them as an undoable edit."
 	auto_gates.toggled.connect(func(on: bool) -> void: world.set_setting("auto_gate_nodes", on))
 	grid.add_child(auto_gates)
-	grid.add_child(IDPUi.label("Geometry checks"))
+	grid.add_child(MDSUi.label("Geometry checks"))
 	var geo := CheckBox.new()
 	geo.text = "Check rooms with physics"
 	geo.button_pressed = geometry_checks_enabled()
 	geo.tooltip_text = "Load every room's terrain into an off-screen physics space and check that gates are open, platforms have headroom, objects stand on ground and exits up can be climbed (Issues > Geometry). Uses the Player settings below"
 	geo.toggled.connect(func(on: bool) -> void: world.set_setting("geometry_checks", on))
 	grid.add_child(geo)
-	var tiles_edit := IDPUi.field_line(grid, "Room tileset", world.get_setting("room_tileset", ""), "starter mossy cave tileset")
+	var tiles_edit := MDSUi.field_line(grid, "Room tileset", world.get_setting("room_tileset", ""), "starter mossy cave tileset")
 	tiles_edit.tooltip_text = "TileSet (.tres) the Room view paints new rooms with, e.g. an asset pack's tileset. Rooms that already have tiles keep theirs."
-	IDPUi.commit_line(tiles_edit, func(t: String) -> void: world.set_setting("room_tileset", t.strip_edges()))
-	var fill_edit := IDPUi.field_line(grid, "Notch fill style", world.get_setting("notch_fill_style", ""), "optional .freeform.tres")
+	MDSUi.commit_line(tiles_edit, func(t: String) -> void: world.set_setting("room_tileset", t.strip_edges()))
+	var fill_edit := MDSUi.field_line(grid, "Notch fill style", world.get_setting("notch_fill_style", ""), "optional .freeform.tres")
 	fill_edit.tooltip_text = "Create scene fills the cells of an irregular room's box outside its shape with non-solid shapes of this style (Room view > Fill outside shape does it for existing rooms)"
-	IDPUi.commit_line(fill_edit, func(t: String) -> void: world.set_setting("notch_fill_style", t.strip_edges()))
-	var warn_edit := IDPUi.field_line(grid, "Save distance warning", str(world.get_setting("save_distance_warn", 4)), "4")
-	IDPUi.commit_line(warn_edit, func(t: String) -> void: world.set_setting("save_distance_warn", maxi(1, t.to_int())))
-	var layers_edit := IDPUi.field_line(grid, "Layer names", ", ".join(world.get_layer_names()), "Main, Dream")
-	IDPUi.commit_line(layers_edit, func(t: String) -> void:
+	MDSUi.commit_line(fill_edit, func(t: String) -> void: world.set_setting("notch_fill_style", t.strip_edges()))
+	var warn_edit := MDSUi.field_line(grid, "Save distance warning", str(world.get_setting("save_distance_warn", 4)), "4")
+	MDSUi.commit_line(warn_edit, func(t: String) -> void: world.set_setting("save_distance_warn", maxi(1, t.to_int())))
+	var layers_edit := MDSUi.field_line(grid, "Layer names", ", ".join(world.get_layer_names()), "Main, Dream")
+	MDSUi.commit_line(layers_edit, func(t: String) -> void:
 		var names: Array = []
 		for n in t.split(","):
 			names.append(n.strip_edges())
 		world.data.layers = names
 		world._touch()
 		_rebuild_layer_picker())
-	# Presentation (IDPWorldGame applies these to every room).
-	var pres_title := IDPUi.label("Presentation")
+	# Presentation (MDSWorldGame applies these to every room).
+	var pres_title := MDSUi.label("Presentation")
 	pres_title.add_theme_color_override("font_color", get_theme_color(&"accent_color", &"Editor"))
 	grid.add_child(pres_title)
-	grid.add_child(IDPUi.hint("Used by IDPWorldGame in the game scene"))
-	grid.add_child(IDPUi.label("2.5D"))
+	grid.add_child(MDSUi.hint("Used by MDSWorldGame in the game scene"))
+	grid.add_child(MDSUi.label("2.5D"))
 	var depth := CheckBox.new()
-	depth.text = "Extrude every room (IDPDepth25D)"
+	depth.text = "Extrude every room (MDSDepth25D)"
 	depth.button_pressed = bool(world.get_setting("depth_25d", false))
 	depth.tooltip_text = "Walls, floors and platforms get the side faces of solid blocks running back to the middle of the view, floors become paved planes, faces are lit around the player and bodies cast soft shadows. Drawing only: nothing collides differently"
 	depth.toggled.connect(func(on: bool) -> void: world.set_setting("depth_25d", on))
 	grid.add_child(depth)
-	var depth_style_edit := IDPUi.field_line(grid, "2.5D style", world.get_setting("depth_style", ""), "optional IDPDepthStyle .tres")
-	IDPUi.commit_line(depth_style_edit, func(t: String) -> void: world.set_setting("depth_style", t.strip_edges()))
-	IDPUi.path_drop(depth_style_edit)
-	var backdrop_edit := IDPUi.field_line(grid, "Backdrop", world.get_setting("backdrop", ""), "optional IDPBackdrop .tres")
+	var depth_style_edit := MDSUi.field_line(grid, "2.5D style", world.get_setting("depth_style", ""), "optional MDSDepthStyle .tres")
+	MDSUi.commit_line(depth_style_edit, func(t: String) -> void: world.set_setting("depth_style", t.strip_edges()))
+	MDSUi.path_drop(depth_style_edit)
+	var backdrop_edit := MDSUi.field_line(grid, "Backdrop", world.get_setting("backdrop", ""), "optional MDSBackdrop .tres")
 	backdrop_edit.tooltip_text = "Distance drawn behind every room whose area and room set none (Areas tab, Inspect tab)"
-	IDPUi.path_drop(backdrop_edit)
-	IDPUi.commit_line(backdrop_edit, func(t: String) -> void: world.set_setting("backdrop", t.strip_edges()))
-	var share_edit := IDPUi.field_line(grid, "Dark room share", str(world.get_setting("dark_room_share", 0.0)), "0")
+	MDSUi.path_drop(backdrop_edit)
+	MDSUi.commit_line(backdrop_edit, func(t: String) -> void: world.set_setting("backdrop", t.strip_edges()))
+	var weather_edit := MDSUi.weather_field(grid, "Weather", str(world.get_setting("weather", "")), "none", func(t: String) -> void:
+		world.set_setting("weather", t.strip_edges())
+		_weather_changed(t))
+	weather_edit.tooltip_text = "Weather and effects in every room whose area and room set none (Areas tab, Inspect tab)"
+	var share_edit := MDSUi.field_line(grid, "Dark room share", str(world.get_setting("dark_room_share", 0.0)), "0")
 	share_edit.tooltip_text = "0 to 1: this share of the rooms with automatic darkness (no darkness on the room or its area) is dimmed by 0.35 to 0.55. Picked from the room id, so a room is always the same"
-	IDPUi.commit_line(share_edit, func(t: String) -> void: world.set_setting("dark_room_share", clampf(t.to_float(), 0.0, 1.0)))
+	MDSUi.commit_line(share_edit, func(t: String) -> void: world.set_setting("dark_room_share", clampf(t.to_float(), 0.0, 1.0)))
 	var groups: Variant = world.get_setting("light_groups", null)
-	var groups_edit := IDPUi.field_line(grid, "Light groups", ", ".join(PackedStringArray(groups)) if groups is Array else "", "player, enemy, lantern")
-	groups_edit.tooltip_text = "Nodes in these groups carry a soft light in dark rooms. Empty: IDPWorldGame's light_groups"
-	IDPUi.commit_line(groups_edit, func(t: String) -> void:
+	var groups_edit := MDSUi.field_line(grid, "Light groups", ", ".join(PackedStringArray(groups)) if groups is Array else "", "player, enemy, lantern")
+	groups_edit.tooltip_text = "Nodes in these groups carry a soft light in dark rooms. Empty: MDSWorldGame's light_groups"
+	MDSUi.commit_line(groups_edit, func(t: String) -> void:
 		if t.strip_edges().is_empty():
 			world.data.get("settings", {}).erase("light_groups")
 			world._touch()
@@ -2086,29 +2115,29 @@ func _show_settings() -> void:
 					names.append(n.strip_edges())
 			world.set_setting("light_groups", names))
 	# Player (the room checks: openings, headroom, the climb test, reachability).
-	var player_title := IDPUi.label("Player")
+	var player_title := MDSUi.label("Player")
 	player_title.add_theme_color_override("font_color", get_theme_color(&"accent_color", &"Editor"))
 	grid.add_child(player_title)
-	grid.add_child(IDPUi.hint("Used by the Geometry checks and the Room view's Check room"))
-	IDPUi.player_fields(grid, world.get_setting("player", {}), func(d: Dictionary) -> void: world.set_setting("player", d))
-	# Camera (IDPRoomCamera reads these when its use_world_settings is on).
+	grid.add_child(MDSUi.hint("Used by the Geometry checks and the Room view's Check room"))
+	MDSUi.player_fields(grid, world.get_setting("player", {}), func(d: Dictionary) -> void: world.set_setting("player", d))
+	# Camera (MDSRoomCamera reads these when its use_world_settings is on).
 	var cam: Dictionary = world.get_setting("camera", {})
 	var set_cam := func(key: String, value: Variant) -> void:
 		var c: Dictionary = world.get_setting("camera", {}).duplicate()
 		c[key] = value
 		world.set_setting("camera", c)
-	var cam_title := IDPUi.label("Camera")
+	var cam_title := MDSUi.label("Camera")
 	cam_title.add_theme_color_override("font_color", get_theme_color(&"accent_color", &"Editor"))
 	grid.add_child(cam_title)
-	grid.add_child(IDPUi.hint("Used by IDPRoomCamera in the game scene"))
+	grid.add_child(MDSUi.hint("Used by MDSRoomCamera in the game scene"))
 	var options := [
-		["Camera backend", "backend", IDPRoomCamera.BACKEND_NAMES, "Auto uses PhantomCamera2D when the Phantom Camera addon is enabled, else Camera2D."],
-		["Irregular rooms", "confine", IDPRoomCamera.CONFINE_NAMES, "Room shape: the camera is limited to the zone (largest rectangle of the room's shape) the player is in and glides between zones, so notches of L- or U-shaped rooms stay hidden."],
-		["Room transition", "room_transition", IDPRoomCamera.TRANSITION_NAMES, "Fade to black, cut, slide the view to the new room (player waits), or blend (the camera glides over while the player keeps moving)."],
-		["Camera motion", "transition_style", IDPRoomCamera.MOTION_NAMES, "Glide, or cut and never glide: zone changes, room slides and blends, follow smoothing and the camera director's moves all cut (a camera that eases late makes the parallax late too)."],
+		["Camera backend", "backend", MDSRoomCamera.BACKEND_NAMES, "Auto uses PhantomCamera2D when the Phantom Camera addon is enabled, else Camera2D."],
+		["Irregular rooms", "confine", MDSRoomCamera.CONFINE_NAMES, "Room shape: the camera is limited to the zone (largest rectangle of the room's shape) the player is in and glides between zones, so notches of L- or U-shaped rooms stay hidden."],
+		["Room transition", "room_transition", MDSRoomCamera.TRANSITION_NAMES, "Fade to black, cut, slide the view to the new room (player waits), or blend (the camera glides over while the player keeps moving)."],
+		["Camera motion", "transition_style", MDSRoomCamera.MOTION_NAMES, "Glide, or cut and never glide: zone changes, room slides and blends, follow smoothing and the camera director's moves all cut (a camera that eases late makes the parallax late too)."],
 	]
 	for o in options:
-		grid.add_child(IDPUi.label(o[0]))
+		grid.add_child(MDSUi.label(o[0]))
 		var opt := OptionButton.new()
 		for n in o[2]:
 			opt.add_item(n)
@@ -2126,9 +2155,9 @@ func _show_settings() -> void:
 	]
 	for n in numbers:
 		var value: Variant = cam.get(n[1], n[2])
-		var edit := IDPUi.field_line(grid, n[0], str(value[0] if value is Array else value), str(n[2]))
+		var edit := MDSUi.field_line(grid, n[0], str(value[0] if value is Array else value), str(n[2]))
 		var key: String = n[1]
-		IDPUi.commit_line(edit, func(t: String) -> void: set_cam.call(key, t.to_float()))
+		MDSUi.commit_line(edit, func(t: String) -> void: set_cam.call(key, t.to_float()))
 	settings_dialog.popup_centered(Vector2i(460, 0))
 
 # --- Export ----------------------------------------------------------------------------------
@@ -2136,22 +2165,22 @@ func _show_settings() -> void:
 func _on_export_menu(item: int) -> void:
 	if not world:
 		return
-	var base := "%s/%s_%s" % [EXPORT_DIR, world_path.get_file().trim_suffix(IDPWorld.EXTENSION), Time.get_datetime_string_from_system().replace(":", "-")]
+	var base := "%s/%s_%s" % [EXPORT_DIR, world_path.get_file().trim_suffix(MDSWorld.EXTENSION), Time.get_datetime_string_from_system().replace(":", "-")]
 	DirAccess.make_dir_recursive_absolute(EXPORT_DIR)
 	match item:
 		ExportItem.JSON:
 			var out := {
 				"world": world.data,
-				"progression": IDPExporters.progression_to_dict(analysis),
+				"progression": MDSExporters.progression_to_dict(analysis),
 				"issues": issues.map(func(i: Dictionary) -> Dictionary: return {"severity": i.severity, "category": i.category, "message": i.message, "room": i.room_id}),
-				"scene_database": IDPExporters.sanitize_scene_db(scene_database),
+				"scene_database": MDSExporters.sanitize_scene_db(scene_database),
 			}
 			_write_export(base + ".json", JSON.stringify(out, "\t"))
 		ExportItem.DOT:
 			var colors := {}
 			for a in world.get_areas():
 				colors[a] = world.get_area_color(a)
-			_write_export(base + ".dot", IDPExporters.to_dot(analysis, colors))
+			_write_export(base + ".dot", MDSExporters.to_dot(analysis, colors))
 		ExportItem.MARKDOWN:
 			var connected := 0
 			var total := 0
@@ -2164,7 +2193,7 @@ func _on_export_menu(item: int) -> void:
 			var size_of := func(id: String) -> String:
 				var b := world.get_room_bounds(id)
 				return "%dx%d px" % [b.size.x, b.size.y]
-			_write_export(base + ".md", IDPExporters.to_markdown(world.get_world_name(), summary, world, analysis, issues, size_of))
+			_write_export(base + ".md", MDSExporters.to_markdown(world.get_world_name(), summary, world, analysis, issues, size_of))
 		ExportItem.PNG:
 			_export_png(base + ".png")
 
@@ -2189,7 +2218,7 @@ func _export_png(p: String) -> void:
 	if not b.has_area():
 		_set_status("Export failed: empty layer")
 		return
-	var clone := IDPWorldCanvas.new()
+	var clone := MDSWorldCanvas.new()
 	clone.color_mode = canvas.color_mode
 	clone.show = canvas.show.duplicate()
 	clone.show.previews = false
@@ -2221,7 +2250,7 @@ func _export_png(p: String) -> void:
 	else:
 		_set_status("PNG export failed (error %d)" % err)
 
-# --- IDPAnalysisViews host callbacks ---------------------------------------------------------
+# --- MDSAnalysisViews host callbacks ---------------------------------------------------------
 
 func ui_select_room(id: String) -> void:
 	canvas.highlight_rooms.clear()
@@ -2258,7 +2287,7 @@ func ui_set_start_from_selection() -> void:
 		world.set_start_room(canvas.selected_room)
 
 func ui_area_color(area: String) -> Color:
-	return world.get_area_color(area) if world else IDPMapCanvas.area_color(area)
+	return world.get_area_color(area) if world else MDSMapCanvas.area_color(area)
 
 func ui_stats_header() -> String:
 	var connected := 0

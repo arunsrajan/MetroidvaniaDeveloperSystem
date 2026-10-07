@@ -1,5 +1,5 @@
 @tool
-class_name IDPAnalysisViews
+class_name MDSAnalysisViews
 extends RefCounted
 ## The Progress, Issues and Stats sidebar tabs, shared by the MetSys and non-linear panels.
 ##
@@ -14,7 +14,7 @@ extends RefCounted
 ## [/codeblock]
 
 var host: Object
-var analysis: IDPAnalysis
+var analysis: MDSAnalysis
 var issues: Array = []
 var progression_header: Label
 var progression_tree: Tree
@@ -35,10 +35,10 @@ func _build_progression_tab() -> void:
 	var box := VBoxContainer.new()
 	box.name = "Progress"
 	_sidebar.add_child(box)
-	progression_header = IDPUi.label("")
+	progression_header = MDSUi.label("")
 	progression_header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(progression_header)
-	var set_start := IDPUi.button("Use selected room as start", "Progression is computed from this room")
+	var set_start := MDSUi.button("Use selected room as start", "Progression is computed from this room")
 	set_start.pressed.connect(func() -> void: host.ui_set_start_from_selection())
 	box.add_child(set_start)
 	progression_tree = Tree.new()
@@ -46,14 +46,14 @@ func _build_progression_tab() -> void:
 	progression_tree.hide_root = true
 	progression_tree.item_selected.connect(_on_progression_item_selected)
 	box.add_child(progression_tree)
-	box.add_child(IDPUi.hint("Select a sphere, ability or group to highlight it on the map."))
+	box.add_child(MDSUi.hint("Select a sphere, ability or group to highlight it on the map."))
 
 func _build_issues_tab() -> void:
 	var box := VBoxContainer.new()
 	box.name = "Issues"
 	_issues_tab = box
 	_sidebar.add_child(box)
-	issues_summary = IDPUi.label("")
+	issues_summary = MDSUi.label("")
 	issues_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(issues_summary)
 	issues_tree = Tree.new()
@@ -76,7 +76,7 @@ func _build_stats_tab() -> void:
 			host.ui_select_room(s.trim_prefix("room:")))
 	_sidebar.add_child(stats_text)
 
-func refresh(p_analysis: IDPAnalysis, p_issues: Array, scanned: bool) -> void:
+func refresh(p_analysis: MDSAnalysis, p_issues: Array, scanned: bool) -> void:
 	analysis = p_analysis
 	issues = p_issues
 	_refresh_progression()
@@ -100,7 +100,7 @@ func _refresh_progression() -> void:
 			text += "; grants %s" % ", ".join(s.gained)
 		head.set_text(0, text)
 		head.set_tooltip_text(0, text)
-		head.set_custom_color(0, IDPMapCanvas.sphere_color(s.index, analysis.spheres.size()).lightened(0.3))
+		head.set_custom_color(0, MDSMapCanvas.sphere_color(s.index, analysis.spheres.size()).lightened(0.3))
 		head.set_metadata(0, {"rooms": s.rooms})
 		for e in s.entries:
 			var entry := progression_tree.create_item(head)
@@ -129,7 +129,7 @@ func _refresh_progression() -> void:
 		var where := ", ".join(sources.map(func(id: String) -> String: return "%s (sphere %s)" % [analysis.get_room_name(id), analysis.sphere_of.get(id, "?")])) if not sources.is_empty() else "NOT GRANTED ANYWHERE"
 		item.set_text(0, "%s: found in %s; opens %d passage(s)" % [a, where, uses.size()])
 		item.set_tooltip_text(0, item.get_text(0))
-		item.set_custom_color(0, IDPMapCanvas.ability_color(a))
+		item.set_custom_color(0, MDSMapCanvas.ability_color(a))
 		var highlight: Array = sources.duplicate()
 		for u in uses:
 			highlight.append(u.a)
@@ -160,7 +160,7 @@ func _refresh_progression() -> void:
 	_add_room_group(topo, "Chokepoints (%d): removing one splits the map" % analysis.chokepoints.size(), analysis.chokepoints, Color.WHITE, true)
 	_add_room_group(topo, "Hubs (%d): 4+ neighbors" % analysis.hubs.size(), analysis.hubs, Color.WHITE, true)
 
-## "text - how it completes" for a [method IDPAnalysis.get_objectives] entry.
+## "text - how it completes" for a [method MDSAnalysis.get_objectives] entry.
 func _objective_status(o: Dictionary) -> String:
 	var text := str(o.text) if not str(o.text).is_empty() else "(no text)"
 	if not str(o.problem).is_empty():
@@ -174,7 +174,7 @@ func _add_room_item(parent: TreeItem, id: String) -> void:
 	var item := progression_tree.create_item(parent)
 	var info := analysis.get_info(id)
 	item.set_text(0, info.get("name", id))
-	item.set_icon(0, IDPUi.type_icon(info.get("type", "")))
+	item.set_icon(0, MDSUi.type_icon(info.get("type", "")))
 	item.set_metadata(0, {"room": id})
 
 func _add_room_group(parent: TreeItem, text: String, ids: Array, color: Color, collapsed := false) -> void:
@@ -233,9 +233,9 @@ func _refresh_stats() -> void:
 			totals[k] += meta.get(k, []).size()
 	t += "%d collectibles, %d enemies, %d save points (scanned %d scenes)\n\n" % [totals.collectibles, totals.enemies, totals.save_points, analysis.scene_db.size()]
 
-	var assigned: Array = analysis.graph.rooms.values().filter(func(r: IDPGraph.GRoom) -> bool: return r.has_scene)
+	var assigned: Array = analysis.graph.rooms.values().filter(func(r: MDSGraph.GRoom) -> bool: return r.has_scene)
 	var areas: Dictionary = {}
-	for room: IDPGraph.GRoom in assigned:
+	for room: MDSGraph.GRoom in assigned:
 		var info := analysis.get_info(room.id)
 		var a: String = info.area if not str(info.area).is_empty() else "(no area)"
 		if not areas.has(a):
@@ -274,11 +274,11 @@ func _refresh_stats() -> void:
 
 	t += "\n[b]Build status[/b]\n"
 	var status_counts: Dictionary = {}
-	for room: IDPGraph.GRoom in assigned:
+	for room: MDSGraph.GRoom in assigned:
 		var s: String = analysis.get_info(room.id).status
 		status_counts[s] = status_counts.get(s, 0) + 1
-	for s in IDPAnnotations.STATUSES:
+	for s in MDSAnnotations.STATUSES:
 		if status_counts.has(s):
 			var pct: float = 100.0 * status_counts[s] / maxf(1.0, assigned.size())
-			t += "[color=#%s]%s[/color]: %d (%d%%)\n" % [IDPMapCanvas.STATUS_COLORS[s].lightened(0.3).to_html(false), s.capitalize() if not s.is_empty() else "No status", status_counts[s], roundi(pct)]
+			t += "[color=#%s]%s[/color]: %d (%d%%)\n" % [MDSMapCanvas.STATUS_COLORS[s].lightened(0.3).to_html(false), s.capitalize() if not s.is_empty() else "No status", status_counts[s], roundi(pct)]
 	stats_text.text = t

@@ -1,7 +1,7 @@
 """Terrain tiles: 4 materials x (16 autotile pieces + 4 fill variants), 32 px.
 
 Pieces are indexed by connected sides (1 right, 2 bottom, 4 left, 8 top), in a 4x4 block
-per material, the layout IDP's "Make terrain (4x4)" and starter tileset use. A fifth
+per material, the layout MDS's "Make terrain (4x4)" and starter tileset use. A fifth
 column holds fill variants (all sides connected) with details kept away from the edges,
 so they swap in seamlessly.
 """

@@ -1,5 +1,5 @@
 @tool
-class_name IDPTerrainShapes
+class_name MDSTerrainShapes
 extends RefCounted
 ## Shape brushes for the Room view: the cells of a dragged rectangle filled as a plain
 ## block, an irregular rock blob, or a mass with one curved side (floor hills, bowls,

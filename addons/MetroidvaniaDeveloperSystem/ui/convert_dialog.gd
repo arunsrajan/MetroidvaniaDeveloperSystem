@@ -1,14 +1,14 @@
 @tool
-class_name IDPConvertDialog
+class_name MDSConvertDialog
 extends ConfirmationDialog
-## The Room view's "Convert to freeform..." dialog (see [IDPFreeformConverter]): styles,
+## The Room view's "Convert to freeform..." dialog (see [MDSFreeformConverter]): styles,
 ## growth, corner radii, seed, what happens to the old terrain, and a Preview that applies
 ## the conversion so it can be looked at (Cancel takes it back out).
 
 signal converted(report: Dictionary)
 
-var view: IDPRoomView
-var _styles: Array[IDPFreeformStyle] = []
+var view: MDSRoomView
+var _styles: Array[MDSFreeformStyle] = []
 var _rock: OptionButton
 var _ledge: OptionButton
 var _back: OptionButton
@@ -27,7 +27,7 @@ func _init() -> void:
 	ok_button_text = "Convert"
 	var box := VBoxContainer.new()
 	add_child(box)
-	box.add_child(IDPUi.hint("Turns the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects where it is. Platforms become one-way ledges."))
+	box.add_child(MDSUi.hint("Turns the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects where it is. Platforms become one-way ledges."))
 	var grid := GridContainer.new()
 	grid.columns = 2
 	box.add_child(grid)
@@ -40,7 +40,7 @@ func _init() -> void:
 	_bowl = _spin(grid, "Inside corners", 0, 200, 64, "px", "Radius of the bowls rounding inside corners")
 	_lip = _spin(grid, "Outside corners", 0, 100, 18, "px", "Radius of the lips rounding outside corners")
 	_seed = _spin(grid, "Seed", 0, 99999, 0, "", "Same seed, same rock")
-	grid.add_child(IDPUi.label("Old terrain"))
+	grid.add_child(MDSUi.label("Old terrain"))
 	_old = OptionButton.new()
 	_old.add_item("Keep it, hidden")
 	_old.add_item("Remove it")
@@ -60,7 +60,7 @@ func _init() -> void:
 	close_requested.connect(_take_back)
 
 func _option(grid: GridContainer, text: String, tip: String) -> OptionButton:
-	grid.add_child(IDPUi.label(text))
+	grid.add_child(MDSUi.label(text))
 	var o := OptionButton.new()
 	o.tooltip_text = tip
 	o.fit_to_longest_item = false
@@ -69,7 +69,7 @@ func _option(grid: GridContainer, text: String, tip: String) -> OptionButton:
 	return o
 
 func _spin(grid: GridContainer, text: String, lo: float, hi: float, value: float, suffix: String, tip: String) -> SpinBox:
-	grid.add_child(IDPUi.label(text))
+	grid.add_child(MDSUi.label(text))
 	var s := SpinBox.new()
 	s.min_value = lo
 	s.max_value = hi
@@ -80,21 +80,21 @@ func _spin(grid: GridContainer, text: String, lo: float, hi: float, value: float
 	return s
 
 ## Opens the dialog for the view's room.
-func open(p_view: IDPRoomView, styles: Array[IDPFreeformStyle], current: IDPFreeformStyle) -> void:
+func open(p_view: MDSRoomView, styles: Array[MDSFreeformStyle], current: MDSFreeformStyle) -> void:
 	view = p_view
 	_styles = styles
 	_previewing = false
-	_fill(_rock, "", current, func(st: IDPFreeformStyle) -> bool: return st.get_role() == IDPFreeformStyle.Role.TERRAIN and st.solid)
-	_fill(_ledge, "Rock style, as one-way ledges", null, func(st: IDPFreeformStyle) -> bool: return st.get_role() == IDPFreeformStyle.Role.PLATFORM)
-	_fill(_back, "Keep as tiles", null, func(_st: IDPFreeformStyle) -> bool: return false)
-	_fill(_front, "Keep as tiles", null, func(_st: IDPFreeformStyle) -> bool: return false)
-	_fill(_outside, "No", null, func(_st: IDPFreeformStyle) -> bool: return false)
+	_fill(_rock, "", current, func(st: MDSFreeformStyle) -> bool: return st.get_role() == MDSFreeformStyle.Role.TERRAIN and st.solid)
+	_fill(_ledge, "Rock style, as one-way ledges", null, func(st: MDSFreeformStyle) -> bool: return st.get_role() == MDSFreeformStyle.Role.PLATFORM)
+	_fill(_back, "Keep as tiles", null, func(_st: MDSFreeformStyle) -> bool: return false)
+	_fill(_front, "Keep as tiles", null, func(_st: MDSFreeformStyle) -> bool: return false)
+	_fill(_outside, "No", null, func(_st: MDSFreeformStyle) -> bool: return false)
 	_seed.value = absi(hash(view.room_id)) % 10000
 	popup_centered()
 
 ## Lists the styles; picks [param current], else the first one [param prefer] accepts, else
 ## the empty choice (when [param empty] is given) or the first style.
-func _fill(o: OptionButton, empty: String, current: IDPFreeformStyle, prefer: Callable) -> void:
+func _fill(o: OptionButton, empty: String, current: MDSFreeformStyle, prefer: Callable) -> void:
 	o.clear()
 	if not empty.is_empty():
 		o.add_item(empty)
@@ -107,13 +107,13 @@ func _fill(o: OptionButton, empty: String, current: IDPFreeformStyle, prefer: Ca
 			pick = o.item_count - 1
 	o.select(pick if pick >= 0 else 0)
 
-func _style(o: OptionButton) -> IDPFreeformStyle:
+func _style(o: OptionButton) -> MDSFreeformStyle:
 	return o.get_item_metadata(o.selected) if o.selected >= 0 else null
 
 func _run() -> Dictionary:
 	var painter := view.painter
 	painter.checkpoint()
-	var conv := IDPFreeformConverter.new()
+	var conv := MDSFreeformConverter.new()
 	conv.rock_style = _style(_rock)
 	conv.ledge_style = _style(_ledge)
 	conv.back_style = _style(_back)
@@ -131,7 +131,7 @@ func _run() -> Dictionary:
 		return r
 	var deep := _style(_outside)
 	if deep:
-		r.outside = IDPNotchFill.fill(painter, view.world.get_local_rects(view.room_id), deep)
+		r.outside = MDSNotchFill.fill(painter, view.world.get_local_rects(view.room_id), deep)
 	return r
 
 func preview() -> void:

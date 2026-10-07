@@ -1,6 +1,6 @@
 extends "res://tests/test_case.gd"
-## Brief 19: Fit props to floor and Declutter (IDPRoomDressing), undoable in the Room view's
-## painter and saved; the "objects overlap" scan issue; the runtime IDPRoomDresser.
+## Brief 19: Fit props to floor and Declutter (MDSRoomDressing), undoable in the Room view's
+## painter and saved; the "objects overlap" scan issue; the runtime MDSRoomDresser.
 ##
 ## The room (1152 x 648): a floor at y 560, a one-way ledge, a save point floating at y 300
 ## (its sprite has a transparent margin under the art), a bench sunk into the floor, a crate
@@ -25,39 +25,39 @@ func _run() -> void:
 	await _runtime()
 	_nowhere_to_go()
 
-func node(painter: IDPRoomPainter, name: String) -> Node2D:
+func node(painter: MDSRoomPainter, name: String) -> Node2D:
 	return painter.root.get_node(name)
 
-func rect(painter: IDPRoomPainter, name: String) -> Rect2:
-	return IDPRoomDressing.rect_of(node(painter, name), painter.root, painter)
+func rect(painter: MDSRoomPainter, name: String) -> Rect2:
+	return MDSRoomDressing.rect_of(node(painter, name), painter.root, painter)
 
 # --- The scan -------------------------------------------------------------------------------------
 
 func _scan() -> void:
-	var scanner := IDPSceneScanner.new()
+	var scanner := MDSSceneScanner.new()
 	var meta := scanner.analyze_scene(ROOM, false)
 	var pairs: Array = meta.overlaps.map(func(o: Dictionary) -> String: return "%s+%s" % [o.a, o.b])
 	check(pairs.has("Crate+Barrel") or pairs.has("Barrel+Crate"), "the scan finds the crate and barrel standing in each other (%s)" % [pairs])
 	check(pairs.any(func(p: String) -> bool: return p.contains("Vase") and p.contains("Door")), "and the vase in front of the door")
 	check(not pairs.any(func(p: String) -> bool: return p.contains("Floor")), "terrain bodies are not objects")
 	var issues: Array = []
-	IDPValidator.add_overlap_issue(issues, "Hall", meta.overlaps[0], "Hall")
-	check(issues[0].category == IDPValidator.CATEGORY_GEOMETRY and str(issues[0].message).contains("objects overlap"), "the Issues tab reports it (%s)" % issues[0].message)
+	MDSValidator.add_overlap_issue(issues, "Hall", meta.overlaps[0], "Hall")
+	check(issues[0].category == MDSValidator.CATEGORY_GEOMETRY and str(issues[0].message).contains("objects overlap"), "the Issues tab reports it (%s)" % issues[0].message)
 
 # --- In the Room view's painter -------------------------------------------------------------------
 
 func _in_the_room_view() -> void:
-	var painter := IDPRoomPainter.open(ROOM)
+	var painter := MDSRoomPainter.open(ROOM)
 	var save_before := painter.scene_position(node(painter, "SavePoint"))
 	var guard_before := rect(painter, "Guard")
 	var lantern_before := rect(painter, "Lantern")
 	check(rect(painter, "SavePoint").end.y < 400.0, "sanity: the save point floats (%s)" % rect(painter, "SavePoint"))
 	# Fit props to floor.
-	var c := IDPRoomDressing.ground_check(host, painter.root, painter, RECTS)
-	var fit := IDPRoomDressing.fit_to_floor(painter.root, c, painter)
+	var c := MDSRoomDressing.ground_check(host, painter.root, painter, RECTS)
+	var fit := MDSRoomDressing.fit_to_floor(painter.root, c, painter)
 	c.free_proxy()
 	painter.checkpoint()
-	IDPRoomDressing.apply(fit, painter)
+	MDSRoomDressing.apply(fit, painter)
 	var names: Array = fit.map(func(e: Dictionary) -> String: return String(e.node.name))
 	check(names.has("SavePoint") and names.has("Bench"), "Fit props to floor moves the save point and the bench (%s)" % [names])
 	check_near(rect(painter, "SavePoint").end.y, FLOOR_Y, 1.0, "the save point's art (not its transparent margin) stands on the floor")
@@ -65,19 +65,19 @@ func _in_the_room_view() -> void:
 	check(rect(painter, "Lantern") == lantern_before and rect(painter, "Guard") == guard_before, "hanging things and enemies aren't dropped")
 	check(node(painter, "SavePoint").position == save_before, "nothing in the scene changes before saving (scene edits)")
 	# Declutter.
-	c = IDPRoomDressing.ground_check(host, painter.root, painter, RECTS)
-	var sep := IDPRoomDressing.declutter(painter.root, c, painter)
+	c = MDSRoomDressing.ground_check(host, painter.root, painter, RECTS)
+	var sep := MDSRoomDressing.declutter(painter.root, c, painter)
 	c.free_proxy()
 	painter.checkpoint()
-	IDPRoomDressing.apply(sep, painter)
+	MDSRoomDressing.apply(sep, painter)
 	var crate := rect(painter, "Crate")
 	var barrel := rect(painter, "Barrel")
-	check(not crate.grow(IDPRoomDressing.GAP - 0.5).intersects(barrel), "Declutter separates the crate and the barrel by at least the gap (%s, %s)" % [crate, barrel])
+	check(not crate.grow(MDSRoomDressing.GAP - 0.5).intersects(barrel), "Declutter separates the crate and the barrel by at least the gap (%s, %s)" % [crate, barrel])
 	check_near(crate.end.y, FLOOR_Y, 1.0, "both still stand on the floor")
 	check_near(barrel.end.y, FLOOR_Y, 1.0, "both still stand on the floor (barrel)")
 	check(not rect(painter, "Vase").intersects(rect(painter, "Door")), "the vase steps away from the door")
 	check(painter.scene_position(node(painter, "Door")) == node(painter, "Door").position and rect(painter, "Guard") == guard_before, "doors and enemies never move")
-	check(IDPRoomDressing.overlaps(painter.root, painter).is_empty(), "nothing overlaps any more (%s)" % [IDPRoomDressing.overlaps(painter.root, painter)])
+	check(MDSRoomDressing.overlaps(painter.root, painter).is_empty(), "nothing overlaps any more (%s)" % [MDSRoomDressing.overlaps(painter.root, painter)])
 	# Undo and redo.
 	painter.undo()
 	check(_hits(rect(painter, "Crate"), rect(painter, "Barrel")), "undo puts the crate and barrel back")
@@ -88,8 +88,8 @@ func _in_the_room_view() -> void:
 	check_near(rect(painter, "SavePoint").end.y, FLOOR_Y, 1.0, "redo stands it again")
 	check(painter.save() == OK, "the room saves")
 	var saved := (load_fresh(ROOM) as PackedScene).instantiate()
-	check_near(IDPRoomObjects.visual_rect(saved.get_node("SavePoint"), saved, true).end.y, FLOOR_Y, 1.0, "the saved scene has the save point on the floor")
-	check(not _hits(IDPRoomObjects.visual_rect(saved.get_node("Crate"), saved, true), IDPRoomObjects.visual_rect(saved.get_node("Barrel"), saved, true)), "and the props apart")
+	check_near(MDSRoomObjects.visual_rect(saved.get_node("SavePoint"), saved, true).end.y, FLOOR_Y, 1.0, "the saved scene has the save point on the floor")
+	check(not _hits(MDSRoomObjects.visual_rect(saved.get_node("Crate"), saved, true), MDSRoomObjects.visual_rect(saved.get_node("Barrel"), saved, true)), "and the props apart")
 	saved.free()
 	painter.free_instance()
 	await get_tree().process_frame
@@ -103,16 +103,16 @@ func _runtime() -> void:
 	_save_room() # undressed again
 	var room := (load_fresh(ROOM) as PackedScene).instantiate() as Node2D
 	room.position = Vector2(2304, 648) # rooms sit at their world position
-	var dresser := IDPRoomDresser.new()
+	var dresser := MDSRoomDresser.new()
 	room.add_child(dresser)
 	var done: Array = []
 	dresser.dressed.connect(func(_r: Node, e: Array) -> void: done.append(e))
 	add_child(room)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	check(done.size() == 1 and not done[0].is_empty(), "IDPRoomDresser dresses the room it is in")
-	check_near(IDPRoomObjects.visual_rect(room.get_node("SavePoint"), room, true).end.y, FLOOR_Y, 1.0, "standing the save point on the floor")
-	check(not _hits(IDPRoomObjects.visual_rect(room.get_node("Crate"), room, true), IDPRoomObjects.visual_rect(room.get_node("Barrel"), room, true)), "and separating the props")
+	check(done.size() == 1 and not done[0].is_empty(), "MDSRoomDresser dresses the room it is in")
+	check_near(MDSRoomObjects.visual_rect(room.get_node("SavePoint"), room, true).end.y, FLOOR_Y, 1.0, "standing the save point on the floor")
+	check(not _hits(MDSRoomObjects.visual_rect(room.get_node("Crate"), room, true), MDSRoomObjects.visual_rect(room.get_node("Barrel"), room, true)), "and separating the props")
 	check(get_tree().root.find_children("*", "SubViewport", false, false).is_empty(), "leaving nothing behind")
 	room.queue_free()
 	await get_tree().process_frame
@@ -120,10 +120,10 @@ func _runtime() -> void:
 # --- Nowhere to go --------------------------------------------------------------------------------
 
 func _nowhere_to_go() -> void:
-	var painter := IDPRoomPainter.open(SMALL)
+	var painter := MDSRoomPainter.open(SMALL)
 	var rects: Array[Rect2] = [Rect2(0, 0, 200, 648)]
-	var c := IDPRoomDressing.ground_check(host, painter.root, painter, rects)
-	var edits := IDPRoomDressing.declutter(painter.root, c, painter)
+	var c := MDSRoomDressing.ground_check(host, painter.root, painter, rects)
+	var edits := MDSRoomDressing.declutter(painter.root, c, painter)
 	c.free_proxy()
 	var by_name: Dictionary = {}
 	for e in edits:

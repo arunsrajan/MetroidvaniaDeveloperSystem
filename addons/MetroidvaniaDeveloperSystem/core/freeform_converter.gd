@@ -1,5 +1,5 @@
 @tool
-class_name IDPFreeformConverter
+class_name MDSFreeformConverter
 extends RefCounted
 ## Convert to freeform: turns a room blocked out with tiles, collision polygons or
 ## straight-edged freeform shapes into organic freeform terrain, keeping its layout: every
@@ -15,11 +15,11 @@ extends RefCounted
 ##   ledges with exactly their old top and a rounded underside.
 ## - [b]Background and Foreground tiles[/b] can become freeform back and front shapes.
 ## - The old terrain is hidden (kept in the scene, disabled) or removed.
-## Everything goes through an [IDPRoomPainter], so the Room view can undo it, and tools and CI
+## Everything goes through an [MDSRoomPainter], so the Room view can undo it, and tools and CI
 ## can run it on any room scene:
 ## [codeblock]
-## var painter := IDPRoomPainter.open("res://rooms/cave_02.tscn")
-## var conv := IDPFreeformConverter.new()
+## var painter := MDSRoomPainter.open("res://rooms/cave_02.tscn")
+## var conv := MDSFreeformConverter.new()
 ## conv.rock_style = load("res://styles/mossy_rock.freeform.tres")
 ## conv.use_world_room(world, "Cave_02")
 ## print(conv.convert(painter))
@@ -31,13 +31,13 @@ enum Edge { TOP, BOTTOM, SIDE }
 # --- Options -----------------------------------------------------------------------------------
 
 ## Style of the rock (solid). Empty: the built-in plain rock.
-var rock_style: IDPFreeformStyle
+var rock_style: MDSFreeformStyle
 ## Style of the ledges made from platforms. Empty: the rock style, as one-way platforms.
-var ledge_style: IDPFreeformStyle
+var ledge_style: MDSFreeformStyle
 ## Style the Background tiles become (non-solid, behind). Empty: they stay tiles.
-var back_style: IDPFreeformStyle
+var back_style: MDSFreeformStyle
 ## Style the Foreground tiles become (in front). Empty: they stay tiles.
-var front_style: IDPFreeformStyle
+var front_style: MDSFreeformStyle
 ## How much the faces grow (0 = only rounded corners, 1 = normal, 2 = wild).
 var growth := 1.0
 ## Radius of rounded inside corners (bowls), px.
@@ -91,14 +91,14 @@ func set_room(rects: Array, p_gates: Array) -> void:
 		rect = rect.merge(r)
 
 ## Takes the room's shape and gates from a world.
-func use_world_room(world: IDPWorld, id: String) -> void:
+func use_world_room(world: MDSWorld, id: String) -> void:
 	room_rects = world.get_local_rects(id)
-	gates = IDPRoomCheck.passages_from_world(world, id)
+	gates = MDSRoomCheck.passages_from_world(world, id)
 
-## Converts the room [param painter] is editing. Call [method IDPRoomPainter.checkpoint]
+## Converts the room [param painter] is editing. Call [method MDSRoomPainter.checkpoint]
 ## first to make it undoable. Returns a report: {rock, ledges, back, front, old (nodes and
 ## tiles taken out), openings, warnings, error}.
-func convert(painter: IDPRoomPainter) -> Dictionary:
+func convert(painter: MDSRoomPainter) -> Dictionary:
 	var report := {"rock": 0, "ledges": 0, "back": 0, "front": 0, "old": 0, "openings": 0, "warnings": PackedStringArray(), "error": ""}
 	made.clear()
 	_rng.seed = hash("idp_convert_%d" % seed_value)
@@ -108,7 +108,7 @@ func convert(painter: IDPRoomPainter) -> Dictionary:
 	_lobe.seed = _rng.randi()
 	_lobe.frequency = 0.0026
 	if not rock_style:
-		rock_style = IDPFreeform._default_style()
+		rock_style = MDSFreeform._default_style()
 	# 1. What the room is built of.
 	var src := _read(painter)
 	if src.solids.is_empty() and src.platforms.is_empty():
@@ -118,7 +118,7 @@ func convert(painter: IDPRoomPainter) -> Dictionary:
 		var b := Rect2()
 		var first := true
 		for p in src.solids + src.platforms:
-			b = IDPGeometry.bounds(p) if first else b.merge(IDPGeometry.bounds(p))
+			b = MDSGeometry.bounds(p) if first else b.merge(MDSGeometry.bounds(p))
 			first = false
 		room_rects = [b]
 	rect = room_rects[0]
@@ -129,20 +129,20 @@ func convert(painter: IDPRoomPainter) -> Dictionary:
 	var sound: Array[PackedVector2Array] = []
 	var twisted: Array[PackedVector2Array] = []
 	for s in src.solids:
-		if IDPGeometry.is_simple(s):
+		if MDSGeometry.is_simple(s):
 			sound.append(_run_on(s))
 		else:
-			for part in IDPGeometry.untwist(s):
+			for part in MDSGeometry.untwist(s):
 				twisted.append(_run_on(part))
-	var doors := find_openings(IDPGeometry.union_all(sound))
+	var doors := find_openings(MDSGeometry.union_all(sound))
 	find_zones(painter, src.platforms, doors)
 	# Pieces that never collided (twisted) may not start colliding where they'd close a way.
 	var pieces: Array[PackedVector2Array] = sound.duplicate()
 	var ways: Array = doors.duplicate()
 	ways.append_array(headroom)
 	for t in twisted:
-		pieces.append_array(IDPGeometry.clear_of(t, ways))
-	var masses := IDPGeometry.union_all(pieces)
+		pieces.append_array(MDSGeometry.clear_of(t, ways))
+	var masses := MDSGeometry.union_all(pieces)
 	standing = _standing(painter, masses)
 	# 3. Out with the old.
 	report.old = _take_out(painter, src)
@@ -157,7 +157,7 @@ func convert(painter: IDPRoomPainter) -> Dictionary:
 	var k := 0
 	for pl in src.platforms:
 		k += 1
-		var b := IDPGeometry.bounds(pl)
+		var b := MDSGeometry.bounds(pl)
 		var nm: String = src.platform_names[k - 1] if k - 1 < src.platform_names.size() and not str(src.platform_names[k - 1]).is_empty() else "Ledge%d" % k
 		var f := _ledge(painter, nm, b)
 		made.append({"node": f, "kind": "ledge", "top": b.position.y})
@@ -172,7 +172,7 @@ func convert(painter: IDPRoomPainter) -> Dictionary:
 
 ## {solids, platforms (polygons, scene-local), platform_names, back, front (polygons),
 ##  tiles: {layer: cells}, bodies: [nodes], items: [freeform blockout], tile (size)}
-func _read(painter: IDPRoomPainter) -> Dictionary:
+func _read(painter: MDSRoomPainter) -> Dictionary:
 	var out := {"solids": [], "platforms": [], "platform_names": [], "back": [], "front": [], "tiles": {}, "bodies": [], "items": [], "tile": 0.0}
 	var terrain: TileMapLayer = painter.layers["Terrain"]
 	var ts := terrain.tile_set
@@ -185,9 +185,9 @@ func _read(painter: IDPRoomPainter) -> Dictionary:
 		_read_tiles(painter.layers["Foreground"], out, false, "front")
 	_read_bodies(painter.root, painter.root, painter, out)
 	if include_blockout:
-		for f in IDPFreeform.shapes_in(painter.items_root):
+		for f in MDSFreeform.shapes_in(painter.items_root):
 			if f.is_collider() and not f.smooth and f.points.size() >= 3:
-				var poly := IDPRoomObjects.local_transform(f, painter.items_root) * f.get_outline()
+				var poly := MDSRoomObjects.local_transform(f, painter.items_root) * f.get_outline()
 				if f.is_platform():
 					out.platforms.append(poly)
 					out.platform_names.append(String(f.name))
@@ -227,7 +227,7 @@ func _read_tiles(layer: TileMapLayer, out: Dictionary, solid: bool, into := "") 
 				var pts := td.get_collision_polygon_points(pl, pi)
 				var ow := td.is_collision_polygon_one_way(pl, pi)
 				used = true
-				if pts.size() == 4 and IDPGeometry.bounds(pts).is_equal_approx(Rect2(-half, half * 2.0)):
+				if pts.size() == 4 and MDSGeometry.bounds(pts).is_equal_approx(Rect2(-half, half * 2.0)):
 					(one_way if ow else full)[cell] = true
 				elif pts.size() >= 3:
 					var poly := PackedVector2Array()
@@ -240,8 +240,8 @@ func _read_tiles(layer: TileMapLayer, out: Dictionary, solid: bool, into := "") 
 			taken.append(cell)
 	var origin := layer.map_to_local(Vector2i.ZERO) - half
 	var key: String = into if not into.is_empty() else "solids"
-	for r in IDPGeometry.cells_to_rects(full, Vector2(ts.tile_size), origin):
-		out[key].append(layer.transform * IDPGeometry.rect_polygon(r))
+	for r in MDSGeometry.cells_to_rects(full, Vector2(ts.tile_size), origin):
+		out[key].append(layer.transform * MDSGeometry.rect_polygon(r))
 	# One-way tiles: a ledge per horizontal run.
 	var rows: Dictionary = {}
 	for c: Vector2i in one_way:
@@ -256,7 +256,7 @@ func _read_tiles(layer: TileMapLayer, out: Dictionary, solid: bool, into := "") 
 			if i < xs.size() and xs[i] == xs[i - 1] + 1:
 				continue
 			var r := Rect2(origin + Vector2(start, y) * Vector2(ts.tile_size), Vector2(xs[i - 1] - start + 1, 1) * Vector2(ts.tile_size))
-			out.platforms.append(layer.transform * IDPGeometry.rect_polygon(r))
+			out.platforms.append(layer.transform * MDSGeometry.rect_polygon(r))
 			out.platform_names.append("")
 			if i < xs.size():
 				start = xs[i]
@@ -277,9 +277,9 @@ static func is_convertible(node: Node) -> bool:
 			return false
 	return true
 
-func _read_bodies(node: Node, root: Node, painter: IDPRoomPainter, out: Dictionary) -> void:
+func _read_bodies(node: Node, root: Node, painter: MDSRoomPainter, out: Dictionary) -> void:
 	for c in node.get_children():
-		if c is TileMapLayer or c is IDPFreeform or c is IDPGate or c.has_meta(&"idp_blockout") or painter.is_scene_node_hidden(c):
+		if c is TileMapLayer or c is MDSFreeform or c is MDSGate or c.has_meta(&"idp_blockout") or painter.is_scene_node_hidden(c):
 			continue
 		if c is StaticBody2D and is_convertible(c):
 			var any := false
@@ -287,11 +287,11 @@ func _read_bodies(node: Node, root: Node, painter: IDPRoomPainter, out: Dictiona
 				var poly := PackedVector2Array()
 				var ow := false
 				if s is CollisionPolygon2D and not s.disabled and s.polygon.size() >= 3:
-					poly = IDPRoomObjects.local_transform(s, root) * (s as CollisionPolygon2D).polygon
+					poly = MDSRoomObjects.local_transform(s, root) * (s as CollisionPolygon2D).polygon
 					ow = s.one_way_collision
 				elif s is CollisionShape2D and not s.disabled and (s.shape is RectangleShape2D or s.shape is ConvexPolygonShape2D):
-					var pts: PackedVector2Array = IDPGeometry.rect_polygon(s.shape.get_rect()) if s.shape is RectangleShape2D else (s.shape as ConvexPolygonShape2D).points
-					poly = IDPRoomObjects.local_transform(s, root) * pts
+					var pts: PackedVector2Array = MDSGeometry.rect_polygon(s.shape.get_rect()) if s.shape is RectangleShape2D else (s.shape as ConvexPolygonShape2D).points
+					poly = MDSRoomObjects.local_transform(s, root) * pts
 					ow = s.one_way_collision
 				if poly.size() < 3:
 					continue
@@ -307,7 +307,7 @@ func _read_bodies(node: Node, root: Node, painter: IDPRoomPainter, out: Dictiona
 		_read_bodies(c, root, painter, out)
 
 ## Hides or removes what was converted. Returns how many tiles and nodes went.
-func _take_out(painter: IDPRoomPainter, src: Dictionary) -> int:
+func _take_out(painter: MDSRoomPainter, src: Dictionary) -> int:
 	var n := 0
 	for layer_name in src.tiles:
 		var cells: Array = src.tiles[layer_name]
@@ -346,7 +346,7 @@ func _run_on(poly: PackedVector2Array) -> PackedVector2Array:
 		elif absf(p.y - rect.end.y) <= _on_edge or p.y > rect.end.y:
 			q.y = maxf(p.y, rect.end.y) + margin
 		out.append(q)
-	return IDPGeometry.dedupe(out)
+	return MDSGeometry.dedupe(out)
 
 func _in_room(p: Vector2) -> bool:
 	for r in room_rects:
@@ -377,7 +377,7 @@ func find_openings(masses: Array[PackedVector2Array]) -> Array[Rect2]:
 			var t := 0.0
 			while t <= length:
 				var p := a + dir * t
-				var open := t < length and not _in_room(p + n * 2.0) and not IDPGeometry.point_in_any(masses, p - n * 3.0)
+				var open := t < length and not _in_room(p + n * 2.0) and not MDSGeometry.point_in_any(masses, p - n * 3.0)
 				if open and start < 0.0:
 					start = t
 				elif not open and start >= 0.0:
@@ -403,56 +403,56 @@ func find_openings(masses: Array[PackedVector2Array]) -> Array[Rect2]:
 
 ## What rock may not grow into ([member protect]) and scenery keeps out of
 ## ([member busy]): the doorways, room above every platform, and every object.
-func find_zones(painter: IDPRoomPainter, platforms: Array, doors: Array[Rect2]) -> void:
+func find_zones(painter: MDSRoomPainter, platforms: Array, doors: Array[Rect2]) -> void:
 	protect.clear()
 	busy.clear()
 	headroom.clear()
 	_pins.clear()
 	protect.append_array(doors)
 	for pl in platforms:
-		var b := IDPGeometry.bounds(pl)
+		var b := MDSGeometry.bounds(pl)
 		protect.append(Rect2(b.position.x - 36.0, b.position.y - 160.0, b.size.x + 72.0, 160.0 + maxf(b.size.y, 24.0) * 1.5 + 30.0))
 		headroom.append(Rect2(b.position.x - 36.0, b.position.y - 200.0, b.size.x + 72.0, 200.0))
-	for o in IDPRoomObjects.objects(painter.root):
+	for o in MDSRoomObjects.objects(painter.root):
 		if painter.is_scene_node_hidden(o):
 			continue
-		var r := IDPRoomObjects.visual_rect(o, painter.root)
+		var r := MDSRoomObjects.visual_rect(o, painter.root)
 		r.position += painter.scene_offset(o)
-		if IDPRoomObjects.stands(o):
+		if MDSRoomObjects.stands(o):
 			r = r.grow_individual(60.0, 80.0, 60.0, 20.0)
-		elif IDPRoomObjects.is_big(o):
+		elif MDSRoomObjects.is_big(o):
 			r = r.grow(120.0)
 		else:
 			r = r.grow(40.0)
 		protect.append(r)
 		busy.append(r)
 	for n in painter.root.find_children("*", "", true, false):
-		if IDPRoomObjects.is_protected(n) and not painter.is_scene_node_hidden(n):
-			var r := IDPRoomObjects.visual_rect(n, painter.root)
+		if MDSRoomObjects.is_protected(n) and not painter.is_scene_node_hidden(n):
+			var r := MDSRoomObjects.visual_rect(n, painter.root)
 			protect.append(r)
 			busy.append(r)
 
 ## Under everything resting on the rock: [x, the floor's height there].
-func _standing(painter: IDPRoomPainter, masses: Array[PackedVector2Array]) -> Array:
+func _standing(painter: MDSRoomPainter, masses: Array[PackedVector2Array]) -> Array:
 	var out: Array = []
-	for o in IDPRoomObjects.objects(painter.root):
+	for o in MDSRoomObjects.objects(painter.root):
 		if painter.is_scene_node_hidden(o):
 			continue
-		var r := IDPRoomObjects.visual_rect(o, painter.root)
+		var r := MDSRoomObjects.visual_rect(o, painter.root)
 		r.position += painter.scene_offset(o)
 		var xs := [r.get_center().x]
 		if r.size.x > 24.0:
 			xs.append_array([r.position.x + 8.0, r.end.x - 8.0])
 		for x in xs:
 			var y := r.end.y - 30.0
-			if IDPGeometry.point_in_any(masses, Vector2(x + 0.071, y + 0.137)):
+			if MDSGeometry.point_in_any(masses, Vector2(x + 0.071, y + 0.137)):
 				# Sunk into the rock: its floor is the surface above.
-				while y > r.end.y - 110.0 and IDPGeometry.point_in_any(masses, Vector2(x + 0.071, y + 0.137)):
+				while y > r.end.y - 110.0 and MDSGeometry.point_in_any(masses, Vector2(x + 0.071, y + 0.137)):
 					y -= 1.0
 				if y > r.end.y - 110.0:
 					out.append([x, y + 1.0])
 				continue
-			while y < r.end.y + 60.0 and not IDPGeometry.point_in_any(masses, Vector2(x + 0.071, y + 0.137)):
+			while y < r.end.y + 60.0 and not MDSGeometry.point_in_any(masses, Vector2(x + 0.071, y + 0.137)):
 				y += 1.0
 			if y < r.end.y + 60.0:
 				out.append([x, y])
@@ -474,8 +474,8 @@ func _design_all(masses: Array[PackedVector2Array]) -> Array:
 			for i in masses.size():
 				if not Geometry2D.is_point_in_polygon(Vector2(x + 0.071, want + 2.137), masses[i]):
 					continue
-				var outline := IDPFreeform.outline_of(designs[i][0], designs[i][1])
-				var y := IDPGeometry.solid_from(outline, x, want - 40.0, want + 40.0)
+				var outline := MDSFreeform.outline_of(designs[i][0], designs[i][1])
+				var y := MDSGeometry.solid_from(outline, x, want - 40.0, want + 40.0)
 				if absf(y - want) > 2.5:
 					var pin := Rect2(x - 170.0, want - 140.0, 340.0, 200.0)
 					protect.append(pin)
@@ -494,17 +494,17 @@ func _design_all(masses: Array[PackedVector2Array]) -> Array:
 func _design_valid(mass: PackedVector2Array) -> Array:
 	for attempt in [[1.0, true], [0.5, true], [0.0, true], [0.0, false]]:
 		var pts := _design_rock(mass, attempt[0], attempt[1])
-		if pts.size() >= 3 and IDPGeometry.is_simple(IDPFreeform.outline_of(pts, true)):
+		if pts.size() >= 3 and MDSGeometry.is_simple(MDSFreeform.outline_of(pts, true)):
 			return [pts, true]
-	var plain := IDPGeometry.simplify_closed(mass, 2.0)
-	return [plain if IDPGeometry.is_simple(plain) else mass, false]
+	var plain := MDSGeometry.simplify_closed(mass, 2.0)
+	return [plain if MDSGeometry.is_simple(plain) else mass, false]
 
 ## A mass as freeform control points: simplified, corners rounded, open faces grown by kind
 ## ([param amount] of [member growth]), all kept out of [member protect].
 func _design_rock(mass: PackedVector2Array, amount := 1.0, round_corners := true) -> PackedVector2Array:
-	var pts := IDPGeometry.simplify_closed(mass, 2.0)
+	var pts := MDSGeometry.simplify_closed(mass, 2.0)
 	var n := pts.size()
-	var sgn := 1.0 if IDPGeometry.signed_area(pts) > 0.0 else -1.0
+	var sgn := 1.0 if MDSGeometry.signed_area(pts) > 0.0 else -1.0
 	var inner := rect.grow(-2.0)
 	var corners: Array = []
 	for i in n:
@@ -534,7 +534,7 @@ func _design_rock(mass: PackedVector2Array, amount := 1.0, round_corners := true
 				continue
 			out.append(q0 + normal * _clear_amount(q0, normal, _amount(kind, along) * amount * growth, out[out.size() - 1]))
 		s += length
-	return IDPGeometry.dedupe(out)
+	return MDSGeometry.dedupe(out)
 
 ## Rounds the corner at p1 (between p0 and p2) into a lip or a bowl, or leaves it.
 func _round_corner(p0: Vector2, p1: Vector2, p2: Vector2, sgn: float, inner: Rect2) -> PackedVector2Array:
@@ -586,19 +586,19 @@ func _clear_amount(q0: Vector2, normal: Vector2, amount: float, prev: Vector2) -
 
 func _hits(q: Vector2, prev: Vector2) -> bool:
 	for r in protect:
-		if r.has_point(q) or IDPGeometry.segment_hits_rect(prev, q, r):
+		if r.has_point(q) or MDSGeometry.segment_hits_rect(prev, q, r):
 			return true
 	return false
 
 func _triangle_hits(a: Vector2, b: Vector2, c: Vector2) -> bool:
 	var tri := PackedVector2Array([a, b, c])
 	for r in protect:
-		if not Geometry2D.intersect_polygons(tri, IDPGeometry.rect_polygon(r)).is_empty():
+		if not Geometry2D.intersect_polygons(tri, MDSGeometry.rect_polygon(r)).is_empty():
 			return true
 	return false
 
 func _mass_name(m: PackedVector2Array, names: Dictionary) -> String:
-	var b := IDPGeometry.bounds(m)
+	var b := MDSGeometry.bounds(m)
 	var low := b.end.y > rect.end.y
 	var high := b.position.y < rect.position.y
 	var base := "Rock" if low and high else ("Ground" if low else ("Ceiling" if high else "Outcrop"))
@@ -607,7 +607,7 @@ func _mass_name(m: PackedVector2Array, names: Dictionary) -> String:
 
 # --- Shapes ----------------------------------------------------------------------------------------
 
-func _add(painter: IDPRoomPainter, group: String, shape_name: String, pts: PackedVector2Array, st: IDPFreeformStyle, solid: bool, smooth := true, pos := Vector2.ZERO) -> IDPFreeform:
+func _add(painter: MDSRoomPainter, group: String, shape_name: String, pts: PackedVector2Array, st: MDSFreeformStyle, solid: bool, smooth := true, pos := Vector2.ZERO) -> MDSFreeform:
 	var f := painter.add_freeform(pts, st, group, solid)
 	f.smooth = smooth
 	f.position = pos
@@ -617,7 +617,7 @@ func _add(painter: IDPRoomPainter, group: String, shape_name: String, pts: Packe
 
 ## A platform as a ledge: its top exactly, edge to edge, and under it a rounded belly no
 ## deeper than the platform was (40 px at least).
-func _ledge(painter: IDPRoomPainter, ledge_name: String, b: Rect2) -> IDPFreeform:
+func _ledge(painter: MDSRoomPainter, ledge_name: String, b: Rect2) -> MDSFreeform:
 	var half := b.size.x * 0.5
 	var h := maxf(b.size.y, 40.0)
 	var pts := PackedVector2Array([Vector2(-half, 0), Vector2(-half + 10.0, 0)])
@@ -632,23 +632,23 @@ func _ledge(painter: IDPRoomPainter, ledge_name: String, b: Rect2) -> IDPFreefor
 	pts.append(Vector2(-half - 3.0, h * 0.38))
 	var st := ledge_style if ledge_style else rock_style
 	var f := _add(painter, "Freeform", ledge_name, pts, st, true, true, Vector2(b.get_center().x, b.position.y))
-	if not (st.get_role() == IDPFreeformStyle.Role.PLATFORM and st.is_one_way()):
-		f.set_collision_override(IDPFreeformStyle.Role.PLATFORM, true)
-	if not IDPGeometry.is_simple(f.get_outline()):
+	if not (st.get_role() == MDSFreeformStyle.Role.PLATFORM and st.is_one_way()):
+		f.set_collision_override(MDSFreeformStyle.Role.PLATFORM, true)
+	if not MDSGeometry.is_simple(f.get_outline()):
 		f.smooth = false
 	return f
 
 ## Background or foreground tiles as freeform shapes: joined, simplified, corners rounded.
-func _soft_shapes(painter: IDPRoomPainter, polys: Array, st: IDPFreeformStyle, group: String, base: String, kind: String) -> int:
+func _soft_shapes(painter: MDSRoomPainter, polys: Array, st: MDSFreeformStyle, group: String, base: String, kind: String) -> int:
 	if not st or polys.is_empty():
 		return 0
 	var pieces: Array[PackedVector2Array] = []
 	for p in polys:
 		pieces.append(_run_on(p))
 	var count := 0
-	for m in IDPGeometry.union_all(pieces, INF):
-		var pts := IDPGeometry.simplify_closed(m, 3.0)
-		var smooth := IDPGeometry.is_simple(IDPFreeform.outline_of(pts, true))
+	for m in MDSGeometry.union_all(pieces, INF):
+		var pts := MDSGeometry.simplify_closed(m, 3.0)
+		var smooth := MDSGeometry.is_simple(MDSFreeform.outline_of(pts, true))
 		count += 1
 		var f := _add(painter, group, "%s%d" % [base, count] if count > 1 else base, pts if smooth else m, st, false, smooth)
 		made.append({"node": f, "kind": kind})

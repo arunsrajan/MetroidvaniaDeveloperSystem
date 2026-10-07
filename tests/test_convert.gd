@@ -37,7 +37,7 @@ func _tileset() -> TileSet:
 		src.create_tile(Vector2i(x, 0))
 		var td := src.get_tile_data(Vector2i(x, 0), 0)
 		td.add_collision_polygon(0)
-		td.set_collision_polygon_points(0, 0, IDPGeometry.rect_polygon(Rect2(-16, -16, 32, 32)))
+		td.set_collision_polygon_points(0, 0, MDSGeometry.rect_polygon(Rect2(-16, -16, 32, 32)))
 		td.set_collision_polygon_one_way(0, 0, x == 1)
 	return ts
 
@@ -87,35 +87,35 @@ func _build_room() -> void:
 	check(save_scene(room, ROOM) == OK, "the blockout room saves")
 	room.free()
 
-func _converter() -> IDPFreeformConverter:
-	var conv := IDPFreeformConverter.new()
+func _converter() -> MDSFreeformConverter:
+	var conv := MDSFreeformConverter.new()
 	conv.room_rects = [Rect2(0, 0, 1152, 648)]
 	conv.gates = GATES
 	conv.seed_value = 3
 	return conv
 
-func _floor_under(shapes: Array[IDPFreeform], x: float, y0: float, y1: float) -> float:
+func _floor_under(shapes: Array[MDSFreeform], x: float, y0: float, y1: float) -> float:
 	var best := y1
 	for f in shapes:
 		if not f.is_terrain():
 			continue
 		var outline := f.transform * f.get_outline()
-		best = minf(best, IDPGeometry.solid_from(outline, x, y0, y1))
+		best = minf(best, MDSGeometry.solid_from(outline, x, y0, y1))
 	return best
 
 func _convert_blockout(keep_old: bool) -> void:
 	var tag := " (keep old)" if keep_old else " (remove old)"
 	load_fresh(ROOM)
-	var painter := IDPRoomPainter.open(ROOM)
+	var painter := MDSRoomPainter.open(ROOM)
 	var conv := _converter()
 	conv.keep_old = keep_old
 	painter.checkpoint()
 	var r := conv.convert(painter)
 	check(r.error.is_empty(), "the room converts%s: %s" % [tag, r])
 	check(r.rock >= 1 and r.ledges == 2, "rock and two ledges are made%s (%d rock, %d ledges)" % [tag, r.rock, r.ledges])
-	var shapes := IDPFreeform.shapes_in(painter.items_root)
+	var shapes := MDSFreeform.shapes_in(painter.items_root)
 	for f in shapes:
-		check(IDPGeometry.is_simple(f.get_outline()), "%s is simple%s" % [f.name, tag])
+		check(MDSGeometry.is_simple(f.get_outline()), "%s is simple%s" % [f.name, tag])
 	var names: PackedStringArray = []
 	for o in conv.openings:
 		names.append(o.name)
@@ -123,13 +123,13 @@ func _convert_blockout(keep_old: bool) -> void:
 		check(g.name in names, "%s is found as an opening%s (%s)" % [g.name, tag, names])
 	# Every former platform's top is where it was.
 	for want in [["Step1", Vector2(300, 288)], ["Ledge", Vector2(544, 384)]]:
-		var ledge: IDPFreeform = null
+		var ledge: MDSFreeform = null
 		for f in shapes:
 			if f.is_platform() and absf(f.position.x - want[1].x) < 20.0:
 				ledge = f
 		check(ledge != null and ledge.is_one_way(), "%s became a one-way ledge%s" % [want[0], tag])
 		if ledge:
-			var top := IDPRoomCheck._top_at(ledge.transform * ledge.get_outline(), want[1].x)
+			var top := MDSRoomCheck._top_at(ledge.transform * ledge.get_outline(), want[1].x)
 			check_near(top, want[1].y, 1.0, "%s's top stays at the same height%s" % [want[0], tag])
 	# The floor under the save point stays put.
 	for x in [872.0, 900.0, 928.0]:
@@ -138,7 +138,7 @@ func _convert_blockout(keep_old: bool) -> void:
 	check(painter.layers.Terrain.get_used_cells().is_empty(), "no terrain tiles are left%s" % tag)
 	check(painter.blockout.has("Terrain") == keep_old, "the old tiles are %s%s" % ["kept hidden" if keep_old else "removed", tag])
 	# Played like a player: every gate open, the ledges landed on, the save point grounded.
-	var c := IDPRoomCheck.new()
+	var c := MDSRoomCheck.new()
 	c.room_rects = conv.room_rects
 	c.passages = GATES
 	c.build_from_painter(painter, host)
@@ -161,22 +161,22 @@ func _convert_blockout(keep_old: bool) -> void:
 		check(step == null, "the old step is removed")
 		check(scene.get_node_or_null("TerrainBlockout") == null, "no blockout layer when removing")
 	scene.free()
-	var meta := IDPSceneScanner.new().analyze_scene(out, false)
+	var meta := MDSSceneScanner.new().analyze_scene(out, false)
 	check(meta.twisted.is_empty(), "the scanner finds no twisted shape%s" % tag)
 	check(meta.platforms.size() == 2, "the scanner lists the two ledges as platforms%s" % tag)
 
 func _undo_restores() -> void:
 	load_fresh(ROOM)
-	var painter := IDPRoomPainter.open(ROOM)
+	var painter := MDSRoomPainter.open(ROOM)
 	var copy := TMP + "/brief4_undo.tscn"
 	painter.scene_path = copy
 	painter.save()
 	var before := FileAccess.get_file_as_string(copy)
 	painter.checkpoint()
 	_converter().convert(painter)
-	check(IDPFreeform.shapes_in(painter.items_root).size() > 2, "sanity: the conversion made shapes")
+	check(MDSFreeform.shapes_in(painter.items_root).size() > 2, "sanity: the conversion made shapes")
 	painter.undo()
-	check(IDPFreeform.shapes_in(painter.items_root).is_empty(), "undo takes the shapes out")
+	check(MDSFreeform.shapes_in(painter.items_root).is_empty(), "undo takes the shapes out")
 	check(painter.layers.Terrain.get_used_cells().size() > 100, "undo brings the tiles back")
 	check(painter.save() == OK, "the room saves after undo")
 	check(FileAccess.get_file_as_string(copy) == before, "undo restores the room exactly")
@@ -191,16 +191,16 @@ func _undo_restores() -> void:
 
 func _convert_demo() -> void:
 	var path := "res://asset_packs/mossgrove/demo/mossgrove_demo.tscn"
-	var painter := IDPRoomPainter.open(path)
-	var conv := IDPFreeformConverter.new()
+	var painter := MDSRoomPainter.open(path)
+	var conv := MDSFreeformConverter.new()
 	conv.rock_style = load("res://asset_packs/mossgrove/freeform/styles/mossy_rock.freeform.tres")
 	painter.checkpoint()
 	var r := conv.convert(painter)
 	check(r.error.is_empty() and r.rock >= 1, "the Mossgrove demo converts: %s" % r)
-	for f in IDPFreeform.shapes_in(painter.items_root):
-		check(IDPGeometry.is_simple(f.get_outline()), "demo: %s is simple" % f.name)
+	for f in MDSFreeform.shapes_in(painter.items_root):
+		check(MDSGeometry.is_simple(f.get_outline()), "demo: %s is simple" % f.name)
 	check(conv.standing.size() >= 3, "demo: the floors under its objects are pinned (%d)" % conv.standing.size())
-	var shapes := IDPFreeform.shapes_in(painter.items_root)
+	var shapes := MDSFreeform.shapes_in(painter.items_root)
 	for s in conv.standing:
 		check_near(_floor_under(shapes, s[0], s[1] - 40.0, s[1] + 40.0), s[1], 2.5, "demo: the floor under x %d stays" % s[0])
 	# Openings passable before the conversion stay passable.
@@ -212,8 +212,8 @@ func _convert_demo() -> void:
 	check(closed.is_empty(), "demo: no opening that was passable is closed (before %s, after %s)" % [before, after])
 	painter.free_instance()
 
-func _blocked(painter: IDPRoomPainter, conv: IDPFreeformConverter) -> PackedStringArray:
-	var c := IDPRoomCheck.new()
+func _blocked(painter: MDSRoomPainter, conv: MDSFreeformConverter) -> PackedStringArray:
+	var c := MDSRoomCheck.new()
 	c.room_rects = conv.room_rects
 	c.passages = conv.openings
 	c.build_from_painter(painter, host)

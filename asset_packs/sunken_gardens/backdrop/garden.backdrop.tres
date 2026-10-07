@@ -1,8 +1,8 @@
-[gd_resource type="Resource" script_class="IDPBackdrop" format=3]
+[gd_resource type="Resource" script_class="MDSBackdrop" format=3]
 
-[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_backdrop_layer.gd" id="1_gfntr"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_backdrop_layer.gd" id="1_gfntr"]
 [ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/sunken_gardens.stamps.tres" id="2_jc80c"]
-[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_backdrop.gd" id="3_v1g8y"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_backdrop.gd" id="3_v1g8y"]
 
 [sub_resource type="Resource" id="Resource_krptd"]
 script = ExtResource("1_gfntr")

@@ -1,5 +1,5 @@
 @tool
-class_name IDPGeometry
+class_name MDSGeometry
 extends RefCounted
 ## Polygon helpers shared by the freeform tools (repair, Convert to freeform, Decorate, Fill
 ## outside shape) and the room checks. No editor dependencies.
@@ -305,10 +305,10 @@ static func segment_hits_rect(a: Vector2, b: Vector2, r: Rect2) -> bool:
 	return false
 
 ## Merges cells (Vector2i keys of [param cells]) into rectangles, in cell units
-## (see [method IDPWorld.cells_to_runs]).
+## (see [method MDSWorld.cells_to_runs]).
 static func cells_to_rects(cells: Dictionary, cell_size: Vector2, origin := Vector2.ZERO) -> Array[Rect2]:
 	var out: Array[Rect2] = []
-	for run in IDPWorld.cells_to_runs(cells):
+	for run in MDSWorld.cells_to_runs(cells):
 		out.append(Rect2(origin + Vector2(run[0], run[2]) * cell_size, Vector2(run[1] - run[0] + 1, run[3] - run[2] + 1) * cell_size))
 	return out
 

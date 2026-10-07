@@ -1,7 +1,7 @@
 @tool
-class_name IDPGraph
+class_name MDSGraph
 extends RefCounted
-## Mode-independent room graph consumed by [IDPAnalysis].
+## Mode-independent room graph consumed by [MDSAnalysis].
 ##
 ## Built from a MetSys map ([method from_metsys]) or a non-linear world
 ## ([method from_world]), so progression, save distance, routes and design checks work
@@ -57,13 +57,13 @@ func get_room(id: String) -> GRoom:
 
 ## Graph of a MetSys map. Gates found in scenes ([code]idp_requires[/code] metadata) are
 ## attached to the passage closest to the gate node.
-static func from_metsys(model: IDPMapModel, scene_db: Dictionary, cell_size: Vector2) -> IDPGraph:
-	var g := IDPGraph.new()
-	for room: IDPMapModel.Room in model.rooms.values():
+static func from_metsys(model: MDSMapModel, scene_db: Dictionary, cell_size: Vector2) -> MDSGraph:
+	var g := MDSGraph.new()
+	for room: MDSMapModel.Room in model.rooms.values():
 		g.add_room(room.id, room.get_display_name(), room.scene_path, not room.scene_uid.is_empty(), room.layer, Vector2(room.min_cell), model.get_room_group_names(room))
-	for door: IDPMapModel.Door in model.doors.values():
+	for door: MDSMapModel.Door in model.doors.values():
 		g.add_edge(door.key, door.a_room.id, door.b_room.id if door.b_room else "")
-	for room: IDPMapModel.Room in model.rooms.values():
+	for room: MDSMapModel.Room in model.rooms.values():
 		var meta: Dictionary = scene_db.get(room.scene_path, {})
 		for gate in meta.get("gates", []):
 			var door := _closest_metsys_door(room, gate.position, cell_size)
@@ -76,14 +76,14 @@ static func from_metsys(model: IDPMapModel, scene_db: Dictionary, cell_size: Vec
 			e.gate_sources.append(gate.name)
 	return g
 
-static func _closest_metsys_door(room: IDPMapModel.Room, local_pos: Vector2, cell_size: Vector2) -> IDPMapModel.Door:
-	var best: IDPMapModel.Door = null
+static func _closest_metsys_door(room: MDSMapModel.Room, local_pos: Vector2, cell_size: Vector2) -> MDSMapModel.Door:
+	var best: MDSMapModel.Door = null
 	var best_d := INF
 	for door in room.doors:
 		var c := door.cell_of(room)
 		var d := door.dir_of(room)
 		var local_cell := Vector2(c.x - room.min_cell.x, c.y - room.min_cell.y)
-		var edge_mid := (local_cell + Vector2(0.5, 0.5) + Vector2(IDPMapModel.FWD[d]) * 0.5) * cell_size
+		var edge_mid := (local_cell + Vector2(0.5, 0.5) + Vector2(MDSMapModel.FWD[d]) * 0.5) * cell_size
 		var dist := edge_mid.distance_squared_to(local_pos)
 		if dist < best_d:
 			best_d = dist
@@ -92,8 +92,8 @@ static func _closest_metsys_door(room: IDPMapModel.Room, local_pos: Vector2, cel
 
 ## Graph of a non-linear world. Every gate is an edge; a transition whose target does not
 ## point back is one-way (like a Hollow Knight drop), as is a gate flagged "one_way".
-static func from_world(world: IDPWorld, scene_db: Dictionary) -> IDPGraph:
-	var g := IDPGraph.new()
+static func from_world(world: MDSWorld, scene_db: Dictionary) -> MDSGraph:
+	var g := MDSGraph.new()
 	for id in world.get_room_ids():
 		var area := world.get_room_area(id)
 		var groups := PackedStringArray([area]) if not area.is_empty() else PackedStringArray()
@@ -104,7 +104,7 @@ static func from_world(world: IDPWorld, scene_db: Dictionary) -> IDPGraph:
 		for gate_name in gates:
 			var gate: Dictionary = gates[gate_name]
 			var to: String = gate.get("to", "")
-			var key := IDPWorld.edge_key(id, gate_name, to, gate.get("to_gate", ""))
+			var key := MDSWorld.edge_key(id, gate_name, to, gate.get("to_gate", ""))
 			var e := g.get_edge(key)
 			if not e:
 				e = g.add_edge(key, id, to if world.has_room(to) else "")
@@ -131,7 +131,7 @@ static func from_world(world: IDPWorld, scene_db: Dictionary) -> IDPGraph:
 			if best.is_empty():
 				continue
 			var gate: Dictionary = gates[best]
-			var e := g.get_edge(IDPWorld.edge_key(id, best, gate.get("to", ""), gate.get("to_gate", "")))
+			var e := g.get_edge(MDSWorld.edge_key(id, best, gate.get("to", ""), gate.get("to_gate", "")))
 			if e:
 				for r in scanned_gate.requires:
 					if not r in e.requires:

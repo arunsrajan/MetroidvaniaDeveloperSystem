@@ -6,13 +6,13 @@ func _run() -> void:
 	await _what_is_extruded()
 	await _cost()
 
-func _depth(room: Node, view: Rect2) -> IDPDepth25D:
-	var d := IDPDepth25D.new()
+func _depth(room: Node, view: Rect2) -> MDSDepth25D:
+	var d := MDSDepth25D.new()
 	d.view_override = view
 	room.add_child(d)
 	return d
 
-func _face_points(d: IDPDepth25D) -> PackedVector2Array:
+func _face_points(d: MDSDepth25D) -> PackedVector2Array:
 	return d._faces._pts.duplicate()
 
 func _demos() -> void:
@@ -34,13 +34,13 @@ func _demos() -> void:
 		room.queue_free()
 		await get_tree().process_frame
 
-func _shape(parent: Node, r: Rect2, role := -1, solid := true) -> IDPFreeform:
-	var f := IDPFreeform.new()
+func _shape(parent: Node, r: Rect2, role := -1, solid := true) -> MDSFreeform:
+	var f := MDSFreeform.new()
 	f.smooth = false
 	f.points = rect_points(r)
 	f.solid = solid
 	if role >= 0:
-		f.set_collision_override(role, role == IDPFreeformStyle.Role.PLATFORM)
+		f.set_collision_override(role, role == MDSFreeformStyle.Role.PLATFORM)
 	parent.add_child(f)
 	return f
 
@@ -57,11 +57,11 @@ func _what_is_extruded() -> void:
 	g.name = "Freeform"
 	room.add_child(g)
 	var ground := _shape(g, Rect2(0, 500, 1152, 148))
-	var ledge := _shape(g, Rect2(400, 300, 200, 24), IDPFreeformStyle.Role.PLATFORM)
-	var deep := _shape(g, Rect2(800, 0, 352, 300), IDPFreeformStyle.Role.DECOR, false)
+	var ledge := _shape(g, Rect2(400, 300, 200, 24), MDSFreeformStyle.Role.PLATFORM)
+	var deep := _shape(g, Rect2(800, 0, 352, 300), MDSFreeformStyle.Role.DECOR, false)
 	var ruin := _shape(back, Rect2(100, 300, 100, 200), -1, false)
 	var leaves := _shape(front, Rect2(0, 0, 200, 100), -1, false)
-	var flat_style := IDPFreeformStyle.new()
+	var flat_style := MDSFreeformStyle.new()
 	flat_style.extrude = false
 	var flat := _shape(g, Rect2(700, 400, 100, 40))
 	flat.style = flat_style
@@ -102,7 +102,7 @@ func _tileset() -> TileSet:
 	src.create_tile(Vector2i.ZERO)
 	var td := src.get_tile_data(Vector2i.ZERO, 0)
 	td.add_collision_polygon(0)
-	td.set_collision_polygon_points(0, 0, IDPGeometry.rect_polygon(Rect2(-16, -16, 32, 32)))
+	td.set_collision_polygon_points(0, 0, MDSGeometry.rect_polygon(Rect2(-16, -16, 32, 32)))
 	return ts
 
 ## A 2304 x 1296 room with 30 curved shapes: building the faces of a frame stays under 1 ms.
@@ -111,14 +111,14 @@ func _cost() -> void:
 	add_child(room)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4
-	var st := load("res://asset_packs/mossgrove/freeform/styles/mossy_rock.freeform.tres") as IDPFreeformStyle
+	var st := load("res://asset_packs/mossgrove/freeform/styles/mossy_rock.freeform.tres") as MDSFreeformStyle
 	for i in 30:
 		var c := Vector2(rng.randf_range(100, 2200), rng.randf_range(100, 1200))
 		var pts := PackedVector2Array()
 		for k in 10:
 			var a := TAU * k / 10.0
 			pts.append(c + Vector2(cos(a), sin(a)) * rng.randf_range(80, 160))
-		var f := IDPFreeform.new()
+		var f := MDSFreeform.new()
 		f.style = st
 		f.points = pts
 		room.add_child(f)

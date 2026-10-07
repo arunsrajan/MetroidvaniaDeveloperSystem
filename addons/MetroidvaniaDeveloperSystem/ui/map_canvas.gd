@@ -1,5 +1,5 @@
 @tool
-class_name IDPMapCanvas
+class_name MDSMapCanvas
 extends Control
 ## Interactive schematic map of one MetSys layer.
 ##
@@ -61,18 +61,18 @@ const COLOR_ROUTE := Color(0.3, 0.95, 1.0)
 const COLOR_BACKGROUND := Color(0.1, 0.11, 0.13)
 const COLOR_GRID := Color(1, 1, 1, 0.05)
 
-const SAVEPOINT_TEXTURE := preload("res://addons/MetroidvaniaDeveloperSystem/assets/savepoint_idp.png")
-const COLLECTIBLE_TEXTURE := preload("res://addons/MetroidvaniaDeveloperSystem/assets/collectible_idp.png")
-const TELEPORTER_TEXTURE := preload("res://addons/MetroidvaniaDeveloperSystem/assets/teleporter_idp.png")
-const LABELS_TEXTURE := preload("res://addons/MetroidvaniaDeveloperSystem/assets/labels_idp.png")
+const SAVEPOINT_TEXTURE := preload("res://addons/MetroidvaniaDeveloperSystem/assets/savepoint_mds.png")
+const COLLECTIBLE_TEXTURE := preload("res://addons/MetroidvaniaDeveloperSystem/assets/collectible_mds.png")
+const TELEPORTER_TEXTURE := preload("res://addons/MetroidvaniaDeveloperSystem/assets/teleporter_mds.png")
+const LABELS_TEXTURE := preload("res://addons/MetroidvaniaDeveloperSystem/assets/labels_mds.png")
 
 const BASE_CELL_WIDTH := 96.0
 const MIN_ZOOM := 0.08
 const MAX_ZOOM := 8.0
 
-var model: IDPMapModel
-var annotations: IDPAnnotations
-var analysis: IDPAnalysis
+var model: MDSMapModel
+var annotations: MDSAnnotations
+var analysis: MDSAnalysis
 var scene_db: Dictionary = {}
 var in_game_cell_size := Vector2(1152, 648)
 var metsys_default_color := Color(0.4, 0.45, 0.55)
@@ -86,7 +86,7 @@ var show := {
 }
 ## Marker/custom element categories enabled from the panel filters ("Save Points"...).
 var marker_filters: Dictionary = {}
-## Vector3i -> highest severity (IDPValidator.Severity).
+## Vector3i -> highest severity (MDSValidator.Severity).
 var issue_cells: Dictionary = {}
 
 var selected_room := ""
@@ -125,7 +125,7 @@ func _init() -> void:
 
 # --- Public API ------------------------------------------------------------------
 
-func set_data(p_model: IDPMapModel, p_annotations: IDPAnnotations, p_analysis: IDPAnalysis, p_scene_db: Dictionary) -> void:
+func set_data(p_model: MDSMapModel, p_annotations: MDSAnnotations, p_analysis: MDSAnalysis, p_scene_db: Dictionary) -> void:
 	model = p_model
 	annotations = p_annotations
 	analysis = p_analysis
@@ -164,7 +164,7 @@ func cell_to_screen(cell: Vector2) -> Vector2:
 func screen_to_cell(pos: Vector2) -> Vector2:
 	return (pos - pan) / get_cell_px()
 
-func get_room_at_screen(pos: Vector2) -> IDPMapModel.Room:
+func get_room_at_screen(pos: Vector2) -> MDSMapModel.Room:
 	if not model:
 		return null
 	var c := screen_to_cell(pos).floor()
@@ -214,7 +214,7 @@ func get_layer_screen_rect() -> Rect2:
 
 # --- Colors -------------------------------------------------------------------------
 
-func get_room_color(room: IDPMapModel.Room) -> Color:
+func get_room_color(room: MDSMapModel.Room) -> Color:
 	if room.scene_uid.is_empty():
 		return COLOR_UNASSIGNED
 	var info: Dictionary = analysis.get_info(room.id) if analysis else {}
@@ -263,7 +263,7 @@ func get_legend() -> Array:
 	match color_mode:
 		ColorMode.ROOM_TYPE:
 			var seen := {}
-			for room: IDPMapModel.Room in model.get_rooms_on_layer(layer):
+			for room: MDSMapModel.Room in model.get_rooms_on_layer(layer):
 				if analysis and not room.scene_uid.is_empty():
 					seen[analysis.get_info(room.id).get("type", "")] = true
 			for t in TYPE_COLORS:
@@ -287,7 +287,7 @@ func get_legend() -> Array:
 				items.append([s.capitalize() if not s.is_empty() else "No status", STATUS_COLORS[s]])
 		ColorMode.AREA:
 			var seen := {}
-			for room: IDPMapModel.Room in model.get_rooms_on_layer(layer):
+			for room: MDSMapModel.Room in model.get_rooms_on_layer(layer):
 				if analysis:
 					seen[analysis.get_info(room.id).get("area", "")] = true
 			for a in seen:
@@ -304,7 +304,7 @@ func _draw() -> void:
 	if show.grid and cell_px.x >= 12:
 		_draw_grid(cell_px)
 	var dim := not highlight_rooms.is_empty()
-	for room: IDPMapModel.Room in model.get_rooms_on_layer(layer):
+	for room: MDSMapModel.Room in model.get_rooms_on_layer(layer):
 		var color := get_room_color(room)
 		if dim and not highlight_rooms.has(room.id):
 			color = color.darkened(0.6)
@@ -386,13 +386,13 @@ func _draw_centered_message(text: String) -> void:
 	_overlay.draw_string(font, Vector2((size.x - w) / 2.0, size.y / 2.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.6))
 
 ## Perimeter-only outline. Passages leave a gap; the door marker is drawn once per door.
-func _draw_room_outline(ci: CanvasItem, room: IDPMapModel.Room, cell_px: Vector2, width: float, color: Color, with_doors: bool) -> void:
+func _draw_room_outline(ci: CanvasItem, room: MDSMapModel.Room, cell_px: Vector2, width: float, color: Color, with_doors: bool) -> void:
 	for c in room.cells:
 		var tl := cell_to_screen(Vector2(c.x, c.y))
 		# Corner i starts edge i: R = TR->BR, D = BR->BL, L = BL->TL, U = TL->TR.
 		var corners := [tl + Vector2(cell_px.x, 0), tl + cell_px, tl + Vector2(0, cell_px.y), tl]
 		for d in 4:
-			var n := Vector2i(c.x, c.y) + IDPMapModel.FWD[d]
+			var n := Vector2i(c.x, c.y) + MDSMapModel.FWD[d]
 			var p0: Vector2 = corners[d]
 			var p1: Vector2 = corners[(d + 1) % 4]
 			if room.has_cell(n):
@@ -400,7 +400,7 @@ func _draw_room_outline(ci: CanvasItem, room: IDPMapModel.Room, cell_px: Vector2
 				if with_doors and cell_px.x >= 30:
 					ci.draw_line(p0, p1, Color(0, 0, 0, 0.12), 1.0)
 				continue
-			var door: IDPMapModel.Door = model.doors.get(IDPMapModel.door_key(c, d)) if show.doors else null
+			var door: MDSMapModel.Door = model.doors.get(MDSMapModel.door_key(c, d)) if show.doors else null
 			if door:
 				ci.draw_line(p0, p0.lerp(p1, 0.3), color, width)
 				ci.draw_line(p0.lerp(p1, 0.7), p1, color, width)
@@ -409,7 +409,7 @@ func _draw_room_outline(ci: CanvasItem, room: IDPMapModel.Room, cell_px: Vector2
 			else:
 				ci.draw_line(p0, p1, color, width)
 
-func _draw_door_marker(ci: CanvasItem, door: IDPMapModel.Door, p0: Vector2, p1: Vector2, dir: int, width: float) -> void:
+func _draw_door_marker(ci: CanvasItem, door: MDSMapModel.Door, p0: Vector2, p1: Vector2, dir: int, width: float) -> void:
 	var a := p0.lerp(p1, 0.3)
 	var b := p0.lerp(p1, 0.7)
 	var mid := (a + b) / 2.0
@@ -428,7 +428,7 @@ func _draw_door_marker(ci: CanvasItem, door: IDPMapModel.Door, p0: Vector2, p1: 
 	if not one_way.is_empty() or (door.is_one_sided() and not door.leads_nowhere()):
 		# Arrow pointing away from the side that can pass.
 		var from_a := one_way == door.a_room.id if not one_way.is_empty() else door.a_border > 0
-		var fwd := Vector2(IDPMapModel.FWD[door.a_dir]) * (1.0 if from_a else -1.0)
+		var fwd := Vector2(MDSMapModel.FWD[door.a_dir]) * (1.0 if from_a else -1.0)
 		var col := Color(1, 0.85, 0.2) if one_way.is_empty() else Color(0.9, 0.9, 0.9)
 		var tip := mid + fwd * r * 1.6
 		var side := Vector2(-fwd.y, fwd.x) * r * 0.8
@@ -449,7 +449,7 @@ func _draw_text_badge(ci: CanvasItem, center: Vector2, text: String, color: Colo
 	var s := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 	ci.draw_string(font, center + Vector2(-s.x / 2.0, s.y * 0.3), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.BLACK)
 
-func _draw_room_label(ci: CanvasItem, room: IDPMapModel.Room, cell_px: Vector2) -> void:
+func _draw_room_label(ci: CanvasItem, room: MDSMapModel.Room, cell_px: Vector2) -> void:
 	if room.scene_uid.is_empty():
 		return
 	var info: Dictionary = analysis.get_info(room.id) if analysis else {}
@@ -487,7 +487,7 @@ func _draw_crown(ci: CanvasItem, c: Vector2, r: float, color: Color) -> void:
 func _marker_enabled(category: String) -> bool:
 	return marker_filters.get(category, false)
 
-func _draw_room_markers(ci: CanvasItem, room: IDPMapModel.Room, cell_px: Vector2) -> void:
+func _draw_room_markers(ci: CanvasItem, room: MDSMapModel.Room, cell_px: Vector2) -> void:
 	var meta: Dictionary = scene_db.get(room.scene_path, {})
 	if meta.is_empty():
 		return
@@ -518,7 +518,7 @@ func _draw_room_markers(ci: CanvasItem, room: IDPMapModel.Room, cell_px: Vector2
 			var p := _local_to_screen(room, gate.position)
 			ci.draw_rect(Rect2(p - Vector2(2, 2), Vector2(4, 4)), ability_color(gate.requires[0]) if not gate.requires.is_empty() else Color.WHITE)
 
-func _local_to_screen(room: IDPMapModel.Room, local_px: Vector2) -> Vector2:
+func _local_to_screen(room: MDSMapModel.Room, local_px: Vector2) -> Vector2:
 	return cell_to_screen(Vector2(room.min_cell) + local_px / in_game_cell_size)
 
 func _draw_custom_elements(ci: CanvasItem, cell_px: Vector2) -> void:
@@ -574,7 +574,7 @@ func _draw_route(ci: CanvasItem, cell_px: Vector2) -> void:
 		if i + 1 < route.size():
 			var door := _door_between(route[i], route[i + 1])
 			if door and door.a_room.layer == layer:
-				var fwd := Vector2(IDPMapModel.FWD[door.a_dir])
+				var fwd := Vector2(MDSMapModel.FWD[door.a_dir])
 				pts.append(cell_to_screen(Vector2(door.a_cell.x, door.a_cell.y) + Vector2(0.5, 0.5) + fwd * 0.5))
 	if pts.size() >= 2:
 		ci.draw_polyline(pts, Color(0, 0, 0, 0.6), 6.0, true)
@@ -582,7 +582,7 @@ func _draw_route(ci: CanvasItem, cell_px: Vector2) -> void:
 		ci.draw_circle(pts[0], 6.0, COLOR_ROUTE)
 		ci.draw_circle(pts[pts.size() - 1], 6.0, Color(1, 0.4, 0.8))
 
-func _door_between(a_id: String, b_id: String) -> IDPMapModel.Door:
+func _door_between(a_id: String, b_id: String) -> MDSMapModel.Door:
 	var a := model.get_room(a_id)
 	if not a:
 		return null
@@ -627,7 +627,7 @@ func _update_previews() -> void:
 	_preview_layer = layer
 	for child in _preview_root.get_children():
 		child.queue_free()
-	for room: IDPMapModel.Room in model.get_rooms_on_layer(layer):
+	for room: MDSMapModel.Room in model.get_rooms_on_layer(layer):
 		if room.scene_path.is_empty() or not ResourceLoader.exists(room.scene_path):
 			continue
 		var packed := load(room.scene_path) as PackedScene
