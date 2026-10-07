@@ -109,7 +109,7 @@ func _tile_rock(layer: TileMapLayer) -> Array[PackedVector2Array]:
 		return out
 	var cells: Dictionary = {}
 	for c in layer.get_used_cells():
-		if not ts.has_source(layer.get_cell_source_id(c)):
+		if not MDSRoomPainter.is_cell_valid(layer, c):
 			continue
 		var td := layer.get_cell_tile_data(c)
 		if ts.get_physics_layers_count() == 0 or (td and td.get_collision_polygons_count(0) > 0):

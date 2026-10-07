@@ -68,6 +68,8 @@ var _trace_dialog: MDSTraceDialog
 var effect_list: ItemList
 var _effect_box: VBoxContainer
 var _weather_label: Label
+## Shown while the room has cells pointing at tiles its tileset no longer has.
+var broken_button: Button
 
 ## The Effects tool's list: dragging an entry onto the room places that effect.
 class EffectList extends ItemList:
@@ -235,6 +237,10 @@ func _init() -> void:
 	controls.add_child(HSeparator.new())
 	var generation := VBoxContainer.new()
 	controls.add_child(generation)
+	broken_button = MDSUi.button("Remove broken tiles", "Erase the painted tiles that point at tiles the tileset no longer has (their sheet was removed, or its tile size was made bigger so fewer tiles fit). They draw nothing and have no collision, and Godot logs \"The TileSetAtlasSource atlas has no tile at ...\" for them. Saving also rewrites the tileset without the tiles it can no longer load. Ctrl+Z undoes it")
+	broken_button.visible = false
+	broken_button.pressed.connect(remove_broken_tiles)
+	generation.add_child(broken_button)
 	var actions := MDSSidePanel.grid(controls, 2)
 	var gen := MDSUi.button("Generate cave", "Replace the tiles with a cave built from the room's shape on the map: walls, floor, ledges, openings at its gates, background and decorations. Uses the Terrain fill's terrain and the Background fill")
 	gen.pressed.connect(func() -> void: generate(false))
@@ -392,6 +398,7 @@ func open_room(p_world: MDSWorld, id: String) -> String:
 	generate_button.disabled = not painter.has_terrains()
 	if not painter.has_terrains():
 		status_message.emit("%s's tileset has no terrains, so Generate cave is off. Paint with palette tiles, or make a terrain from a 3x3 block in the palette." % id)
+	_report_broken_tiles()
 	_fit_later()
 	return ""
 
@@ -767,7 +774,40 @@ func _terrain_for_generation() -> Vector2i:
 func _changed(message: String) -> void:
 	canvas.check_result = {}
 	canvas._overlay.queue_redraw()
+	if painter and broken_button:
+		broken_button.visible = not painter.broken_cells().is_empty() or painter.has_dropped_tiles()
 	status_message.emit(message)
+
+## Says which layers have tiles their tileset no longer has, and shows Remove broken tiles.
+func _report_broken_tiles() -> void:
+	var broken := painter.broken_cells() if painter else {}
+	var dropped := painter.has_dropped_tiles() if painter else false
+	broken_button.visible = not broken.is_empty() or dropped
+	if broken.is_empty():
+		if dropped:
+			status_message.emit("%s's tileset has tiles that no longer fit their sheet (its tile size was made bigger, or the sheet smaller): Godot logs \"The TileSetAtlasSource atlas has no tile at ...\" for each of them whenever it loads the tileset. Remove broken tiles takes them out of it." % room_id)
+		return
+	var parts: PackedStringArray = []
+	var at: Array = []
+	for layer_name in broken:
+		parts.append("%d on %s" % [broken[layer_name].size(), layer_name])
+		for c in broken[layer_name].slice(0, 3 - at.size()):
+			var a: Vector2i = painter.layers[layer_name].get_cell_atlas_coords(c)
+			at.append("(%d, %d)" % [a.x, a.y])
+	status_message.emit("%s has tiles that point at tiles its tileset no longer has (%s; atlas %s): they draw nothing and have no collision. Their sheet was removed, or its tile size made bigger so fewer tiles fit. Remove broken tiles erases them." % [room_id, ", ".join(parts), ", ".join(at)])
+
+## Erases the painted tiles that point at tiles the tileset no longer has (undoable).
+func remove_broken_tiles() -> int:
+	if not painter:
+		return 0
+	painter.checkpoint()
+	var dropped := painter.has_dropped_tiles()
+	var n := painter.remove_broken_cells()
+	if n == 0 and not dropped:
+		_changed("No broken tiles in %s." % room_id)
+	else:
+		_changed("Removed %d broken tile(s)%s. Save writes the room%s; Ctrl+Z brings the tiles back." % [n, " and the tiles that no longer fit from the tileset" if dropped else "", " and the tileset, which then loads without errors" if dropped else ""])
+	return n
 
 func _update_shape_controls() -> void:
 	var curved := MDSTerrainShapes.is_curved(canvas.shape) and canvas.shape < MDSRoomCanvas.GENERATOR_BASE

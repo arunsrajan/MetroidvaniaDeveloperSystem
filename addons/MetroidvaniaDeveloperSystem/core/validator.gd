@@ -75,6 +75,9 @@ static func run(model: MDSMapModel, ann: MDSAnnotations, analysis: MDSAnalysis, 
 		for o in meta.get("overlaps", []):
 			var cell: Vector2i = room.min_cell + Vector2i(o.get("cell", Vector2i.ZERO))
 			add_overlap_issue(issues, analysis.get_room_name(room.id), o, room.id, Vector3i(cell.x, cell.y, room.layer))
+		for b in meta.get("broken_tiles", []):
+			var cell: Vector2i = room.min_cell + Vector2i(b.get("cell", Vector2i.ZERO))
+			add_broken_tiles_issue(issues, analysis.get_room_name(room.id), b, room.id, Vector3i(cell.x, cell.y, room.layer))
 		# Physics checks (MDSRoomCheck), run in the background by the panel.
 		for g in meta.get("geometry", []):
 			var cell: Vector2i = room.min_cell + Vector2i(g.get("cell", Vector2i.ZERO))
@@ -153,6 +156,12 @@ static func add_twisted_issue(issues: Array, room_name: String, t: Dictionary, r
 ## Two objects that stand in or behind each other ({a, b, position} from the scanner).
 static func add_overlap_issue(issues: Array, room_name: String, o: Dictionary, room_id: String, cell := Vector3i.MAX, pos := Vector2.INF, layer := 0) -> void:
 	_add(issues, Severity.INFO, CATEGORY_GEOMETRY, "%s: objects overlap: %s and %s (Room view > Declutter separates them)" % [room_name, o.a, o.b], room_id, cell, pos, layer)
+
+## A tile layer with cells pointing at tiles its tileset no longer has ({path, count, sample}
+## from the scanner).
+static func add_broken_tiles_issue(issues: Array, room_name: String, b: Dictionary, room_id: String, cell := Vector3i.MAX, pos := Vector2.INF, layer := 0) -> void:
+	var at := ", ".join(Array(b.get("sample", [])).map(func(c: Vector2i) -> String: return "(%d, %d)" % [c.x, c.y]))
+	_add(issues, Severity.WARNING, CATEGORY_GEOMETRY, "%s: %d tile(s) of %s point at tiles its tileset no longer has (atlas %s%s), so they draw nothing and have no collision. Their sheet was removed, or its tile size made bigger so fewer tiles fit. Room view > Remove broken tiles erases them" % [room_name, int(b.count), b.path, at, "..." if int(b.count) > Array(b.get("sample", [])).size() else ""], room_id, cell, pos, layer)
 
 static func sort_issues(issues: Array) -> Array:
 	issues.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:

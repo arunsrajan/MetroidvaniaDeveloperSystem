@@ -150,6 +150,9 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 		"twisted": [],
 		# Objects standing in or behind each other: {a, b, position, cell} (MDSRoomDressing).
 		"overlaps": [],
+		# Tile layers with cells pointing at tiles their tileset no longer has:
+		# {path, count, sample (atlas coords), position, cell}.
+		"broken_tiles": [],
 	}
 	if not ResourceLoader.exists(scene_path):
 		return metadata
@@ -179,6 +182,7 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 		metadata.groups = instance.get_groups()
 		metadata.node_count = count_nodes(instance)
 		_build_silhouette(metadata, solids, polygons)
+		_find_broken_tiles(instance, metadata)
 		for o in MDSRoomDressing.overlaps(instance):
 			var pos: Vector2 = (o.rect as Rect2).get_center()
 			metadata.overlaps.append({"a": o.a, "b": o.b, "position": pos, "cell": Vector2i((pos / in_game_cell_size).floor())})
@@ -188,6 +192,23 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 			push_warning("%s: %s %s crosses itself, so it has no fill and no collision (see Map Dev's Issues tab)." % [scene_path, "Freeform shape" if t.kind == "freeform" else "CollisionPolygon2D", t.path])
 	instance.free()
 	return metadata
+
+## Tile layers whose cells point at tiles their tileset no longer has (see
+## [method MDSRoomPainter.is_cell_valid]). Hidden-tile layers ("<Layer>Blockout") are skipped.
+func _find_broken_tiles(instance: Node, metadata: Dictionary) -> void:
+	for node in instance.find_children("*", "TileMapLayer", true, false):
+		var layer := node as TileMapLayer
+		if layer.has_meta(&"idp_blockout"):
+			continue
+		var broken := MDSRoomPainter.broken_cells_of(layer)
+		if broken.is_empty():
+			continue
+		var sample: Array = []
+		for c in broken.slice(0, 3):
+			sample.append(layer.get_cell_atlas_coords(c))
+		var pos := _local_transform(layer, instance) * layer.map_to_local(broken[0])
+		metadata.broken_tiles.append({"path": String(instance.get_path_to(layer)), "count": broken.size(), "sample": sample,
+			"position": pos, "cell": Vector2i((pos / in_game_cell_size).floor())})
 
 func find_room_instance(node: Node) -> Node:
 	if node.name == "RoomInstance" or node.is_class("RoomInstance"):
@@ -326,12 +347,12 @@ func _collect_solids(node: Node, root: Node, metadata: Dictionary, solids: Array
 	if node is TileMapLayer:
 		var layer := node as TileMapLayer
 		if layer.tile_set and layer.enabled and _is_terrain_layer(layer):
-			var used := layer.get_used_cells()
+			# Cells pointing at tiles the tileset no longer has draw nothing: not terrain.
+			var used := layer.get_used_cells().filter(func(c: Vector2i) -> bool: return MDSRoomPainter.is_cell_valid(layer, c))
 			# With collision set up, only solid tiles are terrain (not foliage or vines).
 			if layer.tile_set.get_physics_layers_count() > 0 and layer.collision_enabled:
 				used = used.filter(func(c: Vector2i) -> bool:
-					var td := layer.get_cell_tile_data(c)
-					return td != null and td.get_collision_polygons_count(0) > 0)
+					return layer.get_cell_tile_data(c).get_collision_polygons_count(0) > 0)
 			_add_tile_rects(layer, used, layer.tile_set.tile_size, _local_transform(layer, root), solids)
 	elif node.is_class("TileMap"):
 		var tile_set: TileSet = node.get("tile_set")

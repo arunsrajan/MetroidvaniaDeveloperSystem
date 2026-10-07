@@ -205,6 +205,7 @@ The map is one view of a room; the **Room view** is the other. It shows the room
   - Rooms that already have a TileSet keep it. Its terrains appear in the fill list, and tiles with an `idp_kind` custom data string (`grass`, `vine_top`, `stalactite_small`, `foliage`...) are used by the kind fills and Auto-decorate.
   - Sheets, terrains, tags and colors added from the palette are saved into that TileSet: its `.tres` file, or the scene when the TileSet is embedded in it.
   - Solid colors are one white tile tinted by alternative tiles.
+  - **Broken tiles:** when a sheet is removed, or its tile size is made bigger so fewer tiles fit, the tiles painted with the lost tiles draw nothing, and Godot logs "The TileSetAtlasSource atlas has no tile at ..." each time it loads the tileset. The Issues tab lists the rooms that have them, and **Remove broken tiles** (Room view, shown when the room has some) erases them and rewrites the tileset so it loads cleanly. Sheets scaled to the room grid are saved as `<sheet>_<tile size>_to_<grid>.png`, so adding a sheet again with another tile size never overwrites one a tileset already uses.
   - Change the default in **Scenes > World settings > Room tileset** (stored as `settings.room_tileset`), for example to the [Mossgrove asset pack](asset_packs/mossgrove/README.md)'s TileSet.
 
 Only solid tiles (with collision) count as terrain for the map silhouette. Background and decoration layers never do.

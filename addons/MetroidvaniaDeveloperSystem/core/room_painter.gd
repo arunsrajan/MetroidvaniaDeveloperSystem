@@ -116,6 +116,39 @@ static func open(path: String, default_tile_set: TileSet = null) -> MDSRoomPaint
 static func is_stamp(node: Node) -> bool:
 	return node is Sprite2D and node.has_meta(&"idp_stamp")
 
+## Whether [param cell] of [param layer] holds a tile its tileset can draw. A painted cell can
+## point at a tile that is gone: its sheet was removed, or the sheet's tile size was made bigger
+## so fewer tiles fit. Godot then keeps the tiles past the sheet's edge "outside the texture"
+## (they draw nothing, and loading the tileset logs "The TileSetAtlasSource atlas has no tile at
+## ..." for each of them), or drops them, and then [method TileMapLayer.get_cell_tile_data]
+## logs that for every cell painted with them. Such a cell draws nothing and collides with
+## nothing. Empty cells are not valid either.
+static func is_cell_valid(layer: TileMapLayer, cell: Vector2i) -> bool:
+	var ts := layer.tile_set
+	var sid := layer.get_cell_source_id(cell)
+	if not ts or sid < 0 or not ts.has_source(sid):
+		return false
+	var src := ts.get_source(sid)
+	var at := layer.get_cell_atlas_coords(cell)
+	if not src.has_tile(at) or not src.has_alternative_tile(at, layer.get_cell_alternative_tile(cell)):
+		return false
+	# A tile outside its sheet has no place in the atlas.
+	return not src is TileSetAtlasSource or (src as TileSetAtlasSource).get_tile_at_coords(at) == at
+
+## The tile data of [param cell], or null when it is empty or broken (see [method is_cell_valid]).
+static func cell_tile_data(layer: TileMapLayer, cell: Vector2i) -> TileData:
+	return layer.get_cell_tile_data(cell) if is_cell_valid(layer, cell) else null
+
+## The painted cells of [param layer] that point at a tile its tileset doesn't have.
+static func broken_cells_of(layer: TileMapLayer) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	if not layer.tile_set:
+		return out
+	for c in layer.get_used_cells():
+		if not is_cell_valid(layer, c):
+			out.append(c)
+	return out
+
 ## An effect the Room view edits: one in the scene's "Effects" node (a child of
 ## [param scene_root]).
 static func is_room_effect(node: Node, scene_root: Node) -> bool:
@@ -768,12 +801,53 @@ func paint_terrain(layer_name: String, cells: Array, terrain_set: int, terrain: 
 	layers[layer_name].set_cells_terrain_connect(typed, terrain_set, terrain)
 	dirty = true
 
+## The room's painted cells that point at tiles its tileset doesn't have (see
+## [method is_cell_valid]): layer name -> cells.
+func broken_cells() -> Dictionary:
+	var out: Dictionary = {}
+	for n in LAYER_ORDER:
+		var cells := broken_cells_of(layers[n])
+		if not cells.is_empty():
+			out[n] = cells
+	return out
+
+## Whether the tileset has tiles that no longer fit their sheet (see [method is_cell_valid]).
+## Godot logs "The TileSetAtlasSource atlas has no tile at ..." for each of them every time it
+## loads the tileset.
+func has_dropped_tiles() -> bool:
+	for i in tile_set.get_source_count():
+		var src := tile_set.get_source(tile_set.get_source_id(i)) as TileSetAtlasSource
+		if src and src.has_tiles_outside_texture():
+			return true
+	return false
+
+## Erases the broken cells, and takes the tiles that no longer fit their sheet out of the
+## tileset; [method save] then writes the tileset again, so it loads without errors. Cells other
+## rooms painted with those tiles draw nothing either way (their scans report them). Call
+## [method checkpoint] first to make the cells undoable. Returns how many cells were erased.
+func remove_broken_cells() -> int:
+	var n := 0
+	for layer_name in LAYER_ORDER:
+		for c in broken_cells_of(layers[layer_name]):
+			layers[layer_name].erase_cell(c)
+			n += 1
+	for i in tile_set.get_source_count():
+		var src := tile_set.get_source(tile_set.get_source_id(i)) as TileSetAtlasSource
+		if src and src.has_tiles_outside_texture():
+			src.clear_tiles_outside_texture()
+			tile_set_dirty = true
+	if n > 0:
+		# Written again on save, so a tileset already cleaned up in memory reaches its file too.
+		dirty = true
+		tile_set_dirty = true
+	return n
+
 ## Erases cells and re-connects the terrain around them.
 func erase(layer_name: String, cells: Array) -> void:
 	var l: TileMapLayer = layers[layer_name]
 	var by_set: Dictionary = {}
 	for c in cells:
-		var td := l.get_cell_tile_data(c)
+		var td := cell_tile_data(l, c)
 		if td and td.terrain_set >= 0:
 			if not by_set.has(td.terrain_set):
 				by_set[td.terrain_set] = []
@@ -791,11 +865,11 @@ func erase(layer_name: String, cells: Array) -> void:
 		for c in typed:
 			for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
 				var n: Vector2i = c + d
-				var nd := l.get_cell_tile_data(n)
+				var nd := cell_tile_data(l, n)
 				if nd and nd.terrain_set == s and not n in around:
 					around.append(n)
 		if not around.is_empty():
-			var t := l.get_cell_tile_data(around[0]).terrain
+			var t := cell_tile_data(l, around[0]).terrain
 			l.set_cells_terrain_connect(around, s, t)
 	dirty = true
 
@@ -1128,8 +1202,7 @@ func add_sheet(texture_path: String, sheet_tile: Vector2i, margin := Vector2i.ZE
 		img.resize(maxi(1, roundi(img.get_width() * factor.x)), maxi(1, roundi(img.get_height() * factor.y)), Image.INTERPOLATE_NEAREST)
 		margin = Vector2i((Vector2(margin) * factor).round())
 		separation = Vector2i((Vector2(separation) * factor).round())
-		var scaled_path := "%s/%s_idp%dx%d.png" % [texture_path.get_base_dir(), texture_path.get_file().get_basename(), grid.x, grid.y]
-		src.texture = _file_texture(img, scaled_path)
+		src.texture = _file_texture(img, scaled_sheet_path(texture_path, sheet_tile, grid, img))
 	else:
 		src.texture = tex
 	src.texture_region_size = grid
@@ -1154,6 +1227,27 @@ func add_sheet(texture_path: String, sheet_tile: Vector2i, margin := Vector2i.ZE
 	tile_set_dirty = true
 	save_tile_set()
 	return sid
+
+## Where a sheet scaled to the room grid is saved: named for both tile sizes
+## ([code]fx_96x96_to_32x32.png[/code]), next to the sheet. The same sheet added again with
+## another tile size gets a file of its own, and a file already there with other pixels is never
+## overwritten: an atlas source still uses it, and a smaller image would shrink its atlas, losing
+## the tiles past the new edge (and every cell painted with them).
+static func scaled_sheet_path(texture_path: String, sheet_tile: Vector2i, grid: Vector2i, img: Image) -> String:
+	var stem := "%s/%s_%dx%d_to_%dx%d" % [texture_path.get_base_dir(), texture_path.get_file().get_basename(), sheet_tile.x, sheet_tile.y, grid.x, grid.y]
+	var path := stem + ".png"
+	var n := 2
+	while FileAccess.file_exists(path) and not _same_pixels(path, img):
+		path = "%s_%d.png" % [stem, n]
+		n += 1
+	return path
+
+static func _same_pixels(path: String, img: Image) -> bool:
+	var other := Image.load_from_file(ProjectSettings.globalize_path(path))
+	if not other or other.get_size() != img.get_size():
+		return false
+	other.convert(img.get_format())
+	return other.get_data() == img.get_data()
 
 ## The sheet at [param path] as an imported texture. A file the editor has not imported
 ## yet (just copied into the project) is imported first: reading the raw file instead

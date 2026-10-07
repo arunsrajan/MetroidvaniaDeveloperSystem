@@ -81,6 +81,8 @@ static func run(world: MDSWorld, analysis: MDSAnalysis, scene_db: Dictionary) ->
 			MDSValidator.add_twisted_issue(issues, name, t, id, Vector3i.MAX, world.get_origin(id) + Vector2(t.position), layer)
 		for o in meta.get("overlaps", []):
 			MDSValidator.add_overlap_issue(issues, name, o, id, Vector3i.MAX, world.get_origin(id) + Vector2(o.position), layer)
+		for b in meta.get("broken_tiles", []):
+			MDSValidator.add_broken_tiles_issue(issues, name, b, id, Vector3i.MAX, world.get_origin(id) + Vector2(b.position), layer)
 		# Physics checks (MDSRoomCheck), run in the background by the panel.
 		for g in meta.get("geometry", []):
 			MDSValidator._add(issues, W, MDSValidator.CATEGORY_GEOMETRY, g.message, id, Vector3i.MAX, world.get_origin(id) + Vector2(g.pos), layer)

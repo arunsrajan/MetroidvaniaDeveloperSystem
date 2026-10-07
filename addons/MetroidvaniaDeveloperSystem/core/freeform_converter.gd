@@ -208,8 +208,8 @@ func _read_tiles(layer: TileMapLayer, out: Dictionary, solid: bool, into := "") 
 	var one_way: Dictionary = {}
 	var taken: Array = []
 	for cell in layer.get_used_cells():
-		if not ts.has_source(layer.get_cell_source_id(cell)):
-			continue
+		if not MDSRoomPainter.is_cell_valid(layer, cell):
+			continue # a tile the tileset no longer has: it draws nothing
 		if not solid:
 			full[cell] = true
 			taken.append(cell)
