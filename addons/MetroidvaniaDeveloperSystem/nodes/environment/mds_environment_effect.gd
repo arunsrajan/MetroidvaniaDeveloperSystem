@@ -22,7 +22,8 @@ extends Node2D
 ## (a steam jet's launch), and [code]take_damage(amount)[/code] is called to hurt it. A body can
 ## handle these itself by implementing [code]mds_environment_push(velocity, delta, effect)[/code],
 ## [code]mds_environment_launch(velocity, effect)[/code] and
-## [code]mds_environment_hurt(amount, effect)[/code].
+## [code]mds_environment_hurt(amount, effect)[/code]. Bodies held still (not processing, like
+## the player while [MDSWorldGame] changes rooms) are left alone.
 
 ## A node of [member affect_groups] came into the effect.
 signal body_entered_effect(body: Node2D)
@@ -277,7 +278,24 @@ func _physics_process(delta: float) -> void:
 	var s := get_strength()
 	if s > 0.0:
 		for b in now:
-			_affect(b, delta, s)
+			if can_affect(b):
+				_affect(b, delta, s)
+
+## Whether effects can act on [param body] now: it is processing (not paused, and not held
+## still the way [MDSWorldGame] holds the player during a room change) and, for a physics body,
+## in a physics space. A body whose processing is disabled is taken out of its space, and
+## moving it then is an error.
+static func can_affect(body: Node2D) -> bool:
+	if not is_instance_valid(body) or not body.is_inside_tree() or not body.can_process():
+		return false
+	return _in_physics_space(body)
+
+static func _in_physics_space(body: Node2D) -> bool:
+	if body is PhysicsBody2D:
+		return PhysicsServer2D.body_get_space((body as PhysicsBody2D).get_rid()).is_valid()
+	if body is Area2D:
+		return PhysicsServer2D.area_get_space((body as Area2D).get_rid()).is_valid()
+	return true
 
 ## The nodes of [member affect_groups] whose position is inside [param rect] (its own
 ## coordinates; empty: [method get_body_rect]), grown by [param margin] px.
@@ -295,9 +313,12 @@ func bodies_inside(margin := 0.0, rect := Rect2()) -> Array[Node2D]:
 
 ## Pushes [param body] along [param velocity] (px/s, global) for this physics frame: wind,
 ## a current. Moves a CharacterBody2D with move_and_collide, so it never goes through walls.
+## A physics body outside a physics space (held still, not yet added) isn't moved.
 func push_body(body: Node2D, velocity: Vector2, delta: float) -> void:
 	if body.has_method(&"mds_environment_push"):
 		body.call(&"mds_environment_push", velocity, delta, self)
+	elif body is PhysicsBody2D and not _in_physics_space(body):
+		return
 	elif body is CharacterBody2D:
 		(body as CharacterBody2D).move_and_collide(velocity * delta)
 	elif body is RigidBody2D:

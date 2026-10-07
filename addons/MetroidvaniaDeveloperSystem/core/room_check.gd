@@ -215,8 +215,8 @@ func _add_tile_layer(layer: TileMapLayer, xform: Transform2D) -> void:
 	var full: Dictionary = {}
 	var one_way_full: Dictionary = {}
 	for cell in layer.get_used_cells():
-		if not ts.has_source(layer.get_cell_source_id(cell)):
-			continue # a tile whose source is gone from the tileset
+		if not MDSRoomPainter.is_cell_valid(layer, cell):
+			continue # a tile the tileset no longer has (its source or the tile itself is gone)
 		var td := layer.get_cell_tile_data(cell)
 		if not td:
 			continue

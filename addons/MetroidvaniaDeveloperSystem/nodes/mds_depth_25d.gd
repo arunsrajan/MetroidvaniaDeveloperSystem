@@ -302,7 +302,7 @@ func _read_tiles(layer: TileMapLayer, key: Array) -> Dictionary:
 	var tex: Texture2D = null
 	for c in layer.get_used_cells():
 		var sid := layer.get_cell_source_id(c)
-		if not ts.has_source(sid):
+		if not MDSRoomPainter.is_cell_valid(layer, c):
 			continue
 		var td := layer.get_cell_tile_data(c)
 		if td and ts.get_physics_layers_count() > 0 and td.get_collision_polygons_count(0) > 0 and not td.is_collision_polygon_one_way(0, 0):
