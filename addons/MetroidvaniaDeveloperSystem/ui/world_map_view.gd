@@ -1,6 +1,6 @@
 @tool
-@icon("res://addons/MetroidvaniaDeveloperSystem/assets/labels_idp.png")
-class_name IDPWorldMapView
+@icon("res://addons/MetroidvaniaDeveloperSystem/assets/labels_mds.png")
+class_name MDSWorldMapView
 extends Control
 ## In-game map for non-linear worlds, drawn from the same .idpworld.json the editor uses.
 ##
@@ -16,7 +16,7 @@ extends Control
 @export_file("*.idpworld.json") var world_file := "":
 	set(value):
 		world_file = value
-		world = IDPWorld.load_world(value) if not value.is_empty() and FileAccess.file_exists(value) else null
+		world = MDSWorld.load_world(value) if not value.is_empty() and FileAccess.file_exists(value) else null
 		queue_redraw()
 @export var layer := 0:
 	set(value):
@@ -30,12 +30,12 @@ extends Control
 @export var show_area_names := true
 @export var show_room_names := false
 ## Draw the current area's objective under the map ([member objective], set by
-## IDPWorldGame).
+## MDSWorldGame).
 @export var show_objective := true
 @export var background := Color(0.08, 0.07, 0.07, 0.92)
 @export var padding := 24.0
 
-var world: IDPWorld
+var world: MDSWorld
 var visited_rooms: Dictionary = {}
 var mapped_areas: Dictionary = {}
 var current_room := ""
@@ -103,13 +103,13 @@ func _draw() -> void:
 	var to_screen := func(p: Vector2) -> Vector2: return offset + p * scale
 	var border := clampf(scale * 40.0, 1.5, 4.0)
 	# Same tileset as the editor map (world setting "map_style").
-	var style := IDPMapStyle.get_style(str(world.get_setting("map_style", "handdrawn")))
+	var style := MDSMapStyle.get_style(str(world.get_setting("map_style", "handdrawn")))
 	for id in shown:
 		var color := world.get_area_color(world.get_room_area(id))
 		if not visited_rooms.has(id) and not reveal_all:
 			color = color.darkened(0.45)
-		if style.kind != IDPMapStyle.Kind.FLAT:
-			var border_color: Color = style.theme.default_border_color if style.kind == IDPMapStyle.Kind.METSYS and style.theme.get("default_border_color") is Color else color.lightened(0.3)
+		if style.kind != MDSMapStyle.Kind.FLAT:
+			var border_color: Color = style.theme.default_border_color if style.kind == MDSMapStyle.Kind.METSYS and style.theme.get("default_border_color") is Color else color.lightened(0.3)
 			style.draw_room(self, world.get_room_cells(id), world.get_paint_cell(), to_screen, scale, color, border_color)
 			continue
 		for r in world.get_world_rects(id):

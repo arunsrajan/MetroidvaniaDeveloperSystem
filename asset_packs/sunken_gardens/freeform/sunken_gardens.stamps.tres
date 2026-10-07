@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="IDPStampSet" format=3]
+[gd_resource type="Resource" script_class="MDSStampSet" format=3]
 
-[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_stamp_set.gd" id="1_stamps"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_stamp_set.gd" id="1_stamps"]
 [ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/clumps.png" id="2_clumps"]
 
 [resource]

@@ -1,9 +1,9 @@
-// Example terrain skin for freeform styles (IDPFreeformStyle.fill_material / edge_material).
+// Example terrain skin for freeform styles (MDSFreeformStyle.fill_material / edge_material).
 //
 // One shader, two passes:
 //   * the fill pass (edge_pass off) paints cut-stone blocks with bevelled edges and dark joints,
 //     lit from light_dir, in world space so neighbouring shapes join without a seam;
-//   * the edge pass (edge_pass on) paints the band IDPEdgeBand builds along the outline: grass
+//   * the edge pass (edge_pass on) paints the band MDSEdgeBand builds along the outline: grass
 //     standing up out of floors, a lit bevel on walls, shadow and drips under ceilings.
 //     UV.x runs along the outline (px), UV.y across it (0 at the surface, 1 at the band's inner
 //     edge, negative outside), COLOR.r says which way the surface faces (0 up .. 1 down).

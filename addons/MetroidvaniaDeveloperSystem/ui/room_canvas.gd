@@ -1,8 +1,8 @@
 @tool
-class_name IDPRoomCanvas
+class_name MDSRoomCanvas
 extends Control
 ## The Room view's painting surface: shows a room scene at its real size and paints its
-## tile layers (see [IDPRoomPainter]).
+## tile layers (see [MDSRoomPainter]).
 ##
 ## Left drag paints with the current brush, middle/right drag pans, the wheel zooms.
 ## Erase removes the top tile under the brush (stamp, foreground, decoration, terrain, then
@@ -15,28 +15,39 @@ extends Control
 ## freeform. Edit drags points, Alt+click removes one, double-click on an edge adds one,
 ## dragging inside moves the shape and Delete removes it.
 ## Stamps tool: click or drag to place clumps, Shift to remove them.
+## Effects tool: drag an effect from the palette onto the room (or pick one and click), click
+## one to select it (it shows in the Inspector), drag it to move it, drag its corner to
+## resize it, Delete removes it. An image file dropped on the view opens Trace drawing.
 
 signal painted
 signal status_message(text: String)
 ## The selected freeform shape changed (null: none).
-signal selection_changed(shape: IDPFreeform)
+signal selection_changed(shape: MDSFreeform)
+## The selected effect changed (null: none).
+signal effect_selected(effect: MDSEnvironmentEffect)
+## An image file was dropped on the view (to trace it).
+signal image_dropped(path: String)
 
-enum Tool { TERRAIN, BACKGROUND, DECOR, ERASE, FOREGROUND, FREEFORM, STAMP }
+enum Tool { TERRAIN, BACKGROUND, DECOR, ERASE, FOREGROUND, FREEFORM, STAMP, EFFECT }
 ## Collision role of new (and the selected) freeform shapes: the style's, or an override.
 enum RoleChoice { STYLE, TERRAIN, PLATFORM_ONE_WAY, PLATFORM, DECOR }
-## Freeform tool shapes from IDPShapeGenerators have ids from here on (Column = 100...).
+## Freeform tool shapes from MDSShapeGenerators have ids from here on (Column = 100...).
 const GENERATOR_BASE := 100
 const ROLE_CHOICE_NAMES: PackedStringArray = ["Style's role", "Terrain", "Platform, one-way", "Platform, two-way", "Decoration (no collision)"]
 enum EraseMode { TOP, DECOR, TERRAIN, BACKGROUND, ALL, FOREGROUND }
 const ERASE_MODE_NAMES: PackedStringArray = ["Top tile (stamp, foreground, decor, terrain, then background)", "Decor only", "Terrain only", "Background only", "All layers", "Foreground only"]
-const TOOL_COLORS: Array[Color] = [Color(0.5, 1, 0.4), Color(0.3, 0.8, 1), Color(1, 0.8, 0.3), Color(1, 0.35, 0.35), Color(0.75, 0.6, 1), Color(0.4, 1, 0.85), Color(1, 0.6, 0.85)]
+const TOOL_COLORS: Array[Color] = [Color(0.5, 1, 0.4), Color(0.3, 0.8, 1), Color(1, 0.8, 0.3), Color(1, 0.35, 0.35), Color(0.75, 0.6, 1), Color(0.4, 1, 0.85), Color(1, 0.6, 0.85), Color(0.55, 0.85, 1)]
+## Image files Trace drawing reads (dropped on the view).
+const IMAGE_EXTENSIONS: PackedStringArray = ["png", "jpg", "jpeg", "webp", "bmp", "tga", "svg"]
+## Drag data of an effect from the palette: {"type": DRAG_EFFECT, "effect": id}.
+const DRAG_EFFECT := "mds_effect"
 enum FreeformMode { DRAW, EDIT }
 
-var painter: IDPRoomPainter
-var world: IDPWorld
+var painter: MDSRoomPainter
+var world: MDSWorld
 var room_id := ""
 var tool: int = Tool.TERRAIN
-## Fill painted by each tool (see [method IDPRoomPainter.paint_fill]).
+## Fill painted by each tool (see [method MDSRoomPainter.paint_fill]).
 var fills: Dictionary = {
 	Tool.TERRAIN: {"type": "terrain", "set": 0, "terrain": 0},
 	Tool.BACKGROUND: {"type": "kind", "kind": "foliage"},
@@ -45,8 +56,8 @@ var fills: Dictionary = {
 }
 var brush_size := 2
 var erase_mode: int = EraseMode.TOP
-var shape: int = IDPTerrainShapes.Shape.BRUSH
-var curve: int = IDPTerrainShapes.CurveType.CONVEX
+var shape: int = MDSTerrainShapes.Shape.BRUSH
+var curve: int = MDSTerrainShapes.CurveType.CONVEX
 var roughness := 0.0 ## 0..1, "Irregular"
 var mirror := false
 var curve_count := 3 ## waves, steps or spikes
@@ -54,28 +65,45 @@ var zoom := 0.5
 var pan := Vector2(20, 20)
 ## Freeform tool.
 var freeform_mode: int = FreeformMode.DRAW
-var freeform_style: IDPFreeformStyle
+var freeform_style: MDSFreeformStyle
 var freeform_group := "Freeform" ## "FreeformBack", "Freeform" or "FreeformFront"
 var freeform_solid := true
 var freeform_role: int = RoleChoice.STYLE
-var selected: IDPFreeform:
+var selected: MDSFreeform:
 	set(v):
 		if v != selected:
 			selected = v
 			selection_changed.emit(v)
 ## Stamps tool.
-var stamp_set: IDPStampSet
+var stamp_set: MDSStampSet
 var stamp_category := ""
 var stamp_group := "StampsFront"
 var stamp_scale := 1.0
-## Last Check room result: {issues, surfaces} (see IDPRoomCheck), drawn over the room until
+## Effects tool: the effect a click places ("" = none, only selecting).
+var effect_id := ""
+var selected_effect: MDSEnvironmentEffect:
+	set(v):
+		if v != selected_effect:
+			selected_effect = v
+			effect_selected.emit(v)
+## Show the room's weather (its own, else its area's) over the view, as in the game.
+var weather_preview := true
+## Called before an effect dropped from the palette is placed (the Room view switches to the
+## Effects tool).
+var before_effect_drop: Callable
+var _weather: Node2D
+var _weather_spec := ""
+var _effect_drag := 0 ## 0 none, 1 move, 2 resize
+var _effect_from := Vector2.ZERO
+var _effect_orig := Rect2()
+## Last Check room result: {issues, surfaces} (see MDSRoomCheck), drawn over the room until
 ## the next edit.
 var check_result: Dictionary = {}
 ## Draw the floors of the last check: green where the player gets, red where not.
 var show_reachability := true
-## Show the room as IDPDepth25D will draw it in the game.
+## Show the room as MDSDepth25D will draw it in the game.
 var depth_preview := false
-var _depth: IDPDepth25D
+var _depth: MDSDepth25D
 
 var _view: Node2D
 var _display_scene: Node
@@ -132,7 +160,7 @@ func _init() -> void:
 	add_child(_overlay, false, Node.INTERNAL_MODE_BACK)
 
 ## Shows [param p_painter]'s room: the whole scene for context, its tile layers editable.
-func open(p_world: IDPWorld, id: String, p_painter: IDPRoomPainter) -> void:
+func open(p_world: MDSWorld, id: String, p_painter: MDSRoomPainter) -> void:
 	close()
 	world = p_world
 	room_id = id
@@ -144,21 +172,28 @@ func open(p_world: IDPWorld, id: String, p_painter: IDPRoomPainter) -> void:
 		_display_scene.process_mode = Node.PROCESS_MODE_DISABLED
 		for l in _display_scene.find_children("*", "", true, false):
 			# The painter's copies are shown instead.
-			if l is TileMapLayer or l is IDPFreeform or IDPRoomPainter.is_stamp(l):
+			if l is TileMapLayer or l is MDSFreeform or MDSRoomPainter.is_stamp(l) or MDSRoomPainter.is_room_effect(l, _display_scene):
 				l.visible = false
 		_view.add_child(_display_scene)
-	for n in IDPRoomPainter.LAYER_ORDER:
+	for n in MDSRoomPainter.LAYER_ORDER:
 		_view.add_child(painter.layers[n])
 	_view.add_child(painter.items_root)
 	selected = null
+	selected_effect = null
 	_draft.clear()
 	set_depth_preview(depth_preview)
+	refresh_weather()
 	fit()
 
 func close() -> void:
 	if is_instance_valid(_depth):
 		_depth.queue_free()
 	_depth = null
+	if is_instance_valid(_weather):
+		_weather.queue_free()
+	_weather = null
+	_weather_spec = ""
+	selected_effect = null
 	if painter:
 		for l in painter.layers.values():
 			if l.get_parent() == _view:
@@ -193,11 +228,11 @@ func set_zoom(value: float, anchor := Vector2(-1, -1)) -> void:
 	_apply_view()
 
 ## Turns the 2.5D preview on or off: the room's terrain extruded toward the middle of the view,
-## lit like in the game (see IDPDepth25D).
+## lit like in the game (see MDSDepth25D).
 func set_depth_preview(on: bool) -> void:
 	depth_preview = on
 	if on and not is_instance_valid(_depth) and painter:
-		_depth = IDPDepth25D.new()
+		_depth = MDSDepth25D.new()
 		_depth.name = "DepthPreview"
 		_depth.preview_in_editor = true
 		var srcs: Array[Node] = [painter.items_root]
@@ -280,6 +315,7 @@ func _draw_overlay() -> void:
 		ci.draw_string_outline(font, p + Vector2(9, -8), g, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 3, Color.BLACK)
 		ci.draw_string(font, p + Vector2(9, -8), g, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 0.9, 0.3))
 	_draw_check(ci, font)
+	_draw_effects(ci, font)
 	# Brush / shape preview.
 	var color: Color = TOOL_COLORS[tool]
 	if tool == Tool.FREEFORM:
@@ -289,7 +325,7 @@ func _draw_overlay() -> void:
 	if _shaping and shape >= GENERATOR_BASE:
 		var d := _generated(_shape_seed)
 		var pts := PackedVector2Array()
-		for q in IDPFreeform.outline_of(d.points, d.smooth):
+		for q in MDSFreeform.outline_of(d.points, d.smooth):
 			pts.append(local_to_screen(q))
 		if pts.size() >= 2:
 			pts.append(pts[0])
@@ -299,8 +335,8 @@ func _draw_overlay() -> void:
 		var a := painter.cell_rect("Terrain", Vector2i(mini(_shape_from.x, _shape_to.x), mini(_shape_from.y, _shape_to.y)))
 		var bb := painter.cell_rect("Terrain", Vector2i(maxi(_shape_from.x, _shape_to.x), maxi(_shape_from.y, _shape_to.y)))
 		ci.draw_rect(Rect2(local_to_screen(a.position), (bb.end - a.position) * zoom), color, false, 1.0)
-	elif get_rect().has_point(_mouse) and tool != Tool.STAMP and not (tool == Tool.FREEFORM and (shape == IDPTerrainShapes.Shape.BRUSH or freeform_mode == FreeformMode.EDIT)):
-		if shape == IDPTerrainShapes.Shape.BRUSH:
+	elif get_rect().has_point(_mouse) and tool != Tool.STAMP and tool != Tool.EFFECT and not (tool == Tool.FREEFORM and (shape == MDSTerrainShapes.Shape.BRUSH or freeform_mode == FreeformMode.EDIT)):
+		if shape == MDSTerrainShapes.Shape.BRUSH:
 			for c in _brush_cells(painter.cell_at("Terrain", screen_to_local(_mouse))):
 				var r := painter.cell_rect("Terrain", c)
 				ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(color, 0.18))
@@ -332,7 +368,7 @@ func _draw_check(ci: CanvasItem, font: Font) -> void:
 		var p := local_to_screen(i.pos)
 		ci.draw_circle(p, 9.0, Color(1, 0.25, 0.2, 0.85))
 		ci.draw_arc(p, 12.0, 0, TAU, 24, Color.WHITE, 1.5)
-		var label: String = IDPRoomCheck.KINDS.get(i.kind, i.kind)
+		var label: String = MDSRoomCheck.KINDS.get(i.kind, i.kind)
 		ci.draw_string_outline(font, p + Vector2(15, 5), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 3, Color.BLACK)
 		ci.draw_string(font, p + Vector2(15, 5), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 0.7, 0.6))
 
@@ -364,11 +400,11 @@ func _shade_outside(ci: CanvasItem, rects: Array[Rect2], outer: Rect2, color: Co
 func _draw_freeform_overlay(ci: CanvasItem, color: Color) -> void:
 	if freeform_mode == FreeformMode.EDIT:
 		# One-way shapes: their tops (where bodies land) dashed.
-		for f in IDPFreeform.shapes_in(painter.items_root):
+		for f in MDSFreeform.shapes_in(painter.items_root):
 			if not f.is_collider() or not f.is_one_way() or f.points.size() < 3:
 				continue
 			var outline := f.get_outline()
-			for run in IDPFreeform.edge_runs(outline, IDPFreeform.outward_normals(outline), Vector2.UP, 60.0):
+			for run in MDSFreeform.edge_runs(outline, MDSFreeform.outward_normals(outline), Vector2.UP, 60.0):
 				for i in range(1, run.size()):
 					ci.draw_dashed_line(local_to_screen(run[i - 1] + f.position) + Vector2(0, -3), local_to_screen(run[i] + f.position) + Vector2(0, -3), Color(0.45, 0.9, 1.0), 2.0, 7.0)
 	if _draft.size() > 0:
@@ -434,13 +470,13 @@ func shape_cells() -> Array[Vector2i]:
 	if shape >= GENERATOR_BASE:
 		var none: Array[Vector2i] = []
 		return none
-	return IDPTerrainShapes.cells(shape, _shape_from, _shape_to, curve, roughness, mirror, _shape_seed, curve_count)
+	return MDSTerrainShapes.cells(shape, _shape_from, _shape_to, curve, roughness, mirror, _shape_seed, curve_count)
 
 ## Name of a Shape list entry (brushes, shapes and scenery generators).
 static func shape_name(id: int) -> String:
 	if id >= GENERATOR_BASE:
-		return IDPShapeGenerators.NAMES[id - GENERATOR_BASE]
-	return IDPTerrainShapes.SHAPE_NAMES[id]
+		return MDSShapeGenerators.NAMES[id - GENERATOR_BASE]
+	return MDSTerrainShapes.SHAPE_NAMES[id]
 
 ## The box being dragged, in scene space (whole cells).
 func _shape_box() -> Rect2:
@@ -452,7 +488,7 @@ func _shape_box() -> Rect2:
 func _generated(seed_value: int) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
-	return IDPShapeGenerators.make(shape - GENERATOR_BASE, _shape_box(), rng)
+	return MDSShapeGenerators.make(shape - GENERATOR_BASE, _shape_box(), rng)
 
 ## Paints a shape spanning cells [param a] to [param b] with the current tool (also used
 ## by tests).
@@ -539,10 +575,10 @@ func erase_cells(cells: Array, mode: int) -> void:
 
 ## Adds a freeform shape through [param points] (scene-local) with the current style and
 ## layer, and selects it.
-func add_freeform(points: PackedVector2Array) -> IDPFreeform:
+func add_freeform(points: PackedVector2Array) -> MDSFreeform:
 	if points.size() < 3:
 		return null
-	var st := freeform_style if freeform_style else IDPFreeform._default_style()
+	var st := freeform_style if freeform_style else MDSFreeform._default_style()
 	var f := painter.add_freeform(points, st, freeform_group, freeform_solid)
 	apply_role_choice(f, freeform_role)
 	selected = f
@@ -552,7 +588,7 @@ func add_freeform(points: PackedVector2Array) -> IDPFreeform:
 
 ## The outline of a set of cells (e.g. a curved or irregular shape) as a freeform shape:
 ## the contour is traced, simplified and then rounded by the shape itself.
-func add_freeform_from_cells(cells: Array) -> IDPFreeform:
+func add_freeform_from_cells(cells: Array) -> MDSFreeform:
 	var pts := cells_outline(cells)
 	return add_freeform(pts) if pts.size() >= 3 else null
 
@@ -572,7 +608,7 @@ func cells_outline(cells: Array) -> PackedVector2Array:
 	var best := PackedVector2Array()
 	var best_area := 0.0
 	for poly: PackedVector2Array in polys:
-		var a := absf(IDPFreeform.signed_area(poly))
+		var a := absf(MDSFreeform.signed_area(poly))
 		if a > best_area:
 			best_area = a
 			best = poly
@@ -706,27 +742,27 @@ func _freeform_motion(mm: InputEventMouseMotion) -> void:
 		painter.dirty = true
 
 ## Gives [param f] the collision role picked in the Role list (see [enum RoleChoice]).
-static func apply_role_choice(f: IDPFreeform, choice: int) -> void:
+static func apply_role_choice(f: MDSFreeform, choice: int) -> void:
 	match choice:
 		RoleChoice.TERRAIN:
-			f.set_collision_override(IDPFreeformStyle.Role.TERRAIN, false)
+			f.set_collision_override(MDSFreeformStyle.Role.TERRAIN, false)
 		RoleChoice.PLATFORM_ONE_WAY:
-			f.set_collision_override(IDPFreeformStyle.Role.PLATFORM, true)
+			f.set_collision_override(MDSFreeformStyle.Role.PLATFORM, true)
 		RoleChoice.PLATFORM:
-			f.set_collision_override(IDPFreeformStyle.Role.PLATFORM, false)
+			f.set_collision_override(MDSFreeformStyle.Role.PLATFORM, false)
 		RoleChoice.DECOR:
-			f.set_collision_override(IDPFreeformStyle.Role.DECOR, false)
+			f.set_collision_override(MDSFreeformStyle.Role.DECOR, false)
 		_:
 			f.override_collision = false
 
 ## The Role list entry matching [param f]'s settings.
-static func role_choice_of(f: IDPFreeform) -> int:
+static func role_choice_of(f: MDSFreeform) -> int:
 	if not f.override_collision:
 		return RoleChoice.STYLE
 	match f.role:
-		IDPFreeformStyle.Role.PLATFORM:
+		MDSFreeformStyle.Role.PLATFORM:
 			return RoleChoice.PLATFORM_ONE_WAY if f.one_way else RoleChoice.PLATFORM
-		IDPFreeformStyle.Role.DECOR:
+		MDSFreeformStyle.Role.DECOR:
 			return RoleChoice.DECOR
 	return RoleChoice.TERRAIN
 
@@ -737,6 +773,167 @@ func delete_selected() -> void:
 		selected = null
 		painted.emit()
 		status_message.emit("Freeform shape removed.")
+
+# --- Effects ----------------------------------------------------------------------------------
+
+## Whether [param e] is still one of the room's effects (undo remakes them).
+func _is_room_effect(e: MDSEnvironmentEffect) -> bool:
+	return is_instance_valid(e) and painter != null and e.get_parent() == painter.items_root.get_node(MDSRoomPainter.EFFECTS_GROUP)
+
+## Places an effect of [param id] centred on [param p] (scene-local), selects it and returns it.
+func place_effect(id: String, p: Vector2) -> MDSEnvironmentEffect:
+	if not painter or id.is_empty():
+		return null
+	painter.checkpoint()
+	var e := painter.add_effect(id, p)
+	if not e:
+		return null
+	selected_effect = e
+	painted.emit()
+	_overlay.queue_redraw()
+	status_message.emit("%s added. Drag it to move it, drag its corner to resize it; its settings are in the Inspector. Delete removes it." % MDSEnvironment.display_name(id))
+	return e
+
+func delete_selected_effect() -> void:
+	if _is_room_effect(selected_effect):
+		painter.checkpoint()
+		var n := selected_effect.name
+		painter.remove_item(selected_effect)
+		selected_effect = null
+		painted.emit()
+		status_message.emit("Effect %s removed." % n)
+
+## An effect's area on screen.
+func _effect_screen_rect(e: MDSEnvironmentEffect) -> Rect2:
+	var r := e.transform * e.get_effect_rect()
+	return Rect2(local_to_screen(r.position), r.size * zoom)
+
+func _effect_input(mb: InputEventMouseButton) -> void:
+	var p := screen_to_local(mb.position)
+	if not mb.pressed:
+		if _effect_drag != 0 and _is_room_effect(selected_effect):
+			status_message.emit("%s: %d x %d px at (%d, %d)." % [selected_effect.name, selected_effect.size.x, selected_effect.size.y, selected_effect.position.x, selected_effect.position.y])
+		_effect_drag = 0
+		return
+	if _is_room_effect(selected_effect) and _effect_screen_rect(selected_effect).end.distance_to(mb.position) <= 10.0:
+		painter.checkpoint()
+		_effect_drag = 2
+		_effect_from = p
+		_effect_orig = Rect2(selected_effect.position, selected_effect.size)
+		return
+	var hit := painter.effect_at(p)
+	if hit:
+		selected_effect = hit
+		painter.checkpoint()
+		_effect_drag = 1
+		_effect_from = p
+		_effect_orig = Rect2(hit.position, hit.size)
+		status_message.emit("%s selected (its settings are in the Inspector): drag to move it, drag its corner to resize it, Delete removes it." % hit.name)
+	elif not effect_id.is_empty():
+		place_effect(effect_id, p)
+	else:
+		selected_effect = null
+		status_message.emit("Drag an effect from the list onto the room, or pick one and click.")
+
+func _effect_motion(mm: InputEventMouseMotion) -> void:
+	if _effect_drag == 0 or not _is_room_effect(selected_effect) or not (mm.button_mask & MOUSE_BUTTON_MASK_LEFT):
+		return
+	var d := screen_to_local(mm.position) - _effect_from
+	if _effect_drag == 1:
+		selected_effect.position = (_effect_orig.position + d).round()
+	else:
+		# The corner follows the mouse; an effect standing on its position (a vent) grows
+		# out from it both ways.
+		var along := selected_effect.transform.basis_xform_inv(d)
+		var grow := along if selected_effect.get_effect_rect().position == Vector2.ZERO else Vector2(along.x * 2.0, -along.y)
+		selected_effect.size = (_effect_orig.size + grow).max(Vector2(16, 16)).round()
+	painter.dirty = true
+
+func _draw_effects(ci: CanvasItem, font: Font) -> void:
+	if not painter:
+		return
+	var active := tool == Tool.EFFECT
+	for e in painter.effects():
+		var r := _effect_screen_rect(e)
+		var sel: bool = e == selected_effect
+		var c := Color(0.55, 0.85, 1.0, 0.9 if sel else (0.55 if active else 0.2))
+		ci.draw_rect(r, c, false, 2.0 if sel else 1.0)
+		if active or sel:
+			ci.draw_string_outline(font, r.position + Vector2(4, 14), String(e.name), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color.BLACK)
+			ci.draw_string(font, r.position + Vector2(4, 14), String(e.name), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, c)
+		if sel:
+			ci.draw_rect(Rect2(r.end - Vector2(5, 5), Vector2(10, 10)), Color(0.55, 0.85, 1.0))
+	if active and get_rect().has_point(_mouse) and not effect_id.is_empty() and _effect_drag == 0:
+		var icon := MDSEnvironment.icon(effect_id)
+		if icon:
+			ci.draw_texture_rect(icon, Rect2(_mouse + Vector2(10, 10), Vector2(16, 16)), false)
+
+## Shows the room's weather over the view (its own, else its area's, else the world's), as
+## the game adds it. It is only a preview: nothing is saved into the scene.
+func refresh_weather() -> void:
+	var spec := ""
+	if weather_preview and world and painter and world.has_room(room_id):
+		spec = MDSEnvironment.spec_for_room(world, room_id)
+	if spec == _weather_spec and (spec.is_empty() or MDSEnvironment.is_none(spec) or is_instance_valid(_weather)):
+		return
+	_weather_spec = spec
+	if is_instance_valid(_weather):
+		_weather.queue_free()
+	_weather = null
+	if spec.is_empty() or MDSEnvironment.is_none(spec):
+		return
+	var b := Rect2()
+	var first := true
+	for r in world.get_local_rects(room_id):
+		b = r if first else b.merge(r)
+		first = false
+	_weather = MDSEnvironment.build(spec, b)
+	if _weather:
+		_weather.name = "WeatherPreview"
+		_view.add_child(_weather)
+
+## The weather preview node (null when the room has none).
+func get_weather_preview() -> Node2D:
+	return _weather if is_instance_valid(_weather) else null
+
+func set_weather_preview(on: bool) -> void:
+	weather_preview = on
+	refresh_weather()
+
+# --- Dropping ----------------------------------------------------------------------------------
+
+func _can_drop_data(_at: Vector2, data: Variant) -> bool:
+	if not painter or not data is Dictionary:
+		return false
+	if data.get("type", "") == DRAG_EFFECT:
+		return true
+	if data.get("type", "") == "files":
+		for f in data.get("files", []):
+			if str(f).get_extension().to_lower() in IMAGE_EXTENSIONS:
+				return true
+	return false
+
+func _drop_data(at: Vector2, data: Variant) -> void:
+	if not data is Dictionary:
+		return
+	if data.get("type", "") == DRAG_EFFECT:
+		if before_effect_drop.is_valid():
+			before_effect_drop.call()
+		place_effect(str(data.effect), screen_to_local(at))
+		return
+	for f in data.get("files", []):
+		if str(f).get_extension().to_lower() in IMAGE_EXTENSIONS:
+			image_dropped.emit(str(f))
+			return
+
+## Image files dropped on the window from outside Godot, over this view.
+func _on_files_dropped(files: PackedStringArray) -> void:
+	if not painter or not is_visible_in_tree() or not get_global_rect().has_point(get_global_mouse_position()):
+		return
+	for f in files:
+		if f.get_extension().to_lower() in IMAGE_EXTENSIONS:
+			image_dropped.emit(f)
+			return
 
 # --- Stamps -----------------------------------------------------------------------------------
 
@@ -794,14 +991,17 @@ func _gui_input(event: InputEvent) -> void:
 		elif mb.button_index == MOUSE_BUTTON_LEFT and tool == Tool.STAMP:
 			grab_focus()
 			_stamp_input(mb)
-		elif mb.button_index == MOUSE_BUTTON_LEFT and tool == Tool.FREEFORM and (shape == IDPTerrainShapes.Shape.BRUSH or freeform_mode == FreeformMode.EDIT):
+		elif mb.button_index == MOUSE_BUTTON_LEFT and tool == Tool.EFFECT:
+			grab_focus()
+			_effect_input(mb)
+		elif mb.button_index == MOUSE_BUTTON_LEFT and tool == Tool.FREEFORM and (shape == MDSTerrainShapes.Shape.BRUSH or freeform_mode == FreeformMode.EDIT):
 			grab_focus()
 			_freeform_input(mb)
 		elif mb.button_index == MOUSE_BUTTON_LEFT:
 			var cell := painter.cell_at("Terrain", screen_to_local(mb.position))
 			if mb.pressed:
 				grab_focus()
-				if shape != IDPTerrainShapes.Shape.BRUSH:
+				if shape != MDSTerrainShapes.Shape.BRUSH:
 					_shaping = true
 					_shape_from = cell
 					_shape_to = cell
@@ -829,6 +1029,8 @@ func _gui_input(event: InputEvent) -> void:
 			_apply_view()
 		elif tool == Tool.STAMP:
 			_stamp_motion(mm)
+		elif tool == Tool.EFFECT:
+			_effect_motion(mm)
 		elif tool == Tool.FREEFORM and not _shaping:
 			_freeform_motion(mm)
 		elif _shaping:
@@ -863,6 +1065,8 @@ func _gui_input(event: InputEvent) -> void:
 			KEY_DELETE:
 				if tool == Tool.FREEFORM:
 					delete_selected()
+				elif tool == Tool.EFFECT:
+					delete_selected_effect()
 			KEY_BRACKETLEFT:
 				brush_size = maxi(1, brush_size - 1)
 			KEY_BRACKETRIGHT:
@@ -875,3 +1079,10 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED and _overlay:
 		_overlay.queue_redraw()
 		_update_depth_view()
+	elif what == NOTIFICATION_ENTER_TREE:
+		if not get_window().files_dropped.is_connected(_on_files_dropped):
+			get_window().files_dropped.connect(_on_files_dropped)
+	elif what == NOTIFICATION_EXIT_TREE:
+		var w := get_window()
+		if w and w.files_dropped.is_connected(_on_files_dropped):
+			w.files_dropped.disconnect(_on_files_dropped)

@@ -1,5 +1,5 @@
 @tool
-class_name IDPSceneScanner
+class_name MDSSceneScanner
 extends RefCounted
 ## Scans room scenes for gameplay features (collectibles, bosses, save points...), ability
 ## metadata and terrain, so the map can show what is actually inside every room.
@@ -13,7 +13,7 @@ extends RefCounted
 ##
 ## Transition gates (non-linear mode) are nodes named like Hollow Knight's gates
 ## ([code]left1[/code], [code]right2[/code], [code]top1[/code], [code]bot1[/code],
-## [code]door1[/code]), nodes in the [code]idp_gate[/code] group, or [IDPGate] nodes.
+## [code]door1[/code]), nodes in the [code]idp_gate[/code] group, or [MDSGate] nodes.
 ## Optional metadata: [code]idp_to_room[/code], [code]idp_to_gate[/code].
 
 signal scan_progress_updated(current: int, total: int, current_file: String)
@@ -148,7 +148,7 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 		"platforms": [],
 		# Outlines that cross themselves (no fill, no collision): {path, kind, position}.
 		"twisted": [],
-		# Objects standing in or behind each other: {a, b, position, cell} (IDPRoomDressing).
+		# Objects standing in or behind each other: {a, b, position, cell} (MDSRoomDressing).
 		"overlaps": [],
 	}
 	if not ResourceLoader.exists(scene_path):
@@ -179,7 +179,7 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 		metadata.groups = instance.get_groups()
 		metadata.node_count = count_nodes(instance)
 		_build_silhouette(metadata, solids, polygons)
-		for o in IDPRoomDressing.overlaps(instance):
+		for o in MDSRoomDressing.overlaps(instance):
 			var pos: Vector2 = (o.rect as Rect2).get_center()
 			metadata.overlaps.append({"a": o.a, "b": o.b, "position": pos, "cell": Vector2i((pos / in_game_cell_size).floor())})
 		# Godot reports a twisted collision polygon as "Convex decomposing failed!" without
@@ -262,14 +262,14 @@ func _scan_transition(node: Node, root: Node, metadata: Dictionary) -> bool:
 		return false
 	var gate_name := String(node.name)
 	var script := node.get_script() as Script
-	var is_idp_gate := script != null and script.get_global_name() == &"IDPGate"
-	if is_idp_gate and not str(node.get("gate_name")).is_empty():
+	var is_mds_gate := script != null and script.get_global_name() == &"MDSGate"
+	if is_mds_gate and not str(node.get("gate_name")).is_empty():
 		gate_name = str(node.get("gate_name"))
-	if not (is_idp_gate or _in_any_group(node, GATE_GROUPS) or _gate_name_re.search(gate_name.to_lower())):
+	if not (is_mds_gate or _in_any_group(node, GATE_GROUPS) or _gate_name_re.search(gate_name.to_lower())):
 		return false
 	var side := str(node.get_meta(&"idp_side", ""))
 	if side.is_empty():
-		side = IDPWorld.side_from_name(gate_name.to_lower())
+		side = MDSWorld.side_from_name(gate_name.to_lower())
 	metadata.transitions.append({
 		"name": gate_name,
 		"position": _local_transform(node, root).origin,
@@ -338,20 +338,20 @@ func _collect_solids(node: Node, root: Node, metadata: Dictionary, solids: Array
 		if tile_set:
 			for i in node.call("get_layers_count"):
 				_add_tile_rects(node, node.call("get_used_cells", i), tile_set.tile_size, _local_transform(node, root), solids)
-	elif node is IDPFreeform:
+	elif node is MDSFreeform:
 		# Freeform terrain builds its collision at runtime: use its outline. Only terrain is
 		# part of the room's shape; platforms are listed, decorations ignored.
-		var f := node as IDPFreeform
+		var f := node as MDSFreeform
 		if f.points.size() < 3:
 			return
 		var xform := _local_transform(node, root)
 		var outline := f.get_outline()
-		if not IDPGeometry.is_simple(outline):
-			_add_twisted(metadata, root, node, "freeform", xform * IDPGeometry.bounds(outline).get_center())
+		if not MDSGeometry.is_simple(outline):
+			_add_twisted(metadata, root, node, "freeform", xform * MDSGeometry.bounds(outline).get_center())
 		if f.is_terrain():
 			polygons.append(xform * outline)
 		elif f.is_platform():
-			metadata.platforms.append({"name": String(node.name), "path": String(root.get_path_to(node)), "rect": xform * IDPGeometry.bounds(outline), "one_way": f.is_one_way()})
+			metadata.platforms.append({"name": String(node.name), "path": String(root.get_path_to(node)), "rect": xform * MDSGeometry.bounds(outline), "one_way": f.is_one_way()})
 	elif node is CollisionShape2D and node.get_parent() is StaticBody2D:
 		var cs := node as CollisionShape2D
 		var shape := cs.shape
@@ -367,10 +367,10 @@ func _collect_solids(node: Node, root: Node, metadata: Dictionary, solids: Array
 		var poly := cp.polygon
 		if poly.size() >= 3 and not cp.disabled:
 			var xform := _local_transform(node, root)
-			if cp.build_mode == CollisionPolygon2D.BUILD_SOLIDS and not IDPGeometry.is_simple(poly):
-				_add_twisted(metadata, root, node, "collision", xform * IDPGeometry.bounds(poly).get_center())
+			if cp.build_mode == CollisionPolygon2D.BUILD_SOLIDS and not MDSGeometry.is_simple(poly):
+				_add_twisted(metadata, root, node, "collision", xform * MDSGeometry.bounds(poly).get_center())
 			if cp.one_way_collision:
-				metadata.platforms.append({"name": String(node.get_parent().name), "path": String(root.get_path_to(node)), "rect": xform * IDPGeometry.bounds(poly), "one_way": true})
+				metadata.platforms.append({"name": String(node.get_parent().name), "path": String(root.get_path_to(node)), "rect": xform * MDSGeometry.bounds(poly), "one_way": true})
 			else:
 				polygons.append(xform * poly)
 

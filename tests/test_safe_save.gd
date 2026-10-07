@@ -45,7 +45,7 @@ func _build_rooms() -> String:
 	group.name = "Freeform"
 	group.z_index = 1
 	room.add_child(group)
-	var f := IDPFreeform.new()
+	var f := MDSFreeform.new()
 	f.name = "Rock"
 	f.points = rect_points(Rect2(0, 500, 600, 148))
 	f.seed_value = 7
@@ -71,20 +71,20 @@ func _build_rooms() -> String:
 	return text
 
 func _overrides_survive(with_editable: String) -> void:
-	var uid := IDPWorldSceneTools.file_uid(ROOM)
+	var uid := MDSWorldSceneTools.file_uid(ROOM)
 	var ts := TileSet.new()
-	var painter := IDPRoomPainter.open(ROOM, ts)
-	check(painter.save() == OK, "the Room view saves the room (%s)" % IDPWorldSceneTools.last_error)
+	var painter := MDSRoomPainter.open(ROOM, ts)
+	check(painter.save() == OK, "the Room view saves the room (%s)" % MDSWorldSceneTools.last_error)
 	painter.free_instance()
 	var after := FileAccess.get_file_as_string(ROOM)
 	check(after == with_editable, "an unchanged room saves byte for byte, plus the [editable] marker")
 	if after != with_editable:
 		_print_diff(with_editable, after)
-	check(IDPWorldSceneTools.file_uid(ROOM) == uid and uid != ResourceUID.INVALID_ID, "the UID is unchanged")
+	check(MDSWorldSceneTools.file_uid(ROOM) == uid and uid != ResourceUID.INVALID_ID, "the UID is unchanged")
 	# An edit saves the edit and nothing else.
 	load_fresh(ROOM)
-	painter = IDPRoomPainter.open(ROOM, ts)
-	var rock: IDPFreeform = painter.items("Freeform")[0]
+	painter = MDSRoomPainter.open(ROOM, ts)
+	var rock: MDSFreeform = painter.items("Freeform")[0]
 	var pts := rock.points.duplicate()
 	pts[0] = Vector2(-10, 500)
 	rock.points = pts
@@ -93,19 +93,19 @@ func _overrides_survive(with_editable: String) -> void:
 	var edited := FileAccess.get_file_as_string(ROOM)
 	check(edited.contains("volume_db = -12.0") and edited.contains("amount = 40"), "the overrides survive an edit")
 	check(_changed_lines(with_editable, edited) == 1, "only the shape's points line changed (%d lines)" % _changed_lines(with_editable, edited))
-	check(IDPWorldSceneTools.file_uid(ROOM) == uid, "the UID is still unchanged")
+	check(MDSWorldSceneTools.file_uid(ROOM) == uid, "the UID is still unchanged")
 
 func _gate_writes_keep_overrides() -> void:
 	load_fresh(ROOM)
-	var world := IDPWorld.new()
+	var world := MDSWorld.new()
 	var id := world.add_room("Brief3", Rect2(0, 0, 1152, 648), 0, "", ROOM)
 	world.add_gate(id, Vector2(0, 300), "left", "", false)
-	var added := IDPWorldSceneTools.ensure_gate_nodes(world, id)
-	check(added == PackedStringArray(["left1"]), "a gate node is added (%s, %s)" % [added, IDPWorldSceneTools.last_error])
+	var added := MDSWorldSceneTools.ensure_gate_nodes(world, id)
+	check(added == PackedStringArray(["left1"]), "a gate node is added (%s, %s)" % [added, MDSWorldSceneTools.last_error])
 	var text := FileAccess.get_file_as_string(ROOM)
 	check(text.contains("volume_db = -12.0") and text.contains("amount = 40") and text.contains("left1"), "adding gate nodes keeps the overrides")
 	load_fresh(ROOM)
-	check(IDPWorldSceneTools.write_gates(world, id) == 1, "Write to scene works")
+	check(MDSWorldSceneTools.write_gates(world, id) == 1, "Write to scene works")
 	text = FileAccess.get_file_as_string(ROOM)
 	check(text.contains("volume_db = -12.0"), "Write to scene keeps the overrides")
 
@@ -114,7 +114,7 @@ func _broken_script_refused() -> void:
 	_write(BROKEN_ROOM, "[gd_scene format=3]\n\n[ext_resource type=\"Script\" path=\"%s\" id=\"1_broken\"]\n\n[node name=\"Room\" type=\"Node2D\"]\n\n[node name=\"RoomInstance\" type=\"Node2D\" parent=\".\"]\nscript = ExtResource(\"1_broken\")\n" % BROKEN_SCRIPT)
 	var before := FileAccess.get_file_as_string(BROKEN_ROOM)
 	print("  (the script errors below are expected)")
-	var painter := IDPRoomPainter.open(BROKEN_ROOM, TileSet.new())
+	var painter := MDSRoomPainter.open(BROKEN_ROOM, TileSet.new())
 	check(painter != null, "the room opens")
 	if not painter:
 		return
@@ -123,7 +123,7 @@ func _broken_script_refused() -> void:
 	painter.dirty = true
 	var err := painter.save()
 	check(err != OK, "a room whose script cannot compile is not saved")
-	check(IDPWorldSceneTools.last_error.contains("RoomInstance"), "the error names the node (%s)" % IDPWorldSceneTools.last_error)
+	check(MDSWorldSceneTools.last_error.contains("RoomInstance"), "the error names the node (%s)" % MDSWorldSceneTools.last_error)
 	check(FileAccess.get_file_as_string(BROKEN_ROOM) == before, "the file is untouched")
 	painter.free_instance()
 	# Left behind, the broken script would log a parse error at every import.

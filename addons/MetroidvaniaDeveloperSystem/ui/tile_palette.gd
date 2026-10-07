@@ -1,5 +1,5 @@
 @tool
-class_name IDPTilePalette
+class_name MDSTilePalette
 extends VBoxContainer
 ## Tile palette of the Room view: the room tileset's spritesheets, with tiles to pick for
 ## the Terrain, Background and Decor brushes. Add spritesheets (PNG...), then drag over
@@ -13,7 +13,7 @@ signal status_message(text: String)
 
 const KNOWN_KINDS: PackedStringArray = ["foliage", "grass", "fern", "flower", "mushroom", "vine_top", "vine_mid", "vine_end", "stalactite_small", "stalactite_large", "hanging_moss"]
 
-var painter: IDPRoomPainter
+var painter: MDSRoomPainter
 var source_id := -1
 var selection := Rect2i() ## atlas coords
 var zoom := 1.0
@@ -32,9 +32,9 @@ var _import_path := ""
 var _import_fields: Dictionary = {}
 
 func _init() -> void:
-	custom_minimum_size.x = 230 * IDPUi.editor_scale()
+	custom_minimum_size.x = 230 * MDSUi.editor_scale()
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(IDPUi.title("Tile palette"))
+	add_child(MDSUi.title("Tile palette"))
 	var row := HBoxContainer.new()
 	add_child(row)
 	source_opt = OptionButton.new()
@@ -44,15 +44,15 @@ func _init() -> void:
 	source_opt.tooltip_text = "Spritesheet shown below"
 	source_opt.item_selected.connect(func(idx: int) -> void: show_source(source_opt.get_item_id(idx)))
 	row.add_child(source_opt)
-	var add := IDPUi.button("+ Sheet", "Add a spritesheet (PNG, WebP, JPG...) to the room tileset")
+	var add := MDSUi.button("+ Sheet", "Add a spritesheet (PNG, WebP, JPG...) to the room tileset")
 	add.pressed.connect(_pick_sheet)
 	row.add_child(add)
 	var tools := HBoxContainer.new()
 	add_child(tools)
-	var zoom_out := IDPUi.button("-", "Zoom out")
+	var zoom_out := MDSUi.button("-", "Zoom out")
 	zoom_out.pressed.connect(func() -> void: set_zoom(zoom / 1.5))
 	tools.add_child(zoom_out)
-	var zoom_in := IDPUi.button("+", "Zoom in")
+	var zoom_in := MDSUi.button("+", "Zoom in")
 	zoom_in.pressed.connect(func() -> void: set_zoom(zoom * 1.5))
 	tools.add_child(zoom_in)
 	random_check = CheckBox.new()
@@ -60,7 +60,7 @@ func _init() -> void:
 	random_check.tooltip_text = "Paint a random tile of the selection per cell (scatter) instead of repeating it as a pattern"
 	random_check.toggled.connect(func(_on: bool) -> void: selection_changed.emit())
 	tools.add_child(random_check)
-	var remove := IDPUi.button("Remove", "Remove this spritesheet from the tileset (tiles painted from it disappear)")
+	var remove := MDSUi.button("Remove", "Remove this spritesheet from the tileset (tiles painted from it disappear)")
 	remove.pressed.connect(func() -> void:
 		if painter and source_id >= 0:
 			painter.remove_sheet(source_id)
@@ -80,11 +80,11 @@ func _init() -> void:
 	scroll.get_h_scroll_bar().value_changed.connect(func(_v: float) -> void: grid.queue_redraw())
 	scroll.get_v_scroll_bar().value_changed.connect(func(_v: float) -> void: grid.queue_redraw())
 	scroll.resized.connect(grid.queue_redraw)
-	info = IDPUi.hint("Drag over tiles to pick them for the brushes.")
+	info = MDSUi.hint("Drag over tiles to pick them for the brushes.")
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(info)
 	# Selection actions.
-	var solid := IDPUi.button("Solid on/off", "Give the selected tiles full-tile collision (walkable ground), or remove it")
+	var solid := MDSUi.button("Solid on/off", "Give the selected tiles full-tile collision (walkable ground), or remove it")
 	solid.pressed.connect(_toggle_solid)
 	add_child(solid)
 	var terrain_row := HBoxContainer.new()
@@ -93,7 +93,7 @@ func _init() -> void:
 	terrain_name.placeholder_text = "Terrain name"
 	terrain_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	terrain_row.add_child(terrain_name)
-	var make := IDPUi.button("Make terrain", "Turn the selection into an autotiling terrain (solid). Select a 3x3 box (corners, edges, fill) or 4x4 tiles ordered by connected sides (1 right + 2 bottom + 4 left + 8 top)")
+	var make := MDSUi.button("Make terrain", "Turn the selection into an autotiling terrain (solid). Select a 3x3 box (corners, edges, fill) or 4x4 tiles ordered by connected sides (1 right + 2 bottom + 4 left + 8 top)")
 	make.pressed.connect(_make_terrain)
 	terrain_row.add_child(make)
 	var kind_row := HBoxContainer.new()
@@ -102,16 +102,16 @@ func _init() -> void:
 	kind_edit.placeholder_text = "Kind, e.g. grass"
 	kind_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	kind_row.add_child(kind_edit)
-	var kinds := IDPUi.menu_button("v", "Kinds used by Auto-decorate and Generate cave (foliage = background)")
+	var kinds := MDSUi.menu_button("v", "Kinds used by Auto-decorate and Generate cave (foliage = background)")
 	for k in KNOWN_KINDS:
 		kinds.get_popup().add_item(k)
 	kinds.get_popup().index_pressed.connect(func(i: int) -> void: kind_edit.text = KNOWN_KINDS[i])
 	kind_row.add_child(kinds)
-	var tag := IDPUi.button("Tag", "Tag the selected tiles with this kind (empty: remove the tag). Tagged tiles show up in the brush fills and are used by Auto-decorate")
+	var tag := MDSUi.button("Tag", "Tag the selected tiles with this kind (empty: remove the tag). Tagged tiles show up in the brush fills and are used by Auto-decorate")
 	tag.pressed.connect(_tag)
 	kind_row.add_child(tag)
 
-func set_painter(p: IDPRoomPainter) -> void:
+func set_painter(p: MDSRoomPainter) -> void:
 	painter = p
 	refresh()
 
@@ -366,7 +366,7 @@ func _ask_import(path: String) -> void:
 		g.columns = 3
 		box.add_child(g)
 		for f in ["Tile size", "Margin", "Separation"]:
-			g.add_child(IDPUi.label(f))
+			g.add_child(MDSUi.label(f))
 			for axis in ["x", "y"]:
 				var sp := SpinBox.new()
 				sp.min_value = 0 if f != "Tile size" else 1
@@ -378,7 +378,7 @@ func _ask_import(path: String) -> void:
 		solid.text = "Solid tiles (collision, for terrain sheets)"
 		box.add_child(solid)
 		_import_fields.solid = solid
-		var note := IDPUi.hint("")
+		var note := MDSUi.hint("")
 		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		note.custom_minimum_size.x = 320
 		box.add_child(note)

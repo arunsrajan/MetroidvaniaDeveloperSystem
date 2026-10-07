@@ -1,4 +1,4 @@
-"""Decoration tiles (32 px) tagged with IDP kinds, so Auto-decorate and Generate cave use
+"""Decoration tiles (32 px) tagged with MDS kinds, so Auto-decorate and Generate cave use
 them: grass, fern, flower, mushroom, hanging_moss, vine_top/mid/end, stalactite_small/
 large, and foliage (opaque background tiles that tile seamlessly)."""
 import numpy as np

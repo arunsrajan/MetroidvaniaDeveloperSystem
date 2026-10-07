@@ -69,4 +69,4 @@ func load_fresh(path: String) -> Resource:
 	return ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REPLACE)
 
 func rect_points(r: Rect2) -> PackedVector2Array:
-	return IDPGeometry.rect_polygon(r)
+	return MDSGeometry.rect_polygon(r)

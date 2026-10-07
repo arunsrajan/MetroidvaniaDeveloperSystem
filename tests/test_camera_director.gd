@@ -1,5 +1,5 @@
 extends "res://tests/test_case.gd"
-## Brief 15: IDPCameraDirector on an IDPRoomCamera in an L-shaped room: pull-outs never show
+## Brief 15: MDSCameraDirector on an MDSRoomCamera in an L-shaped room: pull-outs never show
 ## outside the room's shape, every action ends back on the room's rest camera, a focus beats a
 ## threat, automatic framing of a chasing enemy, and the cut style. With the Camera2D backend,
 ## and again with PhantomCamera2D when the Phantom Camera addon is installed and enabled.
@@ -11,22 +11,22 @@ const WORLD := DIR + "/camera.idpworld.json"
 const HALL: Array[Rect2] = [Rect2(0, 0, 2304, 1296), Rect2(0, 1296, 1152, 648)]
 const CHASER_SCRIPT := "extends Node2D\nenum State { IDLE, CHASE }\nvar state := State.IDLE\n"
 
-var game: IDPWorldGame
-var rc: IDPRoomCamera
-var director: IDPCameraDirector
+var game: MDSWorldGame
+var rc: MDSRoomCamera
+var director: MDSCameraDirector
 var cam: Camera2D
 var player: Node2D
 
 func _run() -> void:
 	_build_world()
-	await _run_with(IDPRoomCamera.Backend.CAMERA_2D)
-	if IDPRoomCamera.phantom_available():
+	await _run_with(MDSRoomCamera.Backend.CAMERA_2D)
+	if MDSRoomCamera.phantom_available():
 		print("  again with PhantomCamera2D")
-		await _run_with(IDPRoomCamera.Backend.PHANTOM_CAMERA)
+		await _run_with(MDSRoomCamera.Backend.PHANTOM_CAMERA)
 	else:
 		print("  (Phantom Camera isn't installed: only the Camera2D backend was tested)")
 
-func _run_with(backend: IDPRoomCamera.Backend) -> void:
+func _run_with(backend: MDSRoomCamera.Backend) -> void:
 	_make_game(backend)
 	# Headless windows are tiny: the game gets a screen of its own.
 	var screen := SubViewport.new()
@@ -37,7 +37,7 @@ func _run_with(backend: IDPRoomCamera.Backend) -> void:
 	await frames(3)
 	check(cam.get_viewport_rect().size == Vector2(1152, 648), "sanity: a 1152 x 648 view (%s)" % cam.get_viewport_rect().size)
 	check(rc.zones.size() == 2, "sanity: the L room has two camera zones (%s)" % [rc.zones])
-	check(rc.using_phantom == (backend == IDPRoomCamera.Backend.PHANTOM_CAMERA), "sanity: the backend asked for")
+	check(rc.using_phantom == (backend == MDSRoomCamera.Backend.PHANTOM_CAMERA), "sanity: the backend asked for")
 	await _threat_pull_out()
 	await _pull_out_kept_inside_shape()
 	await _focus_beats_threat()
@@ -83,7 +83,7 @@ func watch(seconds: float) -> Dictionary:
 		await get_tree().process_frame
 		var v := view()
 		min_z = minf(min_z, cam.zoom.x)
-		if not IDPCameraDirector.covered(v, HALL):
+		if not MDSCameraDirector.covered(v, HALL):
 			bad.append(v)
 	return {"bad": bad, "min_zoom": min_z}
 
@@ -122,7 +122,7 @@ func _threat_pull_out() -> void:
 	var started := [0]
 	director.started.connect(func(_k: int) -> void: started[0] += 1)
 	director.frame_threat(threat, 0.8)
-	check(director.is_overriding() and director.current_kind() == IDPCameraDirector.Kind.THREAT and started[0] == 1, "a threat off screen takes the camera")
+	check(director.is_overriding() and director.current_kind() == MDSCameraDirector.Kind.THREAT and started[0] == 1, "a threat off screen takes the camera")
 	var w: Dictionary = await watch(0.6)
 	check(w.bad.is_empty(), "the pull-out never shows outside the room (%d bad views: %s)" % [w.bad.size(), w.bad.slice(0, 3)])
 	check(w.min_zoom < 0.8 and w.min_zoom >= 0.6 - 0.001, "it pulls out, not past min_zoom (%.2f)" % w.min_zoom)
@@ -146,7 +146,7 @@ func _pull_out_kept_inside_shape() -> void:
 		var legal := director.legal_view(Vector2(1700, 1500), z, player.global_position)
 		if not legal.is_empty():
 			var half := Vector2(576, 324) / float(legal.zoom)
-			check(IDPCameraDirector.covered(Rect2(legal.centre - half, half * 2.0), HALL), "a legal view at zoom %.1f is inside the shape" % z)
+			check(MDSCameraDirector.covered(Rect2(legal.centre - half, half * 2.0), HALL), "a legal view at zoom %.1f is inside the shape" % z)
 	threat.queue_free()
 
 func _focus_beats_threat() -> void:
@@ -154,11 +154,11 @@ func _focus_beats_threat() -> void:
 	var boss := _enemy(Vector2(800, 900))
 	var far := _enemy(Vector2(2100, 300))
 	director.focus_on(boss, 1.5, 0.5, 0.5)
-	check(director.current_kind() == IDPCameraDirector.Kind.FOCUS and is_equal_approx(Engine.time_scale, 0.5), "a focus takes the camera and slows the game")
+	check(director.current_kind() == MDSCameraDirector.Kind.FOCUS and is_equal_approx(Engine.time_scale, 0.5), "a focus takes the camera and slows the game")
 	director.frame_threat(far, 2.0)
-	check(director.current_kind() == IDPCameraDirector.Kind.FOCUS, "a threat doesn't take over a focus")
+	check(director.current_kind() == MDSCameraDirector.Kind.FOCUS, "a threat doesn't take over a focus")
 	director.punch_in(1.2, 1.0)
-	check(director.current_kind() == IDPCameraDirector.Kind.FOCUS, "nor does a punch")
+	check(director.current_kind() == MDSCameraDirector.Kind.FOCUS, "nor does a punch")
 	await wait(0.4)
 	check(cam.zoom.x > 1.3, "the focus pushes in (%.2f)" % cam.zoom.x)
 	check(view().has_point(boss.global_position), "on what it focuses on")
@@ -175,7 +175,7 @@ func _punch_and_reveal() -> void:
 	check(await until_released(), "and ends")
 	check_at_rest("after a punch")
 	director.reveal(Rect2(0, 0, 2304, 1296), 0.5)
-	check(director.current_kind() == IDPCameraDirector.Kind.THREAT, "a reveal takes the camera")
+	check(director.current_kind() == MDSCameraDirector.Kind.THREAT, "a reveal takes the camera")
 	var w: Dictionary = await watch(0.5)
 	check(w.bad.is_empty() and w.min_zoom < 0.75, "it pulls out over the arena, inside the room (zoom %.2f, %d bad)" % [w.min_zoom, w.bad.size()])
 	director.release()
@@ -191,7 +191,7 @@ func _automatic() -> void:
 	check(not director.is_overriding(), "an idle enemy off screen is left alone")
 	e.set("state", 1) # CHASE
 	await wait(0.3)
-	check(director.is_overriding() and director.current_kind() == IDPCameraDirector.Kind.THREAT, "a chasing one is framed")
+	check(director.is_overriding() and director.current_kind() == MDSCameraDirector.Kind.THREAT, "a chasing one is framed")
 	director.automatic = false
 	e.queue_free()
 	director.release()
@@ -199,7 +199,7 @@ func _automatic() -> void:
 	check_at_rest("after automatic framing")
 
 func _cut_style() -> void:
-	rc.transition_style = IDPRoomCamera.Motion.CUT
+	rc.transition_style = MDSRoomCamera.Motion.CUT
 	director.punch_in(1.3, 0.2)
 	await frames(2) # Phantom Camera's host applies its camera on its next frame
 	check(is_equal_approx(cam.zoom.x, 1.3), "with the cut style the director cuts in at once (%.2f)" % cam.zoom.x)
@@ -209,8 +209,8 @@ func _cut_style() -> void:
 	await place_player(Vector2(300, 1700))
 	var l := rc.rest_limits()
 	check(rc.zone.position.y == 0 and rc.zone.size.y == 1944 and cam.limit_bottom == ceili(l.end.y), "a zone change cuts (limits %d, zone %s)" % [cam.limit_bottom, rc.zone])
-	check(rc.get_room_transition(IDPRoomCamera.Transition.SLIDE) == IDPRoomCamera.Transition.CUT, "and room slides become cuts")
-	rc.transition_style = IDPRoomCamera.Motion.GLIDE
+	check(rc.get_room_transition(MDSRoomCamera.Transition.SLIDE) == MDSRoomCamera.Transition.CUT, "and room slides become cuts")
+	rc.transition_style = MDSRoomCamera.Motion.GLIDE
 
 func _cancel() -> void:
 	await place_player(Vector2(600, 900))
@@ -225,7 +225,7 @@ func _cancel() -> void:
 
 func _build_world() -> void:
 	DirAccess.make_dir_recursive_absolute(DIR)
-	var world := IDPWorld.new()
+	var world := MDSWorld.new()
 	world.path = WORLD
 	var id := world.add_room("Hall", HALL[0])
 	world.add_rect(id, HALL[1])
@@ -236,10 +236,10 @@ func _build_world() -> void:
 	world.set_room_scene(id, DIR + "/hall.tscn")
 	world.set_start_room(id)
 	world.save()
-	IDPWorld._cache.erase(WORLD)
+	MDSWorld._cache.erase(WORLD)
 
-func _make_game(backend: IDPRoomCamera.Backend) -> void:
-	game = IDPWorldGame.new()
+func _make_game(backend: MDSRoomCamera.Backend) -> void:
+	game = MDSWorldGame.new()
 	game.world_file = WORLD
 	game.fade_time = 0.0
 	game.room_darkness = false
@@ -248,14 +248,14 @@ func _make_game(backend: IDPRoomCamera.Backend) -> void:
 	player.add_to_group(&"player")
 	game.add_child(player)
 	game.player = player
-	rc = IDPRoomCamera.new()
+	rc = MDSRoomCamera.new()
 	rc.name = "RoomCamera"
 	rc.backend = backend
 	rc.use_world_settings = false
-	rc.room_transition = IDPRoomCamera.Transition.CUT
+	rc.room_transition = MDSRoomCamera.Transition.CUT
 	game.add_child(rc)
 	game.room_camera = rc
-	director = IDPCameraDirector.new()
+	director = MDSCameraDirector.new()
 	director.name = "Director"
 	rc.add_child(director)
 	game.ready.connect(func() -> void: cam = rc.camera)

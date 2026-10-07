@@ -8,7 +8,7 @@ Writes the PNGs in ../freeform/ (run it from anywhere):
   repeat both ways. Warm limestone courses with moss creeping over them (the level's ground, as
   terrain.gdshader paints it), the darker sunken ruin behind the play area, the near-black rock deep
   inside the ground, and the leaf black of the foreground.
-- edge_*.png: 512 x 64 strips repeating horizontally, for IDPFreeformStyle's top and bottom edges.
+- edge_*.png: 512 x 64 strips repeating horizontally, for MDSFreeformStyle's top and bottom edges.
   Top strips have the outside on their top row (grass stands up out of the ground); bottom strips
   have the inside on their top row (roots, ivy and drips hang below the rock).
 - clumps.png: a 128 x 128 atlas of grass tufts, flowers, ferns, moss, hanging ivy, background

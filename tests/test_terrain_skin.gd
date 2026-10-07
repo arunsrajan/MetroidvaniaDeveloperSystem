@@ -2,11 +2,11 @@ extends "res://tests/test_case.gd"
 ## Brief 11: shader-driven freeform fills (terrain skins).
 
 func _run() -> void:
-	var st: IDPFreeformStyle = IDPFreeformStyle.builtins()[3]
+	var st: MDSFreeformStyle = MDSFreeformStyle.builtins()[3]
 	check(st.fill_material is ShaderMaterial and st.edge_material is ShaderMaterial, "the example style uses the addon's skin shader")
 	check((st.edge_material as ShaderMaterial).get_shader_parameter("edge_pass") == true, "the edge material is the edge pass")
 	# A room-sized block: its left and bottom edges lie on the room's boundary.
-	var f := IDPFreeform.new()
+	var f := MDSFreeform.new()
 	f.style = st
 	f.smooth = false
 	f.points = rect_points(Rect2(0, 400, 600, 248))
@@ -40,20 +40,20 @@ func _run() -> void:
 		check(top_faces > 0, "the top edge's vertices say they face up")
 	f.free()
 	# Edges on the room grid get no band.
-	var skip := st.duplicate() as IDPFreeformStyle
+	var skip := st.duplicate() as MDSFreeformStyle
 	skip.skip_edges_on_grid = Vector2(1152, 648)
-	var g := IDPFreeform.new()
+	var g := MDSFreeform.new()
 	g.style = skip
 	g.smooth = false
 	g.points = rect_points(Rect2(0, 400, 600, 248))
 	add_child(g)
-	var mesh := IDPEdgeBand.edge_mesh(g.get_outline(), 34, 30, skip.skip_edges_on_grid)
+	var mesh := MDSEdgeBand.edge_mesh(g.get_outline(), 34, 30, skip.skip_edges_on_grid)
 	check(mesh != null and mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size() == 2 * 6, "edges on the room's boundary (x = 0, y = 648) are skipped")
-	check(IDPEdgeBand.on_grid(Vector2(1152, 10), Vector2(1152, 300), Vector2(1152, 648)) and not IDPEdgeBand.on_grid(Vector2(1000, 10), Vector2(1000, 300), Vector2(1152, 648)), "on_grid knows the grid lines")
+	check(MDSEdgeBand.on_grid(Vector2(1152, 10), Vector2(1152, 300), Vector2(1152, 648)) and not MDSEdgeBand.on_grid(Vector2(1000, 10), Vector2(1000, 300), Vector2(1152, 648)), "on_grid knows the grid lines")
 	g.free()
 	# A curved outline: one closed band, mitred at its joints (no vertex flies off).
-	var round := IDPFreeform.outline_of(PackedVector2Array([Vector2(0, 0), Vector2(200, -40), Vector2(400, 0), Vector2(300, 160), Vector2(100, 160)]))
-	var m := IDPEdgeBand.edge_mesh(round, 34, 30)
+	var round := MDSFreeform.outline_of(PackedVector2Array([Vector2(0, 0), Vector2(200, -40), Vector2(400, 0), Vector2(300, 160), Vector2(100, 160)]))
+	var m := MDSEdgeBand.edge_mesh(round, 34, 30)
 	var far := 0.0
 	for v in m.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
 		var d := 1e9

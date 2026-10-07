@@ -1,5 +1,5 @@
 @tool
-class_name IDPAnalysis
+class_name MDSAnalysis
 extends RefCounted
 ## Metroidvania-oriented analysis of the room graph.
 ##
@@ -10,10 +10,10 @@ extends RefCounted
 ## - Save coverage: how many rooms away the nearest save point is (bench before boss...).
 ## - Topology: dead ends, chokepoints (rooms whose removal splits the map) and hubs.
 ##
-## Works on an [IDPGraph], so the MetSys and non-linear modes share it.
+## Works on an [MDSGraph], so the MetSys and non-linear modes share it.
 
-var graph: IDPGraph
-var annotations: IDPAnnotations
+var graph: MDSGraph
+var annotations: MDSAnnotations
 var scene_db: Dictionary
 
 ## id -> {name, type, area, grants, is_save, is_boss, is_shop, is_teleporter, boss_names,
@@ -39,12 +39,12 @@ var all_granted: PackedStringArray = []
 
 var _adjacency: Dictionary = {} ## id -> Array of {to: String, door: String, link: int}
 
-func _init(p_graph: IDPGraph, p_annotations: IDPAnnotations, p_scene_db: Dictionary) -> void:
+func _init(p_graph: MDSGraph, p_annotations: MDSAnnotations, p_scene_db: Dictionary) -> void:
 	graph = p_graph
 	annotations = p_annotations
 	scene_db = p_scene_db
 
-func run() -> IDPAnalysis:
+func run() -> MDSAnalysis:
 	_collect_room_info()
 	_collect_door_requirements()
 	_build_adjacency()
@@ -63,7 +63,7 @@ func run() -> IDPAnalysis:
 
 func _collect_room_info() -> void:
 	room_info.clear()
-	for room: IDPGraph.GRoom in graph.rooms.values():
+	for room: MDSGraph.GRoom in graph.rooms.values():
 		var meta: Dictionary = scene_db.get(room.scene_path, {})
 		var ann := annotations.get_room(room.id)
 		var type: String = ann.get("type", "")
@@ -118,7 +118,7 @@ func get_room_name(id: String) -> String:
 func _collect_door_requirements() -> void:
 	door_requires.clear()
 	door_gate_sources.clear()
-	for e: IDPGraph.GEdge in graph.edges:
+	for e: MDSGraph.GEdge in graph.edges:
 		var reqs := annotations.get_door_requires(e.key)
 		for r in e.requires:
 			if not r in reqs:
@@ -137,7 +137,7 @@ func _build_adjacency() -> void:
 	_adjacency.clear()
 	for id in graph.rooms:
 		_adjacency[id] = []
-	for e: IDPGraph.GEdge in graph.edges:
+	for e: MDSGraph.GEdge in graph.edges:
 		if e.b.is_empty() or e.a == e.b or not _adjacency.has(e.a) or not _adjacency.has(e.b):
 			continue
 		_adjacency[e.a].append({"to": e.b, "door": e.key, "link": -1})
@@ -184,13 +184,13 @@ func _pick_start() -> void:
 	start_room_id = ""
 	# Default: the first save room on the lowest layer, else the first room.
 	var candidates: Array = graph.rooms.values()
-	candidates.sort_custom(func(a: IDPGraph.GRoom, b: IDPGraph.GRoom) -> bool:
+	candidates.sort_custom(func(a: MDSGraph.GRoom, b: MDSGraph.GRoom) -> bool:
 		if a.layer != b.layer:
 			return a.layer < b.layer
 		if a.sort_pos.y != b.sort_pos.y:
 			return a.sort_pos.y < b.sort_pos.y
 		return a.sort_pos.x < b.sort_pos.x)
-	for room: IDPGraph.GRoom in candidates:
+	for room: MDSGraph.GRoom in candidates:
 		if room_info[room.id].is_save and room.has_scene:
 			start_room_id = room.id
 			return
@@ -399,7 +399,7 @@ func get_objectives() -> Array:
 		ret.append(o)
 		if condition.is_empty():
 			continue
-		var c := IDPAnnotations.parse_condition(condition)
+		var c := MDSAnnotations.parse_condition(condition)
 		o.kind = c[0]
 		o.target = c[1]
 		var rooms: Array[String] = []
@@ -417,7 +417,7 @@ func get_objectives() -> Array:
 				if rooms.is_empty():
 					o.problem = "no room has the boss '%s'" % o.target
 			"object":
-				# Object ids are "<room id>/<node path>" (IDPWorldGame.object_id) unless a node
+				# Object ids are "<room id>/<node path>" (MDSWorldGame.object_id) unless a node
 				# sets idp_object_id: only the room part can be checked.
 				var room_id := str(o.target).get_slice("/", 0)
 				if str(o.target).contains("/"):

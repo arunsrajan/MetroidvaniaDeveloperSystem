@@ -1,5 +1,5 @@
 @tool
-class_name IDPRoomCheck
+class_name MDSRoomCheck
 extends RefCounted
 ## Physics-level checks of a room's real geometry: whether the player actually gets through.
 ## The room graph can say a door exists while rock closes it; these catch that.
@@ -17,8 +17,8 @@ extends RefCounted
 ## gravity, run speed, head clearance), see [constant PLAYER_DEFAULTS].
 ##
 ## [codeblock]
-## var check := IDPRoomCheck.new(world.get_setting("player", {}))
-## check.passages = IDPRoomCheck.passages_from_world(world, room_id)
+## var check := MDSRoomCheck.new(world.get_setting("player", {}))
+## check.passages = MDSRoomCheck.passages_from_world(world, room_id)
 ## check.room_rects = world.get_local_rects(room_id)
 ## check.build_from_scene(scene_instance, host)   # host: a node in the tree
 ## var issues := check.run()                        # [{kind, message, pos}]
@@ -89,32 +89,32 @@ func get_max_jump_height() -> float:
 # --- Passages ------------------------------------------------------------------------------------
 
 ## The gates of a world room as passages.
-static func passages_from_world(world: IDPWorld, id: String) -> Array:
+static func passages_from_world(world: MDSWorld, id: String) -> Array:
 	var out: Array = []
 	for g in world.get_gates(id):
 		out.append({"name": g, "pos": world.get_gate_local_pos(id, g), "side": world.get_gate_side(id, g)})
 	return out
 
 ## The passages of a MetSys room, in its scene's coordinates.
-static func passages_from_metsys(model: IDPMapModel, room: IDPMapModel.Room, cell_size: Vector2) -> Array:
+static func passages_from_metsys(model: MDSMapModel, room: MDSMapModel.Room, cell_size: Vector2) -> Array:
 	var out: Array = []
 	var sides := ["right", "bot", "left", "top"]
-	for door: IDPMapModel.Door in model.doors.values():
+	for door: MDSMapModel.Door in model.doors.values():
 		for end in [[door.a_room, door.a_cell, door.a_dir], [door.b_room, door.b_cell, (door.a_dir + 2) % 4]]:
 			if end[0] != room:
 				continue
 			var cell: Vector3i = end[1]
 			var local := Vector2(cell.x - room.min_cell.x, cell.y - room.min_cell.y)
-			var pos := (local + Vector2(0.5, 0.5) + Vector2(IDPMapModel.FWD[end[2]]) * 0.5) * cell_size
+			var pos := (local + Vector2(0.5, 0.5) + Vector2(MDSMapModel.FWD[end[2]]) * 0.5) * cell_size
 			out.append({"name": "%s (%d,%d)" % [sides[end[2]], cell.x, cell.y], "pos": pos, "side": sides[end[2]]})
 	return out
 
 ## A MetSys room's cells as scene-local rectangles.
-static func rects_from_metsys(room: IDPMapModel.Room, cell_size: Vector2) -> Array[Rect2]:
+static func rects_from_metsys(room: MDSMapModel.Room, cell_size: Vector2) -> Array[Rect2]:
 	var cells: Dictionary = {}
 	for c in room.cells:
 		cells[Vector2i(c.x, c.y) - room.min_cell] = true
-	return IDPGeometry.cells_to_rects(cells, cell_size)
+	return MDSGeometry.cells_to_rects(cells, cell_size)
 
 # --- Proxy ---------------------------------------------------------------------------------------
 
@@ -128,12 +128,12 @@ func build_from_scene(root: Node, host: Node) -> void:
 
 ## Builds the physics copy of the room the Room view is editing: its edited tile layers and
 ## shapes, and the rest of its scene.
-func build_from_painter(painter: IDPRoomPainter, host: Node) -> void:
+func build_from_painter(painter: MDSRoomPainter, host: Node) -> void:
 	_begin()
-	for n in IDPRoomPainter.LAYER_ORDER:
+	for n in MDSRoomPainter.LAYER_ORDER:
 		_add_tile_layer(painter.layers[n], painter.layers[n].transform)
-	for f in IDPFreeform.shapes_in(painter.items_root):
-		_add_freeform(f, IDPRoomObjects.local_transform(f, painter.items_root))
+	for f in MDSFreeform.shapes_in(painter.items_root):
+		_add_freeform(f, MDSRoomObjects.local_transform(f, painter.items_root))
 	_add_node(painter.root, painter.root, true, painter)
 	_collect_standing(painter.root, painter)
 	_finish(host)
@@ -151,7 +151,7 @@ func _begin() -> void:
 	platforms.clear()
 	standing.clear()
 	proxy = Node2D.new()
-	proxy.name = "IDPRoomCheckProxy"
+	proxy.name = "MDSRoomCheckProxy"
 	_ground = StaticBody2D.new()
 	_ground.collision_layer = GROUND
 	_ground.collision_mask = 0
@@ -179,24 +179,24 @@ func _finish(host: Node) -> void:
 	_space = proxy.get_world_2d().direct_space_state
 
 ## Whether a node of the painter's scene was hidden or removed in the Room view.
-static func _gone(node: Node, painter: IDPRoomPainter) -> bool:
+static func _gone(node: Node, painter: MDSRoomPainter) -> bool:
 	return painter != null and painter.is_scene_node_hidden(node)
 
-func _add_node(node: Node, root: Node, skip_painted: bool, painter: IDPRoomPainter = null) -> void:
+func _add_node(node: Node, root: Node, skip_painted: bool, painter: MDSRoomPainter = null) -> void:
 	if node.has_meta(&"idp_blockout") or _gone(node, painter) or skip_nodes.has(node):
 		return
 	if node is TileMapLayer:
 		if not skip_painted:
-			_add_tile_layer(node, IDPRoomObjects.local_transform(node, root))
+			_add_tile_layer(node, MDSRoomObjects.local_transform(node, root))
 		return
-	if node is IDPFreeform:
+	if node is MDSFreeform:
 		if not skip_painted:
-			_add_freeform(node, IDPRoomObjects.local_transform(node, root))
+			_add_freeform(node, MDSRoomObjects.local_transform(node, root))
 		return
 	if (node is StaticBody2D or node is AnimatableBody2D) and node.process_mode != Node.PROCESS_MODE_DISABLED:
 		for c in node.get_children():
 			if c is CollisionShape2D or c is CollisionPolygon2D:
-				_add_shape(c, IDPRoomObjects.local_transform(c, root), String(node.name))
+				_add_shape(c, MDSRoomObjects.local_transform(c, root), String(node.name))
 	for c in node.get_children():
 		_add_node(c, root, skip_painted, painter)
 
@@ -225,7 +225,7 @@ func _add_tile_layer(layer: TileMapLayer, xform: Transform2D) -> void:
 			for pi in td.get_collision_polygons_count(pl):
 				var pts := td.get_collision_polygon_points(pl, pi)
 				var one_way := td.is_collision_polygon_one_way(pl, pi)
-				if pts.size() == 4 and IDPGeometry.bounds(pts).is_equal_approx(Rect2(-half, half * 2.0)) and ts.tile_shape == TileSet.TILE_SHAPE_SQUARE:
+				if pts.size() == 4 and MDSGeometry.bounds(pts).is_equal_approx(Rect2(-half, half * 2.0)) and ts.tile_shape == TileSet.TILE_SHAPE_SQUARE:
 					(one_way_full if one_way else full)[cell] = true
 				elif pts.size() >= 3:
 					var poly := PackedVector2Array()
@@ -234,17 +234,17 @@ func _add_tile_layer(layer: TileMapLayer, xform: Transform2D) -> void:
 					_add_polygon(poly, one_way)
 	# Full tiles merged into rectangles (cell (x, y) covers (x, y) * tile_size).
 	for cells in [full, one_way_full]:
-		for r in IDPGeometry.cells_to_rects(cells, Vector2(ts.tile_size), layer.map_to_local(Vector2i.ZERO) - half):
-			var poly := xform * IDPGeometry.rect_polygon(r)
+		for r in MDSGeometry.cells_to_rects(cells, Vector2(ts.tile_size), layer.map_to_local(Vector2i.ZERO) - half):
+			var poly := xform * MDSGeometry.rect_polygon(r)
 			_add_polygon(poly, cells == one_way_full)
 			if cells == one_way_full:
 				platforms.append({"name": "%s tiles" % layer.name, "outline": poly})
 
-func _add_freeform(f: IDPFreeform, xform: Transform2D) -> void:
+func _add_freeform(f: MDSFreeform, xform: Transform2D) -> void:
 	if not f.is_collider() or f.points.size() < 3:
 		return
 	var outline := f.get_outline()
-	if not IDPGeometry.is_simple(outline):
+	if not MDSGeometry.is_simple(outline):
 		return # it collides with nothing in the game either
 	var poly := xform * outline
 	_add_polygon(poly, f.is_one_way())
@@ -262,22 +262,22 @@ func _add_shape(c: Node2D, xform: Transform2D, body_name: String) -> void:
 		copy.one_way_collision = cs.one_way_collision
 		(_platforms if cs.one_way_collision else _ground).add_child(copy)
 		if cs.one_way_collision:
-			platforms.append({"name": body_name, "outline": xform * IDPGeometry.rect_polygon(cs.shape.get_rect())})
+			platforms.append({"name": body_name, "outline": xform * MDSGeometry.rect_polygon(cs.shape.get_rect())})
 	else:
 		var cp := c as CollisionPolygon2D
 		if cp.disabled or cp.polygon.size() < 3:
 			return
 		var poly := xform * cp.polygon
-		if cp.build_mode == CollisionPolygon2D.BUILD_SOLIDS and not IDPGeometry.is_simple(poly):
+		if cp.build_mode == CollisionPolygon2D.BUILD_SOLIDS and not MDSGeometry.is_simple(poly):
 			return
 		_add_polygon(poly, cp.one_way_collision, cp.build_mode == CollisionPolygon2D.BUILD_SOLIDS)
 		if cp.one_way_collision:
 			platforms.append({"name": body_name, "outline": poly})
 
-func _collect_standing(root: Node, painter: IDPRoomPainter = null) -> void:
-	for o in IDPRoomObjects.objects(root):
-		if IDPRoomObjects.stands(o) and not _gone(o, painter):
-			var feet := IDPRoomObjects.feet(o, root) + (painter.scene_offset(o) if painter else Vector2.ZERO)
+func _collect_standing(root: Node, painter: MDSRoomPainter = null) -> void:
+	for o in MDSRoomObjects.objects(root):
+		if MDSRoomObjects.stands(o) and not _gone(o, painter):
+			var feet := MDSRoomObjects.feet(o, root) + (painter.scene_offset(o) if painter else Vector2.ZERO)
 			standing.append({"name": String(root.get_path_to(o)), "feet": feet})
 
 # --- Queries -------------------------------------------------------------------------------------
@@ -381,13 +381,13 @@ func _check_passage(p: Dictionary, prefix: String) -> void:
 
 ## The top of [param outline] at [param x] (going down), or INF.
 static func _top_at(outline: PackedVector2Array, x: float) -> float:
-	var b := IDPGeometry.bounds(outline)
-	var y := IDPGeometry.solid_from(outline, x, b.position.y - 2.0, b.end.y + 1.0)
+	var b := MDSGeometry.bounds(outline)
+	var y := MDSGeometry.solid_from(outline, x, b.position.y - 2.0, b.end.y + 1.0)
 	return y if y < b.end.y else INF
 
 func _check_platform(pl: Dictionary, prefix: String) -> void:
 	var outline: PackedVector2Array = pl.outline
-	var b := IDPGeometry.bounds(outline)
+	var b := MDSGeometry.bounds(outline)
 	var x := b.get_center().x
 	var top := _top_at(outline, x)
 	if top == INF:

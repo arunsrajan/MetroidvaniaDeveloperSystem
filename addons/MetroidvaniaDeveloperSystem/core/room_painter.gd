@@ -1,9 +1,11 @@
 @tool
-class_name IDPRoomPainter
+class_name MDSRoomPainter
 extends RefCounted
 ## Paints the actual contents of a room scene: its "Background", "Terrain", "Decor" and
 ## "Foreground" TileMapLayers (with Godot's terrain autotiling), its freeform shapes
-## ([IDPFreeform]) and its stamps (sprites from an [IDPStampSet]). Used by the Room view.
+## ([MDSFreeform]), its stamps (sprites from an [MDSStampSet]) and the environment effects in
+## its "Effects" node ([MDSEnvironmentEffect]: rain, steam vents, lava...). Used by the Room
+## view.
 ##
 ## The scene is opened as an editable instance kept outside the tree. Painting happens on
 ## copies (so they can be displayed), and [method save] writes them back into the scene
@@ -16,15 +18,18 @@ extends RefCounted
 
 const LAYER_Z := {"Background": -10, "Terrain": 0, "Decor": 5, "Foreground": 20}
 const LAYER_ORDER: PackedStringArray = ["Background", "Terrain", "Decor", "Foreground"]
-## Groups of freeform shapes and stamps (nodes of that name in the scene) and their z.
+## Groups of freeform shapes, stamps and effects (nodes of that name in the scene) and their
+## z. Effects draw at their own z_index.
 const ITEM_GROUPS := {
 	"FreeformBack": -8, "StampsBack": -6, "Freeform": 1, "StampsFront": 6,
-	"FreeformFront": 22, "StampsForeground": 24,
+	"FreeformFront": 22, "StampsForeground": 24, "Effects": 0,
 }
+## The group environment effects are kept in. Effects elsewhere in the scene are left alone.
+const EFFECTS_GROUP := "Effects"
 
 var scene_path := ""
 var root: Node
-## The scene as loaded, for saving it back safely (see [method IDPWorldSceneTools.repack_safely]).
+## The scene as loaded, for saving it back safely (see [method MDSWorldSceneTools.repack_safely]).
 var packed_scene: PackedScene
 var layers: Dictionary = {} ## name -> TileMapLayer copy being edited
 var tile_set: TileSet
@@ -43,14 +48,16 @@ var _scene_originals: Dictionary = {} ## path -> {visible, process_mode, positio
 var _detached: Dictionary = {} ## path -> [node, parent path, index]: removed by a save
 var _created: Dictionary = {} ## paths of layers and groups a save added (removed again when empty)
 
-const COLOR_SOURCE_NAME := "IDP colors"
+const COLOR_SOURCE_NAME := "MDS colors"
+## The name the color source had before the IDP to MDS rename (still recognized).
+const LEGACY_COLOR_SOURCE_NAME := "IDP colors"
 const MAX_UNDO := 60
 
-static func open(path: String, default_tile_set: TileSet = null) -> IDPRoomPainter:
+static func open(path: String, default_tile_set: TileSet = null) -> MDSRoomPainter:
 	var packed := load(path) as PackedScene
 	if not packed:
 		return null
-	var p := IDPRoomPainter.new()
+	var p := MDSRoomPainter.new()
 	p.scene_path = path
 	p.packed_scene = packed
 	p.root = packed.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
@@ -72,7 +79,7 @@ static func open(path: String, default_tile_set: TileSet = null) -> IDPRoomPaint
 		if layer.tile_set and not p.tile_set:
 			p.tile_set = layer.tile_set
 	if not p.tile_set:
-		p.tile_set = default_tile_set if default_tile_set else IDPTilesetFactory.get_or_create()
+		p.tile_set = default_tile_set if default_tile_set else MDSTilesetFactory.get_or_create()
 	for n in LAYER_ORDER:
 		var copy: TileMapLayer
 		if found.has(n):
@@ -88,17 +95,19 @@ static func open(path: String, default_tile_set: TileSet = null) -> IDPRoomPaint
 			copy.tile_set = p.tile_set
 		p.layers[n] = copy
 	p.items_root = Node2D.new()
-	p.items_root.name = "IDPItems"
+	p.items_root.name = "MDSItems"
 	for g in ITEM_GROUPS:
 		var c := Node2D.new()
 		c.name = g
 		c.z_index = ITEM_GROUPS[g]
 		p.items_root.add_child(c)
 	for node in p.root.find_children("*", "", true, false):
-		if node.owner != p.root or not (node is IDPFreeform or is_stamp(node)):
+		if node.owner != p.root or not (node is MDSFreeform or is_stamp(node) or is_room_effect(node, p.root)):
 			continue
 		var parent_name := String(node.get_parent().name)
-		var group := parent_name if ITEM_GROUPS.has(parent_name) else ("Freeform" if node is IDPFreeform else "StampsFront")
+		var group := parent_name if ITEM_GROUPS.has(parent_name) else ("Freeform" if node is MDSFreeform else "StampsFront")
+		if node is MDSEnvironmentEffect:
+			group = EFFECTS_GROUP
 		var copy: Node2D = node.duplicate()
 		copy.transform = _local_transform(node, p.root)
 		p.items_root.get_node(group).add_child(copy)
@@ -106,6 +115,22 @@ static func open(path: String, default_tile_set: TileSet = null) -> IDPRoomPaint
 
 static func is_stamp(node: Node) -> bool:
 	return node is Sprite2D and node.has_meta(&"idp_stamp")
+
+## An effect the Room view edits: one in the scene's "Effects" node (a child of
+## [param scene_root]).
+static func is_room_effect(node: Node, scene_root: Node) -> bool:
+	if not node is MDSEnvironmentEffect:
+		return false
+	var parent := node.get_parent()
+	return parent != null and String(parent.name) == EFFECTS_GROUP and parent.get_parent() == scene_root
+
+## "freeform", "stamp" or "effect".
+static func item_kind(node: Node) -> String:
+	if node is MDSFreeform:
+		return "freeform"
+	if node is MDSEnvironmentEffect:
+		return "effect"
+	return "stamp"
 
 static func _local_transform(node: Node, top: Node) -> Transform2D:
 	var xform := Transform2D.IDENTITY
@@ -181,9 +206,9 @@ func _restore(snap: Dictionary) -> void:
 	dirty = true
 
 static func _item_data(node: Node) -> Dictionary:
-	if node is IDPFreeform:
+	if node is MDSFreeform or node is MDSEnvironmentEffect:
 		var d: Dictionary = node.to_data()
-		d.kind = "freeform"
+		d.kind = item_kind(node)
 		return d
 	var s := node as Sprite2D
 	var meta: Dictionary = {}
@@ -195,7 +220,9 @@ static func _item_data(node: Node) -> Dictionary:
 
 static func _item_from(d: Dictionary) -> Node2D:
 	if d.kind == "freeform":
-		return IDPFreeform.from_data(d)
+		return MDSFreeform.from_data(d)
+	if d.kind == "effect":
+		return MDSEnvironmentEffect.from_data(d)
 	var s := Sprite2D.new()
 	s.texture = d.texture
 	s.region_enabled = true
@@ -214,8 +241,8 @@ static func _item_from(d: Dictionary) -> Node2D:
 func items(group: String) -> Array:
 	return items_root.get_node(group).get_children()
 
-func add_freeform(points: PackedVector2Array, style: IDPFreeformStyle, group := "Freeform", solid := true) -> IDPFreeform:
-	var f := IDPFreeform.new()
+func add_freeform(points: PackedVector2Array, style: MDSFreeformStyle, group := "Freeform", solid := true) -> MDSFreeform:
+	var f := MDSFreeform.new()
 	f.name = "Shape%d" % (items_root.get_node(group).get_child_count() + 1)
 	f.style = style
 	f.solid = solid
@@ -225,7 +252,7 @@ func add_freeform(points: PackedVector2Array, style: IDPFreeformStyle, group := 
 	dirty = true
 	return f
 
-func add_stamp(stamp_set: IDPStampSet, index: int, pos: Vector2, scale_value: Vector2, rotation_value := 0.0, group := "StampsFront") -> Sprite2D:
+func add_stamp(stamp_set: MDSStampSet, index: int, pos: Vector2, scale_value: Vector2, rotation_value := 0.0, group := "StampsFront") -> Sprite2D:
 	var s := stamp_set.make_sprite(index)
 	s.name = "Stamp%d" % (items_root.get_node(group).get_child_count() + 1)
 	s.position = pos
@@ -235,6 +262,32 @@ func add_stamp(stamp_set: IDPStampSet, index: int, pos: Vector2, scale_value: Ve
 	dirty = true
 	return s
 
+## Adds an environment effect ([method MDSEnvironment.create]) centred on [param pos]
+## (scene-local; one that stands on its position, like a steam vent, stands on it). Returns
+## it, or null for an unknown id.
+func add_effect(id: String, pos: Vector2, settings: Dictionary = {}) -> MDSEnvironmentEffect:
+	var e := MDSEnvironment.create(id, settings)
+	if not e:
+		return null
+	var r := e.get_effect_rect()
+	e.position = pos if r.position != Vector2.ZERO else pos - r.size * 0.5
+	items_root.get_node(EFFECTS_GROUP).add_child(e, true)
+	dirty = true
+	return e
+
+## The effects the Room view edits.
+func effects() -> Array:
+	return items(EFFECTS_GROUP)
+
+## The top-most effect whose area holds [param p] (scene-local), or null.
+func effect_at(p: Vector2) -> MDSEnvironmentEffect:
+	var list := effects()
+	for i in range(list.size() - 1, -1, -1):
+		var e: MDSEnvironmentEffect = list[i]
+		if e.get_effect_rect().has_point(e.transform.affine_inverse() * p):
+			return e
+	return null
+
 func remove_item(node: Node) -> void:
 	if node and node.get_parent():
 		node.get_parent().remove_child(node)
@@ -242,7 +295,7 @@ func remove_item(node: Node) -> void:
 		dirty = true
 
 ## The top-most freeform shape containing [param p] (scene-local), or null.
-func freeform_at(p: Vector2) -> IDPFreeform:
+func freeform_at(p: Vector2) -> MDSFreeform:
 	for g in ["FreeformFront", "Freeform", "FreeformBack"]:
 		var list := items(g)
 		for i in range(list.size() - 1, -1, -1):
@@ -442,13 +495,13 @@ func _save_blockout() -> void:
 		target.tile_set = copy.tile_set
 		target.tile_map_data = copy.tile_map_data
 
-## Makes a twisted freeform shape simple (see [method IDPFreeform.repair_points]). The
+## Makes a twisted freeform shape simple (see [method MDSFreeform.repair_points]). The
 ## largest part stays in [param f]; other parts become new shapes beside it with the same
 ## settings; slivers are dropped. Returns the shapes it became (empty: removed, all slivers).
 ## Call [method checkpoint] first.
-func repair_freeform(f: IDPFreeform) -> Array[IDPFreeform]:
-	var out: Array[IDPFreeform] = []
-	var parts := IDPFreeform.repair_points(f.points, f.smooth)
+func repair_freeform(f: MDSFreeform) -> Array[MDSFreeform]:
+	var out: Array[MDSFreeform] = []
+	var parts := MDSFreeform.repair_points(f.points, f.smooth)
 	if parts.is_empty():
 		remove_item(f)
 		return out
@@ -461,16 +514,16 @@ func repair_freeform(f: IDPFreeform) -> Array[IDPFreeform]:
 		d.points = parts[i].points
 		d.smooth = parts[i].smooth
 		d.name = "%s_%d" % [f.name, i + 1]
-		var copy := IDPFreeform.from_data(d)
+		var copy := MDSFreeform.from_data(d)
 		f.get_parent().add_child(copy, true)
 		out.append(copy)
 	dirty = true
 	return out
 
 ## Every freeform shape of the room whose outline crosses itself.
-func twisted_freeforms() -> Array[IDPFreeform]:
-	var out: Array[IDPFreeform] = []
-	for f in IDPFreeform.shapes_in(items_root):
+func twisted_freeforms() -> Array[MDSFreeform]:
+	var out: Array[MDSFreeform] = []
+	for f in MDSFreeform.shapes_in(items_root):
 		if f.points.size() >= 3 and not f.is_outline_simple():
 			out.append(f)
 	return out
@@ -504,7 +557,7 @@ func free_instance() -> void:
 
 ## Writes the painted tiles into the scene and saves it, keeping its UID and anything the
 ## scene sets inside instanced scenes. A scene with a node whose script failed to load is not
-## saved: [member IDPWorldSceneTools.last_error] says which.
+## saved: [member MDSWorldSceneTools.last_error] says which.
 func save() -> Error:
 	for n in LAYER_ORDER:
 		var copy: TileMapLayer = layers[n]
@@ -529,7 +582,7 @@ func save() -> Error:
 	_apply_scene_edits()
 	_drop_empty_created()
 	save_tile_set()
-	var err := IDPWorldSceneTools.repack_safely(root, packed_scene, scene_path)
+	var err := MDSWorldSceneTools.repack_safely(root, packed_scene, scene_path)
 	if err == OK:
 		dirty = false
 	return err
@@ -540,7 +593,7 @@ func save() -> Error:
 func _save_items() -> void:
 	var existing: Dictionary = {} # "group/name" -> node
 	for node in root.find_children("*", "", true, false):
-		if is_instance_valid(node) and node.owner == root and (node is IDPFreeform or is_stamp(node)):
+		if is_instance_valid(node) and node.owner == root and (node is MDSFreeform or is_stamp(node) or is_room_effect(node, root)):
 			var parent := node.get_parent()
 			var g := String(parent.name) if ITEM_GROUPS.has(String(parent.name)) and parent.get_parent() == root else ""
 			existing["%s/%s" % [g, node.name]] = node
@@ -560,7 +613,7 @@ func _save_items() -> void:
 		var order: Array[Node] = []
 		for item in list:
 			var node: Node2D = existing.get("%s/%s" % [g, item.name])
-			if node and (node is IDPFreeform) == (item is IDPFreeform) and not kept.has(node):
+			if node and item_kind(node) == item_kind(item) and node.get_script() == item.get_script() and not kept.has(node):
 				_apply_item(node, _item_data(item))
 			else:
 				node = _item_from(_item_data(item))
@@ -584,8 +637,11 @@ func _save_items() -> void:
 
 ## Sets a scene node's properties from item data, leaving equal values alone.
 static func _apply_item(node: Node2D, d: Dictionary) -> void:
-	if node is IDPFreeform:
-		var f := node as IDPFreeform
+	if node is MDSEnvironmentEffect:
+		MDSEnvironmentEffect.apply_data(node, d)
+		return
+	if node is MDSFreeform:
+		var f := node as MDSFreeform
 		var c: Dictionary = d.get("collision", {})
 		var values := {"points": d.points, "style": d.style, "solid": d.solid, "smooth": d.smooth, "edge_clumps": d.edge_clumps,
 			"seed_value": d.seed, "position": d.position, "override_collision": not c.is_empty()}
@@ -638,7 +694,7 @@ func cell_rect(layer_name: String, cell: Vector2i) -> Rect2:
 	return Rect2(center - tile_size() / 2.0, tile_size())
 
 ## Cells (of the Terrain grid) inside the room's shape on the world map.
-func room_cells(world: IDPWorld, id: String) -> Dictionary:
+func room_cells(world: MDSWorld, id: String) -> Dictionary:
 	var out: Dictionary = {}
 	var ts := tile_size()
 	for r in world.get_local_rects(id):
@@ -657,7 +713,7 @@ func get_atlas_sources() -> Array:
 	for i in tile_set.get_source_count():
 		var sid := tile_set.get_source_id(i)
 		var src := tile_set.get_source(sid) as TileSetAtlasSource
-		if not src or not src.texture or src.resource_name == COLOR_SOURCE_NAME:
+		if not src or not src.texture or src.resource_name in [COLOR_SOURCE_NAME, LEGACY_COLOR_SOURCE_NAME]:
 			continue
 		var n := src.resource_name
 		if n.is_empty():
@@ -799,12 +855,12 @@ func place_stamp(layer_name: String, cells: Array, source_id: int, region: Rect2
 	dirty = true
 
 ## [source_id, atlas_coords, alternative] of a solid [param color] tile: one white tile in
-## an "IDP colors" source, tinted per color by alternative tiles (created on demand).
+## an "MDS colors" source, tinted per color by alternative tiles (created on demand).
 func color_tile(color: Color) -> Array:
 	var sid := -1
 	for i in tile_set.get_source_count():
 		var id := tile_set.get_source_id(i)
-		if tile_set.get_source(id).resource_name == COLOR_SOURCE_NAME:
+		if tile_set.get_source(id).resource_name in [COLOR_SOURCE_NAME, LEGACY_COLOR_SOURCE_NAME]:
 			sid = id
 	var src: TileSetAtlasSource
 	if sid < 0:
@@ -838,7 +894,7 @@ func clear_layer(layer_name: String) -> void:
 ## ledges, background foliage, then decorations. Rock outside the painted shape fills the
 ## notches of irregular rooms.
 ## [param background] is the fill for the background (default: random "foliage" tiles).
-func generate_cave(world: IDPWorld, id: String, seed_value := 0, terrain_set := 0, terrain := 0, background: Dictionary = {}) -> void:
+func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 0, terrain := 0, background: Dictionary = {}) -> void:
 	if not has_terrains():
 		return
 	var rng := RandomNumberGenerator.new()
@@ -1244,7 +1300,7 @@ func _kind_layer() -> int:
 ## Turns a block of palette tiles into an autotiling terrain, in a terrain set of its own.
 ## [param region] is either a 3x3 box (corners, edges and fill, the usual platformer
 ## layout) or 4x4 tiles ordered by connected sides (index = 1 right + 2 bottom + 4 left
-## + 8 top, like IDP's starter tileset). Returns Vector2i(terrain set, terrain), or
+## + 8 top, like MDS's starter tileset). Returns Vector2i(terrain set, terrain), or
 ## (-1, -1) when the region has another size.
 func make_terrain(source_id: int, region: Rect2i, terrain_name: String, color: Color, collision := true) -> Vector2i:
 	var src: TileSetAtlasSource = tile_set.get_source(source_id) as TileSetAtlasSource if tile_set.has_source(source_id) else null

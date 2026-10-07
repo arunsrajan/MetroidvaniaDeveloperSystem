@@ -1,5 +1,5 @@
 @tool
-class_name IDPMapModel
+class_name MDSMapModel
 extends RefCounted
 ## Parsed, analysis-friendly view of a MetSys MapData.txt file.
 ##
@@ -140,8 +140,8 @@ var split_scenes: PackedStringArray = []
 
 var _group_cache: Dictionary = {} ## Vector3i -> PackedInt32Array
 
-static func load_file(path: String) -> IDPMapModel:
-	var model := IDPMapModel.new()
+static func load_file(path: String) -> MDSMapModel:
+	var model := MDSMapModel.new()
 	model.source_path = path
 	if not FileAccess.file_exists(path):
 		return model

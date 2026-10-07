@@ -1,5 +1,5 @@
 @tool
-class_name IDPAnnotations
+class_name MDSAnnotations
 extends RefCounted
 ## Designer annotations that MetSys' MapData.txt has no place for: room names and types,
 ## boss labels, build status, ability gates on doors, extra links (elevators, cross-layer
@@ -40,8 +40,8 @@ func clear() -> void:
 static func path_for_map(map_path: String) -> String:
 	return map_path.get_basename() + ".idp.json"
 
-static func load_for_map(map_path: String) -> IDPAnnotations:
-	var ann := IDPAnnotations.new()
+static func load_for_map(map_path: String) -> MDSAnnotations:
+	var ann := MDSAnnotations.new()
 	ann.path = path_for_map(map_path)
 	if FileAccess.file_exists(ann.path):
 		var parsed = JSON.parse_string(FileAccess.get_file_as_string(ann.path))

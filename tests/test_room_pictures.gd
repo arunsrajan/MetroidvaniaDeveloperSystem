@@ -1,6 +1,6 @@
 extends "res://tests/test_case.gd"
-## Brief 16: IDPRoomPictures (cache keyed by scene path and save time, background baking of the
-## area's rooms, rooms stripped for pictures) and IDPLevelOverview (pictures laid out around the
+## Brief 16: MDSRoomPictures (cache keyed by scene path and save time, background baking of the
+## area's rooms, rooms stripped for pictures) and MDSLevelOverview (pictures laid out around the
 ## live room, the camera pulled back, no slow frame once the pictures exist).
 ##
 ## Headless runs have no renderer: there, pictures that would be drawn are stored by the test
@@ -12,38 +12,38 @@ extends "res://tests/test_case.gd"
 const DIR := "res://tests/tmp/pictures"
 const WORLD := DIR + "/pictures.idpworld.json"
 
-var world: IDPWorld
-var game: IDPWorldGame
-var rc: IDPRoomCamera
+var world: MDSWorld
+var game: MDSWorldGame
+var rc: MDSRoomCamera
 var headless := DisplayServer.get_name() == "headless"
 
 func _run() -> void:
 	_build_world()
-	IDPRoomPictures.forget()
-	IDPRoomPictures.clear_disk()
+	MDSRoomPictures.forget()
+	MDSRoomPictures.clear_disk()
 	_strip()
 	_scope()
 	await _cache()
 	await _background_and_overview()
 	if headless:
 		print("  (headless: pictures were stored by the test; run without --headless to draw them)")
-	IDPRoomPictures.flush()
-	IDPRoomPictures.forget()
+	MDSRoomPictures.flush()
+	MDSRoomPictures.forget()
 
 func path_of(id: String) -> String:
 	return world.get_scene_path(id)
 
 func fake_picture(id: String) -> Texture2D:
-	var r := IDPRoomPictures.room_rect(world, id)
-	var img := Image.create(ceili(r.size.x * IDPRoomPictures.bake_scale), ceili(r.size.y * IDPRoomPictures.bake_scale), false, Image.FORMAT_RGBA8)
+	var r := MDSRoomPictures.room_rect(world, id)
+	var img := Image.create(ceili(r.size.x * MDSRoomPictures.bake_scale), ceili(r.size.y * MDSRoomPictures.bake_scale), false, Image.FORMAT_RGBA8)
 	img.fill(Color(0.3, 0.5, 0.3))
-	return IDPRoomPictures.store(path_of(id), img)
+	return MDSRoomPictures.store(path_of(id), img)
 
 # --- Stripping and scope ----------------------------------------------------------------------------
 
 func _strip() -> void:
 	var inst := (load(path_of("A")) as PackedScene).instantiate()
-	IDPRoomPictures.strip_for_preview(inst)
+	MDSRoomPictures.strip_for_preview(inst)
 	check(inst.has_meta(&"idp_preview"), "a room copy for a picture is marked as a preview")
 	check(inst.get_node_or_null("Guard") == null and inst.get_node_or_null("Cam") == null and inst.get_node_or_null("Hud") == null, "its enemies, cameras and UI are left out")
 	check(inst.get_node_or_null("Ground") != null and inst.get_node_or_null("Skip") == null, "its art stays; nodes marked idp_preview_skip don't")
@@ -52,29 +52,29 @@ func _strip() -> void:
 	inst.free()
 
 func _scope() -> void:
-	var area := IDPRoomPictures.rooms_in_scope(world, "A", IDPRoomPictures.Scope.AREA)
+	var area := MDSRoomPictures.rooms_in_scope(world, "A", MDSRoomPictures.Scope.AREA)
 	check(area == ["A", "B", "C"], "the area's rooms are in scope (%s)" % [area])
-	check(IDPRoomPictures.rooms_in_scope(world, "A", IDPRoomPictures.Scope.WORLD).size() == 4, "the world's are all four")
+	check(MDSRoomPictures.rooms_in_scope(world, "A", MDSRoomPictures.Scope.WORLD).size() == 4, "the world's are all four")
 
 # --- The cache --------------------------------------------------------------------------------------
 
 func _cache() -> void:
-	check(IDPRoomPictures.is_stale(path_of("A")), "a room never pictured is stale")
+	check(MDSRoomPictures.is_stale(path_of("A")), "a room never pictured is stale")
 	fake_picture("A")
-	check(IDPRoomPictures.picture(path_of("A")) != null and not IDPRoomPictures.is_stale(path_of("A")), "a stored picture is there")
-	IDPRoomPictures.flush()
-	IDPRoomPictures.forget()
-	check(IDPRoomPictures.picture(path_of("A")) == null, "forget() empties the memory")
-	check(IDPRoomPictures.load_cached(path_of("A")) != null, "and the picture comes back from the disk cache")
+	check(MDSRoomPictures.picture(path_of("A")) != null and not MDSRoomPictures.is_stale(path_of("A")), "a stored picture is there")
+	MDSRoomPictures.flush()
+	MDSRoomPictures.forget()
+	check(MDSRoomPictures.picture(path_of("A")) == null, "forget() empties the memory")
+	check(MDSRoomPictures.load_cached(path_of("A")) != null, "and the picture comes back from the disk cache")
 	# Editing the room (saving its scene) makes its picture stale, and only its.
 	fake_picture("C")
-	IDPRoomPictures.flush()
+	MDSRoomPictures.flush()
 	await get_tree().create_timer(1.1).timeout # file times have a resolution of a second
 	_save_room("A", Color(0.8, 0.4, 0.2))
-	check(IDPRoomPictures.picture(path_of("A")) == null and IDPRoomPictures.is_stale(path_of("A")), "an edited room's picture is stale")
-	check(IDPRoomPictures.picture(path_of("C")) != null, "an unchanged room's isn't")
+	check(MDSRoomPictures.picture(path_of("A")) == null and MDSRoomPictures.is_stale(path_of("A")), "an edited room's picture is stale")
+	check(MDSRoomPictures.picture(path_of("C")) != null, "an unchanged room's isn't")
 	if not headless:
-		var tex: Texture2D = await IDPRoomPictures.bake(self, path_of("A"), IDPRoomPictures.room_rect(world, "A"))
+		var tex: Texture2D = await MDSRoomPictures.bake(self, path_of("A"), MDSRoomPictures.room_rect(world, "A"))
 		check(tex != null and tex.get_size() == Vector2(ceilf(1152 * 0.35), ceilf(648 * 0.35)), "a room is drawn at 0.35 of its size (%s)" % (tex.get_size() if tex else "none"))
 		var img := tex.get_image() if tex else null
 		check(img and img.get_pixel(int(img.get_width() / 2.0), img.get_height() - 4).a > 0.5, "with its ground in it")
@@ -91,7 +91,7 @@ func _background_and_overview() -> void:
 	screen.size = Vector2i(1152, 648)
 	add_child(screen)
 	screen.add_child(game)
-	var pics := IDPRoomPictures.new()
+	var pics := MDSRoomPictures.new()
 	pics.name = "Pictures"
 	pics.start_delay = 0.0
 	pics.bake_gap = 0.05
@@ -108,9 +108,9 @@ func _background_and_overview() -> void:
 	if headless:
 		fake_picture("B")
 	else:
-		check(IDPRoomPictures.picture(path_of("B")) != null, "and its picture is ready")
+		check(MDSRoomPictures.picture(path_of("B")) != null, "and its picture is ready")
 	# The overview: every picture is ready, so opening it is cheap.
-	var overview := IDPLevelOverview.new()
+	var overview := MDSLevelOverview.new()
 	overview.name = "Overview"
 	overview.pull_time = 0.6
 	game.add_child(overview)
@@ -119,7 +119,7 @@ func _background_and_overview() -> void:
 	var opened_at := Time.get_ticks_usec()
 	overview.open()
 	slow = (Time.get_ticks_usec() - opened_at) / 1000.0
-	check(IDPLevelOverview.is_open() and overview.pictures.size() == 2 and not overview.pictures.has("A"), "it shows the other rooms of the area, not the live one (%s)" % [overview.pictures.keys()])
+	check(MDSLevelOverview.is_open() and overview.pictures.size() == 2 and not overview.pictures.has("A"), "it shows the other rooms of the area, not the live one (%s)" % [overview.pictures.keys()])
 	var b: Sprite2D = overview.pictures.get("B")
 	check(b and b.texture and b.global_position == Vector2(1152, 0) and (b.texture.get_size() * b.scale).is_equal_approx(Vector2(1152, 648)), "each in its place on the map, at its size")
 	check(overview.level_rect.encloses(Rect2(0, 0, 2304, 1296)), "the level is A, B and C (%s)" % overview.level_rect)
@@ -135,7 +135,7 @@ func _background_and_overview() -> void:
 	var shown := Rect2(cam.get_screen_center_position() - Vector2(576, 324) / cam.zoom.x, Vector2(1152, 648) / cam.zoom.x)
 	check(shown.encloses(Rect2(0, 0, 2304, 1296)), "the camera has pulled back over the whole level (%s)" % shown)
 	overview.close()
-	check(not IDPLevelOverview.is_open() and overview.pictures.is_empty(), "close() takes the pictures away")
+	check(not MDSLevelOverview.is_open() and overview.pictures.is_empty(), "close() takes the pictures away")
 	var director := rc.get_director()
 	end = Time.get_ticks_msec() + 4000
 	while director.is_overriding() and Time.get_ticks_msec() < end:
@@ -154,7 +154,7 @@ func frames(n := 2) -> void:
 
 func _build_world() -> void:
 	DirAccess.make_dir_recursive_absolute(DIR)
-	world = IDPWorld.new()
+	world = MDSWorld.new()
 	world.path = WORLD
 	world.data.areas["Keep"] = {"color": "#888888"}
 	world.data.areas["Yard"] = {"color": "#448844"}
@@ -167,7 +167,7 @@ func _build_world() -> void:
 		_save_room(id, Color(0.3, 0.6, 0.3))
 	world.set_start_room("A")
 	world.save()
-	IDPWorld._cache.erase(WORLD)
+	MDSWorld._cache.erase(WORLD)
 
 func _save_room(id: String, ground_color: Color) -> void:
 	var size := world.get_room_bounds(id).size
@@ -202,7 +202,7 @@ func _save_room(id: String, ground_color: Color) -> void:
 	root.free()
 
 func _make_game() -> void:
-	game = IDPWorldGame.new()
+	game = MDSWorldGame.new()
 	game.world_file = WORLD
 	game.fade_time = 0.0
 	var player := CharacterBody2D.new()
@@ -210,10 +210,10 @@ func _make_game() -> void:
 	player.add_to_group(&"player")
 	game.add_child(player)
 	game.player = player
-	rc = IDPRoomCamera.new()
+	rc = MDSRoomCamera.new()
 	rc.name = "RoomCamera"
-	rc.backend = IDPRoomCamera.Backend.CAMERA_2D
+	rc.backend = MDSRoomCamera.Backend.CAMERA_2D
 	rc.use_world_settings = false
-	rc.room_transition = IDPRoomCamera.Transition.CUT
+	rc.room_transition = MDSRoomCamera.Transition.CUT
 	game.add_child(rc)
 	game.room_camera = rc

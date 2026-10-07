@@ -27,38 +27,38 @@ func _issues_tab_and_painter() -> void:
 		c.owner = null
 	check(save_scene(room, path) == OK, "the test room saves")
 	room.free()
-	var world := IDPWorld.new()
+	var world := MDSWorld.new()
 	var id := world.add_room("Shaft_01", Rect2(0, 0, 1152, 648), 0, "", path)
 	world.get_gates(id)["left1"] = {"pos": [0, 520], "side": "left"}
 	world.get_gates(id)["right1"] = {"pos": [1152, 520], "side": "right"}
-	var job := {"path": path, "name": id, "rects": world.get_local_rects(id), "passages": IDPRoomCheck.passages_from_world(world, id), "player": {}}
-	var found := IDPGeometryChecker.check_now(job, host)
+	var job := {"path": path, "name": id, "rects": world.get_local_rects(id), "passages": MDSRoomCheck.passages_from_world(world, id), "player": {}}
+	var found := MDSGeometryChecker.check_now(job, host)
 	check(found.any(func(i: Dictionary) -> bool: return i.kind == "passage" and i.message.begins_with("Shaft_01: gate right1")), "the background check finds the blocked gate")
-	var meta := IDPSceneScanner.new().analyze_scene(path, false)
+	var meta := MDSSceneScanner.new().analyze_scene(path, false)
 	meta.geometry = found
 	var db := {path: meta}
-	var analysis := IDPAnalysis.new(IDPGraph.from_world(world, db), world, db).run()
-	var issues := IDPWorldValidator.run(world, analysis, db)
-	var geo := issues.filter(func(i: Dictionary) -> bool: return i.category == IDPValidator.CATEGORY_GEOMETRY and i.message.contains("right1"))
+	var analysis := MDSAnalysis.new(MDSGraph.from_world(world, db), world, db).run()
+	var issues := MDSWorldValidator.run(world, analysis, db)
+	var geo := issues.filter(func(i: Dictionary) -> bool: return i.category == MDSValidator.CATEGORY_GEOMETRY and i.message.contains("right1"))
 	check(geo.size() == 1 and geo[0].room_id == id and geo[0].pos == Vector2(1152, 520), "Issues > Geometry reports the gate, and jumps to it")
 	# The Room view checks the room as painted: closing the left doorway shows up at once.
-	var painter := IDPRoomPainter.open(path, TileSet.new())
-	painter.add_freeform(rect_points(Rect2(-96, 400, 200, 200)), IDPFreeformStyle.new())
-	var c := IDPRoomCheck.new()
+	var painter := MDSRoomPainter.open(path, TileSet.new())
+	painter.add_freeform(rect_points(Rect2(-96, 400, 200, 200)), MDSFreeformStyle.new())
+	var c := MDSRoomCheck.new()
 	c.room_rects = world.get_local_rects(id)
-	c.passages = IDPRoomCheck.passages_from_world(world, id)
+	c.passages = MDSRoomCheck.passages_from_world(world, id)
 	c.build_from_painter(painter, host)
 	c.run()
 	check(_has(c, "passage", "left1"), "a doorway closed in the Room view is reported: %s" % [_kinds(c)])
 	c.free_proxy()
 	painter.free_instance()
 
-func _rock(parent: Node, r: Rect2, one_way := false) -> IDPFreeform:
-	var f := IDPFreeform.new()
+func _rock(parent: Node, r: Rect2, one_way := false) -> MDSFreeform:
+	var f := MDSFreeform.new()
 	f.smooth = false
 	f.points = rect_points(r)
 	if one_way:
-		f.set_collision_override(IDPFreeformStyle.Role.PLATFORM, true)
+		f.set_collision_override(MDSFreeformStyle.Role.PLATFORM, true)
 	parent.add_child(f)
 	return f
 
@@ -88,8 +88,8 @@ func _room(with_ledges := true) -> Node2D:
 		room.add_child(s)
 	return room
 
-func _check(room: Node2D) -> IDPRoomCheck:
-	var c := IDPRoomCheck.new()
+func _check(room: Node2D) -> MDSRoomCheck:
+	var c := MDSRoomCheck.new()
 	c.room_rects = [Rect2(0, 0, 1152, 648)]
 	c.passages = [
 		{"name": "left1", "pos": Vector2(0, 520), "side": "left"},
@@ -100,10 +100,10 @@ func _check(room: Node2D) -> IDPRoomCheck:
 	c.run("Test")
 	return c
 
-func _kinds(c: IDPRoomCheck) -> Array:
+func _kinds(c: MDSRoomCheck) -> Array:
 	return c.issues.map(func(i: Dictionary) -> String: return "%s:%s" % [i.kind, i.message])
 
-func _has(c: IDPRoomCheck, kind: String, text: String) -> bool:
+func _has(c: MDSRoomCheck, kind: String, text: String) -> bool:
 	return c.issues.any(func(i: Dictionary) -> bool: return i.kind == kind and i.message.contains(text))
 
 func _room_issues(inactive: bool) -> void:
@@ -136,9 +136,9 @@ func _climb_needs_ledges() -> void:
 
 func _demo_reports_nothing() -> void:
 	for path in ["res://asset_packs/mossgrove/demo/freeform_cave.tscn", "res://asset_packs/mossgrove/demo/mossgrove_demo.tscn"]:
-		var meta := IDPSceneScanner.new().analyze_scene(path, false)
+		var meta := MDSSceneScanner.new().analyze_scene(path, false)
 		var scene := (load(path) as PackedScene).instantiate()
-		var c := IDPRoomCheck.new()
+		var c := MDSRoomCheck.new()
 		var bounds: Array[Rect2] = []
 		var mb := scene.get_node_or_null("MapBounds")
 		if mb:

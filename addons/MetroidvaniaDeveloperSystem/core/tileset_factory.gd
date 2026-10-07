@@ -1,5 +1,5 @@
 @tool
-class_name IDPTilesetFactory
+class_name MDSTilesetFactory
 extends RefCounted
 ## Generates a starter pixel-art tileset ("mossy cave") so rooms can be painted before any
 ## art exists. Pixels are drawn at 16 px and scaled 2x (32 px tiles).

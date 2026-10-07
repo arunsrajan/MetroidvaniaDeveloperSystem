@@ -30,10 +30,10 @@ func _enter_tree() -> void:
 	ProjectSettings.set_initial_value(SETTING_MAIN_SCREEN, true)
 	ProjectSettings.add_property_info({"name": SETTING_MAIN_SCREEN, "type": TYPE_BOOL})
 	# Game scene "Play from here" boots (empty: detected per room).
-	if not ProjectSettings.has_setting(IDPPlayHere.SETTING_PLAY_SCENE):
-		ProjectSettings.set_setting(IDPPlayHere.SETTING_PLAY_SCENE, "")
-	ProjectSettings.set_initial_value(IDPPlayHere.SETTING_PLAY_SCENE, "")
-	ProjectSettings.add_property_info({"name": IDPPlayHere.SETTING_PLAY_SCENE, "type": TYPE_STRING, "hint": PROPERTY_HINT_FILE, "hint_string": "*.tscn,*.scn"})
+	if not ProjectSettings.has_setting(MDSPlayHere.SETTING_PLAY_SCENE):
+		ProjectSettings.set_setting(MDSPlayHere.SETTING_PLAY_SCENE, "")
+	ProjectSettings.set_initial_value(MDSPlayHere.SETTING_PLAY_SCENE, "")
+	ProjectSettings.add_property_info({"name": MDSPlayHere.SETTING_PLAY_SCENE, "type": TYPE_STRING, "hint": PROPERTY_HINT_FILE, "hint_string": "*.tscn,*.scn"})
 	_init_plugin()
 	scene_saved.connect(_on_scene_saved)
 
@@ -141,7 +141,7 @@ func _detach() -> void:
 
 func _open_window() -> void:
 	_window = Window.new()
-	_window.title = "Map Dev - Interactive Dev Panel"
+	_window.title = "Map Dev - Metroidvania Developer System"
 	_window.theme = EditorInterface.get_editor_theme()
 	_window.min_size = Vector2i(640, 420)
 	_window.wrap_controls = false

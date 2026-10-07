@@ -2,7 +2,8 @@
 	"areas": {
 		"Acrid Lane": {
 			"color": "#f2dd4a",
-			"map_zone": "ACRID_LANE"
+			"map_zone": "ACRID_LANE",
+			"weather": "sandstorm"
 		},
 		"Administration HQ": {
 			"color": "#b48ec9",
@@ -14,7 +15,8 @@
 		},
 		"Forsaken Ducts": {
 			"color": "#4db2e6",
-			"map_zone": "FORSAKEN_DUCTS"
+			"map_zone": "FORSAKEN_DUCTS",
+			"weather": "cave_mist"
 		},
 		"Inner Suburbs": {
 			"color": "#d7bdd0",
@@ -22,7 +24,8 @@
 		},
 		"Power Core": {
 			"color": "#e04848",
-			"map_zone": "POWER_CORE"
+			"map_zone": "POWER_CORE",
+			"weather": "volcanic"
 		},
 		"Processing Plant": {
 			"color": "#9ccc65",
@@ -34,11 +37,13 @@
 		},
 		"The Docks": {
 			"color": "#e58fb0",
-			"map_zone": "THE_DOCKS"
+			"map_zone": "THE_DOCKS",
+			"weather": "storm"
 		},
 		"The Greenhouse": {
 			"color": "#5b6fd6",
-			"map_zone": "THE_GREENHOUSE"
+			"map_zone": "THE_GREENHOUSE",
+			"weather": "firefly_grove"
 		}
 	},
 	"format": "idp_world",

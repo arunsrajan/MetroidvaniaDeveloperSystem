@@ -1,5 +1,5 @@
 @tool
-class_name IDPRoomObjects
+class_name MDSRoomObjects
 extends RefCounted
 ## The things in a room scene that are not its terrain or scenery: save points, shops,
 ## characters, enemies, props, mechanisms. The freeform tools keep rock and scenery clear of
@@ -17,7 +17,7 @@ extends RefCounted
 const STAND_GROUPS: PackedStringArray = ["save_point", "savepoint", "save", "checkpoint", "bench", "shop", "merchant", "vendor", "trader", "npc", "player_spawn", "idp_stands"]
 const BIG_GROUPS: PackedStringArray = ["boss", "bosses", "mini_boss"]
 ## Item groups of the Room view (shapes and stamps), and other containers of scenery.
-const SCENERY_NAMES: PackedStringArray = ["FreeformBack", "StampsBack", "Freeform", "StampsFront", "FreeformFront", "StampsForeground", "MapBounds", "Gates", "IDPItems"]
+const SCENERY_NAMES: PackedStringArray = ["FreeformBack", "StampsBack", "Freeform", "StampsFront", "FreeformFront", "StampsForeground", "MapBounds", "Gates", "MDSItems"]
 ## Footprint of an object with nothing visible (a spawn marker, an empty Node2D): above its
 ## origin, as if it stood there.
 const DEFAULT_SIZE := Vector2(64, 96)
@@ -27,7 +27,7 @@ const DEFAULT_SIZE := Vector2(64, 96)
 static func is_scenery(node: Node) -> bool:
 	if node.is_in_group(&"idp_scenery") or node.has_meta(&"idp_scenery") or node.has_meta(&"idp_blockout"):
 		return true
-	if node is TileMapLayer or node.is_class("TileMap") or node is IDPFreeform or IDPRoomPainter.is_stamp(node) or node is IDPGate:
+	if node is TileMapLayer or node.is_class("TileMap") or node is MDSFreeform or MDSRoomPainter.is_stamp(node) or node is MDSGate:
 		return true
 	if node is Camera2D or node is CanvasLayer or node is Parallax2D or node is ParallaxBackground or node is CanvasModulate:
 		return true
@@ -36,7 +36,7 @@ static func is_scenery(node: Node) -> bool:
 	var script := node.get_script() as Script
 	if String(node.name) in SCENERY_NAMES or node.name == &"RoomInstance":
 		return true
-	if script and (script.get_global_name() in [&"IDPRoomCamera", &"IDPDepth25D", &"IDPBackdropView"] or script.resource_path.ends_with("RoomInstance.gd")):
+	if script and (script.get_global_name() in [&"MDSRoomCamera", &"MDSDepth25D", &"MDSBackdropView"] or script.resource_path.ends_with("RoomInstance.gd")):
 		return true
 	if node is StaticBody2D and not _has_visual(node):
 		return true # an invisible wall or the terrain's body
@@ -149,15 +149,15 @@ static func _visual(node: Node, root: Node, acc: Array) -> void:
 				var pos := a.offset - (size / 2.0 if a.centered else Vector2.ZERO)
 				_add(xform * Rect2(pos, size), acc)
 	elif node is Polygon2D and (node as Polygon2D).polygon.size() >= 3:
-		_add(xform * IDPGeometry.bounds((node as Polygon2D).polygon), acc)
+		_add(xform * MDSGeometry.bounds((node as Polygon2D).polygon), acc)
 	elif node is Control and node != root:
 		_add(Rect2(xform.origin, (node as Control).size), acc)
 	elif node is CollisionShape2D and (node as CollisionShape2D).shape and not node.get_parent() is StaticBody2D:
 		_add(xform * (node as CollisionShape2D).shape.get_rect(), acc)
 	elif node is CollisionPolygon2D and not node.get_parent() is StaticBody2D and (node as CollisionPolygon2D).polygon.size() >= 3:
-		_add(xform * IDPGeometry.bounds((node as CollisionPolygon2D).polygon), acc)
+		_add(xform * MDSGeometry.bounds((node as CollisionPolygon2D).polygon), acc)
 	for c in node.get_children():
-		if not IDPRoomPainter.is_stamp(c):
+		if not MDSRoomPainter.is_stamp(c):
 			_visual(c, root, acc)
 
 static var _used_rects: Dictionary = {}

@@ -1,11 +1,11 @@
 extends "res://tests/test_case.gd"
-## Briefs 12, 13, 14, 17 and 18: IDPWorldGame's room mood, area titles and music, objectives,
+## Briefs 12, 13, 14, 17 and 18: MDSWorldGame's room mood, area titles and music, objectives,
 ## interactive transitions and persistence, on the fixture world (game_fixture.gd).
 
 const Fixture := preload("res://tests/game_fixture.gd")
 const EXPLORATION := "user://idp_test_exploration.json"
 
-var game: IDPWorldGame
+var game: MDSWorldGame
 
 func _run() -> void:
 	_objectives_in_editor(Fixture.build())
@@ -35,10 +35,10 @@ func go(room: String, gate := "") -> void:
 	await game.room_loaded
 	await settle()
 
-func _title() -> IDPAreaTitle:
+func _title() -> MDSAreaTitle:
 	return game.get_node("UI/Title")
 
-func _music() -> IDPMusic:
+func _music() -> MDSMusic:
 	return game.get_node("Music")
 
 # --- Brief 13 ---------------------------------------------------------------------------------------
@@ -86,21 +86,21 @@ func _titles_and_music() -> void:
 
 func _darkness() -> void:
 	check(game.current_room == "Crypt_01", "sanity: in the Crypt")
-	var dark := game.room_node.get_node_or_null("IDPDarkness") as DirectionalLight2D
+	var dark := game.room_node.get_node_or_null("MDSDarkness") as DirectionalLight2D
 	check(dark != null and dark.blend_mode == Light2D.BLEND_MODE_SUB and is_equal_approx(dark.energy, 0.6), "the dark Crypt is dimmed by a subtractive light")
-	var plight := game.player.get_node_or_null("IDPLight") as PointLight2D
+	var plight := game.player.get_node_or_null("MDSLight") as PointLight2D
 	check(plight != null and plight.enabled, "the player carries a light in the dark")
 	var bat := game.room_node.get_node("Bat")
-	var blight := bat.get_node_or_null("IDPLight") as PointLight2D
+	var blight := bat.get_node_or_null("MDSLight") as PointLight2D
 	check(blight != null and blight.enabled, "enemies carry a light too")
 	await go("Garden_02", "right1")
-	check(game.room_node.get_node_or_null("IDPDarkness") == null and is_zero_approx(game.darkness), "leaving it restores full light")
+	check(game.room_node.get_node_or_null("MDSDarkness") == null and is_zero_approx(game.darkness), "leaving it restores full light")
 	check(not plight.enabled, "the player's light goes out")
 
 # --- Brief 14 ---------------------------------------------------------------------------------------
 
 func _objectives() -> void:
-	var banner: IDPObjectiveBanner = game.get_node("UI/Banner")
+	var banner: MDSObjectiveBanner = game.get_node("UI/Banner")
 	check(banner.shown_text == "Find the crypt key" and not banner.shown_done, "arriving in the Gardens shows their objective")
 	check(game.map_view.objective == "Find the crypt key", "the map shows it too")
 	var done: Array = []
@@ -113,12 +113,12 @@ func _objectives() -> void:
 	check(game.is_objective_complete("Crypt"), "defeating the Warden completes the Crypt's")
 	check(Array(game.get_save_data().objectives) == ["Gardens", "Crypt"] or Array(game.get_save_data().objectives) == ["Crypt", "Gardens"], "objectives are saved")
 
-## The Stats and Progress tabs list objectives (IDPAnalysis.get_objectives) and the Issues tab
+## The Stats and Progress tabs list objectives (MDSAnalysis.get_objectives) and the Issues tab
 ## flags the ones that can never complete.
-func _objectives_in_editor(world: IDPWorld) -> void:
+func _objectives_in_editor(world: MDSWorld) -> void:
 	var never := func() -> Array:
-		var analysis := IDPAnalysis.new(IDPGraph.from_world(world, {}), world, {}).run()
-		var issues := IDPWorldValidator.run(world, analysis, {})
+		var analysis := MDSAnalysis.new(MDSGraph.from_world(world, {}), world, {}).run()
+		var issues := MDSWorldValidator.run(world, analysis, {})
 		return [analysis.get_objectives(), issues.filter(func(i: Dictionary) -> bool: return str(i.message).contains("can never complete"))]
 	var r: Array = never.call()
 	check(r[0].size() == 2, "both areas' objectives are listed")
@@ -140,18 +140,18 @@ func _objectives_in_editor(world: IDPWorld) -> void:
 
 func _barrier_and_doors() -> void:
 	# The key was granted above: the barrier on right1 is open, and stays open.
-	var barrier := game.room_node.get_node("Barrier") as IDPGateBarrier
+	var barrier := game.room_node.get_node("Barrier") as MDSGateBarrier
 	await settle()
 	check(barrier.is_open, "the barrier opened when its ability was granted")
 	check(game.is_object_stored(game.object_id(barrier)), "its opening is remembered")
 	# Leave and come back: open from the start.
 	await go("Garden_01", "right1")
 	await go("Garden_02", "left1")
-	barrier = game.room_node.get_node("Barrier") as IDPGateBarrier
+	barrier = game.room_node.get_node("Barrier") as MDSGateBarrier
 	await settle()
 	check(barrier.is_open and not barrier.visible, "it starts open after coming back")
 	# A shut one: a new barrier needing an ability the player hasn't.
-	var shut := IDPGateBarrier.new()
+	var shut := MDSGateBarrier.new()
 	shut.requires = PackedStringArray(["double_jump"])
 	var bs := CollisionShape2D.new()
 	bs.shape = RectangleShape2D.new()
@@ -164,8 +164,8 @@ func _barrier_and_doors() -> void:
 	check(shut.is_open and bs.disabled, "it opens when the ability is granted")
 	# Interact door (link): standing in it does nothing until Interact.
 	await go("Crypt_01", "left1")
-	var door := IDPGate.find_gate(game.room_node, "door1")
-	check(door.mode == IDPGate.Mode.INTERACT and door.link, "sanity: door1 is an interact link door")
+	var door := MDSGate.find_gate(game.room_node, "door1")
+	check(door.mode == MDSGate.Mode.INTERACT and door.link, "sanity: door1 is an interact link door")
 	var t := door.get_transition()
 	check(t.get("room") == "Garden_01" and t.get("gate") == "door1" and t.get("link"), "the link leads to Garden_01's door (%s)" % t)
 	check(door.destination_name() == "Gardens", "its prompt names where it leads (%s)" % door.destination_name())
@@ -180,7 +180,7 @@ func _barrier_and_doors() -> void:
 		await game.room_loaded
 	await settle()
 	check(game.current_room == "Garden_01", "Interact takes the player through the link")
-	check(game.player.global_position.distance_to(IDPGate.find_gate(game.room_node, "door1").global_position) < 2.0, "arriving at the other door")
+	check(game.player.global_position.distance_to(MDSGate.find_gate(game.room_node, "door1").global_position) < 2.0, "arriving at the other door")
 	# A cinematic between rooms.
 	var cine := Node.new()
 	var script := GDScript.new()
@@ -206,7 +206,7 @@ func _defeated_and_followers() -> void:
 	# The follower by Garden_02's right1 follows the player into the Crypt.
 	await go("Garden_02", "left1")
 	var follower := game.room_node.get_node("Follower") as Node2D
-	var exit := IDPGate.find_gate(game.room_node, "right1")
+	var exit := MDSGate.find_gate(game.room_node, "right1")
 	check(follower.global_position.distance_to(exit.global_position) < game.carry_over_distance, "sanity: the follower is near right1")
 	game.player.global_position = exit.global_position
 	for i in 30:
@@ -220,7 +220,7 @@ func _defeated_and_followers() -> void:
 	var came := game.room_node.get_node_or_null("Follower") as Node2D
 	check(came != null and came.has_meta(&"idp_carried"), "the follower came along into the next room")
 	if came:
-		var entry := IDPGate.find_gate(game.room_node, "left1")
+		var entry := MDSGate.find_gate(game.room_node, "left1")
 		check(came.global_position.distance_to(entry.global_position) < 140.0, "it appears by the gate it came through (%s)" % came.global_position)
 	await go("Garden_02", "right1")
 	var back := game.room_node.get_node_or_null("Follower")
@@ -247,8 +247,8 @@ func _save_and_exploration(save: Dictionary) -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(EXPLORATION))
 
 func _darkness_auto() -> void:
-	var world := IDPWorld.get_cached(Fixture.WORLD)
-	var g := IDPWorldGame.new()
+	var world := MDSWorld.get_cached(Fixture.WORLD)
+	var g := MDSWorldGame.new()
 	g.world = world
 	check(is_zero_approx(g.get_darkness("Garden_01")), "rooms are lit unless set")
 	check(is_equal_approx(g.get_darkness("Crypt_01"), 0.6), "an area's darkness applies to its rooms")

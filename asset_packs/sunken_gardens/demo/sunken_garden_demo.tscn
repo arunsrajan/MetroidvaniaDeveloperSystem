@@ -1,8 +1,8 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_backdrop_view.gd" id="1_xcp45"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_backdrop_view.gd" id="1_xcp45"]
 [ext_resource type="Resource" path="res://asset_packs/sunken_gardens/backdrop/garden.backdrop.tres" id="2_uh7jd"]
-[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/idp_freeform.gd" id="3_rqsf4"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_freeform.gd" id="3_rqsf4"]
 [ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/garden_limestone.freeform.tres" id="4_26x4r"]
 [ext_resource type="Script" path="res://asset_packs/sunken_gardens/demo/demo_player.gd" id="4_vvqq8"]
 [ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/garden_ledge.freeform.tres" id="5_547uy"]

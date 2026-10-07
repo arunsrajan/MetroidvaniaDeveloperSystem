@@ -1,9 +1,9 @@
 @tool
 extends Control
-## Interactive Dev Panel host: switches between the two map modes.
+## Metroidvania Developer System host: switches between the two map modes.
 ##
-## - MetSys mode ([IDPMetSysPanel]): works on MetSys' grid MapData.txt.
-## - Non-linear mode ([IDPWorldPanel]): free-form world map where scenes are drawn and
+## - MetSys mode ([MDSMetSysPanel]): works on MetSys' grid MapData.txt.
+## - Non-linear mode ([MDSWorldPanel]): free-form world map where scenes are drawn and
 ##   placed anywhere, connected by Hollow Knight-style named gates, saved as .idpworld.json.
 ##
 ## Panels are created on first use, so an unused mode costs nothing.
@@ -24,8 +24,8 @@ var mode: int = Mode.METSYS
 var mode_switch: OptionButton
 var placement_menu: MenuButton
 var placement := 0
-var metsys_panel: IDPMetSysPanel
-var world_panel: IDPWorldPanel
+var metsys_panel: MDSMetSysPanel
+var world_panel: MDSWorldPanel
 
 func _ready() -> void:
 	if is_part_of_edited_scene():
@@ -59,10 +59,10 @@ func set_mode(new_mode: int) -> void:
 	var panel := get_active_panel()
 	if not panel:
 		if mode == Mode.METSYS:
-			metsys_panel = IDPMetSysPanel.new()
+			metsys_panel = MDSMetSysPanel.new()
 			panel = metsys_panel
 		else:
-			world_panel = IDPWorldPanel.new()
+			world_panel = MDSWorldPanel.new()
 			panel = world_panel
 		panel.name = "MetSysPanel" if mode == Mode.METSYS else "WorldPanel"
 		add_child(panel)

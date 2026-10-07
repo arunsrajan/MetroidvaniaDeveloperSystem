@@ -27,15 +27,15 @@ func _initialize() -> void:
 		push_error("Could not save %s (%d)" % [path, err])
 		quit(1)
 		return
-	var painter := IDPRoomPainter.open(path, TileSet.new())
-	var conv := IDPFreeformConverter.new()
+	var painter := MDSRoomPainter.open(path, TileSet.new())
+	var conv := MDSFreeformConverter.new()
 	conv.rock_style = load(PACK + "/freeform/styles/garden_limestone.freeform.tres")
 	conv.ledge_style = load(PACK + "/freeform/styles/garden_ledge.freeform.tres")
 	conv.room_rects = RECTS
 	conv.seed_value = 7
 	conv.keep_old = false
 	print("convert: ", conv.convert(painter))
-	var deco := IDPFreeformDecorator.new()
+	var deco := MDSFreeformDecorator.new()
 	deco.stamp_set = load(PACK + "/freeform/sunken_gardens.stamps.tres")
 	deco.hanging_category = "ivy"
 	deco.floor_categories = PackedStringArray(["grass", "flower", "fern"])
@@ -45,27 +45,27 @@ func _initialize() -> void:
 	deco.room_rects = RECTS
 	deco.seed_value = 7
 	print("decorate: ", deco.decorate(painter))
-	print("outside: ", IDPNotchFill.fill(painter, RECTS, load(PACK + "/freeform/styles/sunken_deep.freeform.tres")))
+	print("outside: ", MDSNotchFill.fill(painter, RECTS, load(PACK + "/freeform/styles/sunken_deep.freeform.tres")))
 	err = painter.save()
 	painter.free_instance()
 	print("saved %s: %s" % [path, error_string(err)])
 	quit(0 if err == OK else 1)
 
 func _shape(parent: Node, root: Node, shape_name: String, r: Rect2, ledge := false) -> void:
-	var f := IDPFreeform.new()
+	var f := MDSFreeform.new()
 	f.name = shape_name
 	f.smooth = false
-	f.points = IDPGeometry.rect_polygon(r)
+	f.points = MDSGeometry.rect_polygon(r)
 	if ledge:
-		f.set_collision_override(IDPFreeformStyle.Role.PLATFORM, true)
+		f.set_collision_override(MDSFreeformStyle.Role.PLATFORM, true)
 	parent.add_child(f)
 	f.owner = root
 
 ## The garden's distance: a green-lit sky, a far canopy, hedges, ferns, and dark leaves passing
 ## in front.
-func _backdrop() -> IDPBackdrop:
-	var stamps := load(PACK + "/freeform/sunken_gardens.stamps.tres") as IDPStampSet
-	var b := IDPBackdrop.new()
+func _backdrop() -> MDSBackdrop:
+	var stamps := load(PACK + "/freeform/sunken_gardens.stamps.tres") as MDSStampSet
+	var b := MDSBackdrop.new()
 	b.display_name = "Sunken Gardens distance"
 	b.sky = Gradient.new()
 	b.sky.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
@@ -79,8 +79,8 @@ func _backdrop() -> IDPBackdrop:
 	]
 	var seed_value := 11
 	for spec in specs:
-		var l := IDPBackdropLayer.new()
-		l.source = IDPBackdropLayer.Source.STAMPS
+		var l := MDSBackdropLayer.new()
+		l.source = MDSBackdropLayer.Source.STAMPS
 		l.stamp_set = stamps
 		l.stamp_category = spec[0]
 		l.depth = spec[1]
@@ -103,7 +103,7 @@ func _backdrop() -> IDPBackdrop:
 func _blockout() -> Node2D:
 	var root := Node2D.new()
 	root.name = "SunkenGardenDemo"
-	var distance := IDPBackdropView.new()
+	var distance := MDSBackdropView.new()
 	distance.name = "Distance"
 	distance.backdrop = load(PACK + "/backdrop/garden.backdrop.tres")
 	distance.room_size = Vector2(2304, 1296)
@@ -111,7 +111,7 @@ func _blockout() -> Node2D:
 	distance.owner = root
 	var g := Node2D.new()
 	g.name = "Freeform"
-	g.z_index = IDPRoomPainter.ITEM_GROUPS["Freeform"]
+	g.z_index = MDSRoomPainter.ITEM_GROUPS["Freeform"]
 	root.add_child(g)
 	g.owner = root
 	_shape(g, root, "Ceiling", Rect2(0, 0, 2304, 96))
