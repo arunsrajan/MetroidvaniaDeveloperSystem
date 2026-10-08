@@ -15,15 +15,27 @@ const META := &"idp_fill_outside"
 const MARGIN := 96.0
 
 ## The parts of the room's box outside its shape ([param rects], scene-local), carried
-## [param margin] px past the box's edges.
-static func outside_polygons(rects: Array, margin := MARGIN) -> Array[PackedVector2Array]:
+## [param margin] px past the box's edges. With [param shape] (the room's curved or slanted
+## outline on the map, scene-local polygons, see [method MDSWorld.get_local_shape]), outside
+## that outline.
+static func outside_polygons(rects: Array, margin := MARGIN, shape: Array = []) -> Array[PackedVector2Array]:
 	var out: Array[PackedVector2Array] = []
-	if rects.size() < 2:
+	if rects.is_empty() or (rects.size() < 2 and shape.is_empty()):
 		return out
 	var box: Rect2 = rects[0]
 	for r: Rect2 in rects:
 		box = box.merge(r)
-	for part in MDSGeometry.rect_minus(box, rects):
+	var parts: Array[PackedVector2Array] = []
+	if shape.is_empty():
+		parts = MDSGeometry.rect_minus(box, rects)
+	else:
+		parts.append(MDSGeometry.rect_polygon(box))
+		for poly: PackedVector2Array in shape:
+			var next: Array[PackedVector2Array] = []
+			for part in parts:
+				next.append_array(MDSGeometry.without_holes(Geometry2D.clip_polygons(part, poly), 1.0))
+			parts = next
+	for part in parts:
 		if absf(MDSGeometry.signed_area(part)) < 64.0:
 			continue
 		var run := PackedVector2Array()
@@ -41,9 +53,12 @@ static func outside_polygons(rects: Array, margin := MARGIN) -> Array[PackedVect
 		out.append(MDSGeometry.dedupe(run))
 	return out
 
-## What a fill was made for: the room's shape.
-static func signature(rects: Array) -> String:
-	return JSON.stringify(rects.map(func(r: Rect2) -> Array: return [r.position.x, r.position.y, r.size.x, r.size.y]))
+## What a fill was made for: the room's shape (its rects, and its outline when it has one).
+static func signature(rects: Array, shape: Array = []) -> String:
+	var sig := JSON.stringify(rects.map(func(r: Rect2) -> Array: return [r.position.x, r.position.y, r.size.x, r.size.y]))
+	if not shape.is_empty():
+		sig += "|%d" % hash(shape.map(func(p: PackedVector2Array) -> String: return var_to_str(p)))
+	return sig
 
 ## The fill shapes of the room [param painter] edits.
 static func shapes_of(painter: MDSRoomPainter) -> Array[MDSFreeform]:
@@ -54,8 +69,8 @@ static func shapes_of(painter: MDSRoomPainter) -> Array[MDSFreeform]:
 	return out
 
 ## Whether the room's fill was made for another shape than [param rects].
-static func is_stale(painter: MDSRoomPainter, rects: Array) -> bool:
-	var sig := signature(rects)
+static func is_stale(painter: MDSRoomPainter, rects: Array, shape: Array = []) -> bool:
+	var sig := signature(rects, shape)
 	for f in shapes_of(painter):
 		if str(f.get_meta(META)) != sig:
 			return true
@@ -63,20 +78,20 @@ static func is_stale(painter: MDSRoomPainter, rects: Array) -> bool:
 
 ## Replaces the room's fill with shapes of [param style] covering the box outside
 ## [param rects]. Call [method MDSRoomPainter.checkpoint] first. Returns how many shapes.
-static func fill(painter: MDSRoomPainter, rects: Array, style: MDSFreeformStyle, margin := MARGIN) -> int:
+static func fill(painter: MDSRoomPainter, rects: Array, style: MDSFreeformStyle, margin := MARGIN, shape: Array = []) -> int:
 	for f in shapes_of(painter):
 		painter.remove_item(f)
-	var sig := signature(rects)
+	var sig := signature(rects, shape)
 	var n := 0
-	for poly in outside_polygons(rects, margin):
+	for poly in outside_polygons(rects, margin, shape):
 		var f := painter.add_freeform(poly, style, "Freeform", false)
 		_set_up(f, sig, n)
 		n += 1
 	return n
 
 ## Adds fill shapes to a scene being built (Create scene), in its Freeform group.
-static func add_to_scene(root: Node, rects: Array, style: MDSFreeformStyle, margin := MARGIN) -> int:
-	var polys := outside_polygons(rects, margin)
+static func add_to_scene(root: Node, rects: Array, style: MDSFreeformStyle, margin := MARGIN, shape: Array = []) -> int:
+	var polys := outside_polygons(rects, margin, shape)
 	if polys.is_empty():
 		return 0
 	var group := root.get_node_or_null(^"Freeform")
@@ -86,7 +101,7 @@ static func add_to_scene(root: Node, rects: Array, style: MDSFreeformStyle, marg
 		group.z_index = MDSRoomPainter.ITEM_GROUPS["Freeform"]
 		root.add_child(group)
 		group.owner = root
-	var sig := signature(rects)
+	var sig := signature(rects, shape)
 	for i in polys.size():
 		var f := MDSFreeform.new()
 		f.style = style

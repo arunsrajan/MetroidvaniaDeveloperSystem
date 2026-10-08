@@ -361,7 +361,7 @@ func _ask_import(path: String) -> void:
 		_import_dialog.title = "Spritesheet"
 		_import_dialog.ok_button_text = "Add"
 		var box := VBoxContainer.new()
-		_import_dialog.add_child(box)
+		MDSUi.scroll_content(_import_dialog, box)
 		var g := GridContainer.new()
 		g.columns = 3
 		box.add_child(g)
@@ -394,7 +394,7 @@ func _ask_import(path: String) -> void:
 		_import_fields["Tile size" + "xy"[axis]].value = grid_size[axis]
 	var tex := load(path) as Texture2D
 	_import_fields.note.text = "%s is %dx%d px. Tiles of another size than the room grid (%dx%d) are scaled to fit it." % [path.get_file(), tex.get_width() if tex else 0, tex.get_height() if tex else 0, grid_size.x, grid_size.y]
-	_import_dialog.popup_centered()
+	MDSUi.popup_fitted(_import_dialog, 380)
 
 func import_sheet(path: String, tile: Vector2i, margin := Vector2i.ZERO, separation := Vector2i.ZERO, solid := false) -> int:
 	var sid := painter.add_sheet(path, tile, margin, separation, solid)

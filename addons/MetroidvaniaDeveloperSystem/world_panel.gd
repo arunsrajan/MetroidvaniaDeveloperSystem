@@ -19,7 +19,7 @@ enum WorldItem { NEW = 1000, OPEN, IMPORT_METSYS, RELOAD }
 enum ViewItem { LABELS, AREA_LABELS, TERRAIN, PREVIEWS, GATES, MARKERS, PINS, ISSUES, GRID, LEGEND }
 enum ExportItem { JSON, PNG, DOT, MARKDOWN }
 enum ScenesItem { RESCAN, ADD_SCENES, AUTO_CONNECT, SETTINGS, GAME_SCENE, AUTO_DOORS }
-enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, SET_START, ROUTE, LINK, DUPLICATE, DELETE, ADD_ROOM, ADD_PIN, REMOVE_PIN, ADD_GATE, COPY_ID, PAINT_ROOM }
+enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, SET_START, ROUTE, LINK, DUPLICATE, DELETE, ADD_ROOM, ADD_PIN, REMOVE_PIN, ADD_GATE, COPY_ID, PAINT_ROOM, GENERATE_AREA, SELECT_AREA }
 
 # Data
 var world_path := ""
@@ -69,6 +69,10 @@ var pin_dialog: ConfirmationDialog
 var pin_text: LineEdit
 var pin_kind: OptionButton
 var settings_dialog: AcceptDialog
+var generate_dialog: MDSAreaGenerateDialog
+var rename_dialog: ConfirmationDialog
+var rename_edit: LineEdit
+var _rename_area := ""
 
 # State
 var _files_ready := false ## the editor finished its startup scan and imports
@@ -204,7 +208,7 @@ func _build_ui() -> void:
 	var tools := side_panel.add_section(SECTION_TOOLS)
 	var tool_grid := MDSSidePanel.grid(tools, 2)
 	var group := ButtonGroup.new()
-	var short_names := ["Select", "Room", "Extend", "Gate", "Pin", "Paint", "Erase"]
+	var short_names := ["Select", "Room", "Extend", "Gate", "Pin", "Paint", "Erase", "Area", "Generate", "Paint area"]
 	for i in MDSWorldCanvas.TOOL_NAMES.size():
 		var b := MDSUi.button(short_names[i], MDSWorldCanvas.TOOL_NAMES[i] + "\n" + MDSWorldCanvas.TOOL_HINTS[i])
 		b.toggle_mode = true
@@ -225,6 +229,12 @@ func _build_ui() -> void:
 		if int(v) != canvas.brush_size:
 			canvas.set_brush_size(int(v)))
 	tool_grid.add_child(MDSSidePanel.fill(brush_spin))
+	var auto_doors := CheckBox.new()
+	auto_doors.text = "Auto doors"
+	auto_doors.button_pressed = true
+	auto_doors.tooltip_text = "Paint: a room painted onto an area gets a door to each room of the area it touches. (Generated and painted areas always get their doors; areas dragged against each other with the Area tool connect.)"
+	auto_doors.toggled.connect(func(on: bool) -> void: canvas.auto_doors = on)
+	tool_grid.add_child(auto_doors)
 	undo_button = MDSUi.button("Undo", "Undo (Ctrl+Z on the map)")
 	undo_button.pressed.connect(func() -> void:
 		if world:
@@ -303,7 +313,7 @@ func _build_ui() -> void:
 	canvas = MDSWorldCanvas.new()
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	canvas.custom_minimum_size = Vector2(200, 200)
+	canvas.custom_minimum_size = Vector2(200, 120) * MDSUi.editor_scale()
 	canvas.room_selected.connect(_on_canvas_room_selected)
 	canvas.room_activated.connect(_on_room_activated)
 	canvas.route_requested.connect(_show_route)
@@ -313,6 +323,9 @@ func _build_ui() -> void:
 	canvas.scenes_dropped.connect(_on_scenes_dropped)
 	canvas.status_message.connect(_set_status)
 	canvas.tool_changed.connect(func(t: int) -> void: tool_buttons[t].button_pressed = true)
+	canvas.area_selected.connect(_on_canvas_area_selected)
+	canvas.area_activated.connect(_ask_rename_area)
+	canvas.generate_requested.connect(open_generate_dialog)
 	canvas.brush_size_changed.connect(func(n: int) -> void: brush_spin.set_value_no_signal(n))
 	canvas.view_changed.connect(func() -> void: zoom_label.text = "%d%%" % roundi(canvas.zoom * 100.0 / 0.06))
 	# Map view (the world map) and Room view (the room's actual contents) share this spot.
@@ -331,7 +344,10 @@ func _build_ui() -> void:
 	side_panel.set_section_visible(SECTION_ROOM, false)
 
 	sidebar = TabContainer.new()
-	sidebar.custom_minimum_size.x = 300
+	sidebar.custom_minimum_size.x = 300 * MDSUi.editor_scale()
+	# A small window or a narrow dock: the tool panel collapses and the tabs shrink rather
+	# than the panel running off the edge.
+	resized.connect(func() -> void: MDSSidePanel.fit_row(size.x, side_panel, canvas, sidebar))
 	split.add_child(sidebar)
 	_build_rooms_tab()
 	_build_palette_tab()
@@ -372,6 +388,7 @@ func _build_ui() -> void:
 	add_child(file_dialog)
 	_build_pin_dialog()
 	_build_settings_dialog()
+	_build_area_dialogs()
 	for i in vp.item_count:
 		var key = vp.get_item_metadata(i)
 		if key is String:
@@ -554,6 +571,11 @@ func _build_areas_tab() -> void:
 	add.pressed.connect(create)
 	name_edit.text_submitted.connect(func(_t: String) -> void: create.call())
 	row.add_child(add)
+	var generate := MDSUi.button("Generate...", "Generate an area beside the map: rooms (rectangles and irregular ones) with doors between them. Or drag a box with the Generate tool (N), or paint one with Paint area (M)")
+	generate.pressed.connect(func() -> void:
+		if world:
+			open_generate_dialog(_free_box()))
+	row.add_child(generate)
 	area_tree = Tree.new()
 	area_tree.hide_root = true
 	area_tree.custom_minimum_size.y = 160
@@ -588,6 +610,73 @@ func _build_pin_dialog() -> void:
 	pin_dialog.add_child(box)
 	pin_dialog.confirmed.connect(_confirm_pin)
 	add_child(pin_dialog)
+
+func _build_area_dialogs() -> void:
+	generate_dialog = MDSAreaGenerateDialog.new()
+	generate_dialog.generated.connect(func(r: Dictionary) -> void:
+		canvas.select_area(r.area)
+		var links: Array = r.get("links", [])
+		_set_status("Generated %s: %d room(s), %d door(s)%s. Drag it with the Area tool (A); double-click to rename it." % [r.area, r.rooms.size(), r.doors,
+			", connected to %d area(s) it touches" % links.size() if not links.is_empty() else ""]))
+	add_child(generate_dialog)
+	rename_dialog = ConfirmationDialog.new()
+	rename_dialog.title = "Rename area"
+	rename_edit = LineEdit.new()
+	rename_edit.custom_minimum_size.x = 320
+	rename_edit.text_submitted.connect(func(_t: String) -> void:
+		rename_dialog.hide()
+		_rename_area_now())
+	rename_dialog.add_child(rename_edit)
+	rename_dialog.confirmed.connect(_rename_area_now)
+	add_child(rename_dialog)
+
+## Opens the Generate area dialog for [param box] (paint cells) on the current layer.
+func open_generate_dialog(box: Rect2i) -> void:
+	if world:
+		generate_dialog.open(world, box, canvas.layer, canvas.generator)
+
+## A box of free space beside the layer's rooms, for an area generated from the Areas tab.
+func _free_box() -> Rect2i:
+	var cell := world.get_paint_cell()
+	var size := Vector2i(16, 10)
+	var b := world.get_layer_bounds(canvas.layer)
+	if b.size == Vector2.ZERO:
+		var center := world.world_to_cell(canvas.screen_to_world(canvas.size / 2.0))
+		return Rect2i(center - size / 2, size)
+	var start := Vector2i((b.end / cell).ceil()) + Vector2i(1, 0)
+	return Rect2i(Vector2i(start.x, int(floorf(b.position.y / cell.y))), size)
+
+func _on_canvas_area_selected(group: String) -> void:
+	if group.is_empty() or group.begins_with("#") or not world.has_area(group):
+		return
+	_selected_area = group
+	_refresh_area_list()
+	_set_status("%s: %d room(s). Drag to move it, double-click to rename it, Delete removes its rooms." % [group, world.get_area_rooms(group).size()])
+
+func _ask_rename_area(area: String) -> void:
+	if not world or not world.has_area(area):
+		return
+	_rename_area = area
+	rename_edit.text = area
+	MDSUi.popup_fitted(rename_dialog, 360)
+	rename_edit.grab_focus()
+	rename_edit.select_all()
+
+func _rename_area_now() -> void:
+	var new_name := rename_edit.text.strip_edges()
+	var old := _rename_area
+	if new_name.is_empty() or new_name == old or not world.has_area(old):
+		return
+	if world.has_area(new_name):
+		_set_status("There is an area called %s already." % new_name)
+		return
+	world.checkpoint()
+	if canvas.new_room_area == old:
+		canvas.new_room_area = new_name
+	world.rename_area(old, new_name)
+	_selected_area = new_name
+	canvas.select_area(new_name)
+	_set_status("Renamed %s to %s." % [old, new_name])
 
 func _build_settings_dialog() -> void:
 	settings_dialog = AcceptDialog.new()
@@ -1055,6 +1144,13 @@ func _weather_changed(spec: String) -> void:
 	if room_view and room_view.visible:
 		room_view.refresh_weather()
 
+## After a parallax field changed: the Room view shows it, and a value with mistakes is reported.
+func _parallax_changed(value: String) -> void:
+	var problem := MDSEnvironment.check_parallax(value)
+	_set_status("Parallax background: %s." % (problem if not problem.is_empty() else (value.strip_edges() if not value.strip_edges().is_empty() else "inherited")))
+	if room_view and room_view.visible:
+		room_view.refresh_weather()
+
 func show_room_view(id: String) -> void:
 	if not world or not world.has_room(id):
 		_set_status("Select a room on the map first, then open the Room view.")
@@ -1197,7 +1293,10 @@ func _refresh_area_list() -> void:
 		item.set_icon(0, MDSUi.color_icon(world.get_area_color(a), 14))
 		item.set_metadata(0, a)
 		if a == _selected_area:
+			# Selected again after a refresh, not by a click: the map keeps its highlight.
+			area_tree.set_block_signals(true)
 			item.select(0)
+			area_tree.set_block_signals(false)
 	if not world.has_area(_selected_area):
 		_selected_area = ""
 	_rebuild_area_editor()
@@ -1239,6 +1338,7 @@ func _rebuild_area_editor() -> void:
 		["Music volume (dB)", "music_volume_db", "float", "0", ""],
 		["Boss music", "boss_music", "path", "res://.../boss.ogg", "MDSMusic.play_boss() starts it from silence; end_boss() returns to the area's music"],
 		["Backdrop", "backdrop", "path", "world default", "MDSBackdrop (.tres) drawn in the distance behind the area's rooms. A room can have its own"],
+		["Parallax", "parallax", "parallax", "world default", "Parallax background behind every room of the area (MDSWorldGame adds it as each room loads; the Room view shows it): a preset like dusk_mountains or misty_forest, or a .tscn with an MDSParallaxBackground. A room can have its own, or none"],
 		["Weather", "weather", "weather", "world default", "Weather and effects in every room of the area (MDSWorldGame adds them as each room loads; the Room view shows them): presets like storm or sandstorm, effects like rain or fog(ground=1), comma-separated, or a .tscn of effect nodes. A room can have its own, or none"],
 		["Darkness", "darkness", "float", "auto", "0 lit, 0.05 to 0.8 dimmed (lights carve pools around the player and enemies). Empty: automatic, from the world's Dark room share. A room can have its own"],
 		["Objective", "objective", "", "e.g. Find the crypt key", "Shown by MDSObjectiveBanner on arrival and on the map until done"],
@@ -1253,6 +1353,13 @@ func _rebuild_area_editor() -> void:
 				world.set_area_value(a, key, t.strip_edges())
 				_weather_changed(t))
 			weather_edit.tooltip_text = f[4]
+			continue
+		if kind == "parallax":
+			var parallax_edit := MDSUi.parallax_field(grid, f[0], str(data.get(key, "")), f[3], func(t: String) -> void:
+				world.checkpoint()
+				world.set_area_value(a, key, t.strip_edges())
+				_parallax_changed(t))
+			parallax_edit.tooltip_text = f[4]
 			continue
 		var edit := MDSUi.field_line(grid, f[0], str(data.get(key, "")), f[3])
 		edit.tooltip_text = f[4]
@@ -1277,6 +1384,12 @@ func _rebuild_area_editor() -> void:
 		world.checkpoint()
 		world.set_room_value(canvas.selected_room, "area", a))
 	row.add_child(assign)
+	var select_on_map := MDSUi.button("Select on map", "Select the area with the Area tool, to drag it as one piece (it connects to the areas it touches)")
+	select_on_map.pressed.connect(func() -> void:
+		canvas.set_tool(MDSWorldCanvas.Tool.AREA)
+		canvas.select_area(a)
+		canvas.grab_focus())
+	row.add_child(select_on_map)
 	var reset_label := MDSUi.button("Reset label position", "Place the area name automatically again")
 	reset_label.pressed.connect(func() -> void:
 		world.checkpoint()
@@ -1369,7 +1482,7 @@ func _clear_route_and_highlight() -> void:
 func _request_pin(world_pos: Vector2) -> void:
 	_pending_pin_pos = world_pos
 	pin_text.text = ""
-	pin_dialog.popup_centered()
+	MDSUi.popup_fitted(pin_dialog, 360)
 	pin_text.grab_focus()
 
 func _confirm_pin() -> void:
@@ -1399,7 +1512,7 @@ func _on_scenes_dropped(files: PackedStringArray, world_pos: Vector2) -> void:
 		_set_status("Create or open a world first.")
 		return
 	world.checkpoint()
-	var target := world.room_at(world_pos, canvas.layer)
+	var target := world.room_at(world_pos, canvas.layer, true)
 	if files.size() == 1 and not target.is_empty() and not world.has_scene_reference(target):
 		# Fill a painted room: the scene's (0, 0) goes to the room's top-left corner, the room
 		# takes the scene's name if it still has a generated one, and the scene's own gate
@@ -1586,6 +1699,12 @@ func _rebuild_inspector() -> void:
 		world.set_room_value(id, "weather", t.strip_edges())
 		_weather_changed(t))
 	weather_edit.tooltip_text = "Weather and effects in this room (MDSWorldGame adds them as it loads). Empty: the area's, else the world's; none: no weather here (a room under cover in a stormy area)"
+	var inherited_parallax := str(area_data.get("parallax", world.get_setting("parallax", ""))).strip_edges()
+	var parallax_edit := MDSUi.parallax_field(grid, "Parallax", str(world.get_room_value(id, "parallax", "")), "area: %s" % inherited_parallax if not inherited_parallax.is_empty() else "none", func(t: String) -> void:
+		world.checkpoint()
+		world.set_room_value(id, "parallax", t.strip_edges())
+		_parallax_changed(t))
+	parallax_edit.tooltip_text = "Parallax background behind this room. Empty: the area's, else the world's; none: none here"
 	var dark: Variant = world.get_room_value(id, "darkness", null)
 	var dark_edit := MDSUi.field_line(grid, "Darkness", str(dark) if dark != null else "", "area: %s" % area_data.darkness if area_data.has("darkness") else "auto")
 	dark_edit.tooltip_text = "0 lit, 0.05 to 0.8 dimmed: a subtractive light darkens the room and the player, enemies and lanterns carry soft lights. Empty: the area's, else automatic (the world's Dark room share)"
@@ -1907,12 +2026,15 @@ func _on_canvas_context(room_id: String, world_pos: Vector2, local_pos: Vector2)
 		if world.has_room(canvas.selected_room) and canvas.selected_room != room_id:
 			context_menu.add_item("Route from selected room to here", ContextItem.ROUTE)
 			context_menu.add_item("Link selected room to this room", ContextItem.LINK)
+		if not world.get_room_area(room_id).is_empty():
+			context_menu.add_item("Select area %s" % world.get_room_area(room_id), ContextItem.SELECT_AREA)
 		context_menu.add_item("Duplicate room", ContextItem.DUPLICATE)
 		context_menu.add_item("Delete room", ContextItem.DELETE)
 		context_menu.add_separator()
 		context_menu.add_item("Copy room id", ContextItem.COPY_ID)
 	else:
 		context_menu.add_item("New room here", ContextItem.ADD_ROOM)
+		context_menu.add_item("Generate area here...", ContextItem.GENERATE_AREA)
 	context_menu.add_item("Add pin here...", ContextItem.ADD_PIN)
 	if _nearest_pin(world_pos) >= 0:
 		context_menu.add_item("Remove nearest pin", ContextItem.REMOVE_PIN)
@@ -1968,6 +2090,12 @@ func _on_context_menu(item: int) -> void:
 			var new_id := world.add_room("Room_01", Rect2(world.snap(_context_pos - s / 2.0), s), canvas.layer, canvas.new_room_area)
 			canvas.selected_room = new_id
 			_rebuild_inspector()
+		ContextItem.GENERATE_AREA:
+			var size := Vector2i(16, 10)
+			open_generate_dialog(Rect2i(world.world_to_cell(_context_pos) - size / 2, size))
+		ContextItem.SELECT_AREA:
+			canvas.set_tool(MDSWorldCanvas.Tool.AREA)
+			canvas.select_area(world.get_room_area(id))
 		ContextItem.ADD_PIN:
 			_request_pin(_context_pos)
 		ContextItem.REMOVE_PIN:
@@ -2011,11 +2139,12 @@ func _on_scenes_menu(item: int) -> void:
 
 func _show_settings() -> void:
 	for c in settings_dialog.get_children():
-		if c is GridContainer:
+		if c is ScrollContainer:
+			settings_dialog.remove_child(c)
 			c.queue_free()
 	var grid := GridContainer.new()
 	grid.columns = 2
-	settings_dialog.add_child(grid)
+	MDSUi.scroll_content(settings_dialog, grid)
 	var name_edit := MDSUi.field_line(grid, "World name", world.get_world_name(), "")
 	MDSUi.commit_line(name_edit, func(t: String) -> void:
 		world.data.name = t
@@ -2097,6 +2226,10 @@ func _show_settings() -> void:
 		world.set_setting("weather", t.strip_edges())
 		_weather_changed(t))
 	weather_edit.tooltip_text = "Weather and effects in every room whose area and room set none (Areas tab, Inspect tab)"
+	var world_parallax := MDSUi.parallax_field(grid, "Parallax", str(world.get_setting("parallax", "")), "none", func(t: String) -> void:
+		world.set_setting("parallax", t.strip_edges())
+		_parallax_changed(t))
+	world_parallax.tooltip_text = "Parallax background behind every room whose area and room set none"
 	var share_edit := MDSUi.field_line(grid, "Dark room share", str(world.get_setting("dark_room_share", 0.0)), "0")
 	share_edit.tooltip_text = "0 to 1: this share of the rooms with automatic darkness (no darkness on the room or its area) is dimmed by 0.35 to 0.55. Picked from the room id, so a room is always the same"
 	MDSUi.commit_line(share_edit, func(t: String) -> void: world.set_setting("dark_room_share", clampf(t.to_float(), 0.0, 1.0)))
@@ -2158,7 +2291,7 @@ func _show_settings() -> void:
 		var edit := MDSUi.field_line(grid, n[0], str(value[0] if value is Array else value), str(n[2]))
 		var key: String = n[1]
 		MDSUi.commit_line(edit, func(t: String) -> void: set_cam.call(key, t.to_float()))
-	settings_dialog.popup_centered(Vector2i(460, 0))
+	MDSUi.popup_fitted(settings_dialog, 520)
 
 # --- Export ----------------------------------------------------------------------------------
 

@@ -285,6 +285,15 @@ func add_freeform(points: PackedVector2Array, style: MDSFreeformStyle, group := 
 	dirty = true
 	return f
 
+## Adds a freeform shape, stamp or effect made elsewhere to [param group] (it keeps its name,
+## made unique in the group).
+func add_item(node: Node2D, group: String) -> Node2D:
+	if str(node.name).is_empty() or node.name.begins_with("@"):
+		node.name = "Shape%d" % (items_root.get_node(group).get_child_count() + 1)
+	items_root.get_node(group).add_child(node, true)
+	dirty = true
+	return node
+
 func add_stamp(stamp_set: MDSStampSet, index: int, pos: Vector2, scale_value: Vector2, rotation_value := 0.0, group := "StampsFront") -> Sprite2D:
 	var s := stamp_set.make_sprite(index)
 	s.name = "Stamp%d" % (items_root.get_node(group).get_child_count() + 1)

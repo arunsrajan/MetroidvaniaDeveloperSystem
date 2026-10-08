@@ -29,6 +29,104 @@ static func menu_button(text: String, tooltip := "") -> MenuButton:
 	m.tooltip_text = tooltip
 	return m
 
+# --- Fitting on the screen -----------------------------------------------------------------------
+
+## [param rect] made to fit inside [param usable]: no bigger than it, then moved inside it. An
+## empty [param usable] (no screen, as when headless) leaves it as it is.
+static func fit_rect(rect: Rect2i, usable: Rect2i) -> Rect2i:
+	if not usable.has_area():
+		return rect
+	var s := rect.size.min(usable.size)
+	return Rect2i(rect.position.clamp(usable.position, usable.end - s), s)
+
+## The usable area (without taskbars and docks of the desktop) of the screen [param window] is
+## on, in screen px. Empty when there is no screen.
+static func usable_screen_rect(window: Window) -> Rect2i:
+	var screen := window.current_screen if window else DisplayServer.SCREEN_OF_MAIN_WINDOW
+	return DisplayServer.screen_get_usable_rect(screen)
+
+## The usable area of the screen holding most of [param rect] (screen px), else of the main
+## window's screen.
+static func usable_screen_rect_at(rect: Rect2i) -> Rect2i:
+	var best := Rect2i()
+	var best_area := 0
+	for i in DisplayServer.get_screen_count():
+		var u := DisplayServer.screen_get_usable_rect(i)
+		var a := u.intersection(rect).get_area()
+		if a > best_area:
+			best_area = a
+			best = u
+	return best if best_area > 0 else DisplayServer.screen_get_usable_rect(DisplayServer.SCREEN_OF_MAIN_WINDOW)
+
+## How big a dialog over [param window] may be: 92% of that window when dialogs are drawn
+## inside it, else of its screen.
+static func popup_limit(window: Window) -> Vector2i:
+	var lim := Vector2i(1 << 20, 1 << 20)
+	if not window:
+		return lim
+	if window.gui_embed_subwindows or window.is_embedded():
+		lim = Vector2i(Vector2(window.size) * 0.92)
+	var usable := usable_screen_rect(window)
+	if usable.has_area():
+		lim = lim.min(Vector2i(Vector2(usable.size) * 0.92))
+	return lim
+
+## Puts [param content] in a scroll area filling [param dialog], so the dialog can be smaller
+## than what it shows (a small screen, a big editor scale). [method popup_fitted] sizes it.
+static func scroll_content(dialog: AcceptDialog, content: Control) -> ScrollContainer:
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(content)
+	dialog.add_child(scroll)
+	dialog.set_meta(&"mds_scroll", scroll)
+	# Sized by popup_fitted: wrapping its content would shrink it to the buttons.
+	dialog.wrap_controls = false
+	return scroll
+
+## Pops [param dialog] up centred, [param width] px wide (times the editor scale) and as tall
+## as its content, but never bigger than [method popup_limit]: what doesn't fit scrolls (give
+## it a scroll area with [method scroll_content]).
+static func popup_fitted(dialog: AcceptDialog, width: float) -> void:
+	var parent := dialog.get_parent().get_window() if dialog.get_parent() else null
+	var lim := popup_limit(parent)
+	var w := mini(int(width * editor_scale()), lim.x)
+	dialog.min_size = Vector2i(mini(int(200 * editor_scale()), lim.x), mini(int(120 * editor_scale()), lim.y))
+	dialog.set_meta(&"mds_width", w)
+	dialog.popup_centered(Vector2i(w, mini(int(240 * editor_scale()), lim.y)))
+	fit_dialog_height(dialog)
+	# Wrapped text only knows its height once the dialog has its width.
+	fit_dialog_height.call_deferred(dialog)
+
+## Makes [param dialog] as tall as its scrolled content needs, within [method popup_limit], and
+## keeps it centred on the window it opened over.
+static func fit_dialog_height(dialog: AcceptDialog) -> void:
+	if not is_instance_valid(dialog) or not dialog.visible:
+		return
+	# get_meta() with a null default still complains when the key is missing.
+	var scroll: ScrollContainer = dialog.get_meta(&"mds_scroll") if dialog.has_meta(&"mds_scroll") else null
+	var parent := dialog.get_parent().get_window() if dialog.get_parent() else null
+	var lim := popup_limit(parent)
+	var want := Vector2i(int(dialog.get_meta(&"mds_width", dialog.size.x)), dialog.size.y)
+	if scroll and scroll.get_child_count() > 0:
+		var content := scroll.get_child(0) as Control
+		var chrome := dialog.size.y - int(scroll.size.y)
+		want.y = int(content.get_combined_minimum_size().y) + chrome + 8
+	want = want.min(lim).max(dialog.min_size)
+	# Centred over the window it opened over, inside that window when drawn in it, else on
+	# the screen.
+	var pos := dialog.position
+	var bounds := Rect2i()
+	if parent and dialog.is_embedded():
+		bounds = Rect2i(Vector2i.ZERO, parent.size)
+		pos = (parent.size - want) / 2
+	elif parent:
+		bounds = usable_screen_rect(parent)
+		pos = parent.position + (parent.size - want) / 2
+	var r := fit_rect(Rect2i(pos, want), bounds)
+	dialog.position = r.position
+	dialog.size = r.size
+
 ## The editor's display scale (1 outside the editor), for sizes set in code.
 static func editor_scale() -> float:
 	var ei: Object = Engine.get_singleton(&"EditorInterface") if Engine.is_editor_hint() and Engine.has_singleton(&"EditorInterface") else null
@@ -122,6 +220,37 @@ static func weather_field(grid: GridContainer, text: String, value: String, plac
 				edit.text = "none"
 			"clear":
 				edit.text = ""
+		edit.text_submitted.emit(edit.text))
+	row.add_child(menu)
+	grid.add_child(row)
+	path_drop(edit)
+	commit_line(edit, commit)
+	return edit
+
+## A parallax background field: a preset picked from its menu, typed in, or a scene of an
+## [MDSParallaxBackground] dropped on it. [param commit] gets the new text.
+static func parallax_field(grid: GridContainer, text: String, value: String, placeholder: String, commit: Callable) -> LineEdit:
+	grid.add_child(label(text))
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var edit := LineEdit.new()
+	edit.text = value
+	edit.placeholder_text = placeholder
+	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	edit.tooltip_text = "Parallax background: a preset (dusk_mountains, misty_forest, ruined_city...), or a .tscn holding an MDSParallaxBackground with your layers. none: no background"
+	row.add_child(edit)
+	var menu := menu_button("+", "Pick a parallax background preset")
+	var popup := menu.get_popup()
+	for i in range(1, MDSParallaxBackground.PRESET_IDS.size()):
+		popup.add_icon_item(MDSEnvironment.icon("parallax"), MDSParallaxBackground.PRESET_NAMES[i])
+		popup.set_item_metadata(popup.item_count - 1, MDSParallaxBackground.PRESET_IDS[i])
+	popup.add_separator()
+	popup.add_item("None (no background here)")
+	popup.set_item_metadata(popup.item_count - 1, "none")
+	popup.add_item("Clear")
+	popup.set_item_metadata(popup.item_count - 1, "")
+	popup.index_pressed.connect(func(i: int) -> void:
+		edit.text = str(popup.get_item_metadata(i))
 		edit.text_submitted.emit(edit.text))
 	row.add_child(menu)
 	grid.add_child(row)

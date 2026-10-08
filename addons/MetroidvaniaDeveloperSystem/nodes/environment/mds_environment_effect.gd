@@ -398,7 +398,7 @@ static func from_data(d: Dictionary) -> MDSEnvironmentEffect:
 static func apply_data(e: MDSEnvironmentEffect, d: Dictionary) -> void:
 	var props: Dictionary = d.get("props", {})
 	for k in props:
-		if e.get(k) != props[k]:
+		if not _same(e.get(k), props[k]):
 			e.set(k, _copy(props[k]))
 	if e.transform != d.transform:
 		e.transform = d.transform
@@ -416,8 +416,42 @@ static func apply_data(e: MDSEnvironmentEffect, d: Dictionary) -> void:
 		if not meta.has(k):
 			e.remove_meta(k)
 
-## Arrays (packed too) and dictionaries are shared by reference: snapshots get a copy.
+## Arrays (packed too), dictionaries and the resources kept in the scene (a parallax
+## background's layers) are shared by reference: snapshots get a copy.
 static func _copy(v: Variant) -> Variant:
-	if v is Array or v is Dictionary or v is PackedStringArray or v is PackedVector2Array or v is PackedFloat32Array or v is PackedColorArray or v is PackedInt32Array:
+	if v is Array:
+		var out: Array = v.duplicate()
+		for i in out.size():
+			if _local(out[i]):
+				out[i] = (out[i] as Resource).duplicate()
+		return out
+	if v is Dictionary or v is PackedStringArray or v is PackedVector2Array or v is PackedFloat32Array or v is PackedColorArray or v is PackedInt32Array:
 		return v.duplicate()
+	if _local(v):
+		return (v as Resource).duplicate()
 	return v
+
+## A resource saved inside the scene (or not saved yet), not one of its own file.
+static func _local(v: Variant) -> bool:
+	return v is Resource and ((v as Resource).resource_path.is_empty() or (v as Resource).resource_path.contains("::"))
+
+## Equal values, comparing resources kept in the scene by their settings (a copy of one is the
+## same).
+static func _same(a: Variant, b: Variant) -> bool:
+	if a is Array and b is Array:
+		if (a as Array).size() != (b as Array).size():
+			return false
+		for i in (a as Array).size():
+			if not _same(a[i], b[i]):
+				return false
+		return true
+	if _local(a) and _local(b):
+		if a == b:
+			return true
+		if (a as Resource).get_script() != (b as Resource).get_script():
+			return false
+		for p in (a as Resource).get_property_list():
+			if p.usage & PROPERTY_USAGE_SCRIPT_VARIABLE and p.usage & PROPERTY_USAGE_STORAGE and not _same(a.get(p.name), b.get(p.name)):
+				return false
+		return true
+	return a == b

@@ -8,7 +8,10 @@ extends Control
 ## Hollow Knight map. Room scenes can be dragged in from the FileSystem dock.
 ##
 ## Tools: V select/move/resize, R draw room, E extend room (add a rectangle), G gate,
-## P pin. Drag from one gate to another to connect them (Shift+drag moves a gate).
+## P pin, B paint, X erase, A area (select and drag a whole area: it stops against the areas
+## it meets and connects to them), N generate an area in a box, M paint an area (a stroke
+## becomes rooms with doors). Drag from one gate to another to connect them (Shift+drag
+## moves a gate).
 ## Wheel zooms, middle/right drag or left drag on empty space pans, double-click opens the
 ## scene, Shift+click routes, Delete removes, Ctrl+Z / Ctrl+Y undo/redo, Ctrl+D
 ## duplicates, arrows nudge by one grid step.
@@ -25,9 +28,15 @@ signal scenes_dropped(files: PackedStringArray, world_pos: Vector2)
 signal tool_changed(new_tool: int)
 signal status_message(text: String)
 signal brush_size_changed(size: int)
+## An area (or a room in none, "#id") was selected with the Area tool; "" when none is.
+signal area_selected(area: String)
+## An area was double-clicked with the Area tool (to rename it).
+signal area_activated(area: String)
+## A box (paint cells) was dragged with the Generate tool.
+signal generate_requested(box: Rect2i)
 
-enum Tool { SELECT, ROOM, RECT, GATE, PIN, PAINT, ERASE }
-const TOOL_NAMES: PackedStringArray = ["Select (V)", "Draw room (R)", "Extend room (E)", "Gate (G)", "Pin (P)", "Paint (B)", "Erase (X)"]
+enum Tool { SELECT, ROOM, RECT, GATE, PIN, PAINT, ERASE, AREA, GENERATE, AREA_PAINT }
+const TOOL_NAMES: PackedStringArray = ["Select (V)", "Draw room (R)", "Extend room (E)", "Gate (G)", "Pin (P)", "Paint (B)", "Erase (X)", "Area (A)", "Generate area (N)", "Paint area (M)"]
 const TOOL_HINTS: PackedStringArray = [
 	"Click to select, drag to move, drag handles to resize, drag from a gate to another gate to connect. Drop .tscn files here to place scenes.",
 	"Drag to draw a new room.",
@@ -36,8 +45,11 @@ const TOOL_HINTS: PackedStringArray = [
 	"Click to place a pin.",
 	"Paint the map: drag on empty space for a new room, start inside a room to grow it (Shift: always a new room). [ ] change the brush size.",
 	"Erase painted cells from any room. [ ] change the brush size.",
+	"Click a room to select its whole area, drag to move the area: it stops against the areas it meets and connects to them (a door where they touch, taken out again when they part). Double-click renames it, arrows nudge it, Delete removes its rooms.",
+	"Drag a box: an area is generated in it (rectangle or square, irregular, freeform or hybrid, with curved and slanted sides), split into rooms with doors between them.",
+	"Paint an area: the stroke becomes rooms with doors between them. Start inside an area to grow it, on empty space for a new area. [ ] change the brush size.",
 ]
-enum Drag { NONE, PAN, MOVE_ROOM, RESIZE, RUBBER, CONNECT, MOVE_GATE, MOVE_LABEL, PAINT }
+enum Drag { NONE, PAN, MOVE_ROOM, RESIZE, RUBBER, CONNECT, MOVE_GATE, MOVE_LABEL, PAINT, MOVE_AREA, STROKE }
 
 const COLOR_BACKGROUND := Color(0.14, 0.12, 0.12)
 const COLOR_GRID := Color(1, 1, 1, 0.04)
@@ -96,6 +108,20 @@ var brush_size := 1
 var _paint_room := ""
 var _paint_last := Vector2i.ZERO
 var _cells_cache: Dictionary = {} ## room id -> [signature, cells]
+## The area selected with the Area tool: its name, or "#id" for a room in no area.
+var selected_area := ""
+## Paint tool: a room painted onto an area gets a door to each room of it that it touches.
+var auto_doors := true
+## Settings of the areas the Generate and Paint area tools make.
+var generator := MDSAreaGenerator.new()
+var _area_ids: Array[String] = []
+var _area_origins: Dictionary = {}
+var _area_labels: Dictionary = {}
+var _area_own: Dictionary = {}
+var _area_taken: Dictionary = {}
+var _area_delta := Vector2i.ZERO
+var _stroke: Dictionary = {}
+var _stroke_area := ""
 
 func _init() -> void:
 	clip_contents = true
@@ -122,6 +148,8 @@ func set_data(p_world: MDSWorld, p_analysis: MDSAnalysis, p_scene_db: Dictionary
 	if not world or not world.has_room(selected_room):
 		selected_room = ""
 		selected_gate = ""
+	if not world or MDSAreaTools.group_rooms(world, selected_area, layer).is_empty():
+		selected_area = ""
 	_update_previews()
 	redraw()
 
@@ -135,6 +163,7 @@ func set_layer(p_layer: int) -> void:
 func set_tool(p_tool: int) -> void:
 	tool = p_tool
 	_drag = Drag.NONE
+	_stroke.clear()
 	tool_changed.emit(tool)
 	status_message.emit(TOOL_HINTS[tool])
 	redraw()
@@ -274,13 +303,16 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), COLOR_BACKGROUND)
 	if not world:
 		return
-	if tool == Tool.PAINT or tool == Tool.ERASE:
+	if tool in [Tool.PAINT, Tool.ERASE, Tool.AREA_PAINT, Tool.GENERATE]:
 		_draw_paint_grid()
 	elif show.grid:
 		_draw_grid()
 	var style := get_style()
 	var b := _border_px()
 	var dim := not highlight_rooms.is_empty()
+	var glow := style.kind == MDSMapStyle.Kind.GLOW
+	if glow:
+		_draw_glow_areas(dim)
 	for id in world.get_room_ids():
 		if world.get_room_layer(id) != layer:
 			continue
@@ -293,7 +325,13 @@ func _draw() -> void:
 		var fill := color
 		if style.kind == MDSMapStyle.Kind.ATLAS:
 			fill = color.lightened(0.2)
-		if style.kind != MDSMapStyle.Kind.FLAT:
+		if glow:
+			pass
+		elif world.has_room_shape(id):
+			# Curved and slanted sides: drawn by its outline.
+			var band := Color.TRANSPARENT if style.kind == MDSMapStyle.Kind.FLAT else (fill if style.kind == MDSMapStyle.Kind.ATLAS else _style_border_color(style, color))
+			MDSMapStyle.draw_outlined(self, MDSMapStyle.room_polygons(world, id), world_to_screen, style.outline_fill(fill), color.darkened(0.5), band, b * 1.6)
+		elif style.kind != MDSMapStyle.Kind.FLAT:
 			style.draw_room(self, get_cells(id), world.get_paint_cell(), world_to_screen, zoom, fill, _style_border_color(style, color), _passages(id))
 		else:
 			# Border first, fill on top: rects of one room merge into a single shape.
@@ -307,6 +345,45 @@ func _draw() -> void:
 			if tex:
 				var sr: Rect2 = scene_db[path].silhouette_rect
 				draw_texture_rect(tex, world_rect_to_screen(Rect2(world.get_origin(id) + sr.position, sr.size)), false, color.darkened(0.5))
+
+## The glowing style draws each area as one shape: its rooms translucent, a rim around it.
+func _draw_glow_areas(dim: bool) -> void:
+	var groups: Dictionary = {} # group -> {cell: room}
+	var members: Dictionary = {} # group -> its rooms
+	var shaped: Dictionary = {} # groups with a room drawn by its outline
+	var fills: Dictionary = {}
+	var lit: Dictionary = {}
+	for id in world.get_room_ids():
+		if world.get_room_layer(id) != layer:
+			continue
+		var g := MDSAreaTools.group_of(world, id)
+		if not groups.has(g):
+			groups[g] = {}
+			var list: Array[String] = []
+			members[g] = list
+		members[g].append(id)
+		if world.has_room_shape(id):
+			shaped[g] = true
+		var owner: Dictionary = groups[g]
+		for c in get_cells(id):
+			owner[c] = id
+		var color := get_room_color(id)
+		if dim and not highlight_rooms.has(id):
+			color = color.darkened(0.65)
+		else:
+			lit[g] = true
+		fills[id] = color
+	for g: String in groups:
+		var rim: Color = fills[g.substr(1)] if g.begins_with("#") else world.get_area_color(g)
+		if dim and not lit.has(g):
+			rim = rim.darkened(0.65)
+		if shaped.has(g):
+			var rooms: Dictionary = {}
+			for id: String in members[g]:
+				rooms[id] = MDSMapStyle.room_polygons(world, id)
+			MDSMapStyle.draw_glow_polygons(self, rooms, world_to_screen, zoom, fills, rim, MDSMapStyle.area_outline(world, members[g]))
+		else:
+			MDSMapStyle.draw_glow(self, groups[g], world.get_paint_cell(), world_to_screen, zoom, fills, rim)
 
 func set_brush_size(value: int) -> void:
 	brush_size = clampi(value, 1, 8)
@@ -446,8 +523,12 @@ func _draw_overlay() -> void:
 	if ids.is_empty():
 		_draw_message("Empty layer. Press R and drag to draw a room, or drop .tscn scenes here.")
 	if not hovered_room.is_empty() and world.has_room(hovered_room):
-		for r in world.get_world_rects(hovered_room):
-			ci.draw_rect(world_rect_to_screen(r), Color(1, 1, 1, 0.1))
+		if world.has_room_shape(hovered_room):
+			for poly in MDSMapStyle.room_polygons(world, hovered_room):
+				ci.draw_colored_polygon(_poly_on_screen(poly), Color(1, 1, 1, 0.1))
+		else:
+			for r in world.get_world_rects(hovered_room):
+				ci.draw_rect(world_rect_to_screen(r), Color(1, 1, 1, 0.1))
 	_draw_links(ci)
 	if show.gates:
 		_draw_connections(ci, ids)
@@ -469,6 +550,8 @@ func _draw_overlay() -> void:
 		_draw_pins(ci)
 	if world.has_room(selected_room) and world.get_room_layer(selected_room) == layer:
 		_draw_selection(ci)
+	if not selected_area.is_empty():
+		_draw_area_selection(ci)
 	_draw_drag_feedback(ci)
 	_draw_title(ci)
 	if show.legend:
@@ -581,12 +664,16 @@ func _draw_room_label(ci: CanvasItem, id: String) -> void:
 func _draw_area_labels(ci: CanvasItem, ids: Array[String]) -> void:
 	_area_label_rects.clear()
 	var bounds: Dictionary = {}
+	var biggest: Dictionary = {} # area -> its biggest room's bounds
 	for id in ids:
 		var a := world.get_room_area(id)
 		if a.is_empty():
 			continue
 		var rb := world.get_room_bounds(id)
 		bounds[a] = rb if not bounds.has(a) else bounds[a].merge(rb)
+		if not biggest.has(a) or rb.get_area() > biggest[a].get_area():
+			biggest[a] = rb
+	var inside := get_style().kind == MDSMapStyle.Kind.GLOW
 	var font := get_theme_default_font()
 	var fs := int(clampf(14.0 + zoom * 60.0, 14.0, 30.0))
 	var layer_center := world_rect_to_screen(world.get_layer_bounds(layer)).get_center()
@@ -597,6 +684,9 @@ func _draw_area_labels(ci: CanvasItem, ids: Array[String]) -> void:
 		var pos: Vector2
 		if custom != Vector2.INF:
 			pos = world_to_screen(custom)
+		elif inside:
+			# The glowing atlas look: the name on the area, on its biggest room.
+			pos = world_to_screen(biggest[a].get_center()) + Vector2(-tsize.x / 2.0, fs * 0.35)
 		else:
 			# Outside the map: areas right of the map's center get their name on the right.
 			var sb := world_rect_to_screen(bounds[a])
@@ -699,8 +789,15 @@ func _gate_towards(a: String, b: String) -> String:
 
 func _draw_selection(ci: CanvasItem) -> void:
 	var rects := world.get_world_rects(selected_room)
-	for r in rects:
-		ci.draw_rect(world_rect_to_screen(r).grow(_border_px() + 1.0), COLOR_SELECT, false, 2.0)
+	if world.has_room_shape(selected_room):
+		for poly in MDSMapStyle.room_polygons(world, selected_room):
+			ci.draw_polyline(_poly_on_screen(poly, true), COLOR_SELECT, 2.0)
+		# Its rectangles (what the game uses), faintly.
+		for r in rects:
+			ci.draw_rect(world_rect_to_screen(r), Color(COLOR_SELECT, 0.35), false, 1.0)
+	else:
+		for r in rects:
+			ci.draw_rect(world_rect_to_screen(r).grow(_border_px() + 1.0), COLOR_SELECT, false, 2.0)
 	if tool == Tool.SELECT:
 		for r in rects:
 			if not _has_handles(world_rect_to_screen(r)):
@@ -708,6 +805,41 @@ func _draw_selection(ci: CanvasItem) -> void:
 			for h in _handles(world_rect_to_screen(r)):
 				ci.draw_rect(Rect2(h - Vector2(4, 4), Vector2(8, 8)), COLOR_SELECT)
 				ci.draw_rect(Rect2(h - Vector2(4, 4), Vector2(8, 8)), Color.BLACK, false, 1.0)
+
+## The selected area's outline and name.
+func _draw_area_selection(ci: CanvasItem) -> void:
+	var ids := MDSAreaTools.group_rooms(world, selected_area, layer)
+	if ids.is_empty():
+		return
+	if ids.any(func(id: String) -> bool: return world.has_room_shape(id)):
+		for poly in MDSMapStyle.area_outline(world, ids):
+			var pts := _poly_on_screen(poly, true)
+			ci.draw_polyline(pts, Color(COLOR_SELECT, 0.3), 7.0)
+			ci.draw_polyline(pts, COLOR_SELECT, 2.0)
+	else:
+		_draw_cells_outline(ci, MDSAreaTools.cells_of(world, ids), COLOR_SELECT)
+	var b := world_rect_to_screen(MDSAreaTools.bounds_of(world, ids))
+	var text := "%s  (%d room%s)" % [MDSAreaTools.group_name(selected_area), ids.size(), "" if ids.size() == 1 else "s"]
+	var font := get_theme_default_font()
+	ci.draw_string_outline(font, b.position + Vector2(0, -8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(0, 0, 0, 0.85))
+	ci.draw_string(font, b.position + Vector2(0, -8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, COLOR_SELECT)
+
+func _poly_on_screen(poly: PackedVector2Array, closed := false) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for p in poly:
+		out.append(world_to_screen(p))
+	if closed and not poly.is_empty():
+		out.append(out[0])
+	return out
+
+func _draw_cells_outline(ci: CanvasItem, cells: Dictionary, color: Color) -> void:
+	var edges := MDSAreaTools.outline(cells, world.get_paint_cell())
+	if edges.is_empty():
+		return
+	for i in edges.size():
+		edges[i] = world_to_screen(edges[i])
+	ci.draw_multiline(edges, Color(color, 0.3), 7.0)
+	ci.draw_multiline(edges, color, 2.0)
 
 ## Rects smaller than this on screen get no resize handles, so clicking a small room
 ## always moves it (zoom in to resize).
@@ -723,7 +855,7 @@ func _handles(r: Rect2) -> Array[Vector2]:
 		r.end, Vector2(c.x, r.end.y), Vector2(r.position.x, r.end.y), Vector2(r.position.x, c.y)]
 
 func _draw_drag_feedback(ci: CanvasItem) -> void:
-	if (tool == Tool.PAINT or tool == Tool.ERASE) and get_rect().has_point(_mouse):
+	if tool in [Tool.PAINT, Tool.ERASE, Tool.AREA_PAINT] and get_rect().has_point(_mouse):
 		var color := Color(1, 0.35, 0.35) if tool == Tool.ERASE else COLOR_SELECT
 		for c in _brush_cells(world.world_to_cell(screen_to_world(_mouse))):
 			ci.draw_rect(world_rect_to_screen(world.cell_to_world_rect(c)), Color(color, 0.25))
@@ -732,6 +864,17 @@ func _draw_drag_feedback(ci: CanvasItem) -> void:
 		Drag.PAINT:
 			if tool == Tool.PAINT and world.has_room(_paint_room):
 				status_message.emit("Painted %s (%d cells). Drop a scene on it, or keep painting; Scenes > Add doors between touching rooms connects neighbors." % [_paint_room, world.get_room_cells(_paint_room).size()])
+		Drag.STROKE:
+			for c in _stroke:
+				ci.draw_rect(world_rect_to_screen(world.cell_to_world_rect(c)), Color(COLOR_SELECT, 0.22))
+			_draw_cells_outline(ci, _stroke, COLOR_SELECT)
+		Drag.RUBBER when tool == Tool.GENERATE:
+			var box := _rubber_cell_box()
+			var r := Rect2(Vector2(box.position) * world.get_paint_cell(), Vector2(box.size) * world.get_paint_cell())
+			ci.draw_rect(world_rect_to_screen(r), Color(COLOR_SELECT, 0.15))
+			ci.draw_rect(world_rect_to_screen(r), COLOR_SELECT, false, 2.0)
+			var font := get_theme_default_font()
+			ci.draw_string(font, world_to_screen(r.end) + Vector2(6, 14), "%d x %d cells" % [box.size.x, box.size.y], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COLOR_SELECT)
 		Drag.RUBBER:
 			var r := _rubber_world_rect()
 			ci.draw_rect(world_rect_to_screen(r), Color(COLOR_SELECT, 0.2))
@@ -853,6 +996,12 @@ func _rubber_world_rect() -> Rect2:
 	var b := world.snap(screen_to_world(_mouse))
 	return Rect2(a, b - a).abs()
 
+## The paint cells the Generate tool's box covers.
+func _rubber_cell_box() -> Rect2i:
+	var a := world.world_to_cell(screen_to_world(_drag_start))
+	var b := world.world_to_cell(screen_to_world(_mouse))
+	return Rect2i(a.min(b), (a - b).abs() + Vector2i.ONE)
+
 # --- Input ---------------------------------------------------------------------------------------
 
 func _gui_input(event: InputEvent) -> void:
@@ -879,7 +1028,7 @@ func _on_mouse_button(mb: InputEventMouseButton) -> void:
 			_drag = Drag.NONE
 			if mb.button_index == MOUSE_BUTTON_RIGHT and not _drag_moved:
 				var w := screen_to_world(mb.position)
-				context_requested.emit(world.room_at(w, layer), w, mb.position)
+				context_requested.emit(world.room_at(w, layer, true), w, mb.position)
 		accept_event()
 		return
 	if mb.button_index != MOUSE_BUTTON_LEFT:
@@ -906,7 +1055,7 @@ func _checkpoint_once() -> void:
 
 func _on_left_press(mb: InputEventMouseButton) -> void:
 	var w := screen_to_world(mb.position)
-	var room := world.room_at(w, layer)
+	var room := world.room_at(w, layer, true)
 	match tool:
 		Tool.PAINT, Tool.ERASE:
 			world.checkpoint()
@@ -933,6 +1082,31 @@ func _on_left_press(mb: InputEventMouseButton) -> void:
 			return
 		Tool.PIN:
 			pin_requested.emit(w)
+			return
+		Tool.AREA:
+			if room.is_empty():
+				select_area("")
+				_begin_drag(Drag.PAN, mb)
+				return
+			var group := MDSAreaTools.group_of(world, room)
+			select_area(group)
+			if mb.double_click:
+				if not group.begins_with("#"):
+					area_activated.emit(group)
+				return
+			_begin_area_move(mb)
+			return
+		Tool.GENERATE:
+			_begin_drag(Drag.RUBBER, mb)
+			return
+		Tool.AREA_PAINT:
+			_begin_drag(Drag.STROKE, mb)
+			_stroke.clear()
+			var cell := world.world_to_cell(w)
+			_paint_last = cell
+			_stroke_area = world.get_room_area(room) if not room.is_empty() else ""
+			_stroke_along(cell, cell)
+			redraw()
 			return
 		Tool.GATE:
 			var hit := gate_at(mb.position)
@@ -995,6 +1169,22 @@ func _on_left_press(mb: InputEventMouseButton) -> void:
 func _on_left_release(mb: InputEventMouseButton) -> void:
 	var w := screen_to_world(mb.position)
 	match _drag:
+		Drag.PAINT:
+			if tool == Tool.PAINT and auto_doors and world.has_room(_paint_room):
+				var n := MDSAreaTools.link_neighbors(world, _paint_room, layer)
+				if n > 0:
+					status_message.emit("%s: %d door(s) to the rooms of its area it touches (turn Auto doors off to place them yourself)." % [_paint_room, n])
+		Drag.MOVE_AREA:
+			if _drag_moved and _area_delta != Vector2i.ZERO:
+				_settle_area(_area_ids)
+		Drag.STROKE:
+			_finish_stroke()
+		Drag.RUBBER when tool == Tool.GENERATE:
+			var box := _rubber_cell_box()
+			if _drag_moved and box.size.x >= 2 and box.size.y >= 2:
+				generate_requested.emit(box)
+			elif _drag_moved:
+				status_message.emit("Drag a bigger box: at least 2 x 2 cells.")
 		Drag.RUBBER:
 			var r := _rubber_world_rect()
 			if r.size.x >= world.get_grid() and r.size.y >= world.get_grid():
@@ -1011,7 +1201,7 @@ func _on_left_release(mb: InputEventMouseButton) -> void:
 			if _drag_moved:
 				var target := gate_at(mb.position)
 				if target.is_empty():
-					var room := world.room_at(w, layer)
+					var room := world.room_at(w, layer, true)
 					if not room.is_empty() and room != _drag_room:
 						world.checkpoint()
 						var g := world.add_gate(room, w)
@@ -1026,6 +1216,14 @@ func _on_left_release(mb: InputEventMouseButton) -> void:
 
 func _on_mouse_motion(mm: InputEventMouseMotion) -> void:
 	_mouse = mm.position
+	if _drag == Drag.STROKE:
+		var cell := world.world_to_cell(screen_to_world(mm.position))
+		if cell != _paint_last:
+			_stroke_along(_paint_last, cell)
+			_paint_last = cell
+		_overlay.queue_redraw()
+		accept_event()
+		return
 	if _drag == Drag.PAINT:
 		var cell := world.world_to_cell(screen_to_world(mm.position))
 		if cell != _paint_last:
@@ -1034,7 +1232,7 @@ func _on_mouse_motion(mm: InputEventMouseMotion) -> void:
 		redraw()
 		accept_event()
 		return
-	if tool == Tool.PAINT or tool == Tool.ERASE:
+	if tool in [Tool.PAINT, Tool.ERASE, Tool.AREA_PAINT]:
 		_overlay.queue_redraw()
 	if _drag != Drag.NONE:
 		if mm.position.distance_to(_drag_start) > 3.0:
@@ -1044,7 +1242,7 @@ func _on_mouse_motion(mm: InputEventMouseMotion) -> void:
 		accept_event()
 		return
 	var w := screen_to_world(mm.position)
-	var room := world.room_at(w, layer)
+	var room := world.room_at(w, layer, true)
 	if room != hovered_room:
 		hovered_room = room
 		_overlay.queue_redraw()
@@ -1060,6 +1258,8 @@ func _on_mouse_motion(mm: InputEventMouseMotion) -> void:
 			mouse_default_cursor_shape = CURSOR_MOVE
 		else:
 			mouse_default_cursor_shape = CURSOR_ARROW
+	elif tool == Tool.AREA:
+		mouse_default_cursor_shape = CURSOR_MOVE if not room.is_empty() else CURSOR_ARROW
 	else:
 		mouse_default_cursor_shape = CURSOR_CROSS
 
@@ -1101,6 +1301,18 @@ func _apply_drag(pos: Vector2) -> void:
 			_checkpoint_once()
 			var p := screen_to_world(pos)
 			world.set_area_value(_drag_area, "label_pos", [p.x, p.y])
+		Drag.MOVE_AREA:
+			var s := world.get_paint_cell()
+			var want := Vector2i((delta_world / s).round())
+			var got := MDSAreaTools.slide(_area_own, _area_taken, _area_delta, want)
+			if got != _area_delta:
+				_checkpoint_once()
+				_area_delta = got
+				MDSAreaTools.place(world, _area_ids, _area_origins, Vector2(got) * s, _area_labels)
+				for id in _area_ids:
+					_sync_preview_position(id)
+			if got != want:
+				status_message.emit("%s stops against its neighbour. Let go to connect them." % MDSAreaTools.group_name(selected_area))
 	redraw()
 
 func _on_key(key: InputEventKey) -> void:
@@ -1133,6 +1345,12 @@ func _on_key(key: InputEventKey) -> void:
 			set_tool(Tool.PAINT)
 		KEY_X:
 			set_tool(Tool.ERASE)
+		KEY_A when not ctrl:
+			set_tool(Tool.AREA)
+		KEY_N when not ctrl:
+			set_tool(Tool.GENERATE)
+		KEY_M when not ctrl:
+			set_tool(Tool.AREA_PAINT)
 		KEY_BRACKETLEFT:
 			set_brush_size(brush_size - 1)
 		KEY_BRACKETRIGHT:
@@ -1149,7 +1367,10 @@ func _on_key(key: InputEventKey) -> void:
 		KEY_DELETE, KEY_BACKSPACE:
 			delete_selection()
 		KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN:
-			if world.has_room(selected_room):
+			if tool == Tool.AREA and not selected_area.is_empty():
+				var d: Vector2i = {KEY_LEFT: Vector2i.LEFT, KEY_RIGHT: Vector2i.RIGHT, KEY_UP: Vector2i.UP, KEY_DOWN: Vector2i.DOWN}[key.keycode]
+				nudge_area(d)
+			elif world.has_room(selected_room):
 				var d: Vector2 = {KEY_LEFT: Vector2.LEFT, KEY_RIGHT: Vector2.RIGHT, KEY_UP: Vector2.UP, KEY_DOWN: Vector2.DOWN}[key.keycode]
 				world.checkpoint()
 				world.set_origin(selected_room, world.get_origin(selected_room) + d * world.get_grid())
@@ -1170,8 +1391,20 @@ func _redo() -> void:
 	if world.redo():
 		status_message.emit("Redo")
 
-## Deletes the selected gate, else the selected room.
+## Deletes the selected gate, else the selected room; with the Area tool, the selected area's
+## rooms.
 func delete_selection() -> void:
+	if tool == Tool.AREA and not selected_area.is_empty():
+		var ids := MDSAreaTools.group_rooms(world, selected_area, layer)
+		if ids.is_empty():
+			return
+		world.checkpoint()
+		for id in ids:
+			world.remove_room(id)
+		status_message.emit("Deleted the %d room(s) of %s. Ctrl+Z to undo." % [ids.size(), MDSAreaTools.group_name(selected_area)])
+		select_area("")
+		redraw()
+		return
 	if not world.has_room(selected_room):
 		return
 	world.checkpoint()
@@ -1186,6 +1419,94 @@ func delete_selection() -> void:
 		room_selected.emit("")
 		status_message.emit("Deleted room %s. Ctrl+Z to undo." % id)
 	redraw()
+
+# --- Areas ------------------------------------------------------------------------------------
+
+## Selects [param group] (an area's name, or "#id" for a room in none; "" for none).
+func select_area(group: String) -> void:
+	selected_area = group
+	if not group.is_empty():
+		selected_room = ""
+		selected_gate = ""
+	area_selected.emit(group)
+	redraw()
+
+func _begin_area_move(mb: InputEventMouseButton) -> void:
+	_begin_drag(Drag.MOVE_AREA, mb)
+	_area_ids = MDSAreaTools.group_rooms(world, selected_area, layer)
+	_area_origins.clear()
+	for id in _area_ids:
+		_area_origins[id] = world.get_origin(id)
+	_area_labels.clear()
+	if not selected_area.begins_with("#"):
+		_area_labels[selected_area] = world.get_area_label_pos(selected_area)
+	_area_own = MDSAreaTools.cells_of(world, _area_ids)
+	_area_taken = MDSAreaTools.occupied(world, layer, _area_ids)
+	_area_delta = Vector2i.ZERO
+
+## Moves the selected area [param d] cells unless that lands it on another, then connects it
+## to what it touches.
+func nudge_area(d: Vector2i) -> void:
+	var ids := MDSAreaTools.group_rooms(world, selected_area, layer)
+	if ids.is_empty():
+		return
+	if not MDSAreaTools.fits(MDSAreaTools.cells_of(world, ids), d, MDSAreaTools.occupied(world, layer, ids)):
+		status_message.emit("%s is against its neighbour there." % MDSAreaTools.group_name(selected_area))
+		return
+	world.checkpoint()
+	var origins: Dictionary = {}
+	for id in ids:
+		origins[id] = world.get_origin(id)
+	var labels: Dictionary = {}
+	if not selected_area.begins_with("#"):
+		labels[selected_area] = world.get_area_label_pos(selected_area)
+	MDSAreaTools.place(world, ids, origins, Vector2(d) * world.get_paint_cell(), labels)
+	for id in ids:
+		_sync_preview_position(id)
+	_settle_area(ids)
+
+## After an area moved: doors to the areas it left go, doors to the ones it touches now come.
+func _settle_area(ids: Array[String]) -> void:
+	var gone := MDSAreaTools.unlink_apart(world, ids)
+	var made := MDSAreaTools.link_touching(world, ids, layer)
+	var text := "Moved %s." % MDSAreaTools.group_name(selected_area)
+	if not made.is_empty():
+		var parts: PackedStringArray = []
+		for m in made:
+			parts.append("%s.%s <-> %s.%s" % m)
+		text += " Connected: " + ", ".join(parts) + "."
+	if gone > 0:
+		text += " %d door(s) to areas it left taken out." % gone
+	status_message.emit(text)
+
+func _stroke_along(from_cell: Vector2i, to_cell: Vector2i) -> void:
+	for c in _line_cells(from_cell, to_cell):
+		for bc in _brush_cells(c):
+			_stroke[bc] = true
+
+## The Paint area stroke becomes rooms: in the area it started in, else in the area for new
+## rooms, else in a new area.
+func _finish_stroke() -> void:
+	var cells := _stroke.duplicate()
+	_stroke.clear()
+	var taken := MDSAreaTools.occupied(world, layer)
+	if cells.keys().all(func(c: Vector2i) -> bool: return taken.has(c)):
+		status_message.emit("Every cell of the stroke is a room already.")
+		return
+	world.checkpoint()
+	var area := _stroke_area
+	if area.is_empty() and world.has_area(new_room_area):
+		area = new_room_area
+	var made_area := area.is_empty()
+	if made_area:
+		area = generator.random_name(world)
+		world.add_area(area, MDSAreaGenerator.free_color(world, world.get_areas().size()))
+	var ids := generator.fill(world, cells, layer, area)
+	var doors := generator.last_doors
+	var links := MDSAreaTools.link_touching(world, MDSAreaTools.group_rooms(world, area, layer), layer)
+	select_area(area)
+	status_message.emit("%s %s: %d room(s), %d door(s)%s. Double-click it with the Area tool (A) to rename it." % ["New area" if made_area else "Painted onto", area, ids.size(), doors,
+		", connected to %d other area(s)" % links.size() if not links.is_empty() else ""])
 
 func _select_gate(room: String, gate_name: String) -> void:
 	selected_room = room
@@ -1234,7 +1555,7 @@ func _get_tooltip(at_position: Vector2) -> String:
 		if not gate.get("requires", []).is_empty():
 			text += "\nRequires: " + ", ".join(gate.requires)
 		return text
-	var id := world.room_at(screen_to_world(at_position), layer)
+	var id := world.room_at(screen_to_world(at_position), layer, true)
 	if id.is_empty():
 		return ""
 	var info: Dictionary = analysis.get_info(id) if analysis else {}

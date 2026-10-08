@@ -26,7 +26,7 @@ func _init() -> void:
 	title = "Convert to freeform"
 	ok_button_text = "Convert"
 	var box := VBoxContainer.new()
-	add_child(box)
+	MDSUi.scroll_content(self, box)
 	box.add_child(MDSUi.hint("Turns the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects where it is. Platforms become one-way ledges."))
 	var grid := GridContainer.new()
 	grid.columns = 2
@@ -90,7 +90,7 @@ func open(p_view: MDSRoomView, styles: Array[MDSFreeformStyle], current: MDSFree
 	_fill(_front, "Keep as tiles", null, func(_st: MDSFreeformStyle) -> bool: return false)
 	_fill(_outside, "No", null, func(_st: MDSFreeformStyle) -> bool: return false)
 	_seed.value = absi(hash(view.room_id)) % 10000
-	popup_centered()
+	MDSUi.popup_fitted(self, 520)
 
 ## Lists the styles; picks [param current], else the first one [param prefer] accepts, else
 ## the empty choice (when [param empty] is given) or the first style.
@@ -131,7 +131,7 @@ func _run() -> Dictionary:
 		return r
 	var deep := _style(_outside)
 	if deep:
-		r.outside = MDSNotchFill.fill(painter, view.world.get_local_rects(view.room_id), deep)
+		r.outside = MDSNotchFill.fill(painter, view.world.get_local_rects(view.room_id), deep, MDSNotchFill.MARGIN, view.world.get_local_shape(view.room_id))
 	return r
 
 func preview() -> void:

@@ -143,7 +143,10 @@ func _open_window() -> void:
 	_window = Window.new()
 	_window.title = "Map Dev - Metroidvania Developer System"
 	_window.theme = EditorInterface.get_editor_theme()
-	_window.min_size = Vector2i(640, 420)
+	var scale := EditorInterface.get_editor_scale()
+	var usable := MDSUi.usable_screen_rect(EditorInterface.get_base_control().get_window())
+	var smallest := Vector2i(Vector2(640, 420) * scale)
+	_window.min_size = smallest.min(usable.size) if usable.has_area() else smallest
 	_window.wrap_controls = false
 	_window.transient = false
 	_window.exclusive = false
@@ -158,13 +161,21 @@ func _open_window() -> void:
 	dock_instance.show()
 	EditorInterface.get_base_control().add_child(_window)
 	var rect: Rect2i = EditorInterface.get_editor_settings().get_project_metadata(METADATA_SECTION, "window_rect", Rect2i())
+	# Always within a screen's usable area: a window saved on a bigger screen, or the default
+	# size at a big editor scale, would otherwise run off its edges.
 	if rect.size.x >= 320 and rect.size.y >= 240 and _rect_on_screen(rect):
+		rect = MDSUi.fit_rect(rect, MDSUi.usable_screen_rect_at(rect))
 		_window.position = rect.position
 		_window.size = rect.size
 		_window.show()
 	else:
-		var scale := EditorInterface.get_editor_scale()
-		_window.popup_centered(Vector2i(Vector2(1280, 800) * scale))
+		var want := Vector2i(Vector2(1280, 800) * scale)
+		if usable.has_area():
+			want = want.min(Vector2i(Vector2(usable.size) * 0.92))
+		_window.popup_centered(want)
+		var r := MDSUi.fit_rect(Rect2i(_window.position, _window.size), usable)
+		_window.position = r.position
+		_window.size = r.size
 
 func _rect_on_screen(rect: Rect2i) -> bool:
 	for i in DisplayServer.get_screen_count():

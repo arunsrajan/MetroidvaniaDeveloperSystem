@@ -104,10 +104,45 @@ func _draw() -> void:
 	var border := clampf(scale * 40.0, 1.5, 4.0)
 	# Same tileset as the editor map (world setting "map_style").
 	var style := MDSMapStyle.get_style(str(world.get_setting("map_style", "handdrawn")))
+	if style.kind == MDSMapStyle.Kind.GLOW:
+		# Each area as one glowing shape.
+		var groups: Dictionary = {}
+		var members: Dictionary = {}
+		var shaped: Dictionary = {}
+		var fills: Dictionary = {}
+		for id in shown:
+			var color := world.get_area_color(world.get_room_area(id))
+			fills[id] = color if visited_rooms.has(id) or reveal_all else color.darkened(0.45)
+			var g := MDSAreaTools.group_of(world, id)
+			if not groups.has(g):
+				groups[g] = {}
+				var list: Array[String] = []
+				members[g] = list
+			members[g].append(id)
+			if world.has_room_shape(id):
+				shaped[g] = true
+			var owner: Dictionary = groups[g]
+			for c in world.get_room_cells(id):
+				owner[c] = id
+		for g: String in groups:
+			var rim: Color = fills[g.substr(1)] if g.begins_with("#") else world.get_area_color(g)
+			if shaped.has(g):
+				var rooms: Dictionary = {}
+				for id: String in members[g]:
+					rooms[id] = MDSMapStyle.room_polygons(world, id)
+				MDSMapStyle.draw_glow_polygons(self, rooms, to_screen, scale, fills, rim, MDSMapStyle.area_outline(world, members[g]))
+			else:
+				MDSMapStyle.draw_glow(self, groups[g], world.get_paint_cell(), to_screen, scale, fills, rim)
 	for id in shown:
 		var color := world.get_area_color(world.get_room_area(id))
 		if not visited_rooms.has(id) and not reveal_all:
 			color = color.darkened(0.45)
+		if style.kind == MDSMapStyle.Kind.GLOW:
+			continue
+		if world.has_room_shape(id):
+			var band := Color.TRANSPARENT if style.kind == MDSMapStyle.Kind.FLAT else (color if style.kind == MDSMapStyle.Kind.ATLAS else color.lightened(0.3))
+			MDSMapStyle.draw_outlined(self, MDSMapStyle.room_polygons(world, id), to_screen, style.outline_fill(color), color.darkened(0.5), band, border * 1.6)
+			continue
 		if style.kind != MDSMapStyle.Kind.FLAT:
 			var border_color: Color = style.theme.default_border_color if style.kind == MDSMapStyle.Kind.METSYS and style.theme.get("default_border_color") is Color else color.lightened(0.3)
 			style.draw_room(self, world.get_room_cells(id), world.get_paint_cell(), to_screen, scale, color, border_color)
