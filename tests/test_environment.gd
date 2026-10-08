@@ -1,5 +1,5 @@
 extends "res://tests/test_case.gd"
-## Environment effects (MDSEnvironmentEffect and its 15 effects), weather specs and presets
+## Environment effects (MDSEnvironmentEffect and its 17 effects), weather specs and presets
 ## (MDSEnvironment), effects acting on bodies, effects in the Room view's painter and canvas,
 ## and area weather in MDSWorldGame.
 
@@ -52,7 +52,7 @@ func _body(at: Vector2, script_source := "") -> CharacterBody2D:
 # --- The catalog ------------------------------------------------------------------------------------
 
 func _catalog() -> void:
-	check(MDSEnvironment.effect_ids().size() == 15, "15 effects (%d)" % MDSEnvironment.effect_ids().size())
+	check(MDSEnvironment.effect_ids().size() == 17, "17 effects (%d)" % MDSEnvironment.effect_ids().size())
 	var real_renderer := DisplayServer.get_name() != "headless"
 	for id in MDSEnvironment.effect_ids():
 		var e := MDSEnvironment.create(id)

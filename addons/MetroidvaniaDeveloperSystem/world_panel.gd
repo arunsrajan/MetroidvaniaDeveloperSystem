@@ -582,6 +582,8 @@ func _build_areas_tab() -> void:
 	area_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	area_tree.item_selected.connect(func() -> void:
 		_selected_area = area_tree.get_selected().get_metadata(0)
+		# Selected on the map too: drag any of its rooms to move the whole area.
+		canvas.select_area(_selected_area)
 		_rebuild_area_editor()
 		canvas.highlight_rooms.clear()
 		for id in world.get_area_rooms(_selected_area):
@@ -649,9 +651,11 @@ func _free_box() -> Rect2i:
 func _on_canvas_area_selected(group: String) -> void:
 	if group.is_empty() or group.begins_with("#") or not world.has_area(group):
 		return
-	_selected_area = group
-	_refresh_area_list()
-	_set_status("%s: %d room(s). Drag to move it, double-click to rename it, Delete removes its rooms." % [group, world.get_area_rooms(group).size()])
+	# Picked in the Areas tab already (this runs from its handler): the list stays as it is.
+	if group != _selected_area:
+		_selected_area = group
+		_refresh_area_list()
+	_set_status("%s: %d room(s). Drag any of its rooms (or its name) to move the whole area; it stops against its neighbours and connects to them. Double-click its name to rename it; Delete removes its rooms." % [group, world.get_area_rooms(group).size()])
 
 func _ask_rename_area(area: String) -> void:
 	if not world or not world.has_area(area):
