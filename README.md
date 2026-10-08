@@ -197,7 +197,9 @@ Cells other rooms already cover are left out, so a box dragged over a corner of 
 
 - Every map style draws it, and so does the in-game map (`MDSWorldMapView`).
 - Clicks and hovering follow it.
-- The Room view draws it in cyan over the room and shades what lies outside it. **Fill outside shape**, and **Create scene** with a fill style set, fill outside the outline instead of outside the rectangles.
+- The Room view draws it in cyan over the room and shades what lies outside it.
+- **Generate cave** and **New variation** follow the outline: the cave stays inside it and rock fills the rest of the rectangles, so its walls take the curves and slants. Background is painted only behind the cave. **Fill background** and **Auto-decorate** stay inside the outline too.
+- **Fill outside shape**, and **Create scene** with a fill style set, fill outside the outline instead of outside the rectangles.
 - Painting or erasing cells keeps the curves where the room still is. Cells added come in square.
 - Doors go where both rooms' outlines reach.
 
@@ -220,6 +222,13 @@ In code: `MDSWorld.get_room_shape(id)`, `set_room_shape(id, polygons)` (empty: d
 - **Arrow keys** nudge it a cell, the same way.
 - **Double-click** renames it. The Areas tab's **Name** field and **Select on map** button work too.
 - **Delete** removes its rooms. Everything is one step of undo.
+
+**With the Select tool (`V`)** you can move whole areas too, without switching tools:
+
+- **Click or drag an area's name** on the map: the whole area is selected and moves, stopping against its neighbours and connecting to them, as with the Area tool. Double-click the name to rename the area. **Alt+drag** the name moves only the name.
+- **Alt+drag any room** to move its whole area.
+- **Once an area is selected** (by its name, or picked in the **Areas tab**), dragging any of its rooms moves the whole area. A click on one of its rooms without dragging selects just that room again.
+- With an area selected, the **arrow keys** nudge it and **Delete** removes its rooms.
 
 In code, `MDSAreaGenerator` makes areas and `MDSAreaTools` moves and connects them. Both are in `core/` and need no editor:
 
@@ -462,7 +471,7 @@ painter.save()
 
 #### Environment effects
 
-Fifteen effects bring rooms to life: weather, hazards, scenery in motion and parallax backgrounds. Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
+Seventeen effects bring rooms to life: weather, hazards, scenery in motion and parallax backgrounds. Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
 
 | Effect | Node | What it does |
 |---|---|---|
@@ -479,6 +488,8 @@ Fifteen effects bring rooms to life: weather, hazards, scenery in motion and par
 | Steam vent | `MDSSteamVent` | A vent forcing out hot steam under pressure: wisps, a warning glow, then a jet (white-hot at the vent, cooling to a dark red crest, glitter thrown up along it) that throws the player (`launch_speed`) and scalds them (`damage`). It repeats (`rest_time`), blasts constantly, or waits for `erupt()`; `phase_offset` lets a row of vents take turns. Rotate it to blast sideways or down. |
 | Lava pool | `MDSLava` | Molten rock with crust plates, glowing cracks, bursting bubbles, a heat glow and embers; `liquid` switches to magma, acid or cursed ooze. It hurts every `damage_interval` |
 | Waterfall | `MDSWaterfall` | A sheet of falling water with ragged sides, white water at its lip and foot, mist, and what's behind bent through it; `push_down` presses the player down |
+| Hot water falls | `MDSHotWaterfall` | Scalding mineral water: milky and pale where it runs thick, with a warm glow deep in it. Steam pours off its whole length and billows up from its foot, and the air around it wavers in the heat. It scalds (`damage`, `damage_interval`), and `push_down` presses the player down |
+| Lava falls | `MDSLavaFall` | Molten rock pouring over a ledge, slow and thick. It has a white-hot core and orange streaks. Crust forms as it falls and breaks up with glowing cracks, and blobs bulge at its sides. It splashes molten drops where it lands, glows, sends up embers, and the air wavers in the heat. `liquid` switches it to magma, acid or cursed ooze. It burns (`damage`, `damage_interval`) |
 | Water | `MDSWater` | A pool: a rolling surface, refraction, a deeper tint toward the bottom, caustics, bubbles; `drag` slows bodies in it |
 | Parallax background | `MDSParallaxBackground` | Layers behind the room, the far ones moving slower: sky, mountains, hills, forest, city, ruins, cave rock, dunes, clouds, fog, stars, or your own pictures (see [Parallax backgrounds](#parallax-backgrounds)) |
 
@@ -1132,7 +1143,7 @@ addons/MetroidvaniaDeveloperSystem/
 │       ├── mds_parallax_layer.gd # MDSParallaxLayer: one layer (shader-drawn or a picture)
 │       └── mds_*.gd       # MDSDustStorm, MDSRain, MDSLightning, MDSSnowfall, MDSFog, MDSEmbers,
 │                          # MDSFireflies, MDSFallingLeaves, MDSLightShafts, MDSHeatHaze,
-│                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSWater
+│                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSHotWaterfall, MDSLavaFall, MDSWater
 ├── shaders/
 │   ├── terrain_skin.*     # Example terrain skin shader and its fill and edge materials
 │   └── environment/       # The effects' shaders and mds_env.gdshaderinc (noise, soft edges)

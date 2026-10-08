@@ -38,7 +38,7 @@ signal generate_requested(box: Rect2i)
 enum Tool { SELECT, ROOM, RECT, GATE, PIN, PAINT, ERASE, AREA, GENERATE, AREA_PAINT }
 const TOOL_NAMES: PackedStringArray = ["Select (V)", "Draw room (R)", "Extend room (E)", "Gate (G)", "Pin (P)", "Paint (B)", "Erase (X)", "Area (A)", "Generate area (N)", "Paint area (M)"]
 const TOOL_HINTS: PackedStringArray = [
-	"Click to select, drag to move, drag handles to resize, drag from a gate to another gate to connect. Drop .tscn files here to place scenes.",
+	"Click to select, drag to move, drag handles to resize, drag from a gate to another gate to connect. A whole area: click or drag its name, or Alt+drag any of its rooms (once selected, drag any of its rooms; click one to pick just that room). Alt+drag a name moves only the name. Drop .tscn files here to place scenes.",
 	"Drag to draw a new room.",
 	"Drag to add a rectangle to the selected room (irregular shapes).",
 	"Click a room edge to add a gate. Drag from a gate to another gate to connect.",
@@ -122,6 +122,8 @@ var _area_taken: Dictionary = {}
 var _area_delta := Vector2i.ZERO
 var _stroke: Dictionary = {}
 var _stroke_area := ""
+## Select tool: the room pressed in the selected area; a click without a drag selects it.
+var _area_drill := ""
 
 func _init() -> void:
 	clip_contents = true
@@ -1123,7 +1125,8 @@ func _on_left_press(mb: InputEventMouseButton) -> void:
 				status_message.emit("Added gate %s.%s. Drag from it to another gate to connect." % [room, g])
 			return
 	# Select tool.
-	if mb.double_click and not room.is_empty():
+	var label := _area_label_at(mb.position)
+	if mb.double_click and not room.is_empty() and label.is_empty():
 		room_activated.emit(room)
 		return
 	# Gates before resize handles: a gate often sits on an edge's middle handle.
@@ -1142,21 +1145,42 @@ func _on_left_press(mb: InputEventMouseButton) -> void:
 		_drag_handle = handle[1]
 		_drag_orig_rect = world.get_world_rects(selected_room)[handle[0]]
 		return
-	var label := _area_label_at(mb.position)
-	if not label.is_empty() and room.is_empty():
-		_begin_drag(Drag.MOVE_LABEL, mb)
-		_drag_area = label
+	# An area's name: the whole area (double-click renames it; Alt+drag moves only the name).
+	if not label.is_empty():
+		if mb.alt_pressed:
+			_begin_drag(Drag.MOVE_LABEL, mb)
+			_drag_area = label
+			return
+		select_area(label)
+		if mb.double_click:
+			area_activated.emit(label)
+			return
+		_begin_area_move(mb)
+		status_message.emit("%s selected: drag to move the whole area (it stops against its neighbours and connects to them). Click one of its rooms to pick just that room." % label)
 		return
 	if room.is_empty():
 		selected_room = ""
 		selected_gate = ""
 		room_selected.emit("")
+		if not selected_area.is_empty():
+			select_area("")
 		_begin_drag(Drag.PAN, mb)
 		redraw()
 		return
 	if mb.shift_pressed and not selected_room.is_empty() and selected_room != room:
 		route_requested.emit(selected_room, room)
 		return
+	# Alt+drag a room, or drag a room of the selected area: the whole area.
+	var group := MDSAreaTools.group_of(world, room)
+	if mb.alt_pressed or (not selected_area.is_empty() and group == selected_area):
+		var drill := room if not mb.alt_pressed else ""
+		select_area(group)
+		_begin_area_move(mb)
+		_area_drill = drill
+		return
+	if not selected_area.is_empty():
+		selected_area = ""
+		area_selected.emit("")
 	selected_room = room
 	selected_gate = ""
 	room_selected.emit(room)
@@ -1177,6 +1201,14 @@ func _on_left_release(mb: InputEventMouseButton) -> void:
 		Drag.MOVE_AREA:
 			if _drag_moved and _area_delta != Vector2i.ZERO:
 				_settle_area(_area_ids)
+			elif not _drag_moved and world.has_room(_area_drill):
+				# A click on a room of the selected area: just that room.
+				selected_area = ""
+				area_selected.emit("")
+				selected_room = _area_drill
+				selected_gate = ""
+				room_selected.emit(_area_drill)
+			_area_drill = ""
 		Drag.STROKE:
 			_finish_stroke()
 		Drag.RUBBER when tool == Tool.GENERATE:
@@ -1367,7 +1399,7 @@ func _on_key(key: InputEventKey) -> void:
 		KEY_DELETE, KEY_BACKSPACE:
 			delete_selection()
 		KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN:
-			if tool == Tool.AREA and not selected_area.is_empty():
+			if not selected_area.is_empty() and (tool == Tool.AREA or not world.has_room(selected_room)):
 				var d: Vector2i = {KEY_LEFT: Vector2i.LEFT, KEY_RIGHT: Vector2i.RIGHT, KEY_UP: Vector2i.UP, KEY_DOWN: Vector2i.DOWN}[key.keycode]
 				nudge_area(d)
 			elif world.has_room(selected_room):
@@ -1391,10 +1423,10 @@ func _redo() -> void:
 	if world.redo():
 		status_message.emit("Redo")
 
-## Deletes the selected gate, else the selected room; with the Area tool, the selected area's
-## rooms.
+## Deletes the selected gate, else the selected room; the selected area's rooms when an area
+## is selected (Area tool, or its name clicked).
 func delete_selection() -> void:
-	if tool == Tool.AREA and not selected_area.is_empty():
+	if not selected_area.is_empty() and (tool == Tool.AREA or not world.has_room(selected_room)):
 		var ids := MDSAreaTools.group_rooms(world, selected_area, layer)
 		if ids.is_empty():
 			return
@@ -1433,6 +1465,7 @@ func select_area(group: String) -> void:
 
 func _begin_area_move(mb: InputEventMouseButton) -> void:
 	_begin_drag(Drag.MOVE_AREA, mb)
+	_area_drill = ""
 	_area_ids = MDSAreaTools.group_rooms(world, selected_area, layer)
 	_area_origins.clear()
 	for id in _area_ids:

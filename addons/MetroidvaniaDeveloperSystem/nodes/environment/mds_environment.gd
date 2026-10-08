@@ -47,6 +47,8 @@ const EFFECTS := {
 	"steam_vent": ["Steam vent", "mds_steam_vent.gd", false, "A vent forcing out hot steam: wisps, a warning glow, then a jet that throws and scalds"],
 	"lava": ["Lava pool", "mds_lava.gd", false, "Molten rock (or acid, cursed ooze) with crust, bubbles, a glow and embers; it hurts"],
 	"waterfall": ["Waterfall", "mds_waterfall.gd", false, "A sheet of falling water, white water at its lip and foot, mist"],
+	"hot_waterfall": ["Hot water falls", "mds_hot_waterfall.gd", false, "Scalding mineral water pouring down: steam pouring off it and billowing at its foot, a warm glow, the air wavering; it scalds"],
+	"lava_fall": ["Lava falls", "mds_lava_fall.gd", false, "Molten rock pouring over a ledge: a white-hot core, crust sliding and cracking, a splash of molten drops, a glow, embers; it burns"],
 	"water": ["Water", "mds_water.gd", false, "A pool: waves, what is behind bent and tinted, caustics, bubbles"],
 	"parallax": ["Parallax background", "mds_parallax_background.gd", false, "Layers behind the room moving slower the further back they are: sky, mountains, forest, city, ruins, cave rock, dunes, clouds, fog, stars or your own pictures. Drop an image on it to add a layer"],
 }

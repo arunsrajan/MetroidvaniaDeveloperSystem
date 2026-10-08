@@ -735,16 +735,23 @@ func cell_rect(layer_name: String, cell: Vector2i) -> Rect2:
 	var center := l.transform * l.map_to_local(cell)
 	return Rect2(center - tile_size() / 2.0, tile_size())
 
-## Cells (of the Terrain grid) inside the room's shape on the world map.
-func room_cells(world: MDSWorld, id: String) -> Dictionary:
+## Cells (of the Terrain grid) inside the room's shape on the world map: inside its outline
+## when it has curved or slanted sides ([param follow_outline]), else its rectangles.
+func room_cells(world: MDSWorld, id: String, follow_outline := true) -> Dictionary:
 	var out: Dictionary = {}
 	var ts := tile_size()
+	# A room with curved or slanted sides on the map: only the tiles inside that outline.
+	var outline: Array[PackedVector2Array] = []
+	if follow_outline:
+		outline = world.get_local_shape(id)
 	for r in world.get_local_rects(id):
 		var c0 := Vector2i((r.position / ts - Vector2(0.5, 0.5)).ceil())
 		var c1 := Vector2i((r.end / ts - Vector2(0.5, 0.5)).ceil()) - Vector2i.ONE
 		for y in range(c0.y, c1.y + 1):
 			for x in range(c0.x, c1.x + 1):
-				out[cell_at("Terrain", (Vector2(x, y) + Vector2(0.5, 0.5)) * ts)] = true
+				var at := (Vector2(x, y) + Vector2(0.5, 0.5)) * ts
+				if outline.is_empty() or MDSGeometry.point_in_any(outline, at):
+					out[cell_at("Terrain", at)] = true
 	return out
 
 # --- Tileset introspection ----------------------------------------------------------------------
@@ -975,7 +982,8 @@ func clear_layer(layer_name: String) -> void:
 ## Builds a starting cave from the room's shape on the map: solid walls along the room's
 ## outline (rough, cellular-automata edges), openings where its gates are, a floor, a few
 ## ledges, background foliage, then decorations. Rock outside the painted shape fills the
-## notches of irregular rooms.
+## notches of irregular rooms, and the parts of its rectangles outside a curved or slanted
+## outline (see [method MDSWorld.get_local_shape]), so the cave follows the curve.
 ## [param background] is the fill for the background (default: random "foliage" tiles).
 func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 0, terrain := 0, background: Dictionary = {}) -> void:
 	if not has_terrains():
@@ -983,11 +991,15 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value if seed_value != 0 else hash(id)
 	var inside := room_cells(world, id)
+	var box := room_cells(world, id, false)
+	if inside.is_empty():
+		inside = box
 	if inside.is_empty():
 		return
+	# The whole box of its rectangles is filled: rock wherever the cave doesn't reach.
 	var lo := Vector2i(1 << 30, 1 << 30)
 	var hi := Vector2i(-(1 << 30), -(1 << 30))
-	for c in inside:
+	for c in box:
 		lo = Vector2i(mini(lo.x, c.x), mini(lo.y, c.y))
 		hi = Vector2i(maxi(hi.x, c.x), maxi(hi.y, c.y))
 	# Distance of each inside cell to the room outline (4-neighborhood BFS).
@@ -1113,11 +1125,15 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 	clear_layer("Terrain")
 	paint_terrain("Terrain", solid.keys(), terrain_set, terrain)
 	clear_layer("Background")
-	var back: Array = []
-	for y in range(lo.y, hi.y + 1):
-		for x in range(lo.x, hi.x + 1):
-			back.append(Vector2i(x, y))
-	paint_fill("Background", back, background if not background.is_empty() else {"type": "kind", "kind": "foliage"}, rng)
+	# Background behind the cave and just under its walls, not in the rock beyond its outline.
+	var back: Dictionary = {}
+	for c: Vector2i in inside:
+		for dy in range(-2, 3):
+			for dx in range(-2, 3):
+				var n := c + Vector2i(dx, dy)
+				if n.x >= lo.x and n.x <= hi.x and n.y >= lo.y and n.y <= hi.y:
+					back[n] = true
+	paint_fill("Background", back.keys(), background if not background.is_empty() else {"type": "kind", "kind": "foliage"}, rng)
 	auto_decorate(rng.randi(), true, inside)
 
 ## Grass and plants on floors, stalactites, vines and moss under ceilings. With

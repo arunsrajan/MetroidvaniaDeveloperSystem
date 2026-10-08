@@ -16,7 +16,9 @@ func _run() -> void:
 	_slide()
 	_link()
 	_outline()
+	_cave_in_outline()
 	await _canvas_area_tool()
+	await _canvas_select_tool()
 	await _canvas_paint_area()
 	await _canvas_generate()
 	_glow_style()
@@ -410,11 +412,12 @@ func _canvas(world: MDSWorld) -> MDSWorldCanvas:
 	canvas.pan = Vector2(20, 20)
 	return canvas
 
-func _click(canvas: MDSWorldCanvas, at: Vector2, pressed: bool, double := false) -> void:
+func _click(canvas: MDSWorldCanvas, at: Vector2, pressed: bool, double := false, alt := false) -> void:
 	var mb := InputEventMouseButton.new()
 	mb.button_index = MOUSE_BUTTON_LEFT
 	mb.pressed = pressed
 	mb.double_click = double
+	mb.alt_pressed = alt
 	mb.position = at
 	canvas._gui_input(mb)
 
@@ -424,11 +427,11 @@ func _move(canvas: MDSWorldCanvas, at: Vector2) -> void:
 	mm.button_mask = MOUSE_BUTTON_MASK_LEFT
 	canvas._gui_input(mm)
 
-func _drag(canvas: MDSWorldCanvas, from: Vector2, to: Vector2, steps := 6) -> void:
-	_click(canvas, from, true)
+func _drag(canvas: MDSWorldCanvas, from: Vector2, to: Vector2, steps := 6, alt := false) -> void:
+	_click(canvas, from, true, false, alt)
 	for i in range(1, steps + 1):
 		_move(canvas, from.lerp(to, float(i) / steps))
-	_click(canvas, to, false)
+	_click(canvas, to, false, false, alt)
 
 func _canvas_area_tool() -> void:
 	var world := _two_areas()
@@ -462,6 +465,103 @@ func _canvas_area_tool() -> void:
 	check(world.get_origin("West_01") == Vector2(288 * 6, 0) and MDSAreaTools.rooms_connected(world, "West_01", "East_01"), "arrows nudge it up to its neighbour, connecting (%s)" % world.get_origin("West_01"))
 	canvas.queue_free()
 	await get_tree().process_frame
+
+## The Select tool moves whole areas too: by their name, with Alt, or once selected.
+func _canvas_select_tool() -> void:
+	var world := _two_areas()
+	var canvas := _canvas(world)
+	canvas.set_tool(MDSWorldCanvas.Tool.SELECT)
+	await get_tree().process_frame
+	var picked: Array = []
+	canvas.area_selected.connect(func(a: String) -> void: picked.append(a))
+	var inside_west := canvas.world_to_screen(Vector2(288 * 2, 162 * 2))
+	var far_east := canvas.world_to_screen(Vector2(288 * 20, 162 * 2))
+	# A plain drag still moves just the room.
+	_drag(canvas, inside_west, inside_west + Vector2(0, 40))
+	check(canvas.selected_room == "West_01" and world.get_origin("West_02") == Vector2(0, 162 * 4) and world.get_origin("West_01") != Vector2.ZERO, "a plain drag moves just the room")
+	world.undo()
+	# Alt+drag: the whole area, stopping against its neighbour and connecting to it.
+	_drag(canvas, inside_west, far_east, 6, true)
+	check(canvas.selected_area == "West" and world.get_origin("West_01") == Vector2(288 * 6, 0) and world.get_origin("West_02") == Vector2(288 * 6, 162 * 4), "Alt+drag moves the whole area, up to its neighbour (%s)" % world.get_origin("West_01"))
+	check(MDSAreaTools.rooms_connected(world, "West_01", "East_01"), "and connects them")
+	world.undo()
+	canvas.select_area("")
+	# Its name: click to select the area, drag to move it.
+	canvas.redraw()
+	await get_tree().process_frame
+	check(canvas._area_label_rects.has("West"), "the area's name is on the map")
+	if canvas._area_label_rects.has("West"):
+		var label: Vector2 = canvas._area_label_rects["West"].get_center()
+		_click(canvas, label, true)
+		_click(canvas, label, false)
+		check(canvas.selected_area == "West" and canvas.selected_room.is_empty() and picked.back() == "West", "clicking an area's name selects the whole area")
+		_drag(canvas, label, label + Vector2(0, canvas.zoom * 162 * 3))
+		check(world.get_origin("West_01") == Vector2(0, 162 * 3) and world.get_origin("West_02") == Vector2(0, 162 * 7), "dragging its name moves it (%s)" % world.get_origin("West_01"))
+		world.undo()
+		_drag(canvas, label, label + Vector2(80, 0), 6, true)
+		check(world.get_origin("West_01") == Vector2.ZERO and world.get_area_label_pos("West") != Vector2.INF, "Alt+drag on the name moves only the name")
+		world.undo()
+	# Selected (from the Areas tab, say): any of its rooms drags it all; a click picks one room.
+	canvas.select_area("West")
+	var west_02 := canvas.world_to_screen(Vector2(288 * 2, 162 * 5))
+	_drag(canvas, west_02, west_02 + Vector2(0, canvas.zoom * 162 * 2))
+	check(world.get_origin("West_01") == Vector2(0, 162 * 2) and canvas.selected_area == "West", "once selected, dragging any of its rooms moves the whole area (%s)" % world.get_origin("West_01"))
+	var west_02_now := canvas.world_to_screen(Vector2(288 * 2, 162 * 7))
+	_click(canvas, west_02_now, true)
+	_click(canvas, west_02_now, false)
+	check(canvas.selected_area.is_empty() and canvas.selected_room == "West_02", "a click on one of its rooms picks just that room")
+	# Arrow keys nudge a selected area here too.
+	canvas.select_area("West")
+	var key := InputEventKey.new()
+	key.keycode = KEY_LEFT
+	key.pressed = true
+	canvas._gui_input(key)
+	check(world.get_origin("West_01") == Vector2(-288, 162 * 2), "arrows nudge the selected area (%s)" % world.get_origin("West_01"))
+	canvas.queue_free()
+	await get_tree().process_frame
+
+## A room with curved or slanted sides: Generate cave and New variation stay inside them.
+func _cave_in_outline() -> void:
+	var world := MDSWorld.new()
+	var id := world.add_room("Curved", Rect2(0, 0, 1152, 648), 0)
+	# The top-left corner cut on a long slant.
+	world.set_room_shape(id, [PackedVector2Array([Vector2(576, 0), Vector2(1152, 0), Vector2(1152, 648), Vector2(0, 648), Vector2(0, 324)])])
+	var root := Node2D.new()
+	root.name = "Curved"
+	save_scene(root, TMP + "/curved_room.tscn")
+	root.free()
+	load_fresh(TMP + "/curved_room.tscn")
+	var painter := MDSRoomPainter.open(TMP + "/curved_room.tscn")
+	check(painter.has_terrains(), "a tileset with terrains to generate with")
+	var all := painter.room_cells(world, id, false)
+	var inside := painter.room_cells(world, id)
+	check(inside.size() < all.size() * 0.95 and inside.size() > all.size() * 0.75, "the room's tiles follow its outline (%d of %d)" % [inside.size(), all.size()])
+	var t: Array = painter.get_terrains()[0]
+	for variation in [1, 2]:
+		painter.generate_cave(world, id, variation * 7919, t[0], t[1])
+		var ts := painter.tile_size()
+		var corner_rock := 0
+		var corner_back := 0
+		var corner := 0
+		for c: Vector2i in all:
+			var at := (Vector2(c) + Vector2(0.5, 0.5)) * ts
+			# Well outside the slant (some 3.5 tiles and more; background reaches 2 tiles past the cave).
+			if at.x / 576.0 + at.y / 324.0 < 1.0 - 4.0 * ts.x / 324.0:
+				corner += 1
+				if painter.layers.Terrain.get_cell_source_id(c) != -1:
+					corner_rock += 1
+				if painter.layers.Background.get_cell_source_id(c) != -1:
+					corner_back += 1
+		check(corner > 10 and corner_rock == corner, "variation %d: rock fills what lies outside the slant (%d of %d tiles)" % [variation, corner_rock, corner])
+		check(corner_back == 0, "and no background is painted there (%d)" % corner_back)
+		var decor_out := 0
+		for c in painter.layers.Decor.get_used_cells():
+			if not inside.has(c):
+				decor_out += 1
+		check(decor_out == 0, "decorations stay inside the outline (%d outside)" % decor_out)
+	world.set_room_shape(id, [])
+	check(painter.room_cells(world, id).size() == all.size(), "without an outline, its rectangles")
+	painter.free_instance()
 
 func _canvas_paint_area() -> void:
 	var world := MDSWorld.new()
