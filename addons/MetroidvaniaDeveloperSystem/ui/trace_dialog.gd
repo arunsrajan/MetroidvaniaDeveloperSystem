@@ -18,6 +18,7 @@ var _original: TextureRect
 var _layers: TextureRect
 var _rows: GridContainer
 var _fit: OptionButton
+var _crop: CheckBox
 var _detail: HSlider
 var _min_size: SpinBox
 var _bleed: SpinBox
@@ -32,8 +33,7 @@ func _init() -> void:
 	title = "Trace drawing"
 	ok_button_text = "Trace into room"
 	var box := VBoxContainer.new()
-	box.custom_minimum_size = Vector2(560, 0) * MDSUi.editor_scale()
-	add_child(box)
+	MDSUi.scroll_content(self, box)
 	box.add_child(MDSUi.hint("Draws the room from a picture: each color of the drawing becomes freeform shapes of the style you pick. Black, grey and brown: solid terrain; red, orange and yellow: one-way platforms; green: background; blue and purple: foreground; white or transparent: nothing. The drawing covers the room's box on the map."))
 	var file_row := HBoxContainer.new()
 	box.add_child(file_row)
@@ -77,6 +77,10 @@ func _init() -> void:
 	grid.add_child(_detail)
 	_min_size = _spin(grid, "Smallest shape", 0, 1000, 24, "px", "Shapes smaller than this across are dropped as specks")
 	_bleed = _spin(grid, "Run on past edges", 0, 1000, 64, "px", "Shapes touching the drawing's edge run on this far past the room's edge, out of the camera's sight")
+	_crop = CheckBox.new()
+	_crop.text = "Fit what is drawn"
+	_crop.button_pressed = true
+	_crop.tooltip_text = "Cut off the paper around the drawing, so what is drawn fills the room's width and height (off: the whole picture covers the room)"
 	_round = CheckBox.new()
 	_round.text = "Round outlines"
 	_round.button_pressed = true
@@ -86,6 +90,7 @@ func _init() -> void:
 	_replace.button_pressed = true
 	_replace.tooltip_text = "Remove the shapes an earlier trace of this room made first, so you can redraw and trace again"
 	var checks := HBoxContainer.new()
+	checks.add_child(_crop)
 	checks.add_child(_round)
 	checks.add_child(_replace)
 	box.add_child(checks)
@@ -126,7 +131,7 @@ func open(p_view: MDSRoomView, styles: Array[MDSFreeformStyle], path := "") -> v
 	_previewing = false
 	if path.is_empty() and view.world:
 		path = str(view.world.get_room_value(view.room_id, "drawing", ""))
-	popup_centered()
+	MDSUi.popup_fitted(self, 640)
 	if not path.is_empty():
 		load_drawing(path)
 	else:
@@ -243,6 +248,7 @@ func _run() -> Dictionary:
 		first = false
 	tracer.target = b if b.has_area() else Rect2(Vector2.ZERO, Vector2(1152, 648))
 	tracer.keep_aspect = _fit.selected == 1
+	tracer.crop = _crop.button_pressed
 	tracer.detail = _detail.value / 100.0
 	tracer.min_size = _min_size.value
 	tracer.bleed = _bleed.value

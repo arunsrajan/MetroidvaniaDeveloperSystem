@@ -163,7 +163,7 @@ func _init() -> void:
 		canvas.effect_id = str(effect_list.get_item_metadata(i))
 		status_message.emit("Click in the room to place %s (or drag it from the list)." % effect_list.get_item_text(i)))
 	_effect_box.add_child(effect_list)
-	_effect_box.add_child(MDSUi.hint("Drag onto the room. Click one in the room to edit it in the Inspector; drag its corner to resize it."))
+	_effect_box.add_child(MDSUi.hint("Drag onto the room. Click one in the room to edit it in the Inspector; drag its corner to resize it. Drop an image on a parallax background to add it as a layer."))
 	var weather_check := CheckBox.new()
 	weather_check.text = "Show the area's weather"
 	weather_check.button_pressed = true
@@ -172,6 +172,14 @@ func _init() -> void:
 		canvas.set_weather_preview(on)
 		_update_weather_label())
 	_effect_box.add_child(weather_check)
+	var parallax_check := CheckBox.new()
+	parallax_check.text = "Show the parallax background"
+	parallax_check.button_pressed = true
+	parallax_check.tooltip_text = "Show the parallax background of the room's area (Areas tab > Parallax), or of the room itself, behind the room as the game adds it; pan the view to see it move. Only a preview: it isn't saved into the scene"
+	parallax_check.toggled.connect(func(on: bool) -> void:
+		canvas.set_parallax_preview(on)
+		_update_weather_label())
+	_effect_box.add_child(parallax_check)
 	_weather_label = MDSUi.hint("")
 	_effect_box.add_child(_weather_label)
 	color_button = ColorPickerButton.new()
@@ -695,13 +703,19 @@ func _update_weather_label() -> void:
 	if not _weather_label:
 		return
 	var spec := MDSEnvironment.spec_for_room(world, room_id) if world and world.has_room(room_id) else ""
+	var text := ""
 	if spec.is_empty():
-		_weather_label.text = "No weather for this room's area (set it in the Areas tab)."
+		text = "No weather for this room's area (set it in the Areas tab)."
 	elif MDSEnvironment.is_none(spec):
-		_weather_label.text = "Weather is off in this room."
+		text = "Weather is off in this room."
 	else:
 		var problem := MDSEnvironment.check(spec)
-		_weather_label.text = "Weather: %s%s" % [MDSEnvironment.summary(spec), " (%s)" % problem if not problem.is_empty() else ""]
+		text = "Weather: %s%s" % [MDSEnvironment.summary(spec), " (%s)" % problem if not problem.is_empty() else ""]
+	var p := MDSEnvironment.parallax_for_room(world, room_id) if world and world.has_room(room_id) else ""
+	if not p.is_empty() and not MDSEnvironment.is_none(p):
+		var p_problem := MDSEnvironment.check_parallax(p)
+		text += "\nParallax background: %s%s" % [p, " (%s)" % p_problem if not p_problem.is_empty() else ""]
+	_weather_label.text = text
 
 ## Status after Convert to freeform (or its preview).
 func report_conversion(r: Dictionary, preview: bool) -> void:
@@ -729,21 +743,23 @@ func fill_outside() -> void:
 	if not painter:
 		return
 	var rects := world.get_local_rects(room_id)
-	if MDSNotchFill.outside_polygons(rects).is_empty() and MDSNotchFill.shapes_of(painter).is_empty():
+	var map_shape := world.get_local_shape(room_id)
+	if MDSNotchFill.outside_polygons(rects, MDSNotchFill.MARGIN, map_shape).is_empty() and MDSNotchFill.shapes_of(painter).is_empty():
 		status_message.emit("%s's shape is its whole box: there is nothing outside it to fill." % room_id)
 		return
 	painter.checkpoint()
-	var n := MDSNotchFill.fill(painter, rects, _fill_style())
+	var n := MDSNotchFill.fill(painter, rects, _fill_style(), MDSNotchFill.MARGIN, map_shape)
 	_changed("Filled outside %s's shape: %d shape(s) of %s (decoration: no collision)." % [room_id, n, _fill_style().get_display_name()])
 
 ## A room whose shape changed on the map gets its outside fill redone (undoable).
 func _refresh_outside_fill() -> void:
 	var rects := world.get_local_rects(room_id)
-	if MDSNotchFill.shapes_of(painter).is_empty() or not MDSNotchFill.is_stale(painter, rects):
+	var map_shape := world.get_local_shape(room_id)
+	if MDSNotchFill.shapes_of(painter).is_empty() or not MDSNotchFill.is_stale(painter, rects, map_shape):
 		return
 	var st: MDSFreeformStyle = MDSNotchFill.shapes_of(painter)[0].style
 	painter.checkpoint()
-	var n := MDSNotchFill.fill(painter, rects, st if st else _fill_style())
+	var n := MDSNotchFill.fill(painter, rects, st if st else _fill_style(), MDSNotchFill.MARGIN, map_shape)
 	status_message.emit("%s's shape changed on the map: its outside fill was redone (%d shape(s)). Ctrl+Z undoes it." % [room_id, n])
 
 func generate(new_variation: bool) -> void:

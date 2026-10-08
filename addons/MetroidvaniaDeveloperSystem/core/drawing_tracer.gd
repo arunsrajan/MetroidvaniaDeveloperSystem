@@ -11,7 +11,9 @@ extends RefCounted
 ## - blue and purple: foreground;
 ## - white and transparent: paper (nothing).
 ## The drawing is laid over the room's box on the map ([member target]), stretched or keeping
-## its proportions. Rock that touches the drawing's edge runs on past the room's edge
+## its proportions; with [member crop] (the default), only what is drawn counts: the paper
+## around it is cut off, so the drawing fills the room's width and height. Without white or
+## transparent paper, the color filling most of the picture's border is taken as the paper. Rock that touches the drawing's edge runs on past the room's edge
 ## ([member bleed]), out of the camera's sight. Holes in a shape (a cave inside the rock) stay
 ## open: the shape is cut in two around them, since a freeform shape has no holes; the halves
 ## meet without an outline or rounded corners along the cut (see [MDSFreeform]'s mds_seams).
@@ -53,6 +55,9 @@ var min_share := 0.004
 var target := Rect2(0, 0, 1152, 648)
 ## Keep the drawing's proportions (fit inside [member target], centred) instead of stretching it.
 var keep_aspect := false
+## Fit what is drawn (everything that isn't paper) to [member target], cutting off the paper
+## around it, instead of the whole picture.
+var crop := true
 ## 0: smooth outlines with few points; 1: follows every wiggle of the drawing.
 var detail := 0.5
 ## Shapes smaller than this across (px) are dropped as specks.
@@ -72,6 +77,8 @@ var image: Image
 ## a "style" of their own, an MDSFreeformStyle) before [method trace] or [method apply].
 var colors: Array = []
 var _labels := PackedInt32Array() ## per pixel: index in colors, -1 transparent
+var _content_key := ""
+var _content := Rect2i()
 
 ## Loads the drawing from a file (res:// or anywhere on disk). Returns the error.
 func load_image(path: String) -> Error:
@@ -116,14 +123,32 @@ func analyze() -> void:
 	for b in 4096:
 		if counts[b] > 0:
 			bins.append(b)
-	bins.sort_custom(func(a: int, b: int) -> bool: return counts[a] > counts[b])
-	# The most used bins become colors; the others join them. A bin between two colors is the
+	# Candidates come from coarser bins (3 bits per channel), each the mean of the fine bins in
+	# it: the shades of one color (a gradient, a glow) add up to one candidate instead of many
+	# too small to count.
+	var coarse_count := PackedInt32Array()
+	coarse_count.resize(512)
+	var coarse_sum: Array[Vector3] = []
+	coarse_sum.resize(512)
+	coarse_sum.fill(Vector3.ZERO)
+	for b in bins:
+		var cb: int = (((b >> 9) & 7) << 6) | (((b >> 5) & 7) << 3) | ((b >> 1) & 7)
+		var c := _bin_color(b)
+		coarse_count[cb] += counts[b]
+		coarse_sum[cb] += Vector3(c.r, c.g, c.b) * counts[b]
+	var coarse: Array = []
+	for cb in 512:
+		if coarse_count[cb] > 0:
+			coarse.append(cb)
+	coarse.sort_custom(func(a: int, b: int) -> bool: return coarse_count[a] > coarse_count[b])
+	# The most used become colors; the others join them. A candidate between two colors is the
 	# soft edge between them (anti-aliasing), not a color of its own.
 	var centers: Array[Color] = []
 	var weights: Array[int] = []
 	var min_count := maxi(1, int(opaque * min_share))
-	for b in bins:
-		var c := _bin_color(b)
+	for cb in coarse:
+		var m: Vector3 = coarse_sum[cb] / coarse_count[cb]
+		var c := Color(m.x, m.y, m.z)
 		var best := -1
 		var best_d := MERGE_DISTANCE
 		for k in centers.size():
@@ -132,15 +157,31 @@ func analyze() -> void:
 				best_d = d
 				best = k
 		if best >= 0:
-			centers[best] = centers[best].lerp(c, float(counts[b]) / (weights[best] + counts[b]))
-			weights[best] += counts[b]
-		elif counts[b] >= min_count and centers.size() < max_colors and not _is_blend(c, centers):
+			centers[best] = centers[best].lerp(c, float(coarse_count[cb]) / (weights[best] + coarse_count[cb]))
+			weights[best] += coarse_count[cb]
+		elif coarse_count[cb] >= min_count and centers.size() < max_colors and not _is_blend(c, centers):
 			centers.append(c)
-			weights.append(counts[b])
+			weights.append(coarse_count[cb])
 	if centers.is_empty():
 		return
 	var bin_label := PackedInt32Array()
 	bin_label.resize(4096)
+	for b in bins:
+		bin_label[b] = _label_for(_bin_color(b), centers)
+	# One refining pass: each color becomes the mean of the bins it got.
+	var sums: Array[Vector3] = []
+	sums.resize(centers.size())
+	sums.fill(Vector3.ZERO)
+	var got := PackedInt32Array()
+	got.resize(centers.size())
+	for b in bins:
+		var c := _bin_color(b)
+		sums[bin_label[b]] += Vector3(c.r, c.g, c.b) * counts[b]
+		got[bin_label[b]] += counts[b]
+	for k in centers.size():
+		if got[k] > 0:
+			var m: Vector3 = sums[k] / got[k]
+			centers[k] = Color(m.x, m.y, m.z)
 	for b in bins:
 		bin_label[b] = _label_for(_bin_color(b), centers)
 	var share := PackedInt32Array()
@@ -154,6 +195,28 @@ func analyze() -> void:
 		var l := bin_label[((data[o] >> 4) << 8) | ((data[o + 1] >> 4) << 4) | (data[o + 2] >> 4)]
 		_labels[i] = l
 		share[l] += 1
+	# Grain (a scan, a photo, JPEG noise): a pixel unlike all four of its neighbours takes the
+	# color most of them have. Lines a pixel wide keep their neighbours along them.
+	var w := image.get_width()
+	var h := image.get_height()
+	for y in range(1, h - 1):
+		for x in range(1, w - 1):
+			var i := y * w + x
+			var l := _labels[i]
+			var up := _labels[i - w]
+			var down := _labels[i + w]
+			var left := _labels[i - 1]
+			var right := _labels[i + 1]
+			if l != up and l != down and l != left and l != right:
+				var pick := up
+				if (down == left or down == right) and down != up:
+					pick = down
+				elif left == right and left != up:
+					pick = left
+				share[l] -= 1 if l >= 0 else 0
+				_labels[i] = pick
+				if pick >= 0:
+					share[pick] += 1
 	for k in centers.size():
 		colors.append({"color": centers[k], "share": float(share[k]) / n, "layer": default_layer(centers[k])})
 	# Most used first (the labels follow).
@@ -169,6 +232,36 @@ func analyze() -> void:
 	for i in n:
 		if _labels[i] >= 0:
 			_labels[i] = remap[_labels[i]]
+	if opaque == n and not colors.any(func(c: Dictionary) -> bool: return c.layer == Layer.IGNORE):
+		var k := border_color()
+		if k >= 0:
+			colors[k].layer = Layer.IGNORE
+
+## The color filling most of the picture's border (over half of it), or -1: the paper of a
+## drawing made on a colored or dark background.
+func border_color() -> int:
+	var w := image.get_width()
+	var h := image.get_height()
+	var counts := PackedInt32Array()
+	counts.resize(colors.size())
+	var total := 0
+	for x in w:
+		for y in [0, h - 1]:
+			var l := _labels[y * w + x]
+			if l >= 0:
+				counts[l] += 1
+				total += 1
+	for y in range(1, h - 1):
+		for x in [0, w - 1]:
+			var l := _labels[y * w + x]
+			if l >= 0:
+				counts[l] += 1
+				total += 1
+	var best := -1
+	for k in counts.size():
+		if best < 0 or counts[k] > counts[best]:
+			best = k
+	return best if best >= 0 and total > 0 and counts[best] * 2 > total else -1
 
 static func _bin_color(b: int) -> Color:
 	return Color((((b >> 8) & 15) * 16 + 8) / 255.0, (((b >> 4) & 15) * 16 + 8) / 255.0, ((b & 15) * 16 + 8) / 255.0)
@@ -254,16 +347,48 @@ func layer_preview() -> Image:
 
 # --- Tracing -----------------------------------------------------------------------------------
 
+## What is drawn: the bounding box (image px) of the pixels of colors that aren't paper, or the
+## whole picture when there are none. Cached until the colors' layers change.
+func content_rect() -> Rect2i:
+	var key := str(colors.map(func(c: Dictionary) -> int: return c.layer))
+	if key == _content_key and _content.has_area():
+		return _content
+	var w := image.get_width()
+	var h := image.get_height()
+	var lo := Vector2i(w, h)
+	var hi := Vector2i(-1, -1)
+	var drawn := PackedByteArray()
+	drawn.resize(colors.size())
+	for k in colors.size():
+		drawn[k] = 1 if colors[k].layer != Layer.IGNORE else 0
+	for y in h:
+		var row := y * w
+		for x in w:
+			var l := _labels[row + x]
+			if l >= 0 and drawn[l] == 1:
+				lo.x = mini(lo.x, x)
+				hi.x = maxi(hi.x, x)
+				lo.y = mini(lo.y, y)
+				hi.y = maxi(hi.y, y)
+	_content = Rect2i(lo, hi - lo + Vector2i.ONE) if hi.x >= 0 else Rect2i(Vector2i.ZERO, image.get_size())
+	_content_key = key
+	return _content
+
+## The part of the picture laid over [member target]: [method content_rect] with [member crop],
+## else the whole picture.
+func source_rect() -> Rect2i:
+	return content_rect() if crop else Rect2i(Vector2i.ZERO, image.get_size())
+
 ## From the traced image's pixels to [member target].
 func image_to_target() -> Transform2D:
-	var isz := Vector2(image.get_size())
-	var k := target.size / isz
+	var src := source_rect()
+	var k := target.size / Vector2(src.size)
 	var off := target.position
 	if keep_aspect:
 		var s := minf(k.x, k.y)
 		k = Vector2(s, s)
-		off = target.position + (target.size - isz * s) * 0.5
-	return Transform2D(Vector2(k.x, 0.0), Vector2(0.0, k.y), off)
+		off = target.position + (target.size - Vector2(src.size) * s) * 0.5
+	return Transform2D(Vector2(k.x, 0.0), Vector2(0.0, k.y), off - Vector2(src.position) * k)
 
 ## The shapes the drawing makes, in [member target]'s coordinates:
 ## [{layer, color (index in colors), points, smooth, seams}], largest first within each
@@ -275,7 +400,8 @@ func trace() -> Array:
 	var w := image.get_width()
 	var h := image.get_height()
 	var xform := image_to_target()
-	var drawn := Rect2(xform.origin, Vector2(w, h) * xform.get_scale())
+	var src := source_rect()
+	var drawn := Rect2(xform * Vector2(src.position), Vector2(src.size) * xform.get_scale())
 	# One pass builds every color's mask and its inverse, padded by a pixel of paper.
 	var masks: Array[BitMap] = []
 	var inverse: Array[BitMap] = []
@@ -303,16 +429,17 @@ func trace() -> Array:
 	for k in colors.size():
 		if used[k] == 0:
 			continue
-		var parts: Array[PackedVector2Array] = []
+		var outers: Array[PackedVector2Array] = []
 		for poly: PackedVector2Array in masks[k].opaque_to_polygons(all, eps):
-			parts.append(_place(poly, xform, w, h, drawn))
+			outers.append(_place(poly, xform, src, drawn))
 		# Paper enclosed by the color: holes (what touches the padding is the outside).
+		var holes: Array[PackedVector2Array] = []
 		for poly: PackedVector2Array in inverse[k].opaque_to_polygons(all, eps):
 			var b := MDSGeometry.bounds(poly)
 			if b.position.x > 0.5 and b.position.y > 0.5 and b.end.x < w + 1.5 and b.end.y < h + 1.5:
-				parts.append(_place(poly, xform, w, h, drawn))
+				holes.append(_place(poly, xform, src, drawn))
 		var min_area := min_size * min_size * 0.5
-		var pieces := MDSGeometry.without_holes(parts, min_area)
+		var pieces := assemble(outers, holes, min_area)
 		pieces.sort_custom(func(a: PackedVector2Array, b: PackedVector2Array) -> bool:
 			return absf(MDSGeometry.signed_area(a)) > absf(MDSGeometry.signed_area(b)))
 		var cuts := seam_lines(pieces)
@@ -417,24 +544,69 @@ static func densify(poly: PackedVector2Array, step: float) -> PackedVector2Array
 			out.append(a.lerp(b, float(k) / pieces))
 	return out
 
-## A traced outline (padded pixels) in target coordinates; points on the drawing's edge run
-## on [member bleed] px past it.
-func _place(poly: PackedVector2Array, xform: Transform2D, w: int, h: int, drawn: Rect2) -> PackedVector2Array:
+## A traced outline (padded pixels) in target coordinates; points on the edge of what is laid
+## over the room ([param src], image px) run on [member bleed] px past it.
+func _place(poly: PackedVector2Array, xform: Transform2D, src: Rect2i, drawn: Rect2) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	for v in poly:
 		var p := v - Vector2.ONE
 		var q := xform * p
 		if bleed > 0.0:
-			if p.x <= 0.01:
+			if p.x <= src.position.x + 0.01:
 				q.x = drawn.position.x - bleed
-			elif p.x >= w - 0.01:
+			elif p.x >= src.end.x - 0.01:
 				q.x = drawn.end.x + bleed
-			if p.y <= 0.01:
+			if p.y <= src.position.y + 0.01:
 				q.y = drawn.position.y - bleed
-			elif p.y >= h - 0.01:
+			elif p.y >= src.end.y - 0.01:
 				q.y = drawn.end.y + bleed
 		out.append(q)
 	return MDSGeometry.dedupe(out)
+
+## Shapes without holes from traced [param outers] and the [param holes] of paper they
+## enclose: each hole is cut out of the smallest outline around it (a freeform shape has no
+## holes, so that outline is cut in two around it). Outlines and holes under [param min_area]
+## are dropped first: a busy picture has hundreds of specks, and comparing every outline with
+## every other one took seconds.
+static func assemble(outers: Array[PackedVector2Array], holes: Array[PackedVector2Array], min_area: float) -> Array[PackedVector2Array]:
+	var polys: Array[PackedVector2Array] = []
+	var boxes: Array[Rect2] = []
+	var areas := PackedFloat32Array()
+	for o in outers:
+		var a := absf(MDSGeometry.signed_area(o))
+		if o.size() >= 3 and a >= min_area:
+			polys.append(o)
+			boxes.append(MDSGeometry.bounds(o))
+			areas.append(a)
+	var cut: Array = []
+	cut.resize(polys.size())
+	for i in polys.size():
+		cut[i] = []
+	for h in holes:
+		if h.size() < 3 or absf(MDSGeometry.signed_area(h)) < min_area:
+			continue # a pinhole: filled
+		var hb := MDSGeometry.bounds(h)
+		var best := -1
+		for i in polys.size():
+			if (best < 0 or areas[i] < areas[best]) and boxes[i].grow(1.0).encloses(hb) and Geometry2D.is_point_in_polygon(h[0], polys[i]):
+				best = i
+		if best >= 0:
+			cut[best].append(h)
+	var out: Array[PackedVector2Array] = []
+	for i in polys.size():
+		if cut[i].is_empty():
+			var simple := MDSGeometry.dedupe(polys[i])
+			if MDSGeometry.is_simple(simple):
+				out.append(simple)
+			continue
+		var mine: Array[PackedVector2Array] = []
+		mine.assign(cut[i])
+		for piece in MDSGeometry._cut_holes(polys[i], mine, min_area):
+			if absf(MDSGeometry.signed_area(piece)) >= min_area:
+				var simple := MDSGeometry.dedupe(piece)
+				if MDSGeometry.is_simple(simple):
+					out.append(simple)
+	return out
 
 ## The style shapes of [param layer] get: the color's own (colors[i].style, with
 ## [param color_index]), else [member styles], else a built-in one.
@@ -470,9 +642,13 @@ func apply(painter: MDSRoomPainter, replace := true) -> Dictionary:
 	for s in trace():
 		var layer: Layer = s.layer
 		var st := style_for(layer, s.color)
-		var solid := layer == Layer.TERRAIN or layer == Layer.PLATFORM
-		var f := painter.add_freeform(s.points, st, LAYER_GROUPS[layer], solid)
+		# Set up before it goes into the room, so it is built once.
+		var f := MDSFreeform.new()
+		f.points = s.points
+		f.style = st
+		f.solid = layer == Layer.TERRAIN or layer == Layer.PLATFORM
 		f.smooth = s.smooth
+		f.seed_value = randi() % 100000
 		f.name = "Traced%s%d" % [str(keys[layer]).capitalize(), report[keys[layer]] + 1]
 		match layer:
 			Layer.PLATFORM:
@@ -483,5 +659,6 @@ func apply(painter: MDSRoomPainter, replace := true) -> Dictionary:
 		f.set_meta(META, true)
 		if not (s.seams as PackedFloat32Array).is_empty():
 			f.set_meta(&"mds_seams", s.seams)
+		painter.add_item(f, LAYER_GROUPS[layer])
 		report[keys[layer]] += 1
 	return report

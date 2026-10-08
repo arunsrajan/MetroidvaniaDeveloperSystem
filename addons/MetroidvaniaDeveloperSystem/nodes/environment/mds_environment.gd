@@ -48,6 +48,7 @@ const EFFECTS := {
 	"lava": ["Lava pool", "mds_lava.gd", false, "Molten rock (or acid, cursed ooze) with crust, bubbles, a glow and embers; it hurts"],
 	"waterfall": ["Waterfall", "mds_waterfall.gd", false, "A sheet of falling water, white water at its lip and foot, mist"],
 	"water": ["Water", "mds_water.gd", false, "A pool: waves, what is behind bent and tinted, caustics, bubbles"],
+	"parallax": ["Parallax background", "mds_parallax_background.gd", false, "Layers behind the room moving slower the further back they are: sky, mountains, forest, city, ruins, cave rock, dunes, clouds, fog, stars or your own pictures. Drop an image on it to add a layer"],
 }
 
 ## id -> [name, what it is, its weather]. In menu order.
@@ -242,6 +243,48 @@ static func spec_for_room(world: MDSWorld, id: String) -> String:
 	if s.is_empty():
 		s = str(world.get_setting("weather", "")).strip_edges()
 	return s
+
+# --- Parallax backgrounds ------------------------------------------------------------------------
+
+## The parallax background of a room: its own ([code]rooms[id].parallax[/code]), else its
+## area's, else the world's ([code]settings.parallax[/code]). "none" when it is turned off, ""
+## when there is none.
+static func parallax_for_room(world: MDSWorld, id: String) -> String:
+	var s := str(world.get_room_value(id, "parallax", "")).strip_edges()
+	if s.is_empty():
+		s = str(world.get_areas().get(world.get_room_area(id), {}).get("parallax", "")).strip_edges()
+	if s.is_empty():
+		s = str(world.get_setting("parallax", "")).strip_edges()
+	return s
+
+## The spec [method build] makes a parallax background from: a preset id
+## ([constant MDSParallaxBackground.PRESET_IDS]) becomes [code]parallax(preset=id)[/code];
+## scenes and specs stay as they are.
+static func parallax_spec(value: String) -> String:
+	var v := value.strip_edges()
+	if v.is_empty() or is_none(v) or v.begins_with("res://") or v.begins_with("uid://") or v.contains("("):
+		return v
+	return "parallax(preset=%s)" % v.to_lower().replace(" ", "_")
+
+## The parallax background named by [param value] (a preset id, or a scene) as a node covering
+## [param bounds] like [method build], or null for none.
+static func build_parallax(value: String, bounds: Rect2) -> Node2D:
+	var spec := parallax_spec(value)
+	if spec.is_empty() or is_none(spec):
+		return null
+	var node := build(spec, bounds)
+	if node:
+		node.name = "MDSParallax"
+	return node
+
+## What is wrong with a parallax value ("" when nothing).
+static func check_parallax(value: String) -> String:
+	var v := value.strip_edges()
+	if v.is_empty() or is_none(v):
+		return ""
+	if not v.begins_with("res://") and not v.begins_with("uid://") and not v.contains("(") and not MDSParallaxBackground.PRESET_IDS.has(v.to_lower().replace(" ", "_")):
+		return "'%s' is not a parallax preset (%s)" % [v, ", ".join(MDSParallaxBackground.PRESET_IDS.slice(1))]
+	return check(parallax_spec(v))
 
 ## The weather of [param spec] as a node to add to a room, its effects covering
 ## [param bounds] (the room's rectangle, in the coordinates of the node it goes in) and

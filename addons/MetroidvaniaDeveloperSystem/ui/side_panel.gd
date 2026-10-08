@@ -14,6 +14,7 @@ var _scroll: ScrollContainer
 var _collapse: Button
 var _title: Label
 var _sections: Dictionary = {} ## title -> [header Button, content Container]
+var _auto := false ## collapsed because the row was too narrow, not by the user
 
 func _init() -> void:
 	custom_minimum_size.x = WIDTH * MDSUi.editor_scale()
@@ -26,7 +27,9 @@ func _init() -> void:
 	head.add_child(_title)
 	_collapse = MDSUi.button("«", "Collapse the tool panel (more room for the map)")
 	_collapse.flat = true
-	_collapse.pressed.connect(func() -> void: set_collapsed(_scroll.visible))
+	_collapse.pressed.connect(func() -> void:
+		_auto = false
+		set_collapsed(_scroll.visible))
 	head.add_child(_collapse)
 	_scroll = ScrollContainer.new()
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -46,6 +49,26 @@ func set_collapsed(collapsed: bool) -> void:
 
 func is_collapsed() -> bool:
 	return not _scroll.visible
+
+## Collapses the panel while the row it is in ([param available] px) is narrower than
+## [param needed] (its own width and the rest's minimum), so the row never runs off the edge of
+## a small window or dock, and opens it again once there is room. A panel the user collapsed
+## stays collapsed.
+func fit_width(available: float, needed: float) -> void:
+	if available < needed and not is_collapsed():
+		set_collapsed(true)
+		_auto = true
+	elif _auto and available >= needed + 24.0 * MDSUi.editor_scale():
+		set_collapsed(false)
+		_auto = false
+
+## The narrowest the rest of a Map Dev row can be: the map and the tabs, shrunk to their
+## minimum for [param available] px (see [method fit_row]).
+static func fit_row(available: float, side: MDSSidePanel, canvas: Control, tabs: Control) -> void:
+	var s := MDSUi.editor_scale()
+	tabs.custom_minimum_size.x = clampf(available * 0.28, 170.0 * s, 300.0 * s)
+	canvas.custom_minimum_size = Vector2(clampf(available * 0.2, 120.0 * s, 200.0 * s), 120.0 * s)
+	side.fit_width(available, WIDTH * s + canvas.custom_minimum_size.x + tabs.custom_minimum_size.x + 24.0 * s)
 
 ## Adds a foldable section and returns its content box. [param content] replaces the
 ## default VBoxContainer (e.g. a GridContainer or a box built elsewhere).

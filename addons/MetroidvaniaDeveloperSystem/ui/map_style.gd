@@ -13,11 +13,13 @@ extends RefCounted
 ##   [method save_template] writes a built-in tileset as a starting point.
 ## - "metsys:res://.../Theme.tres": a MetSys map theme (center texture, walls, passages
 ##   where gates are, corners), drawn the way MetSys draws it.
+## - "glow": a hand-made atlas look: each area a translucent shape with a glowing rim in its
+##   color, faint lines between its rooms ([method draw_glow]).
 ## - "flat": plain rectangles (fastest).
 
-enum Kind { FLAT, ATLAS, METSYS }
-const BUILTIN: PackedStringArray = ["flat", "handdrawn", "blueprint", "chunky"]
-const BUILTIN_NAMES: PackedStringArray = ["Flat", "Hand-drawn (double line)", "Blueprint", "Chunky pixel"]
+enum Kind { FLAT, ATLAS, METSYS, GLOW }
+const BUILTIN: PackedStringArray = ["flat", "handdrawn", "blueprint", "chunky", "glow"]
+const BUILTIN_NAMES: PackedStringArray = ["Flat", "Hand-drawn (double line)", "Blueprint", "Chunky pixel", "Glowing areas (atlas)"]
 const TILE := 32
 const TOP := 1
 const RIGHT := 2
@@ -40,7 +42,9 @@ static func get_style(style_id: String) -> MDSMapStyle:
 		return _cache[style_id]
 	var s := MDSMapStyle.new()
 	s.id = style_id
-	if style_id in BUILTIN and style_id != "flat":
+	if style_id == "glow":
+		s.kind = Kind.GLOW
+	elif style_id in BUILTIN and style_id != "flat":
 		s.kind = Kind.ATLAS
 		s.atlas = ImageTexture.create_from_image(build_builtin_image(style_id))
 	elif style_id.begins_with("tileset:"):
@@ -102,6 +106,12 @@ static func edge_mask(cells: Dictionary, c: Vector2i) -> int:
 ## is the paint cell in world pixels. [param passages] holds "x,y:side" keys of cell edges
 ## with a gate (MetSys themes draw a passage there).
 func draw_room(ci: CanvasItem, cells: Dictionary, cell_size: Vector2, to_screen: Callable, scale: float, color: Color, border_color := Color.WHITE, passages := {}) -> void:
+	if kind == Kind.GLOW:
+		var owner: Dictionary = {}
+		for c in cells:
+			owner[c] = 0
+		draw_glow(ci, owner, cell_size, to_screen, scale, {0: color}, color)
+		return
 	var px := cell_size * scale
 	for c: Vector2i in cells:
 		var pos: Vector2 = to_screen.call(Vector2(c) * cell_size)
@@ -120,6 +130,132 @@ func draw_room(ci: CanvasItem, cells: Dictionary, cell_size: Vector2, to_screen:
 				_draw_metsys_cell(ci, c, cells, rect, color, border_color, passages)
 			_:
 				ci.draw_rect(rect, color)
+
+## Draws rooms the glowing way, a whole area at once: [param owner] maps the area's paint cells
+## to its rooms, [param fills] its rooms to their colors. Translucent rooms, faint lines
+## between them, and a rim glowing in [param rim] around the area.
+static func draw_glow(ci: CanvasItem, owner: Dictionary, cell_size: Vector2, to_screen: Callable, scale: float, fills: Dictionary, rim: Color) -> void:
+	var px := cell_size * scale
+	# Each room a shade apart, so they read as rooms.
+	var shades: Dictionary = {}
+	for c: Vector2i in owner:
+		var room: Variant = owner[c]
+		if not shades.has(room):
+			var fill: Color = fills.get(room, rim)
+			var v := float(hash(str(room)) % 5) / 4.0 - 0.5
+			fill = fill.lightened(v * 0.16) if v > 0.0 else fill.darkened(-v * 0.16)
+			shades[room] = Color(fill.darkened(0.42), 0.62)
+		ci.draw_rect(Rect2(to_screen.call(Vector2(c) * cell_size), px), shades[room])
+	var lw := clampf(scale * 30.0, 1.5, 3.0)
+	var inner := _screen_segments(MDSAreaTools.inner_edges(owner, cell_size), to_screen, 0.0)
+	if not inner.is_empty():
+		ci.draw_multiline(inner, Color(rim.lightened(0.25), 0.38), maxf(1.0, lw * 0.5))
+	var light := rim.lightened(0.45)
+	var outline := MDSAreaTools.outline(owner, cell_size)
+	for glow: Array in [[6.0, 0.06], [3.6, 0.12], [2.0, 0.28], [1.0, 1.0]]:
+		var w: float = lw * glow[0]
+		var edges := _screen_segments(outline, to_screen, w * 0.5)
+		if not edges.is_empty():
+			ci.draw_multiline(edges, Color(light, glow[1]), w)
+
+# --- Rooms with an outline on the map (curves, slants) ---------------------------------------
+
+## The fill a room drawn by its outline gets, matching this style's tiles tinted [param color].
+func outline_fill(color: Color) -> Color:
+	if kind == Kind.ATLAS and id in BUILTIN:
+		var f: Color = _params(id).fill
+		return Color(color.r * f.r, color.g * f.g, color.b * f.b, color.a * f.a)
+	if kind == Kind.ATLAS:
+		return color.darkened(0.25)
+	return color
+
+static var _polys: Dictionary = {}
+
+## Room [param id]'s outline on the map in world px, ready to fill: its shape, else its
+## rectangles. Cached until the room changes.
+static func room_polygons(world: MDSWorld, id: String) -> Array[PackedVector2Array]:
+	var room: Dictionary = world.data.rooms.get(id, {})
+	var key := hash([id, room.get("rects", []), room.get("shape", []), room.get("origin", [])])
+	if not _polys.has(key):
+		if _polys.size() > 4096:
+			_polys.clear()
+		_polys[key] = drawable(world.get_room_outline(id))
+	return _polys[key]
+
+## The outline around rooms [param ids] (an area): their outlines joined. Cached.
+static func area_outline(world: MDSWorld, ids: Array[String]) -> Array[PackedVector2Array]:
+	var parts: Array = ["area"]
+	for id in ids:
+		var room: Dictionary = world.data.rooms.get(id, {})
+		parts.append([room.get("rects", []), room.get("shape", []), room.get("origin", [])])
+	var key := hash(parts)
+	if not _polys.has(key):
+		var pieces: Array[PackedVector2Array] = []
+		for id in ids:
+			pieces.append_array(room_polygons(world, id))
+		_polys[key] = drawable(MDSGeometry.union_all(pieces, INF))
+	return _polys[key]
+
+## The polygons of [param polys] that can be filled (they triangulate).
+static func drawable(polys: Array) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	for p: PackedVector2Array in polys:
+		var clean := MDSGeometry.dedupe(p)
+		if clean.size() >= 3 and Geometry2D.triangulate_polygon(clean).size() >= 3:
+			out.append(clean)
+	return out
+
+static func _on_screen(poly: PackedVector2Array, to_screen: Callable, closed := false) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	out.resize(poly.size() + (1 if closed else 0))
+	for i in poly.size():
+		out[i] = to_screen.call(poly[i])
+	if closed:
+		out[poly.size()] = out[0]
+	return out
+
+## Draws a room by its outline (world-px [param polys]): a dark border, the fill, and a light
+## band inside the edge (none when [param band] is transparent).
+static func draw_outlined(ci: CanvasItem, polys: Array, to_screen: Callable, fill: Color, border: Color, band: Color, width: float) -> void:
+	for p: PackedVector2Array in polys:
+		ci.draw_polyline(_on_screen(p, to_screen, true), border, width * 2.0 + 1.0)
+	for p: PackedVector2Array in polys:
+		ci.draw_colored_polygon(_on_screen(p, to_screen), fill)
+	if band.a > 0.0:
+		for p: PackedVector2Array in polys:
+			ci.draw_polyline(_on_screen(p, to_screen, true), band, maxf(1.5, width))
+
+## [method draw_glow] for rooms with outlines: [param rooms] maps room ids to their world-px
+## polygons, [param outline] is the area's (see [method area_outline]).
+static func draw_glow_polygons(ci: CanvasItem, rooms: Dictionary, to_screen: Callable, scale: float, fills: Dictionary, rim: Color, outline: Array) -> void:
+	var lw := clampf(scale * 30.0, 1.5, 3.0)
+	for room in rooms:
+		var fill: Color = fills.get(room, rim)
+		var v := float(hash(str(room)) % 5) / 4.0 - 0.5
+		fill = fill.lightened(v * 0.16) if v > 0.0 else fill.darkened(-v * 0.16)
+		for p: PackedVector2Array in rooms[room]:
+			ci.draw_colored_polygon(_on_screen(p, to_screen), Color(fill.darkened(0.42), 0.62))
+	var inner := Color(rim.lightened(0.25), 0.38)
+	for room in rooms:
+		for p: PackedVector2Array in rooms[room]:
+			ci.draw_polyline(_on_screen(p, to_screen, true), inner, maxf(1.0, lw * 0.5))
+	var light := rim.lightened(0.45)
+	for glow: Array in [[6.0, 0.06], [3.6, 0.12], [2.0, 0.28], [1.0, 1.0]]:
+		for p: PackedVector2Array in outline:
+			ci.draw_polyline(_on_screen(p, to_screen, true), Color(light, glow[1]), lw * glow[0])
+
+## Segments (pairs of world points) on the screen, each made [param grow] px longer at both
+## ends so thick lines meet at corners.
+static func _screen_segments(points: PackedVector2Array, to_screen: Callable, grow: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	out.resize(points.size())
+	for i in range(0, points.size(), 2):
+		var a: Vector2 = to_screen.call(points[i])
+		var b: Vector2 = to_screen.call(points[i + 1])
+		var d := (b - a).normalized() * grow
+		out[i] = a - d
+		out[i + 1] = b + d
+	return out
 
 # MetSys border directions: R, D, L, U (same order as MetroidvaniaSystem.R/D/L/U).
 const _FWD: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT, Vector2i.UP]

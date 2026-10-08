@@ -35,6 +35,9 @@ static func run(world: MDSWorld, analysis: MDSAnalysis, scene_db: Dictionary) ->
 		var weather_problem := MDSEnvironment.check(str(world.get_room_value(id, "weather", "")))
 		if not weather_problem.is_empty():
 			MDSValidator._add(issues, W, CATEGORY_ROOMS, "%s's weather: %s" % [name, weather_problem], id, Vector3i.MAX, at, layer)
+		var parallax_problem := MDSEnvironment.check_parallax(str(world.get_room_value(id, "parallax", "")))
+		if not parallax_problem.is_empty():
+			MDSValidator._add(issues, W, CATEGORY_ROOMS, "%s's parallax background: %s" % [name, parallax_problem], id, Vector3i.MAX, at, layer)
 
 		# --- Gates ---
 		var gates := world.get_gates(id)
@@ -99,9 +102,12 @@ static func run(world: MDSWorld, analysis: MDSAnalysis, scene_db: Dictionary) ->
 	# --- Weather of areas and of the world ---
 	for area in world.get_areas():
 		var problem := MDSEnvironment.check(str(world.get_areas()[area].get("weather", "")))
+		var rooms := world.get_area_rooms(area)
 		if not problem.is_empty():
-			var rooms := world.get_area_rooms(area)
 			MDSValidator._add(issues, W, CATEGORY_ROOMS, "Area %s's weather: %s (Areas tab)" % [area, problem], rooms[0] if not rooms.is_empty() else "")
+		var p_problem := MDSEnvironment.check_parallax(str(world.get_areas()[area].get("parallax", "")))
+		if not p_problem.is_empty():
+			MDSValidator._add(issues, W, CATEGORY_ROOMS, "Area %s's parallax background: %s (Areas tab)" % [area, p_problem], rooms[0] if not rooms.is_empty() else "")
 	var world_problem := MDSEnvironment.check(str(world.get_setting("weather", "")))
 	if not world_problem.is_empty():
 		MDSValidator._add(issues, W, CATEGORY_ROOMS, "The world's weather: %s (World settings)" % world_problem)

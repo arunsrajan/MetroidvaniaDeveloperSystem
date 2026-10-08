@@ -96,6 +96,10 @@ static var instance: MDSWorldGame
 ## area's ([code]areas[name].weather[/code]), else the world's ([code]settings.weather[/code]),
 ## sized to the room (see [MDSEnvironment]).
 @export var room_weather := true
+## Add each room's parallax background as it loads: the room's
+## ([code]rooms[id].parallax[/code]), else its area's, else the world's
+## ([code]settings.parallax[/code]), see [MDSParallaxBackground].
+@export var room_parallax := true
 ## Nodes in these groups carry a soft light in dark rooms (the player, enemies, lanterns).
 ## The world setting [code]light_groups[/code] replaces the list.
 @export var light_groups: PackedStringArray = ["player", "enemy", "lantern"]
@@ -132,6 +136,8 @@ var moved: Dictionary = {}
 var darkness := 0.0
 ## The current room's weather node (null: none), see [method get_weather_spec].
 var weather: Node2D
+## The current room's parallax background (null: none).
+var parallax: Node2D
 
 var _cooldown_until := 0
 var _fade: ColorRect
@@ -354,6 +360,7 @@ func _dress_room(room: Node2D, id: String) -> void:
 		d.player = player
 		room.add_child(d)
 	_apply_weather(room, id)
+	_apply_parallax(room, id)
 	_apply_darkness(room, id)
 
 func is_depth_25d_on() -> bool:
@@ -410,6 +417,22 @@ func _apply_weather(room: Node2D, id: String) -> void:
 	weather = MDSEnvironment.build(spec, b)
 	if weather:
 		room.add_child(weather)
+
+## Adds the room's parallax background to it.
+func _apply_parallax(room: Node2D, id: String) -> void:
+	parallax = null
+	if not room_parallax:
+		return
+	var value := MDSEnvironment.parallax_for_room(world, id)
+	var rects := world.get_local_rects(id)
+	if value.is_empty() or MDSEnvironment.is_none(value) or rects.is_empty():
+		return
+	var b := rects[0]
+	for r in rects:
+		b = b.merge(r)
+	parallax = MDSEnvironment.build_parallax(value, b)
+	if parallax:
+		room.add_child(parallax)
 
 ## A resource named by a world setting (a res:// path), or null.
 func _setting_resource(key: String) -> Resource:

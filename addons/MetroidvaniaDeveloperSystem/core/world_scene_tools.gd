@@ -112,7 +112,7 @@ static func create_scene_for_room(world: MDSWorld, id: String, scene_path: Strin
 	if not fill_path.is_empty() and ResourceLoader.exists(fill_path):
 		var fill_style := load(fill_path) as MDSFreeformStyle
 		if fill_style:
-			MDSNotchFill.add_to_scene(root, rects, fill_style)
+			MDSNotchFill.add_to_scene(root, rects, fill_style, MDSNotchFill.MARGIN, world.get_local_shape(id))
 	DirAccess.make_dir_recursive_absolute(scene_path.get_base_dir())
 	var err := repack_safely(root, template_scene, scene_path)
 	root.free()

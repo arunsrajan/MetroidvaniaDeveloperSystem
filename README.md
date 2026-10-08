@@ -1,6 +1,6 @@
 # Metroidvania Developer System
 
-A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, connect them with gates, paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather and hazards (dust storms, rain, lightning, snow, steam vents, lava, waterfalls...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
+A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards and parallax backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, distant mountains and cities...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
 
 Every class and node of the plugin starts with `MDS` (`MDSWorldGame`, `MDSGate`, `MDSFreeform`...). Before 3.0 they started with `IDP`, from the plugin's first name, Interactive Dev Panel: see [Upgrading from 2.x](#upgrading-from-2x-idp-to-mds).
 
@@ -45,6 +45,12 @@ The **⧉** menu in the tool panel's title row moves Map Dev at any time, withou
 
 The choice is saved in `interactive_dev_panel/placement`. To have no Map Dev tab at all, set `interactive_dev_panel/use_main_screen` to `false` and re-enable the plugin.
 
+**Everything fits the screen.** Detached, docked or on a small display, Map Dev stays within the screen:
+
+- The floating window is never bigger than the usable screen. A remembered size or position that no longer fits, after a resolution change or with a monitor unplugged, is pulled back onto the screen.
+- The panels shrink with the window. Below their usual width, the tool panel folds to its strip and the side tabs and canvas give up room first.
+- Dialogs (World settings, Trace drawing, Generate area, Convert, Decorate...) are at most 92% of the window they open over. What doesn't fit scrolls, and they open centred over that window.
+
 ![Map Dev detached into its own window](docs/floating_window.png)
 
 ### Layout
@@ -54,7 +60,7 @@ Like MetSys' own editor, Map Dev keeps its buttons in a **tool panel on the left
 - **Left: the tool panel.** It is split into foldable sections:
   - **World** or **Map**: mode switch, map or world file, Scenes/Scan, Export and **Side tabs**.
   - **View** (non-linear mode): Map view or Room view.
-  - **Map tools**: Select, Room, Extend, Gate, Pin, Paint and Erase, plus brush size and Undo/Redo.
+  - **Map tools**: Select, Room, Extend, Gate, Pin, Paint, Erase, Area, Generate and Paint area, plus brush size, Auto doors and Undo/Redo.
   - **Map display**: layer, style, color mode, what to show on the map, and zoom.
   - **Markers**: the marker filters.
   - **Room painting**: shown instead of the map sections while the Room view is open.
@@ -129,6 +135,7 @@ You can design the whole map before any scene exists, the way a hand-drawn metro
 
 1. **Pick a style** in the **Style** drop-down (Map display section). This is the tileset rooms are drawn with, tinted by each area's color, and the in-game map (`MDSWorldMapView`) uses it too. The choices are:
    - **Hand-drawn (double line)**, the default: light border band, dark inner line, tinted fill.
+   - **Glowing areas (atlas)**: each area one translucent shape with a rim glowing in its color, faint lines between its rooms, and its name across it, like a hand-made fantasy map.
    - **Blueprint**, **Chunky pixel**, or **Flat**.
    - **Any MetSys map theme** (Exquisite, SotN, AoS...). Walls and corners come from the theme, and gates show as the theme's passages.
    - **Custom tileset PNG...**: your own tileset (see below).
@@ -138,6 +145,7 @@ You can design the whole map before any scene exists, the way a hand-drawn metro
    - start a stroke inside a room to grow it (L, T and U shapes are fine);
    - hold **Shift** to start a separate room next to another one;
    - the brush never paints over another room;
+   - with **Auto doors** on (Map tools section), a room painted onto rooms of its area gets a door to each of them;
    - `[` and `]` (or **Brush** in the Map tools section) change the brush size.
 4. **Erase** (`X`) removes cells from any room. A room erased completely is deleted.
 5. **Add doors:** **Scenes > Add doors between touching rooms** puts a connected gate pair on the longest shared edge of every pair of touching rooms.
@@ -154,6 +162,80 @@ The paint grid defaults to a quarter of the default room size. Change it in **Sc
 - Tiles 0-15 are indexed by which sides of the cell are room edges: 1 = top, 2 = right, 4 = bottom, 8 = left. Tile 0 is a cell inside a room; tile 15 is a lone cell.
 - Row 5 holds the inner corners of concave shapes: top-left, top-right, bottom-right, bottom-left.
 - Draw in white and grays: tiles are multiplied by the area color.
+
+### Generating and painting areas (hybrid maps)
+
+Sketch a whole area at once, the way a fantasy map's regions are drawn. An area's outline can mix curves, slants and straight sides. MDS splits it into rooms, some rectangles and some irregular, and puts the doors between them. Areas are then handled as one piece: select one, name it, and drag it against another area to connect the two.
+
+![Generated areas in the glowing style](docs/generated_areas.png)
+
+**Generate (`N`).** Drag a box on the map, or use **Areas tab > Generate...** or right-click empty space > **Generate area here...**. A dialog sets up the area and previews it as you change it:
+
+- **Name** and **Color**. A random name (*The Ashen Depths*) and a color unlike the other areas' come filled in. An existing area's name adds the rooms to that area.
+- **Shape:**
+  - **Rectangle or square**: the whole box.
+  - **Irregular blocks**: rectangles joined together.
+  - **Freeform (curvy)**: a smooth blob with corridors reaching out.
+  - **Hybrid**: a curvy blob with halls and towers sticking out of it, and corridors.
+- **Sides:** these work on every shape. With both at 0, the sides are straight and the corners sharp.
+  - **Curves**: the share of the outline's corners rounded into curves, and of the corridors that wind like pipes.
+  - **Slants**: the share of corners cut on a slant, of blocks with one slanted side, and of corridors that run straight and turn at angles.
+- **Rooms:**
+  - **Smallest room** and **Largest room**, in paint cells.
+  - **Irregular rooms**: the share joined with a neighbour into L, T and U shapes.
+  - **Shafts**: tall, narrow rooms.
+- **Doors:**
+  - Every room can be reached: the doors form a random tree over the rooms.
+  - **Loops** adds doors between some of the other neighbouring rooms.
+  - A side door goes on the lowest row two rooms share (a corridor's floor). Rooms that only meet at a floor or ceiling get a door in the middle of it.
+- **Ragged outline**, **Corridors**, and a **Seed** (**New** for another layout).
+- **Connect to the areas it touches**.
+
+Cells other rooms already cover are left out, so a box dragged over a corner of another area fills only the free space.
+
+**Curved and slanted sides on the map.** Rooms are still made of rectangles: the game, the camera, gates and painting use them. A room on a curved or slanted side also keeps its part of the area's outline as its **outline on the map** (`shape` in the world file).
+
+- Every map style draws it, and so does the in-game map (`MDSWorldMapView`).
+- Clicks and hovering follow it.
+- The Room view draws it in cyan over the room and shades what lies outside it. **Fill outside shape**, and **Create scene** with a fill style set, fill outside the outline instead of outside the rectangles.
+- Painting or erasing cells keeps the curves where the room still is. Cells added come in square.
+- Doors go where both rooms' outlines reach.
+
+In code: `MDSWorld.get_room_shape(id)`, `set_room_shape(id, polygons)` (empty: drawn as its rectangles) and `room_at(pos, layer, true)`.
+
+**Paint area (`M`).** Paint with the brush: when you let go, the stroke becomes rooms with doors between them.
+
+- Started on empty space, it makes a new area, or adds to the area marked **Use for new rooms**.
+- Started inside an area, it grows that area, joined to it by a door.
+- Its corners are rounded and slanted like a generated area's (**Curves** and **Slants**, as last set in the Generate dialog).
+- `[` and `]` change the brush size.
+
+**Area (`A`): an area as one piece.**
+
+- **Click** a room to select its whole area: outlined, with its name and room count. A room in no area is a piece of its own.
+- **Drag** to move the area with its rooms, gates and name.
+  - It moves cell by cell and never passes through another area: it stops against it, and slides along it when only one direction is blocked.
+  - Let go touching another area, and the two connect: one door where the two rooms sharing the most edge meet.
+  - These doors carry `auto_link`. Drag the areas apart and the door is taken out again.
+- **Arrow keys** nudge it a cell, the same way.
+- **Double-click** renames it. The Areas tab's **Name** field and **Select on map** button work too.
+- **Delete** removes its rooms. Everything is one step of undo.
+
+In code, `MDSAreaGenerator` makes areas and `MDSAreaTools` moves and connects them. Both are in `core/` and need no editor:
+
+```gdscript
+var gen := MDSAreaGenerator.new()
+gen.shape = MDSAreaGenerator.Shape.HYBRID
+gen.curves = 0.5                 # rounded corners
+gen.slants = 0.3                 # corners cut on a slant
+gen.room_min = Vector2i(2, 2)
+gen.room_max = Vector2i(5, 3)
+gen.seed_value = 7
+var r := gen.generate(world, Rect2i(0, 0, 24, 14), 0, "The Ashen Depths")   # box in paint cells
+print(r.rooms.size(), " rooms, ", r.doors, " doors")
+MDSAreaTools.link_touching(world, r.rooms, 0)     # doors to the areas it touches
+gen.fill(world, painted_cells, 0, "The Ashen Depths")   # cells you painted become rooms too
+```
 
 ### Room view: painting the room itself
 
@@ -356,6 +438,9 @@ Sketch a room in any paint program, then let MDS draw it. **Trace drawing...** (
 
   Change any of them; two greys can be two rock styles. The soft edges a paint program leaves join the colors on either side instead of becoming colors of their own.
 - **Fit:** the drawing covers the room's box on the map, stretched or keeping its proportions.
+  - **Fit what is drawn** (on by default) leaves out the empty paper around the drawing, so what you drew fills the room's width and height.
+  - A frame in one color around the edge (a scanned page, a background fill) counts as paper.
+- **Fast on busy pictures:** a picture full of specks, grain or noise traces in well under a second. Specks below **Smallest shape** are dropped before the outlines are made.
 - **Holes stay open.** A cave drawn inside rock stays a cave. A freeform shape has no holes, so the rock is cut in two down the middle of the cave, and the halves meet with no outline and no rounding along the cut (the shapes' `mds_seams` metadata).
 - **Rock at the drawing's edge** runs on past the room's edge (**Run on past edges**, 64 px), out of the camera's sight.
 - **Detail** goes from smooth outlines with few points to following every wiggle. **Smallest shape** drops specks. **Round outlines** off keeps straight edges, for a blockout.
@@ -377,7 +462,7 @@ painter.save()
 
 #### Environment effects
 
-Fourteen effects bring rooms to life: weather, hazards and scenery in motion. Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
+Fifteen effects bring rooms to life: weather, hazards, scenery in motion and parallax backgrounds. Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
 
 | Effect | Node | What it does |
 |---|---|---|
@@ -395,6 +480,7 @@ Fourteen effects bring rooms to life: weather, hazards and scenery in motion. Ea
 | Lava pool | `MDSLava` | Molten rock with crust plates, glowing cracks, bursting bubbles, a heat glow and embers; `liquid` switches to magma, acid or cursed ooze. It hurts every `damage_interval` |
 | Waterfall | `MDSWaterfall` | A sheet of falling water with ragged sides, white water at its lip and foot, mist, and what's behind bent through it; `push_down` presses the player down |
 | Water | `MDSWater` | A pool: a rolling surface, refraction, a deeper tint toward the bottom, caustics, bubbles; `drag` slows bodies in it |
+| Parallax background | `MDSParallaxBackground` | Layers behind the room, the far ones moving slower: sky, mountains, hills, forest, city, ruins, cave rock, dunes, clouds, fog, stars, or your own pictures (see [Parallax backgrounds](#parallax-backgrounds)) |
 
 Three ways to use them:
 
@@ -729,6 +815,30 @@ Give an area weather and every room of it gets it as the room loads, sized to th
 
 `MDSWorldGame` adds the weather as an `MDSWeather` child of the room; `weather` holds it, and `room_weather` off skips it. In code: `MDSEnvironment.spec_for_room(world, id)`, `MDSEnvironment.build(spec, rect)` and `MDSEnvironment.create("rain", {"angle": "-20"})`.
 
+#### Parallax backgrounds
+
+An **`MDSParallaxBackground`** draws layers behind the room, each moving at its own share of the camera's speed, so the distance has depth. No art is needed: each layer is drawn by a shader. A layer can also be your own picture.
+
+![Parallax presets](docs/parallax_presets.png)
+
+- **Presets:** `dusk_mountains`, `misty_forest`, `ruined_city`, `desert_dunes`, `deep_cavern`, `snowy_peaks`, `volcanic`, `night_sky`, `sunken_garden`, `dusty_wastes`. Pick one in `preset`, then change its layers. `CUSTOM` keeps the layers as they are.
+- **Layers** (`MDSParallaxLayer` resources), farthest first:
+  - `kind`: sky, mountains, hills, forest, city, ruins, cave, dunes, clouds, fog, stars, or picture;
+  - colors: `color`, `color_top` (snow, lit windows, the crest's rim) and `color_bottom` (the haze at its base);
+  - placement: `horizon` (a share of the height), `height` and `feature_size`;
+  - look: `roughness`, `fill_below`, `haze`, `alpha` and `autoscroll` (drifting clouds);
+  - movement: `scroll_scale`. 0 stays on the screen, like the sky; 1 moves with the room. It is usually smaller vertically.
+- **Pictures:** drop an image from the FileSystem dock on a parallax background in the Room view (**Effects** tool), or call `add_picture(texture)`. It becomes the nearest layer, its bottom edge on the horizon, repeated sideways.
+- **In the game** it covers the whole view and follows the camera (`follow_camera`). In the editor it covers its rectangle; pan the Room view to see the layers move. It draws at `z_index` -100, behind the room's tiles.
+
+Use one three ways:
+
+- **Per area:** set **Areas tab > Parallax** (the **+** menu picks a preset), **Inspect tab > Parallax** for one room, or **World settings > Parallax** for every room. The most specific wins, and `none` turns it off. A value is a preset id, a `.tscn` holding an `MDSParallaxBackground` with your layers, or a spec like `parallax(preset=volcanic, seed_value=4)`.
+- **As a node:** Add Child Node > `MDSParallaxBackground`.
+- **By drag and drop:** drag it from the Room view's Effects list onto the room.
+
+`MDSWorldGame` adds the room's background as it loads (`parallax` holds it; `room_parallax` off skips it). The Room view shows it behind the room (**Show the parallax background**). The Issues tab reports unknown presets and missing scenes. In code: `MDSEnvironment.parallax_for_room(world, id)` and `MDSEnvironment.build_parallax("misty_forest", rect)`.
+
 #### Area titles and music
 
 Areas in the world file have presentation fields, set in the **Areas tab**: `title`, `subtitle`, `music` (a stream path), `music_volume_db` and `boss_music`.
@@ -974,6 +1084,8 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── annotations.gd     # MDSAnnotations: MapData.idp.json
 │   ├── world.gd           # MDSWorld: .idpworld.json (rooms, gates, areas, undo, runtime lookups)
 │   ├── world_scene_tools.gd # MDSWorldSceneTools: place/create scenes, sync gates, fit rooms
+│   ├── area_generator.gd  # MDSAreaGenerator: area outlines (curves, slants, blocks) split into rooms with doors
+│   ├── area_tools.gd      # MDSAreaTools: areas as one piece (cells, outline, sliding, auto doors)
 │   ├── room_painter.gd    # MDSRoomPainter: paints a room scene's tile layers, generates caves, spritesheets
 │   ├── terrain_shapes.gd  # MDSTerrainShapes: rectangle, irregular and curved-side shape brushes
 │   ├── tileset_factory.gd # MDSTilesetFactory: starter pixel-art "mossy cave" tileset
@@ -1015,7 +1127,9 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── mds_play_launcher.* # Boots the game scene in the chosen room
 │   └── environment/
 │       ├── mds_environment_effect.gd # MDSEnvironmentEffect: base of the effects (area, fades, forces)
-│       ├── mds_environment.gd # MDSEnvironment: the effects, weather presets and specs, area weather
+│       ├── mds_environment.gd # MDSEnvironment: the effects, weather presets and specs, area weather and parallax
+│       ├── mds_parallax_background.gd # MDSParallaxBackground: layers behind the room, presets
+│       ├── mds_parallax_layer.gd # MDSParallaxLayer: one layer (shader-drawn or a picture)
 │       └── mds_*.gd       # MDSDustStorm, MDSRain, MDSLightning, MDSSnowfall, MDSFog, MDSEmbers,
 │                          # MDSFireflies, MDSFallingLeaves, MDSLightShafts, MDSHeatHaze,
 │                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSWater
@@ -1026,7 +1140,7 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── map_canvas.gd      # MDSMapCanvas: MetSys map
 │   ├── world_canvas.gd    # MDSWorldCanvas: free-form world editor
 │   ├── world_map_view.gd  # MDSWorldMapView: in-game map
-│   ├── map_style.gd       # MDSMapStyle: tilesets (built-in, custom PNG, MetSys themes)
+│   ├── map_style.gd       # MDSMapStyle: tilesets (built-in, custom PNG, MetSys themes), glowing areas
 │   ├── room_view.gd       # MDSRoomView: the Room view (actual view) and its brush controls
 │   ├── side_panel.gd      # MDSSidePanel: the left tool panel (foldable sections)
 │   ├── room_canvas.gd     # MDSRoomCanvas: room painting surface (own SubViewport)
@@ -1036,7 +1150,8 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── convert_dialog.gd  # MDSConvertDialog: Convert to freeform options and preview
 │   ├── decorate_dialog.gd # MDSDecorateDialog: Decorate options
 │   ├── trace_dialog.gd    # MDSTraceDialog: Trace drawing options and preview
-│   └── ui_util.gd
+│   ├── area_generate_dialog.gd # MDSAreaGenerateDialog: Generate area options and preview
+│   └── ui_util.gd         # MDSUi: shared controls, dialogs that fit the screen
 └── assets/                # Node icons (environment/: the effects')
 ```
 

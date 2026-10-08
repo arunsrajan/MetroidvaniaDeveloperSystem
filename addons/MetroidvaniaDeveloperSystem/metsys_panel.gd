@@ -261,7 +261,7 @@ func _build_ui() -> void:
 	canvas = MDSMapCanvas.new()
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	canvas.custom_minimum_size = Vector2(200, 200)
+	canvas.custom_minimum_size = Vector2(200, 120) * MDSUi.editor_scale()
 	canvas.room_selected.connect(_on_canvas_room_selected)
 	canvas.room_activated.connect(_open_room_scene)
 	canvas.route_requested.connect(_show_route)
@@ -272,7 +272,10 @@ func _build_ui() -> void:
 	split.add_child(canvas)
 
 	sidebar = TabContainer.new()
-	sidebar.custom_minimum_size.x = 300
+	sidebar.custom_minimum_size.x = 300 * MDSUi.editor_scale()
+	# A small window or a narrow dock: the tool panel collapses and the tabs shrink rather
+	# than the panel running off the edge.
+	resized.connect(func() -> void: MDSSidePanel.fit_row(size.x, side_panel, canvas, sidebar))
 	split.add_child(sidebar)
 	_build_rooms_tab()
 	_build_inspector_tab()
@@ -627,13 +630,14 @@ func _show_player_settings() -> void:
 		_player_dialog.title = "Player for the room checks"
 		add_child(_player_dialog)
 	for c in _player_dialog.get_children():
-		if c is GridContainer:
+		if c is ScrollContainer:
+			_player_dialog.remove_child(c)
 			c.queue_free()
 	var grid := GridContainer.new()
 	grid.columns = 2
-	_player_dialog.add_child(grid)
+	MDSUi.scroll_content(_player_dialog, grid)
 	MDSUi.player_fields(grid, annotations.get_setting("player", {}), func(d: Dictionary) -> void: annotations.set_setting("player", d))
-	_player_dialog.popup_centered(Vector2i(380, 0))
+	MDSUi.popup_fitted(_player_dialog, 380)
 
 func _scan_map_scenes() -> void:
 	if not model:
@@ -1198,7 +1202,7 @@ func _on_context_menu(id: int) -> void:
 		ContextItem.ADD_PIN:
 			_pending_pin_cell = _context_cell
 			pin_text.text = ""
-			pin_dialog.popup_centered()
+			MDSUi.popup_fitted(pin_dialog, 360)
 			pin_text.grab_focus()
 		ContextItem.REMOVE_PIN:
 			annotations.remove_pin(_nearest_pin(_context_cell))

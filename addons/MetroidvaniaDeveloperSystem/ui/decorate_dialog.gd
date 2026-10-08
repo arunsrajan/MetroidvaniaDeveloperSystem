@@ -28,8 +28,7 @@ func _init() -> void:
 	title = "Decorate freeform"
 	ok_button_text = "Decorate"
 	var box := VBoxContainer.new()
-	box.custom_minimum_size.x = 440
-	add_child(box)
+	MDSUi.scroll_content(self, box)
 	box.add_child(MDSUi.hint("Places scenery relative to the room's freeform rock, never over doorways, platforms or anything in the room. Running it again replaces what it placed before."))
 	var grid := GridContainer.new()
 	grid.columns = 2
@@ -117,7 +116,7 @@ func open(p_view: MDSRoomView, styles: Array[MDSFreeformStyle], sets: Array[MDSS
 	_fill_styles(_struct_style, "back", ["ruin", "back"])
 	_fill_styles(_front_style, "front", ["foreground", "silhouette", "leaf"])
 	_seed.value = absi(hash(view.room_id)) % 10000
-	popup_centered()
+	MDSUi.popup_fitted(self, 480)
 
 func _stamp_set() -> MDSStampSet:
 	return _sets[_set.selected] if _set.selected >= 0 and _set.selected < _sets.size() else null

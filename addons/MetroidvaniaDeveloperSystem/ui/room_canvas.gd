@@ -93,6 +93,13 @@ var weather_preview := true
 var before_effect_drop: Callable
 var _weather: Node2D
 var _weather_spec := ""
+## Parts of the room's rects outside its outline on the map (shaded), and what they were made for.
+var _shape_shade: Array[PackedVector2Array] = []
+var _shape_shade_key := 0
+## Show the room's parallax background (its own, else its area's) behind it.
+var parallax_preview := true
+var _parallax: Node2D
+var _parallax_value := ""
 var _effect_drag := 0 ## 0 none, 1 move, 2 resize
 var _effect_from := Vector2.ZERO
 var _effect_orig := Rect2()
@@ -193,6 +200,10 @@ func close() -> void:
 		_weather.queue_free()
 	_weather = null
 	_weather_spec = ""
+	if is_instance_valid(_parallax):
+		_parallax.queue_free()
+	_parallax = null
+	_parallax_value = ""
 	selected_effect = null
 	if painter:
 		for l in painter.layers.values():
@@ -296,6 +307,32 @@ func _draw_overlay() -> void:
 	_shade_outside(ci, rects, outer, shade)
 	for r in rects:
 		ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(1, 1, 1, 0.8), false, 2.0)
+	# A curved or slanted outline on the map: what lies outside it lightly shaded, the outline drawn.
+	var map_shape := world.get_local_shape(room_id)
+	if not map_shape.is_empty():
+		var key := hash([rects, map_shape.map(func(p: PackedVector2Array) -> String: return var_to_str(p))])
+		if _shape_shade_key != key:
+			_shape_shade_key = key
+			_shape_shade.clear()
+			for r: Rect2 in rects:
+				var parts: Array[PackedVector2Array] = [MDSGeometry.rect_polygon(r)]
+				for poly in map_shape:
+					var next: Array[PackedVector2Array] = []
+					for part in parts:
+						next.append_array(MDSGeometry.without_holes(Geometry2D.clip_polygons(part, poly), 1.0))
+					parts = next
+				_shape_shade.append_array(MDSMapStyle.drawable(parts))
+		for part in _shape_shade:
+			var pts := PackedVector2Array()
+			for q in part:
+				pts.append(local_to_screen(q))
+			ci.draw_colored_polygon(pts, Color(0, 0, 0, 0.3))
+		for poly in map_shape:
+			var line := PackedVector2Array()
+			for q in poly:
+				line.append(local_to_screen(q))
+			line.append(line[0])
+			ci.draw_polyline(line, Color(0.3, 0.9, 1.0, 0.9), 2.0)
 	# Tile grid when zoomed in.
 	var ts := painter.tile_size() * zoom
 	if ts.x >= 10.0:
@@ -871,6 +908,7 @@ func _draw_effects(ci: CanvasItem, font: Font) -> void:
 ## Shows the room's weather over the view (its own, else its area's, else the world's), as
 ## the game adds it. It is only a preview: nothing is saved into the scene.
 func refresh_weather() -> void:
+	_refresh_parallax()
 	var spec := ""
 	if weather_preview and world and painter and world.has_room(room_id):
 		spec = MDSEnvironment.spec_for_room(world, room_id)
@@ -891,6 +929,38 @@ func refresh_weather() -> void:
 	if _weather:
 		_weather.name = "WeatherPreview"
 		_view.add_child(_weather)
+
+## Shows the room's parallax background behind it, as the game adds it (not saved).
+func _refresh_parallax() -> void:
+	var value := ""
+	if parallax_preview and world and painter and world.has_room(room_id):
+		value = MDSEnvironment.parallax_for_room(world, room_id)
+	if value == _parallax_value and (value.is_empty() or MDSEnvironment.is_none(value) or is_instance_valid(_parallax)):
+		return
+	_parallax_value = value
+	if is_instance_valid(_parallax):
+		_parallax.queue_free()
+	_parallax = null
+	if value.is_empty() or MDSEnvironment.is_none(value):
+		return
+	var b := Rect2()
+	var first := true
+	for r in world.get_local_rects(room_id):
+		b = r if first else b.merge(r)
+		first = false
+	_parallax = MDSEnvironment.build_parallax(value, b)
+	if _parallax:
+		_parallax.name = "ParallaxPreview"
+		_view.add_child(_parallax)
+		_view.move_child(_parallax, 0)
+
+## The parallax background preview (null when the room has none).
+func get_parallax_preview() -> Node2D:
+	return _parallax if is_instance_valid(_parallax) else null
+
+func set_parallax_preview(on: bool) -> void:
+	parallax_preview = on
+	_refresh_parallax()
 
 ## The weather preview node (null when the room has none).
 func get_weather_preview() -> Node2D:
@@ -913,6 +983,16 @@ func _can_drop_data(_at: Vector2, data: Variant) -> bool:
 				return true
 	return false
 
+## The parallax background an image dropped at [param at] goes to: the selected one under the
+## Effects tool, or the one under the mouse.
+func _parallax_at(at: Vector2) -> MDSParallaxBackground:
+	if tool != Tool.EFFECT:
+		return null
+	if _is_room_effect(selected_effect) and selected_effect is MDSParallaxBackground:
+		return selected_effect
+	var hit := painter.effect_at(screen_to_local(at))
+	return hit if hit is MDSParallaxBackground else null
+
 func _drop_data(at: Vector2, data: Variant) -> void:
 	if not data is Dictionary:
 		return
@@ -921,8 +1001,18 @@ func _drop_data(at: Vector2, data: Variant) -> void:
 			before_effect_drop.call()
 		place_effect(str(data.effect), screen_to_local(at))
 		return
+	var target := _parallax_at(at)
 	for f in data.get("files", []):
 		if str(f).get_extension().to_lower() in IMAGE_EXTENSIONS:
+			if target:
+				var tex: Texture2D = load(str(f)) as Texture2D if ResourceLoader.exists(str(f)) else null
+				if tex:
+					painter.checkpoint()
+					target.add_picture(tex)
+					painter.dirty = true
+					painted.emit()
+					status_message.emit("%s added to %s as its nearest layer. Its settings are in the Inspector (layers)." % [str(f).get_file(), target.name])
+				continue
 			image_dropped.emit(str(f))
 			return
 

@@ -24,6 +24,7 @@ extends MDSAnnotations
 ##       "area": "The Greenhouse", "layer": 0,
 ##       "origin": [4608, 1296],               # world position of the scene's (0, 0)
 ##       "rects": [[0, 0, 1152, 648], [1152, 324, 576, 324]],   # scene-local, any shape
+##       "shape": [[0, 0, 1152, 0, 1728, 324, ...]],    # optional: its outline on the map (curves, slants)
 ##       "gates": {"right1": {"pos": [1728, 580], "side": "right", "to": "Greenhouse_02",
 ##                            "to_gate": "left1", "requires": ["dash"], "one_way": false}},
 ##       "type": "boss", "status": "blockout", "boss": "Moss Mother", "grants": [], "notes": ""
@@ -390,25 +391,33 @@ func get_room_bounds(id: String) -> Rect2:
 func add_rect(id: String, world_rect: Rect2) -> void:
 	if not data.rooms.has(id):
 		return
+	var before := get_world_rects(id)
 	var local := Rect2(world_rect.position - get_origin(id), world_rect.size).abs()
 	data.rooms[id].rects.append([local.position.x, local.position.y, local.size.x, local.size.y])
+	_reshape(id, before)
 	_touch()
 
 func set_local_rect(id: String, index: int, local: Rect2) -> void:
 	var rects: Array = data.rooms.get(id, {}).get("rects", [])
 	if index >= 0 and index < rects.size():
+		var before := get_world_rects(id)
 		local = local.abs()
 		rects[index] = [local.position.x, local.position.y, local.size.x, local.size.y]
+		_reshape(id, before)
 		_touch()
 
 func remove_rect(id: String, index: int) -> bool:
 	var rects: Array = data.rooms.get(id, {}).get("rects", [])
 	if rects.size() <= 1 or index < 0 or index >= rects.size():
 		return false
+	var before := get_world_rects(id)
 	rects.remove_at(index)
+	_reshape(id, before)
 	_touch()
 	return true
 
+## Whether the room's rectangles hold [param world_pos]: the room in the game, and its cells.
+## [method room_shape_contains] follows its outline on the map instead.
 func room_contains(id: String, world_pos: Vector2) -> bool:
 	for r in get_world_rects(id):
 		if r.has_point(world_pos):
@@ -416,12 +425,112 @@ func room_contains(id: String, world_pos: Vector2) -> bool:
 	return false
 
 ## Topmost room at [param world_pos] on [param layer] (last added wins, like drawing order).
-func room_at(world_pos: Vector2, layer: int) -> String:
+## With [param by_shape], rooms with an outline on the map ([method get_room_shape]) are hit
+## only inside it, as they are drawn.
+func room_at(world_pos: Vector2, layer: int, by_shape := false) -> String:
 	var ids := get_room_ids()
 	for i in range(ids.size() - 1, -1, -1):
-		if get_room_layer(ids[i]) == layer and room_contains(ids[i], world_pos):
+		if get_room_layer(ids[i]) == layer and (room_shape_contains(ids[i], world_pos) if by_shape else room_contains(ids[i], world_pos)):
 			return ids[i]
 	return ""
+
+# --- Outlines on the map ---------------------------------------------------------------------
+# A room is made of rectangles (what the game, the camera and the paint cells use). Its outline
+# on the map can follow curves and slants within them ("shape": polygons, scene-local, flat
+# [x0, y0, x1, y1...] lists), as generated areas have. Without one it is drawn as its rects.
+
+func has_room_shape(id: String) -> bool:
+	return not data.rooms.get(id, {}).get("shape", []).is_empty()
+
+## The room's outline on the map, scene-local polygons (none: drawn as its rectangles).
+func get_local_shape(id: String) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	for flat in data.rooms.get(id, {}).get("shape", []):
+		var poly := PackedVector2Array()
+		for i in range(0, flat.size() - 1, 2):
+			poly.append(Vector2(float(flat[i]), float(flat[i + 1])))
+		if poly.size() >= 3:
+			out.append(poly)
+	return out
+
+## The room's outline on the map in world px (see [method get_local_shape]).
+func get_room_shape(id: String) -> Array[PackedVector2Array]:
+	var o := get_origin(id)
+	var out: Array[PackedVector2Array] = []
+	for poly in get_local_shape(id):
+		var moved := PackedVector2Array()
+		moved.resize(poly.size())
+		for i in poly.size():
+			moved[i] = poly[i] + o
+		out.append(moved)
+	return out
+
+## Sets the room's outline on the map ([param polys] in world px); empty: its rectangles.
+func set_room_shape(id: String, polys: Array) -> void:
+	if not data.rooms.has(id):
+		return
+	var o := get_origin(id)
+	var flat_list: Array = []
+	for poly: PackedVector2Array in polys:
+		if poly.size() < 3:
+			continue
+		var flat: Array = []
+		for p in poly:
+			flat.append(snappedf(p.x - o.x, 0.1))
+			flat.append(snappedf(p.y - o.y, 0.1))
+		flat_list.append(flat)
+	if flat_list.is_empty():
+		data.rooms[id].erase("shape")
+	else:
+		data.rooms[id].shape = flat_list
+	_touch()
+
+## The room's outline on the map, else its rectangles, as world-px polygons.
+func get_room_outline(id: String) -> Array[PackedVector2Array]:
+	if has_room_shape(id):
+		return get_room_shape(id)
+	var out: Array[PackedVector2Array] = []
+	for r in get_world_rects(id):
+		out.append(MDSGeometry.rect_polygon(r))
+	return out
+
+## Whether the room's outline on the map holds [param world_pos] (its rects when it has none).
+func room_shape_contains(id: String, world_pos: Vector2) -> bool:
+	if not has_room_shape(id):
+		return room_contains(id, world_pos)
+	if not room_contains(id, world_pos):
+		return false
+	for poly in get_room_shape(id):
+		if Geometry2D.is_point_in_polygon(world_pos, poly):
+			return true
+	return false
+
+## After the room's rectangles changed from [param before] (world px): its outline keeps its
+## curves where the room still is, and what was added comes in as plain rectangles.
+func _reshape(id: String, before: Array[Rect2]) -> void:
+	if not has_room_shape(id):
+		return
+	var now := get_world_rects(id)
+	var pieces: Array[PackedVector2Array] = []
+	for poly in get_room_shape(id):
+		for r in now:
+			pieces.append_array(Geometry2D.intersect_polygons(poly, MDSGeometry.rect_polygon(r)))
+	for r in now:
+		var left: Array[PackedVector2Array] = [MDSGeometry.rect_polygon(r)]
+		for old in before:
+			var next: Array[PackedVector2Array] = []
+			for part in left:
+				if MDSGeometry.bounds(part).intersects(old):
+					next.append_array(MDSGeometry.without_holes(Geometry2D.clip_polygons(part, MDSGeometry.rect_polygon(old)), 1.0))
+				else:
+					next.append(part)
+			left = next
+		pieces.append_array(left)
+	var kept: Array[PackedVector2Array] = []
+	for piece in pieces:
+		if not Geometry2D.is_polygon_clockwise(piece) and absf(MDSGeometry.signed_area(piece)) > 1.0:
+			kept.append(piece)
+	set_room_shape(id, MDSGeometry.union_all(kept, INF))
 
 func get_layer_bounds(layer: int) -> Rect2:
 	var b := Rect2()
@@ -524,11 +633,13 @@ func set_room_cells(id: String, cells: Dictionary) -> bool:
 		return false
 	var s := get_paint_cell()
 	var origin := get_origin(id)
+	var before := get_world_rects(id)
 	var rects: Array = []
 	for run in cells_to_runs(cells):
 		var r := Rect2(Vector2(run[0], run[2]) * s, Vector2(run[1] - run[0] + 1, run[3] - run[2] + 1) * s)
 		rects.append([r.position.x - origin.x, r.position.y - origin.y, r.size.x, r.size.y])
 	data.rooms[id].rects = rects
+	_reshape(id, before)
 	_touch()
 	return true
 
@@ -633,6 +744,10 @@ func rebase_origin(id: String, new_origin: Vector2) -> void:
 	for gate in get_gates(id).values():
 		var p: Array = gate.get("pos", [0, 0])
 		gate.pos = [float(p[0]) + delta.x, float(p[1]) + delta.y]
+	for flat in data.rooms[id].get("shape", []):
+		for i in range(0, flat.size() - 1, 2):
+			flat[i] = float(flat[i]) + delta.x
+			flat[i + 1] = float(flat[i + 1]) + delta.y
 	data.rooms[id].origin = [new_origin.x, new_origin.y]
 	_touch()
 

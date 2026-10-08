@@ -21,6 +21,8 @@ func _run() -> void:
 	_colors()
 	var shapes := _trace()
 	_mapping(shapes)
+	_crop_and_paper()
+	_fast_on_busy_pictures()
 	_painter()
 	await _room_view()
 
@@ -128,6 +130,64 @@ func _mapping(_shapes: Array) -> void:
 		ys.append(b.position.y)
 		ys.append(b.end.y)
 	check(ys.min() >= 599.0 and ys.max() <= 1801.0, "its shapes stay in the drawing's band (%.0f..%.0f)" % [ys.min(), ys.max()])
+
+## Paper around the drawing is cut off, so what is drawn fills the room; without white or
+## transparent paper, the color filling the border is the paper.
+func _crop_and_paper() -> void:
+	var img := Image.create(240, 120, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	img.fill_rect(Rect2i(60, 30, 120, 60), Color.BLACK)
+	var t := MDSDrawingTracer.new()
+	t.set_image(img)
+	t.target = Rect2(0, 0, 2400, 1200)
+	t.bleed = 0.0
+	check(t.content_rect() == Rect2i(60, 30, 120, 60), "the drawn part is found (%s)" % t.content_rect())
+	var b := _bounds_of(t.trace())
+	check(b.position.distance_to(Vector2.ZERO) < 30.0 and b.end.distance_to(Vector2(2400, 1200)) < 30.0, "cropped, it fills the room's width and height (%s)" % b)
+	t.crop = false
+	b = _bounds_of(t.trace())
+	check(b.position.distance_to(Vector2(600, 300)) < 30.0 and b.end.distance_to(Vector2(1800, 900)) < 30.0, "uncropped, the paper around it stays (%s)" % b)
+	# A drawing on a dark background, no white anywhere.
+	var dark := Image.create(240, 120, false, Image.FORMAT_RGBA8)
+	dark.fill(Color("#10141c"))
+	dark.fill_rect(Rect2i(30, 70, 100, 12), ORANGE)
+	dark.fill_rect(Rect2i(150, 20, 60, 60), GREEN)
+	var d := MDSDrawingTracer.new()
+	d.set_image(dark)
+	check(_layer_of(d, Color("#10141c")) == MDSDrawingTracer.Layer.IGNORE, "a dark background filling the border is the paper")
+	check(_layer_of(d, ORANGE) == MDSDrawingTracer.Layer.PLATFORM and _layer_of(d, GREEN) == MDSDrawingTracer.Layer.BACKGROUND, "and the shapes on it keep their layers")
+
+func _bounds_of(shapes: Array) -> Rect2:
+	var b := Rect2()
+	for i in shapes.size():
+		var r := MDSGeometry.bounds(shapes[i].points)
+		b = r if i == 0 else b.merge(r)
+	return b
+
+## A busy picture (hundreds of specks) traces quickly: specks are dropped before anything
+## compares outlines.
+func _fast_on_busy_pictures() -> void:
+	var img := Image.create(512, 288, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	img.fill_rect(Rect2i(40, 40, 432, 208), Color.BLACK)
+	img.fill_rect(Rect2i(80, 80, 352, 128), Color.WHITE)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for i in 3000:
+		img.set_pixel(rng.randi_range(0, 511), rng.randi_range(0, 287), Color.BLACK if rng.randf() < 0.5 else Color.WHITE)
+	var t := MDSDrawingTracer.new()
+	t.set_image(img)
+	t.target = Rect2(0, 0, 3456, 1944)
+	var t0 := Time.get_ticks_msec()
+	var shapes := t.trace()
+	var took := Time.get_ticks_msec() - t0
+	check(took < 1500, "a picture with 3000 specks traces in %d ms" % took)
+	check(shapes.all(func(s: Dictionary) -> bool: var bb := MDSGeometry.bounds(s.points); return maxf(bb.size.x, bb.size.y) >= t.min_size), "nothing smaller than the smallest shape is kept (%d shapes)" % shapes.size())
+	t.min_size = 60.0
+	var big := shapes.size()
+	shapes = t.trace()
+	check(shapes.filter(func(s: Dictionary) -> bool: return s.layer == MDSDrawingTracer.Layer.TERRAIN).size() <= 4 and shapes.size() < big, "a bigger smallest shape drops the specks, the rock ring stays (%d shapes)" % shapes.size())
+	check(_inside(shapes, MDSDrawingTracer.Layer.TERRAIN, Vector2(400, 900)) and not _inside(shapes, MDSDrawingTracer.Layer.TERRAIN, Vector2(1728, 972)), "with its cave open")
 
 func _painter() -> void:
 	var root := Node2D.new()
