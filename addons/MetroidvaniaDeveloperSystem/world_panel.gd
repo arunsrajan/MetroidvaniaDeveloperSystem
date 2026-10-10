@@ -19,7 +19,7 @@ enum WorldItem { NEW = 1000, OPEN, IMPORT_METSYS, RELOAD }
 enum ViewItem { LABELS, AREA_LABELS, TERRAIN, PREVIEWS, GATES, MARKERS, PINS, ISSUES, GRID, LEGEND }
 enum ExportItem { JSON, PNG, DOT, MARKDOWN }
 enum ScenesItem { RESCAN, ADD_SCENES, AUTO_CONNECT, SETTINGS, GAME_SCENE, AUTO_DOORS }
-enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, SET_START, ROUTE, LINK, DUPLICATE, DELETE, ADD_ROOM, ADD_PIN, REMOVE_PIN, ADD_GATE, COPY_ID, PAINT_ROOM, GENERATE_AREA, SELECT_AREA }
+enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, SET_START, ROUTE, LINK, DUPLICATE, DELETE, ADD_ROOM, ADD_PIN, REMOVE_PIN, ADD_GATE, COPY_ID, PAINT_ROOM, GENERATE_AREA, SELECT_AREA, AREA_CAVES }
 
 # Data
 var world_path := ""
@@ -73,6 +73,11 @@ var generate_dialog: MDSAreaGenerateDialog
 var rename_dialog: ConfirmationDialog
 var rename_edit: LineEdit
 var _rename_area := ""
+var caves_dialog: ConfirmationDialog
+var _caves_text: Label
+var _caves_skip: CheckBox
+var _caves_area := ""
+var _caves_rooms: Array[String] = []
 
 # State
 var _files_ready := false ## the editor finished its startup scan and imports
@@ -195,7 +200,7 @@ func _build_ui() -> void:
 	room_view_button = MDSUi.button("Room view", "Paint the selected room's actual contents (terrain, background, decorations)")
 	room_view_button.toggle_mode = true
 	room_view_button.button_group = view_group
-	room_view_button.pressed.connect(func() -> void: show_room_view(canvas.selected_room))
+	room_view_button.pressed.connect(_open_room_view)
 	MDSSidePanel.row(view_section, [map_view_button, room_view_button])
 	side_tabs_check = CheckBox.new()
 	side_tabs_check.text = "Side tabs"
@@ -338,6 +343,8 @@ func _build_ui() -> void:
 	room_view.visible = false
 	room_view.saved.connect(_on_room_saved)
 	room_view.status_message.connect(_set_status)
+	room_view.room_requested.connect(show_room_view)
+	room_view.area_caves_requested.connect(ask_area_caves)
 	view_box.add_child(room_view)
 	# The Room view's brushes and actions live in the tool panel too, shown with it.
 	side_panel.add_section(SECTION_ROOM, room_view.controls)
@@ -631,6 +638,20 @@ func _build_area_dialogs() -> void:
 	rename_dialog.add_child(rename_edit)
 	rename_dialog.confirmed.connect(_rename_area_now)
 	add_child(rename_dialog)
+	caves_dialog = ConfirmationDialog.new()
+	caves_dialog.title = "Generate caves for the area"
+	caves_dialog.ok_button_text = "Generate"
+	var caves_box := VBoxContainer.new()
+	_caves_text = MDSUi.hint("")
+	_caves_text.custom_minimum_size.x = 380
+	caves_box.add_child(_caves_text)
+	_caves_skip = CheckBox.new()
+	_caves_skip.text = "Leave rooms already painted alone"
+	_caves_skip.tooltip_text = "Rooms whose scene has terrain tiles keep them; only empty and new rooms get a cave"
+	caves_box.add_child(_caves_skip)
+	MDSUi.scroll_content(caves_dialog, caves_box)
+	caves_dialog.confirmed.connect(generate_area_caves_now)
+	add_child(caves_dialog)
 
 ## Opens the Generate area dialog for [param box] (paint cells) on the current layer.
 func open_generate_dialog(box: Rect2i) -> void:
@@ -1178,7 +1199,72 @@ func show_room_view(id: String) -> void:
 	room_view.visible = true
 	room_view_button.set_pressed_no_signal(true)
 	_show_room_sections(true)
-	_set_status("Room view: %s. Paint terrain, or press Generate cave to start from the room's shape on the map." % id)
+	var area := world.get_room_area(id)
+	if not area.is_empty():
+		room_view.set_area(area, MDSWorldSceneTools.area_room_order(world, area, world.get_room_layer(id)))
+	_set_status("Room view: %s. Paint terrain, or press Generate cave to start from the room's shape on the map%s." % [id, " (Caves for the area does every room of %s)" % area if not area.is_empty() else ""])
+
+## The Room view button: the selected room, or the first room of the selected area.
+func _open_room_view() -> void:
+	var id := canvas.selected_room
+	if not world.has_room(id) and not canvas.selected_area.is_empty():
+		var group := canvas.selected_area
+		var order: Array[String] = MDSWorldSceneTools.area_room_order(world, group, canvas.layer) if not group.begins_with("#") else MDSAreaTools.group_rooms(world, group, canvas.layer)
+		if not order.is_empty():
+			id = order[0]
+	show_room_view(id)
+
+## Asks before generating caves in all the [param rooms] of [param area].
+func ask_area_caves(area: String, rooms: Array[String] = []) -> void:
+	if not world or not world.has_area(area):
+		return
+	if rooms.is_empty():
+		rooms = MDSWorldSceneTools.area_room_order(world, area, canvas.layer)
+	if rooms.is_empty():
+		_set_status("%s has no rooms on this layer." % area)
+		return
+	_caves_area = area
+	_caves_rooms = rooms
+	var missing := rooms.filter(func(id: String) -> bool: return world.get_scene_path(id).is_empty()).size()
+	_caves_text.text = "Generate a cave in each of the %d rooms of %s?\n\nEvery room's gates are joined by paths a player can walk, jump and climb both ways, so the whole area can be crossed and backtracked. The Room view's fills and Generate options are used (terrain, background, decor, foreground, stamps).%s\n\nThe tiles of the rooms are replaced and saved; this can't be undone with Ctrl+Z." % [rooms.size(), area, "\n%d room(s) have no scene yet: one is made for each in %s." % [missing, world.get_setting("scene_folder", "res://rooms")] if missing > 0 else ""]
+	MDSUi.popup_fitted(caves_dialog, 460)
+
+## Generates the caves [method ask_area_caves] asked about.
+func generate_area_caves_now() -> void:
+	if not world or _caves_rooms.is_empty():
+		return
+	var shown := room_view.room_id if room_view.visible else ""
+	if room_view.painter and room_view.painter.dirty:
+		room_view.save()
+	# The Room view's fills and Generate options (its defaults when no room was opened there).
+	var fills: Dictionary = room_view.generation_fills()
+	var tiles_path := str(world.get_setting("room_tileset", ""))
+	var tiles := MDSTilesetFactory.get_or_create(tiles_path if not tiles_path.is_empty() else MDSRoomView.DEFAULT_TILESET)
+	if room_view.painter:
+		room_view.close_room(false)
+	world.checkpoint()
+	var r := MDSWorldSceneTools.generate_area_caves(world, _caves_rooms, _default_scene_path, fills, tiles, _caves_skip.button_pressed, hash(_caves_area))
+	var changed: Array = []
+	for id in _caves_rooms:
+		if not world.get_scene_path(id).is_empty():
+			changed.append(world.get_scene_path(id))
+	for path in changed:
+		EditorInterface.get_resource_filesystem().update_file(path)
+	var reopen := shown if world.has_room(shown) else _caves_rooms[0]
+	if room_view.visible or not shown.is_empty():
+		show_room_view(reopen)
+	await _scan_paths(changed)
+	var text := "%s: caves generated in %d room(s)" % [_caves_area, r.generated.size()]
+	if not r.made.is_empty():
+		text += ", %d new scene(s)" % r.made.size()
+	if not r.skipped.is_empty():
+		text += ", %d already painted left alone" % r.skipped.size()
+	if not r.failed.is_empty():
+		var why: PackedStringArray = []
+		for id in r.failed:
+			why.append("%s: %s" % [id, r.failed[id]])
+		text += ". Not done: " + "; ".join(why)
+	_set_status(text + ".")
 
 ## The tool panel shows the map tools with the Map view and the room brushes with the
 ## Room view.
@@ -1388,6 +1474,9 @@ func _rebuild_area_editor() -> void:
 		world.checkpoint()
 		world.set_room_value(canvas.selected_room, "area", a))
 	row.add_child(assign)
+	var area_caves := MDSUi.button("Generate caves...", "Generate a cave in every room of the area (with the Room view's fills), every room's gates joined both ways so the area can be crossed and backtracked. Rooms without a scene get one")
+	area_caves.pressed.connect(func() -> void: ask_area_caves(a))
+	row.add_child(area_caves)
 	var select_on_map := MDSUi.button("Select on map", "Select the area with the Area tool, to drag it as one piece (it connects to the areas it touches)")
 	select_on_map.pressed.connect(func() -> void:
 		canvas.set_tool(MDSWorldCanvas.Tool.AREA)
@@ -1709,6 +1798,11 @@ func _rebuild_inspector() -> void:
 		world.set_room_value(id, "parallax", t.strip_edges())
 		_parallax_changed(t))
 	parallax_edit.tooltip_text = "Parallax background behind this room. Empty: the area's, else the world's; none: none here"
+	var cam_zoom_edit := MDSUi.field_line(grid, "Camera zoom", str(world.get_room_value(id, MDSRoomCamera.ROOM_ZOOM_KEY, "")), "auto")
+	cam_zoom_edit.tooltip_text = "The camera's zoom in this room (1: as set, 2: twice as close, 0.5: twice as far) when World settings > Camera > Auto zoom is Per room or Fit. The camera glides to it as the player comes in. Empty: the world's zoom, or the fitted one"
+	MDSUi.commit_line(cam_zoom_edit, func(t: String) -> void:
+		world.checkpoint()
+		world.set_room_value(id, MDSRoomCamera.ROOM_ZOOM_KEY, t.to_float() if t.strip_edges().to_float() > 0.0 else ""))
 	var dark: Variant = world.get_room_value(id, "darkness", null)
 	var dark_edit := MDSUi.field_line(grid, "Darkness", str(dark) if dark != null else "", "area: %s" % area_data.darkness if area_data.has("darkness") else "auto")
 	dark_edit.tooltip_text = "0 lit, 0.05 to 0.8 dimmed: a subtractive light darkens the room and the player, enemies and lanterns carry soft lights. Empty: the area's, else automatic (the world's Dark room share)"
@@ -2032,6 +2126,7 @@ func _on_canvas_context(room_id: String, world_pos: Vector2, local_pos: Vector2)
 			context_menu.add_item("Link selected room to this room", ContextItem.LINK)
 		if not world.get_room_area(room_id).is_empty():
 			context_menu.add_item("Select area %s" % world.get_room_area(room_id), ContextItem.SELECT_AREA)
+			context_menu.add_item("Generate caves for area %s..." % world.get_room_area(room_id), ContextItem.AREA_CAVES)
 		context_menu.add_item("Duplicate room", ContextItem.DUPLICATE)
 		context_menu.add_item("Delete room", ContextItem.DELETE)
 		context_menu.add_separator()
@@ -2097,6 +2192,8 @@ func _on_context_menu(item: int) -> void:
 		ContextItem.GENERATE_AREA:
 			var size := Vector2i(16, 10)
 			open_generate_dialog(Rect2i(world.world_to_cell(_context_pos) - size / 2, size))
+		ContextItem.AREA_CAVES:
+			ask_area_caves(world.get_room_area(id))
 		ContextItem.SELECT_AREA:
 			canvas.set_tool(MDSWorldCanvas.Tool.AREA)
 			canvas.select_area(world.get_room_area(id))
@@ -2272,13 +2369,15 @@ func _show_settings() -> void:
 		["Irregular rooms", "confine", MDSRoomCamera.CONFINE_NAMES, "Room shape: the camera is limited to the zone (largest rectangle of the room's shape) the player is in and glides between zones, so notches of L- or U-shaped rooms stay hidden."],
 		["Room transition", "room_transition", MDSRoomCamera.TRANSITION_NAMES, "Fade to black, cut, slide the view to the new room (player waits), or blend (the camera glides over while the player keeps moving)."],
 		["Camera motion", "transition_style", MDSRoomCamera.MOTION_NAMES, "Glide, or cut and never glide: zone changes, room slides and blends, follow smoothing and the camera director's moves all cut (a camera that eases late makes the parallax late too)."],
+		["Auto zoom", "auto_zoom", MDSRoomCamera.AUTO_ZOOM_NAMES, "Zoom between rooms, like a PhantomCamera2D per room. Per room: each room's own zoom (Inspect tab > Camera zoom). Fit: zoomed so the camera zone the player is in fills the screen (out in big rooms, in in small ones), times Zoom factor, between Min and Max zoom; a room's own zoom still wins."],
+		["Zoom changes", "zoom_tween", PackedStringArray(["Snap", "Glide"]), "Glide: the zoom glides with the room transition and zone changes (and over Zoom glide time after a cut or a fade). Snap: it changes at once.", 1],
 	]
 	for o in options:
 		grid.add_child(MDSUi.label(o[0]))
 		var opt := OptionButton.new()
 		for n in o[2]:
 			opt.add_item(n)
-		opt.select(int(cam.get(o[1], 0)))
+		opt.select(int(cam.get(o[1], o[4] if o.size() > 4 else 0)))
 		opt.tooltip_text = o[3]
 		var key: String = o[1]
 		opt.item_selected.connect(func(idx: int) -> void: set_cam.call(key, idx))
@@ -2289,6 +2388,11 @@ func _show_settings() -> void:
 		["Zone switch margin (px)", "zone_hysteresis", 32.0],
 		["Follow smoothing (0 = off)", "follow_smoothing", 0.0],
 		["Zoom", "zoom", 1.0],
+		["Zoom factor (Fit)", "zoom_factor", 1.0],
+		["Min zoom (Fit)", "min_zoom", 0.5],
+		["Max zoom (Fit)", "max_zoom", 2.0],
+		["Zoom glide time (s)", "zoom_time", 0.6],
+		["Snap zoom changes under", "zoom_tween_threshold", 0.03],
 	]
 	for n in numbers:
 		var value: Variant = cam.get(n[1], n[2])

@@ -266,9 +266,10 @@ func _room_view() -> void:
 	for i in 3:
 		await get_tree().process_frame
 	check(view._effect_box.visible and not view.fill_opt.get_parent().visible and not view.brush_spin.visible, "the Effects tool shows its list, not the brushes")
-	check(view.effect_list.item_count == MDSEnvironment.EFFECTS.size() and view.effect_list.get_item_icon(0) != null, "every effect is listed with its icon")
+	check(view.effect_list.item_count == MDSEnvironment.EFFECTS.size() + 1 and view.effect_list.get_item_icon(1) != null, "every effect is listed with its icon, after No effect")
+	check(str(view.effect_list.get_item_metadata(0)).is_empty() and view.effect_list._get_drag_data(view.effect_list.get_item_rect(0).get_center()) == null, "No effect places nothing and can't be dragged")
 	var drag: Variant = view.effect_list._get_drag_data(view.effect_list.get_item_rect(2).get_center())
-	check(drag is Dictionary and drag.type == MDSRoomCanvas.DRAG_EFFECT and drag.effect == MDSEnvironment.EFFECTS.keys()[2], "dragging an entry carries its effect (%s)" % [drag])
+	check(drag is Dictionary and drag.type == MDSRoomCanvas.DRAG_EFFECT and drag.effect == MDSEnvironment.EFFECTS.keys()[1], "dragging an entry carries its effect (%s)" % [drag])
 	view.set_tool(MDSRoomCanvas.Tool.TERRAIN)
 	view.canvas._drop_data(Vector2(300, 300), drag)
 	check(view.canvas.tool == MDSRoomCanvas.Tool.EFFECT and view.painter.effects().size() == 1, "dropping it switches to the Effects tool and places it")

@@ -828,7 +828,7 @@ func place_effect(id: String, p: Vector2) -> MDSEnvironmentEffect:
 	selected_effect = e
 	painted.emit()
 	_overlay.queue_redraw()
-	status_message.emit("%s added. Drag it to move it, drag its corner to resize it; its settings are in the Inspector. Delete removes it." % MDSEnvironment.display_name(id))
+	status_message.emit("%s added. Drag it to move it, drag its corner to resize it; its settings are in the Inspector. Delete removes it. Click again to place another; pick No effect to select ones already there." % MDSEnvironment.display_name(id))
 	return e
 
 func delete_selected_effect() -> void:
@@ -858,6 +858,16 @@ func _effect_input(mb: InputEventMouseButton) -> void:
 		_effect_from = p
 		_effect_orig = Rect2(selected_effect.position, selected_effect.size)
 		return
+	# An effect picked in the list: every click places another one, also over the effects already
+	# there (most cover the whole room), and dragging right away moves the new one. Shift+click
+	# selects instead.
+	if not effect_id.is_empty() and not mb.shift_pressed:
+		var placed := place_effect(effect_id, p)
+		if placed:
+			_effect_drag = 1
+			_effect_from = p
+			_effect_orig = Rect2(placed.position, placed.size)
+		return
 	var hit := painter.effect_at(p)
 	if hit:
 		selected_effect = hit
@@ -866,8 +876,6 @@ func _effect_input(mb: InputEventMouseButton) -> void:
 		_effect_from = p
 		_effect_orig = Rect2(hit.position, hit.size)
 		status_message.emit("%s selected (its settings are in the Inspector): drag to move it, drag its corner to resize it, Delete removes it." % hit.name)
-	elif not effect_id.is_empty():
-		place_effect(effect_id, p)
 	else:
 		selected_effect = null
 		status_message.emit("Drag an effect from the list onto the room, or pick one and click.")

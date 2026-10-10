@@ -120,6 +120,85 @@ static func create_scene_for_room(world: MDSWorld, id: String, scene_path: Strin
 		world.set_room_scene(id, scene_path)
 	return err
 
+## Generates a cave in each room of [param ids] (see [method MDSRoomPainter.generate_cave], with
+## [param fills]) and saves it, making a scene first for rooms that have none ([param path_for]:
+## id -> scene path). Every room joins its gates both ways (unless fills.paths is false), and the
+## doors between the rooms line up, so the whole area can be crossed and backtracked. With
+## [param skip_painted], rooms whose scene has terrain tiles already are left alone.
+## [param tiles]: the tileset scenes without one paint with. Returns {made, generated, skipped:
+## room ids; failed: id -> why}.
+static func generate_area_caves(world: MDSWorld, ids: Array[String], path_for: Callable, fills: Dictionary = {}, tiles: TileSet = null, skip_painted := false, seed_value := 0) -> Dictionary:
+	var made: Array[String] = []
+	var generated: Array[String] = []
+	var skipped: Array[String] = []
+	var failed: Dictionary = {}
+	for id in ids:
+		if not world.has_room(id):
+			continue
+		var path := world.get_scene_path(id)
+		if path.is_empty():
+			path = str(path_for.call(id))
+			DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+			var err := create_scene_for_room(world, id, path)
+			if err != OK:
+				failed[id] = last_error if not last_error.is_empty() else "could not create %s (error %d)" % [path, err]
+				continue
+			made.append(id)
+		var painter := MDSRoomPainter.open(path, tiles)
+		if not painter:
+			failed[id] = "could not open %s" % path
+			continue
+		if skip_painted and not made.has(id) and not painter.layers.Terrain.get_used_cells().is_empty():
+			skipped.append(id)
+			painter.free_instance()
+			continue
+		var room_fills := fills.duplicate()
+		var rock: Dictionary = room_fills.get("terrain", {})
+		if rock.is_empty() or str(rock.get("type", "")) == "terrain":
+			if not painter.has_terrains():
+				failed[id] = "its tileset has no terrains"
+				painter.free_instance()
+				continue
+			var first: Array = painter.get_terrains()[0]
+			if rock.is_empty():
+				room_fills.terrain = {"type": "terrain", "set": first[0], "terrain": first[1]}
+		painter.generate_cave(world, id, hash([seed_value, id]), int(room_fills.terrain.get("set", 0)), int(room_fills.terrain.get("terrain", 0)), {}, room_fills)
+		var save_err := painter.save()
+		painter.free_instance()
+		if save_err != OK:
+			failed[id] = last_error if not last_error.is_empty() else "could not save %s (error %d)" % [path, save_err]
+		else:
+			generated.append(id)
+	return {"made": made, "generated": generated, "skipped": skipped, "failed": failed}
+
+## The rooms of [param area] on [param layer] in the order a player meets them: from its
+## top-left room through its doors, then any it doesn't reach.
+static func area_room_order(world: MDSWorld, area: String, layer: int) -> Array[String]:
+	var ids := MDSAreaTools.group_rooms(world, area, layer)
+	ids.sort_custom(func(a: String, b: String) -> bool:
+		var pa := world.get_room_bounds(a).position
+		var pb := world.get_room_bounds(b).position
+		return pa.y < pb.y or (pa.y == pb.y and pa.x < pb.x))
+	var out: Array[String] = []
+	var seen: Dictionary = {}
+	for start in ids:
+		if seen.has(start):
+			continue
+		var queue: Array[String] = [start]
+		seen[start] = true
+		while not queue.is_empty():
+			var id: String = queue.pop_front()
+			out.append(id)
+			var next: Array[String] = []
+			for g in world.get_gates(id).values():
+				var to := str(g.get("to", ""))
+				if ids.has(to) and not seen.has(to):
+					seen[to] = true
+					next.append(to)
+			next.sort()
+			queue.append_array(next)
+	return out
+
 ## Adds MDSGate nodes for map gates missing from the room's scene, turns plain gate nodes
 ## into MDSGates, and moves existing ones to their map position. Never deletes nodes.
 ## Returns the number of gates in the scene that match the map, or -1 on error.

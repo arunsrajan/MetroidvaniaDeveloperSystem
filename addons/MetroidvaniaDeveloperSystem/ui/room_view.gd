@@ -20,6 +20,10 @@ signal status_message(text: String)
 ## The Tile palette button was pressed while the palette lives elsewhere (Map Dev shows it
 ## as a tab).
 signal palette_requested
+## The area bar asks for another room of the area.
+signal room_requested(room_id: String)
+## Generate caves in all the rooms of [param area] ([param rooms]) was pressed.
+signal area_caves_requested(area: String, rooms: Array[String])
 
 const DEFAULT_TILESET := "res://idp_tiles/idp_cave_tileset.tres"
 const Shape := MDSTerrainShapes.Shape
@@ -67,6 +71,13 @@ var _trace_dialog: MDSTraceDialog
 ## The Effects tool's list (drag an effect onto the room).
 var effect_list: ItemList
 var _effect_box: VBoxContainer
+var no_effects_check: CheckBox
+## What Generate cave makes besides terrain: background, decor, foreground, stamps, paths.
+var generate_options := {"background": true, "decor": true, "foreground": true, "stamps": true, "paths": true}
+var _area := ""
+var _area_rooms: Array[String] = []
+var _area_box: VBoxContainer
+var _area_label: Label
 var _weather_label: Label
 ## Shown while the room has cells pointing at tiles its tileset no longer has.
 var broken_button: Button
@@ -86,6 +97,8 @@ class EffectList extends ItemList:
 			l.text = get_item_text(i)
 			preview.add_child(l)
 			set_drag_preview(preview)
+		if str(get_item_metadata(i)).is_empty():
+			return null
 		return {"type": MDSRoomCanvas.DRAG_EFFECT, "effect": str(get_item_metadata(i))}
 
 func _init() -> void:
@@ -154,15 +167,29 @@ func _init() -> void:
 	effect_list = EffectList.new()
 	effect_list.custom_minimum_size.y = 230 * MDSUi.editor_scale()
 	effect_list.fixed_icon_size = Vector2i(16, 16) * int(maxf(1.0, MDSUi.editor_scale()))
-	effect_list.tooltip_text = "Drag an effect onto the room, or pick one and click in the room"
+	effect_list.tooltip_text = "Drag an effect onto the room, or pick one and click in the room (each click places another; Shift+click selects one already there). No effect: clicks only select, move and resize effects"
+	effect_list.add_item("No effect (select and move)")
+	effect_list.set_item_metadata(0, "")
+	effect_list.set_item_tooltip(0, "Place nothing: click an effect in the room to select it, drag it to move it, drag its corner to resize it")
 	for id in MDSEnvironment.EFFECTS:
 		effect_list.add_item(MDSEnvironment.display_name(id), MDSEnvironment.icon(id))
 		effect_list.set_item_metadata(effect_list.item_count - 1, id)
 		effect_list.set_item_tooltip(effect_list.item_count - 1, MDSEnvironment.describe(id))
 	effect_list.item_selected.connect(func(i: int) -> void:
 		canvas.effect_id = str(effect_list.get_item_metadata(i))
-		status_message.emit("Click in the room to place %s (or drag it from the list)." % effect_list.get_item_text(i)))
+		if canvas.effect_id.is_empty():
+			status_message.emit("No effect: click an effect in the room to select, move or resize it.")
+		else:
+			status_message.emit("Click in the room to place %s; each click places another (Shift+click selects one already there)." % effect_list.get_item_text(i)))
+	effect_list.select(0)
 	_effect_box.add_child(effect_list)
+	var clear_effects := MDSUi.button("Remove all", "Remove every effect placed in this room (Ctrl+Z undoes it)")
+	clear_effects.pressed.connect(remove_all_effects)
+	no_effects_check = CheckBox.new()
+	no_effects_check.text = "No effects here"
+	no_effects_check.tooltip_text = "No weather or effects from the room's area (or the world) in this room: its weather is set to none (Inspect tab). Effects placed in the room itself stay"
+	no_effects_check.toggled.connect(set_no_effects)
+	MDSSidePanel.row(_effect_box, [clear_effects, no_effects_check])
 	_effect_box.add_child(MDSUi.hint("Drag onto the room. Click one in the room to edit it in the Inspector; drag its corner to resize it. Drop an image on a parallax background to add it as a layer."))
 	var weather_check := CheckBox.new()
 	weather_check.text = "Show the area's weather"
@@ -250,13 +277,37 @@ func _init() -> void:
 	broken_button.pressed.connect(remove_broken_tiles)
 	generation.add_child(broken_button)
 	var actions := MDSSidePanel.grid(controls, 2)
-	var gen := MDSUi.button("Generate cave", "Replace the tiles with a cave built from the room's shape on the map: walls, floor, ledges, openings at its gates, background and decorations. Uses the Terrain fill's terrain and the Background fill")
+	_area_box = VBoxContainer.new()
+	_area_box.visible = false
+	generation.add_child(_area_box)
+	_area_label = MDSUi.hint("")
+	_area_box.add_child(_area_label)
+	var prev := MDSUi.button("<", "The area's previous room")
+	prev.pressed.connect(func() -> void: _area_step(-1))
+	var next := MDSUi.button(">", "The area's next room")
+	next.pressed.connect(func() -> void: _area_step(1))
+	var area_caves := MDSUi.button("Caves for the area", "Generate a cave in every room of the area, with the fills and options here. Rooms without a scene get one. Every room's gates are joined by paths a player can walk, jump and climb both ways, so the whole area can be crossed and backtracked")
+	area_caves.pressed.connect(func() -> void:
+		if not _area.is_empty():
+			area_caves_requested.emit(_area, _area_rooms))
+	MDSSidePanel.row(_area_box, [prev, next, area_caves])
+	var gen := MDSUi.button("Generate cave", "Replace the tiles with a cave built from the room's shape on the map: walls, floor, ledges, openings at its gates, paths between them, then background, decorations, foreground and stamps. Uses the fills picked for each layer (and the stamps picked for the Stamps tool), as the options below say")
 	gen.pressed.connect(func() -> void: generate(false))
 	generate_button = gen
 	generation.add_child(gen)
 	var again := MDSUi.button("New variation", "Generate again with another random layout")
 	again.pressed.connect(func() -> void: generate(true))
 	generation.add_child(again)
+	var options := HFlowContainer.new()
+	generation.add_child(options)
+	for o in [["background", "Background", "Paint the Background fill behind the cave"], ["decor", "Decor", "Decorations on floors and under ceilings; most floor ones of the Decor fill"], ["foreground", "Foreground", "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"], ["stamps", "Stamps", "Stamps of the set and category picked for the Stamps tool along the floors"], ["paths", "Paths", "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"]]:
+		var c := CheckBox.new()
+		c.text = o[1]
+		c.tooltip_text = o[2]
+		c.button_pressed = true
+		var key: String = o[0]
+		c.toggled.connect(func(on: bool) -> void: generate_options[key] = on)
+		options.add_child(c)
 	var deco := MDSUi.button("Auto-decorate", "Redo grass, plants, vines, stalactites and moss on the current terrain (uses tiles tagged with those kinds)")
 	deco.pressed.connect(func() -> void:
 		if painter:
@@ -402,10 +453,10 @@ func open_room(p_world: MDSWorld, id: String) -> String:
 	_fill_pickers(true)
 	_refresh_outside_fill()
 	_update_weather_label()
-	# Generate cave builds autotiled terrain.
-	generate_button.disabled = not painter.has_terrains()
 	if not painter.has_terrains():
-		status_message.emit("%s's tileset has no terrains, so Generate cave is off. Paint with palette tiles, or make a terrain from a 3x3 block in the palette." % id)
+		status_message.emit("%s's tileset has no terrains: Generate cave paints with the Terrain fill (palette tiles or a solid color), or make a terrain from a 3x3 block in the palette." % id)
+	no_effects_check.set_pressed_no_signal(MDSEnvironment.is_none(str(world.get_room_value(id, "weather", ""))))
+	set_area("", [])
 	_report_broken_tiles()
 	_fit_later()
 	return ""
@@ -763,14 +814,75 @@ func _refresh_outside_fill() -> void:
 	status_message.emit("%s's shape changed on the map: its outside fill was redone (%d shape(s)). Ctrl+Z undoes it." % [room_id, n])
 
 func generate(new_variation: bool) -> void:
-	if not painter or not painter.has_terrains():
+	if not painter:
+		return
+	var fills := generation_fills()
+	if not painter.has_terrains() and str(fills.terrain.get("type", "")) == "terrain":
+		status_message.emit("%s's tileset has no terrains: pick palette tiles or a solid color as the Terrain fill to generate with, or make a terrain from a 3x3 block in the palette." % room_id)
 		return
 	if new_variation:
 		_variation += 1
-	var terrain := _terrain_for_generation()
+	var terrain := _terrain_for_generation() if painter.has_terrains() else Vector2i.ZERO
 	painter.checkpoint()
-	painter.generate_cave(world, room_id, hash(room_id) + _variation * 7919, terrain.x, terrain.y, canvas.fills.get(MDSRoomCanvas.Tool.BACKGROUND, {}))
-	_changed("Generated a cave from %s's shape on the map (%d gates kept open). Paint over it, then Save." % [room_id, world.get_gates(room_id).size()])
+	painter.generate_cave(world, room_id, hash(room_id) + _variation * 7919, terrain.x, terrain.y, {}, fills)
+	var made: PackedStringArray = ["terrain"]
+	for k in ["background", "decor", "foreground", "stamps"]:
+		if fills.has(k):
+			made.append(k)
+	_changed("Generated a cave from %s's shape on the map (%s; %d gate(s) joined both ways). Paint over it, then Save." % [room_id, ", ".join(made), world.get_gates(room_id).size()])
+
+## What Generate cave makes, from the fills picked for each layer and the options (see
+## [method MDSRoomPainter.generate_cave]).
+func generation_fills() -> Dictionary:
+	var fills := {"terrain": canvas.fills.get(MDSRoomCanvas.Tool.TERRAIN, {}), "paths": bool(generate_options.get("paths", true))}
+	if fills.terrain.is_empty() or (str(fills.terrain.get("type", "")) == "terrain" and painter and painter.has_terrains()):
+		var t := _terrain_for_generation() if painter else Vector2i.ZERO
+		fills.terrain = {"type": "terrain", "set": t.x, "terrain": t.y}
+	var layer_tools := {"background": MDSRoomCanvas.Tool.BACKGROUND, "decor": MDSRoomCanvas.Tool.DECOR, "foreground": MDSRoomCanvas.Tool.FOREGROUND}
+	for k in layer_tools:
+		if bool(generate_options.get(k, true)) and not canvas.fills.get(layer_tools[k], {}).is_empty():
+			fills[k] = canvas.fills[layer_tools[k]]
+	if bool(generate_options.get("stamps", true)) and canvas.stamp_set and not canvas.stamp_category.is_empty():
+		fills.stamps = {"set": canvas.stamp_set, "category": canvas.stamp_category, "group": canvas.stamp_group, "scale": canvas.stamp_scale}
+	return fills
+
+## Shows the area bar for [param area]'s [param rooms] (the room open among them).
+func set_area(area: String, rooms: Array[String]) -> void:
+	_area = area
+	_area_rooms = rooms
+	_area_box.visible = not area.is_empty() and not rooms.is_empty()
+	var i := rooms.find(room_id)
+	_area_label.text = "Area %s: room %d of %d (%s)" % [area, i + 1, rooms.size(), room_id] if i >= 0 else "Area %s: %d rooms" % [area, rooms.size()]
+
+func _area_step(d: int) -> void:
+	if _area_rooms.is_empty():
+		return
+	var i := _area_rooms.find(room_id)
+	room_requested.emit(_area_rooms[posmod(i + d, _area_rooms.size())])
+
+## Removes every effect placed in the room (undoable).
+func remove_all_effects() -> void:
+	if not painter or painter.effects().is_empty():
+		status_message.emit("No effects are placed in %s." % room_id)
+		return
+	painter.checkpoint()
+	var n := painter.effects().size()
+	for e in painter.effects():
+		painter.remove_item(e)
+	canvas.selected_effect = null
+	_changed("Removed the %d effect(s) placed in %s. Ctrl+Z undoes it." % [n, room_id])
+
+## No weather or effects from the room's area here (its weather: none), or its area's again.
+func set_no_effects(on: bool) -> void:
+	if not world or not world.has_room(room_id):
+		return
+	var now := MDSEnvironment.is_none(str(world.get_room_value(room_id, "weather", "")))
+	if now == on:
+		return
+	world.checkpoint()
+	world.set_room_value(room_id, "weather", "none" if on else "")
+	refresh_weather()
+	status_message.emit("%s: %s" % [room_id, "no weather or effects from its area here." if on else "its area's weather again."])
 
 func fill_background() -> void:
 	if not painter:

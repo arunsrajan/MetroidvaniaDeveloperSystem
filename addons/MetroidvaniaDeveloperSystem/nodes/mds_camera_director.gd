@@ -480,7 +480,7 @@ func _finish() -> void:
 			if tween:
 				_restore_tween.call_deferred(tween, duration)
 	else:
-		cam.zoom = room_camera.zoom
+		cam.zoom = Vector2.ONE * room_camera.rest_zoom()
 		cam.offset = Vector2.ZERO
 		room_camera.restore_limits()
 		if room_camera.camera.get_parent() == room_camera or cam.top_level:

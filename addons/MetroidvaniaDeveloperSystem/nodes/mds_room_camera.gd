@@ -25,18 +25,28 @@ extends Node2D
 ##
 ## [b]Fights.[/b] An [MDSCameraDirector] child borrows the camera for a moment: framing a
 ## threat, revealing an arena, punching in, focusing on a node ([method get_director]).
+##
+## [b]Zoom between rooms.[/b] Like a PhantomCamera2D per room, each room (and each camera zone
+## of an irregular room) can have a zoom of its own ([member auto_zoom]): set per room (Inspect
+## tab > Camera zoom), or fitted to the zone so big rooms are seen whole and small ones closer
+## ([member zoom_factor], [member min_zoom], [member max_zoom]). The zoom glides there with
+## the room transition and zone changes ([member zoom_tween], [member zoom_time]), or snaps.
 
 enum Backend { AUTO, CAMERA_2D, PHANTOM_CAMERA }
 enum Confine { ROOM_SHAPE, ROOM_BOUNDS, NONE }
 enum Transition { FADE, CUT, SLIDE, BLEND }
 enum Motion { GLIDE, CUT }
+enum AutoZoom { OFF, ROOM, FIT }
 
 const BACKEND_NAMES: PackedStringArray = ["Auto (Phantom Camera if installed)", "Camera2D", "PhantomCamera2D"]
 const CONFINE_NAMES: PackedStringArray = ["Room shape (zones)", "Room bounds", "None"]
 const TRANSITION_NAMES: PackedStringArray = ["Fade", "Cut", "Slide", "Blend"]
 const MOTION_NAMES: PackedStringArray = ["Glide", "Cut, never glide"]
+const AUTO_ZOOM_NAMES: PackedStringArray = ["Off (always Zoom)", "Per room (a room's own zoom)", "Fit the room (out in big rooms, in in small ones)"]
 ## Settings read from the world file's settings.camera.
-const SETTING_KEYS: PackedStringArray = ["backend", "confine", "room_transition", "transition_style", "transition_time", "zone_blend_time", "zone_hysteresis", "follow_smoothing", "zoom"]
+const SETTING_KEYS: PackedStringArray = ["backend", "confine", "room_transition", "transition_style", "transition_time", "zone_blend_time", "zone_hysteresis", "follow_smoothing", "zoom", "auto_zoom", "zoom_factor", "min_zoom", "max_zoom", "zoom_tween", "zoom_time", "zoom_tween_threshold"]
+## The room value (Inspect tab) of a room's own zoom.
+const ROOM_ZOOM_KEY := "camera_zoom"
 
 signal zone_changed(zone: Rect2)
 
@@ -52,6 +62,29 @@ signal zone_changed(zone: Rect2)
 ## zone changes and room transitions cut, follow smoothing is off and the director cuts to its
 ## view and back (a camera that eases late makes the parallax and the backdrop late too).
 @export var transition_style: Motion = Motion.GLIDE
+
+@export_group("Zoom between rooms")
+## OFF: always [member zoom]. ROOM: a room's own zoom (its [constant ROOM_ZOOM_KEY] room value,
+## Inspect tab > Camera zoom), else [member zoom]. FIT: the zoom that fills the screen with the
+## camera zone the player is in (out in big rooms and zones, in in small ones), times
+## [member zoom_factor], between [member min_zoom] and [member max_zoom]; a room's own zoom
+## still wins.
+@export var auto_zoom: AutoZoom = AutoZoom.OFF
+## FIT: scales the zoom that fills the zone (above 1 closer, below 1 farther out).
+@export_range(0.1, 4.0, 0.05) var zoom_factor := 1.0
+## FIT: the farthest out it zooms.
+@export_range(0.05, 8.0, 0.05) var min_zoom := 0.5
+## FIT: the closest in it zooms.
+@export_range(0.05, 8.0, 0.05) var max_zoom := 2.0
+## Zoom changes glide (on) or snap (off). They glide with the room transition (slide, blend) and
+## zone changes, and over [member zoom_time] after a cut or a fade.
+@export var zoom_tween := true
+## Seconds the zoom glides after a cut or a fade into a room.
+@export var zoom_time := 0.6
+@export var zoom_trans: Tween.TransitionType = Tween.TRANS_SINE
+@export var zoom_ease: Tween.EaseType = Tween.EASE_IN_OUT
+## Zoom changes smaller than this share (0.03: 3%) snap instead of gliding.
+@export_range(0.0, 1.0, 0.01) var zoom_tween_threshold := 0.03
 
 @export_group("Irregular rooms")
 ## How the camera is kept inside a room: by its shape (zones), by its bounding box, or not.
@@ -96,6 +129,8 @@ var directed := false
 
 var _limits := Rect2() ## current (animated) Camera2D limits
 var _limit_tween: Tween
+var _zoom_tween: Tween
+var _rest := Vector2.ONE ## the zoom the camera rests at in the current zone
 var _pcams: Array[Node2D] = []
 var _old_pcams: Array[Node2D] = []
 var _busy := false
@@ -142,6 +177,7 @@ func setup(p_game: MDSWorldGame) -> void:
 	if not target:
 		target = game.player
 	camera.zoom = zoom
+	_rest = zoom
 	camera.offset = Vector2.ZERO
 	using_phantom = backend != Backend.CAMERA_2D and phantom_available()
 	if backend == Backend.PHANTOM_CAMERA and not using_phantom:
@@ -173,6 +209,13 @@ func apply_settings(s: Dictionary) -> void:
 		zoom = Vector2(float(z[0]), float(z[1]))
 	elif z is float or z is int:
 		zoom = Vector2(float(z), float(z))
+	auto_zoom = int(s.get("auto_zoom", auto_zoom)) as AutoZoom
+	zoom_factor = float(s.get("zoom_factor", zoom_factor))
+	min_zoom = float(s.get("min_zoom", min_zoom))
+	max_zoom = float(s.get("max_zoom", max_zoom))
+	zoom_tween = bool(s.get("zoom_tween", zoom_tween))
+	zoom_time = float(s.get("zoom_time", zoom_time))
+	zoom_tween_threshold = float(s.get("zoom_tween_threshold", zoom_tween_threshold))
 
 ## True when the Phantom Camera addon's classes (and its manager autoload) exist.
 static func phantom_available() -> bool:
@@ -246,20 +289,72 @@ func enter_room(id: String, style: int, previous_center: Vector2) -> void:
 	if using_phantom:
 		await _enter_room_phantom(start, style)
 		return
+	var first := not _limits.has_area()
+	var to_zoom := zoom_for(start)
 	var new_limits := _limits_for(start)
 	match style:
 		Transition.SLIDE:
-			await _slide_to(new_limits)
+			await _slide_to(new_limits, to_zoom)
 		Transition.BLEND:
 			_busy = true
 			zone = start
-			await _tween_limits(new_limits, transition_time, transition_trans, transition_ease)
+			await _tween_limits(new_limits, transition_time, transition_trans, transition_ease, to_zoom)
 			_busy = false
 		_:
 			zone = start
+			# A cut or a fade: the zoom glides from where it was (first room: it is just set).
+			_glide_zoom(to_zoom, 0.0 if first else zoom_time)
 			_apply_limits(new_limits)
 			camera.reset_smoothing()
 	zone_changed.emit(zone)
+
+## The zoom the camera heads for in camera zone [param z] of the current room: see
+## [member auto_zoom].
+func zoom_for(z: Rect2) -> Vector2:
+	if auto_zoom == AutoZoom.OFF:
+		return zoom
+	var own := room_zoom(room_id)
+	if own > 0.0:
+		return Vector2(own, own)
+	if auto_zoom != AutoZoom.FIT or not z.has_area():
+		return zoom
+	var vp := camera.get_viewport_rect().size if camera else Vector2(1152, 648)
+	var fill := maxf(vp.x / z.size.x, vp.y / z.size.y) * zoom_factor
+	var v := clampf(fill, minf(min_zoom, max_zoom), maxf(min_zoom, max_zoom))
+	return Vector2(v, v)
+
+## Room [param id]'s own zoom (Inspect tab > Camera zoom), or 0 when it has none.
+func room_zoom(id: String) -> float:
+	if not game or not game.world or id.is_empty():
+		return 0.0
+	var v: Variant = game.world.get_room_value(id, ROOM_ZOOM_KEY, 0.0)
+	var f := float(v) if v is float or v is int else str(v).to_float()
+	return f if f > 0.0 else 0.0
+
+## Whether going from zoom [param a] to [param b] is small enough to snap.
+func _zoom_close(a: Vector2, b: Vector2) -> bool:
+	return absf(a.x - b.x) <= maxf(absf(a.x), 0.0001) * zoom_tween_threshold and absf(a.y - b.y) <= maxf(absf(a.y), 0.0001) * zoom_tween_threshold
+
+func _set_camera_zoom(z: Vector2) -> void:
+	if directed or not camera:
+		return
+	camera.zoom = z
+	# The limits keep up: never smaller than what the camera shows now.
+	_apply_limits(_limits)
+
+## Zooms to [param to] over [param time] (gliding when [member zoom_tween] is on and the
+## change is big enough), the limits staying as they are.
+func _glide_zoom(to: Vector2, time: float) -> void:
+	_rest = to
+	if _zoom_tween:
+		_zoom_tween.kill()
+	if not camera:
+		return
+	if not zoom_tween or time <= 0.0 or is_cut() or _zoom_close(camera.zoom, to):
+		_set_camera_zoom(to)
+		return
+	_zoom_tween = create_tween().set_trans(zoom_trans).set_ease(zoom_ease)
+	_zoom_tween.tween_method(_set_camera_zoom, camera.zoom, to, time)
 
 func _zone_for(p: Vector2) -> Rect2:
 	var best := Rect2()
@@ -277,11 +372,12 @@ func _zone_for(p: Vector2) -> Rect2:
 			best = z
 	return best
 
-## Camera limits for a zone: grown to at least the view size, staying inside the room.
+## Camera limits for a zone: grown to at least the view size (at the zone's zoom, see
+## [method zoom_for]), staying inside the room.
 func _limits_for(z: Rect2) -> Rect2:
 	if not z.has_area():
 		return Rect2(-1e7, -1e7, 2e7, 2e7)
-	var view := view_size()
+	var view := (camera.get_viewport_rect().size if camera else Vector2(1152, 648)) / zoom_for(z)
 	var bounds := game.world.get_room_bounds(room_id)
 	var r := z
 	for axis in 2:
@@ -299,40 +395,64 @@ func _set_zone(z: Rect2, blend: float) -> void:
 	zone = z
 	zone_changed.emit(z)
 	if using_phantom:
+		_rest = zoom_for(z)
 		for p in _pcams:
 			_prop(p.get("tween_resource"), "duration", blend)
 		_activate_pcam(z)
 		return
-	_tween_limits(_limits_for(z), blend, zone_trans, zone_ease)
+	_tween_limits(_limits_for(z), blend, zone_trans, zone_ease, zoom_for(z))
 
 func _apply_limits(r: Rect2) -> void:
 	_limits = r
 	if directed:
 		return
-	camera.limit_left = floori(r.position.x)
-	camera.limit_top = floori(r.position.y)
-	camera.limit_right = ceili(r.end.x)
-	camera.limit_bottom = ceili(r.end.y)
+	# Never smaller than the view (while zooming out), so the camera stays centred in them.
+	var shown := r
+	if r.size.x < 1e6:
+		var view := view_size()
+		for axis in 2:
+			if shown.size[axis] < view[axis]:
+				shown.position[axis] -= (view[axis] - shown.size[axis]) / 2.0
+				shown.size[axis] = view[axis]
+	camera.limit_left = floori(shown.position.x)
+	camera.limit_top = floori(shown.position.y)
+	camera.limit_right = ceili(shown.end.x)
+	camera.limit_bottom = ceili(shown.end.y)
 
-## Animates the limits. The camera is clamped to the in-between limits every frame, so it
-## glides instead of snapping.
-func _tween_limits(to: Rect2, time: float, trans: int, ease_type: int) -> void:
+## Animates the limits (and the zoom, to [param to_zoom]). The camera is clamped to the
+## in-between limits every frame, so it glides instead of snapping.
+func _tween_limits(to: Rect2, time: float, trans: int, ease_type: int, to_zoom := Vector2.ZERO) -> void:
 	if _limit_tween:
 		_limit_tween.kill()
+	if to_zoom == Vector2.ZERO:
+		to_zoom = camera.zoom
+	_rest = to_zoom
+	if _zoom_tween:
+		_zoom_tween.kill()
+	if not zoom_tween or is_cut() or _zoom_close(camera.zoom, to_zoom):
+		_set_camera_zoom(to_zoom)
 	if time <= 0.0 or not _limits.has_area() or _limits.size.x > 1e6:
+		_set_camera_zoom(to_zoom)
 		_apply_limits(to)
 		return
 	# Start from exactly what is on screen, so the glide starts where the view is.
+	var from_zoom := camera.zoom
 	var view := view_size()
 	var from := Rect2(screen_center() - view / 2.0, view)
 	_apply_limits(from)
 	_limit_tween = create_tween().set_trans(trans).set_ease(ease_type)
-	_limit_tween.tween_method(_apply_limits, from, to, time)
+	_limit_tween.tween_method(func(k: float) -> void:
+		if not directed:
+			camera.zoom = from_zoom.lerp(to_zoom, k)
+		_apply_limits(Rect2(from.position.lerp(to.position, k), from.size.lerp(to.size, k))), 0.0, 1.0, time)
 	await _limit_tween.finished
 
-## Pans the view from the old room to the new one, then locks to the new limits.
-func _slide_to(new_limits: Rect2) -> void:
+## Pans the view from the old room to the new one (zooming to [param to_zoom] on the way),
+## then locks to the new limits.
+func _slide_to(new_limits: Rect2, to_zoom := Vector2.ZERO) -> void:
 	_busy = true
+	if to_zoom != Vector2.ZERO:
+		_glide_zoom(to_zoom, transition_time)
 	var old_center := screen_center()
 	var smoothing := camera.position_smoothing_enabled
 	camera.position_smoothing_enabled = false
@@ -362,9 +482,9 @@ func _slide_to(new_limits: Rect2) -> void:
 
 # --- What the director needs --------------------------------------------------------------------
 
-## The zoom the room's camera rests at.
+## The zoom the room's camera rests at (in the current zone, see [member auto_zoom]).
 func rest_zoom() -> float:
-	return zoom.x
+	return _rest.x
 
 ## The limits the room's camera keeps to now (the current zone's, grown to the view).
 func rest_limits() -> Rect2:
@@ -425,7 +545,7 @@ func _make_pcam(z: Rect2) -> Node2D:
 	var l := _limits_for(z)
 	_prop(pcam, "priority", 0)
 	_prop(pcam, "follow_mode", phantom_follow_mode)
-	_prop(pcam, "zoom", zoom)
+	_prop(pcam, "zoom", zoom_for(z))
 	_prop(pcam, "follow_offset", follow_offset)
 	if follow_smoothing > 0.0 and not is_cut():
 		_prop(pcam, "follow_damping", true)
@@ -454,6 +574,7 @@ func _enter_room_phantom(start: Rect2, style: int) -> void:
 	for z in list:
 		_pcams.append(_make_pcam(z))
 	zone = start
+	_rest = zoom_for(start)
 	# How the host moves to the new room's camera: tweened for slide/blend, instant else.
 	var time := transition_time if style == Transition.SLIDE or style == Transition.BLEND else 0.0
 	var frozen: Node = target if style == Transition.SLIDE and freeze_player_on_slide else null
