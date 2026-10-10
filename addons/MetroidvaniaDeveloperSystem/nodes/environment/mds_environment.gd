@@ -49,6 +49,7 @@ const EFFECTS := {
 	"waterfall": ["Waterfall", "mds_waterfall.gd", false, "A sheet of falling water, white water at its lip and foot, mist"],
 	"hot_waterfall": ["Hot water falls", "mds_hot_waterfall.gd", false, "Scalding mineral water pouring down: steam pouring off it and billowing at its foot, a warm glow, the air wavering; it scalds"],
 	"lava_fall": ["Lava falls", "mds_lava_fall.gd", false, "Molten rock pouring over a ledge: a white-hot core, crust sliding and cracking, a splash of molten drops, a glow, embers; it burns"],
+	"rockfall": ["Falling rocks", "mds_rockfall.gd", false, "Rocks breaking off and crashing to the ground in dust and chips, piling up as rubble; a cave-in with PLAYER_INSIDE; can hurt"],
 	"water": ["Water", "mds_water.gd", false, "A pool: waves, what is behind bent and tinted, caustics, bubbles"],
 	"parallax": ["Parallax background", "mds_parallax_background.gd", false, "Layers behind the room moving slower the further back they are: sky, mountains, forest, city, ruins, cave rock, dunes, clouds, fog, stars or your own pictures. Drop an image on it to add a layer"],
 }

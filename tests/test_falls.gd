@@ -1,6 +1,7 @@
 extends "res://tests/test_case.gd"
-## Hot water falls (MDSHotWaterfall) and lava falls (MDSLavaFall): in the catalog, their
-## rectangles and shaders, the liquids, scalding and burning bodies, and saved in a room.
+## Hot water falls (MDSHotWaterfall), lava falls (MDSLavaFall) and falling rocks
+## (MDSRockfall): in the catalog, their rectangles and shaders, the liquids, scalding, burning
+## and hitting bodies, and saved in a room.
 
 const ROOM := TMP + "/falls_room.tscn"
 const HURTABLE := "extends CharacterBody2D\nvar hurt := 0.0\nvar hits := 0\nfunc take_damage(amount: float) -> void:\n\thurt += amount\n\thits += 1\n"
@@ -10,6 +11,7 @@ func _run() -> void:
 	_layout()
 	_liquids()
 	await _harm()
+	await _rockfall()
 	_room()
 
 func _body(at: Vector2, script_source := "") -> CharacterBody2D:
@@ -119,6 +121,35 @@ func _harm() -> void:
 	lava.free()
 	victim.free()
 
+func _rockfall() -> void:
+	var rocks := MDSEnvironment.create("rockfall") as MDSRockfall
+	check(rocks != null and MDSEnvironment.display_name("rockfall") == "Falling rocks" and MDSEnvironment.icon("rockfall") != MDSEnvironment.icon("weather"), "falling rocks are an effect with an icon")
+	add_child(rocks)
+	await get_tree().process_frame
+	var m := rocks.get_materials()[0]
+	check(rocks.get_materials().size() == 1 and (m.get_shader_parameter("rect_size") as Vector2).is_equal_approx(rocks.size), "one quad covering its rectangle, its bottom edge the ground")
+	if DisplayServer.get_name() != "headless":
+		check(m.shader.get_shader_uniform_list().size() > 10, "the rockfall shader compiles")
+	rocks.rate = 0.9
+	rocks.rubble_height = 80.0
+	check(is_equal_approx(float(m.get_shader_parameter("rate")), 0.9) and is_equal_approx(float(m.get_shader_parameter("rubble_height")), 80.0), "its settings reach the shader")
+	rocks.free()
+	var fall := MDSRockfall.new()
+	fall.position = Vector2(100, 0)
+	add_child(fall)
+	var under := _body(Vector2(250, 300), HURTABLE)
+	await physics_frames(3)
+	check(under.hits == 0, "scenery by default: it hurts no one")
+	fall.damage = 6.0
+	fall.damage_interval = 5.0
+	await physics_frames(3)
+	check(under.hits == 1 and is_equal_approx(under.hurt, 6.0), "with damage, a body under it is hit once per interval (%d)" % under.hits)
+	fall.free()
+	under.free()
+	var cave_in := MDSEnvironment.create("rockfall", {"activation": "player_inside", "rate": "1"}) as MDSRockfall
+	check(cave_in.activation == MDSEnvironmentEffect.Activation.PLAYER_INSIDE and is_equal_approx(cave_in.rate, 1.0), "a cave-in starts when the player comes near")
+	cave_in.free()
+
 func _room() -> void:
 	var root := Node2D.new()
 	root.name = "FallsRoom"
@@ -128,7 +159,9 @@ func _room() -> void:
 	var painter := MDSRoomPainter.open(ROOM)
 	var hot := painter.add_effect("hot_waterfall", Vector2(300, 300)) as MDSHotWaterfall
 	var lava := painter.add_effect("lava_fall", Vector2(700, 300)) as MDSLavaFall
-	check(hot != null and lava != null, "both can be placed in a room (Room view, Effects tool)")
+	var rocks := painter.add_effect("rockfall", Vector2(500, 400)) as MDSRockfall
+	check(hot != null and lava != null and rocks != null, "all three can be placed in a room (Room view, Effects tool)")
+	rocks.rubble = 0.3
 	lava.liquid = MDSLava.Liquid.ACID
 	hot.steam = 0.4
 	check(painter.save() == OK, "saved")
@@ -136,7 +169,8 @@ func _room() -> void:
 	load_fresh(ROOM)
 	var again := MDSRoomPainter.open(ROOM)
 	var kinds: Array = again.effects().map(func(e: Node) -> String: return e.get_effect_id())
-	check(kinds == ["hot_waterfall", "lava_fall"], "they are in the scene (%s)" % [kinds])
+	check(kinds == ["hot_waterfall", "lava_fall", "rockfall"], "they are in the scene (%s)" % [kinds])
+	check(is_equal_approx((again.effects()[2] as MDSRockfall).rubble, 0.3), "the rocks keep their rubble")
 	var saved_lava := again.effects()[1] as MDSLavaFall
 	var saved_hot := again.effects()[0] as MDSHotWaterfall
 	check(saved_lava.liquid == MDSLava.Liquid.ACID and saved_lava.hot_color.g > saved_lava.hot_color.r and is_equal_approx(saved_hot.steam, 0.4), "with their settings")

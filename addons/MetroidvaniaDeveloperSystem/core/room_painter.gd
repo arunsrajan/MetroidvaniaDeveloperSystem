@@ -26,6 +26,8 @@ const ITEM_GROUPS := {
 }
 ## The group environment effects are kept in. Effects elsewhere in the scene are left alone.
 const EFFECTS_GROUP := "Effects"
+## Metadata of the stamps Generate cave scattered (New variation replaces them).
+const GENERATED_META := &"mds_generated"
 
 var scene_path := ""
 var root: Node
@@ -322,6 +324,16 @@ func effects() -> Array:
 	return items(EFFECTS_GROUP)
 
 ## The top-most effect whose area holds [param p] (scene-local), or null.
+## Every effect whose area holds [param p] (scene-local), the top-most first.
+func effects_at(p: Vector2) -> Array[MDSEnvironmentEffect]:
+	var out: Array[MDSEnvironmentEffect] = []
+	var list := effects()
+	for i in range(list.size() - 1, -1, -1):
+		var e: MDSEnvironmentEffect = list[i]
+		if e.get_effect_rect().has_point(e.transform.affine_inverse() * p):
+			out.append(e)
+	return out
+
 func effect_at(p: Vector2) -> MDSEnvironmentEffect:
 	var list := effects()
 	for i in range(list.size() - 1, -1, -1):
@@ -985,8 +997,18 @@ func clear_layer(layer_name: String) -> void:
 ## notches of irregular rooms, and the parts of its rectangles outside a curved or slanted
 ## outline (see [method MDSWorld.get_local_shape]), so the cave follows the curve.
 ## [param background] is the fill for the background (default: random "foliage" tiles).
-func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 0, terrain := 0, background: Dictionary = {}) -> void:
-	if not has_terrains():
+## [param fills] makes it with what is picked in the Room view:
+## - "terrain", "background", "decor", "foreground": fills (see [method paint_fill]). Rock is
+##   painted with the terrain fill (autotiled or not), the background behind the cave, the
+##   decor fill among the floors' decorations, and the foreground in front: a color or a
+##   terrain darkens the rock deep in the walls, tiles hang from ceilings and edge floors.
+## - "stamps": {set (an [MDSStampSet]), category, group, scale}: stamps along the floors.
+## - "paths" (default true): every gate reaches every other one and back, walking, jumping and
+##   falling (see [method climb_reach]); where the cave doesn't allow it, tunnels and shafts
+##   with ledges to climb are carved, so a player can always go back the way they came.
+func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 0, terrain := 0, background: Dictionary = {}, fills: Dictionary = {}) -> void:
+	var rock: Dictionary = fills.get("terrain", {})
+	if not has_terrains() and (rock.is_empty() or str(rock.get("type", "")) == "terrain"):
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value if seed_value != 0 else hash(id)
@@ -1122,8 +1144,14 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 				var c := gc + Vector2i(depth if side == "left" else -depth, 2)
 				if inside.has(c):
 					solid[c] = true
+	if bool(fills.get("paths", true)):
+		connect_gates(world, id, inside, solid, open)
+	var terrain_fill: Dictionary = fills.get("terrain", {})
 	clear_layer("Terrain")
-	paint_terrain("Terrain", solid.keys(), terrain_set, terrain)
+	if terrain_fill.is_empty() or str(terrain_fill.get("type", "")) == "terrain":
+		paint_terrain("Terrain", solid.keys(), int(terrain_fill.get("set", terrain_set)), int(terrain_fill.get("terrain", terrain)))
+	else:
+		paint_fill("Terrain", solid.keys(), terrain_fill, rng)
 	clear_layer("Background")
 	# Background behind the cave and just under its walls, not in the rock beyond its outline.
 	var back: Dictionary = {}
@@ -1133,12 +1161,331 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 				var n := c + Vector2i(dx, dy)
 				if n.x >= lo.x and n.x <= hi.x and n.y >= lo.y and n.y <= hi.y:
 					back[n] = true
-	paint_fill("Background", back.keys(), background if not background.is_empty() else {"type": "kind", "kind": "foliage"}, rng)
-	auto_decorate(rng.randi(), true, inside)
+	var back_fill: Dictionary = fills.get("background", background)
+	paint_fill("Background", back.keys(), back_fill if not back_fill.is_empty() else {"type": "kind", "kind": "foliage"}, rng)
+	var fore_fill: Dictionary = fills.get("foreground", {})
+	if not fore_fill.is_empty():
+		clear_layer("Foreground")
+		_generate_foreground(inside, solid, lo, hi, fore_fill, rng)
+	auto_decorate(rng.randi(), true, inside, fills.get("decor", {}))
+	var stamps: Dictionary = fills.get("stamps", {})
+	if stamps.get("set") is MDSStampSet:
+		_generate_stamps(inside, solid, stamps, rng)
+
+## Foreground in front of a generated cave, of [param fill]: a solid color or a terrain fills
+## the rock deep inside the walls (three tiles and more from the cave: the room's dark mass);
+## tiles (a kind, palette tiles) hang in clusters from ceilings and tuft the floors' edges.
+func _generate_foreground(inside: Dictionary, solid: Dictionary, lo: Vector2i, hi: Vector2i, fill: Dictionary, rng: RandomNumberGenerator) -> void:
+	var cells: Array = []
+	var type := str(fill.get("type", ""))
+	if type == "color" or type == "terrain":
+		var depth: Dictionary = {}
+		var queue: Array[Vector2i] = []
+		for c: Vector2i in inside:
+			if not solid.has(c):
+				depth[c] = 0
+				queue.append(c)
+		var head := 0
+		while head < queue.size():
+			var c: Vector2i = queue[head]
+			head += 1
+			for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var n: Vector2i = c + d
+				if solid.has(n) and not depth.has(n) and n.x >= lo.x and n.x <= hi.x and n.y >= lo.y and n.y <= hi.y:
+					depth[n] = int(depth[c]) + 1
+					queue.append(n)
+		for c: Vector2i in solid:
+			if int(depth.get(c, 99)) >= 3:
+				cells.append(c)
+	else:
+		var keys: Array = inside.keys()
+		keys.sort()
+		for c: Vector2i in keys:
+			if solid.has(c):
+				continue
+			if solid.has(c + Vector2i.UP) and rng.randf() < 0.18:
+				cells.append(c)
+				if not solid.has(c + Vector2i.RIGHT) and inside.has(c + Vector2i.RIGHT):
+					cells.append(c + Vector2i.RIGHT)
+				if rng.randf() < 0.5 and not solid.has(c + Vector2i.DOWN):
+					cells.append(c + Vector2i.DOWN)
+			elif solid.has(c + Vector2i.DOWN) and rng.randf() < 0.06:
+				cells.append(c)
+	paint_fill("Foreground", cells, fill, rng)
+
+## Stamps of [param stamps] ({set, category, group, scale}) along a generated cave's floors, about
+## one every ten tiles. The ones an earlier generation scattered are taken out first.
+func _generate_stamps(inside: Dictionary, solid: Dictionary, stamps: Dictionary, rng: RandomNumberGenerator) -> void:
+	var set_res: MDSStampSet = stamps.set
+	var picks := set_res.indices(str(stamps.get("category", "")))
+	for g in ["StampsBack", "StampsFront", "StampsForeground"]:
+		for st in items(g):
+			if st.has_meta(GENERATED_META):
+				remove_item(st)
+	if picks.is_empty():
+		return
+	var floors: Array = []
+	for c: Vector2i in inside:
+		if not solid.has(c) and solid.has(c + Vector2i.DOWN) and not solid.has(c + Vector2i.UP):
+			floors.append(c)
+	floors.sort()
+	for i in range(floors.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var t: Variant = floors[i]
+		floors[i] = floors[j]
+		floors[j] = t
+	var group := str(stamps.get("group", "StampsFront"))
+	var scale_value := float(stamps.get("scale", 1.0))
+	for k in mini(floors.size() / 10, 40):
+		var r := cell_rect("Terrain", floors[k])
+		var size := scale_value * rng.randf_range(0.8, 1.2)
+		var st := add_stamp(set_res, picks[rng.randi_range(0, picks.size() - 1)], Vector2(r.get_center().x, r.end.y), Vector2(size * (-1.0 if rng.randf() < 0.5 else 1.0), size), 0.0, group)
+		st.set_meta(GENERATED_META, true)
+
+# --- Paths through a room ------------------------------------------------------------------------
+
+## Makes every gate of room [param id] reachable from every other one and back in a generated
+## cave ([param inside]: the room's cells, [param solid]: its rock, changed in place, [param keep]:
+## cells that must stay open). Where the cave doesn't allow it, a path is carved from the first
+## gate through the room's own cells (off its edges, in long straight runs): tunnels as tall as
+## the player, floored over drops too deep to climb out of, and shafts with ledges to climb.
+func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dictionary, keep: Dictionary = {}) -> void:
+	var ts := tile_size()
+	var player := MDSRoomCheck.PLAYER_DEFAULTS.duplicate()
+	player.merge(world.get_setting("player", {}), true)
+	var tall := clampi(ceili(float(player.size[1]) / ts.y) + 1, 3, 8)
+	var jump_px := MDSRoomCheck.max_jump_height(float(player.jump_velocity), float(player.gravity))
+	var reach := clampi(floori(jump_px * 0.8 / ts.y), 2, 10)
+	var step := clampi(floori(jump_px * 0.55 / ts.y), 2, mini(reach, 5))
+	var ends: Array = []
+	for g in world.get_gates(id):
+		var e := gate_end(world, id, g, inside)
+		if not e.is_empty():
+			ends.append(e)
+	if ends.size() < 2:
+		return
+	var clearance := _clearance(inside)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([id, "paths"])
+	# A carving can cut another way off (a tunnel's floor across a chamber): checked again.
+	for attempt in 3:
+		var all_ok := true
+		for i in range(1, ends.size()):
+			if _both_ways(inside, solid, ends[0], ends[i], reach):
+				continue
+			all_ok = false
+			var path := _inner_path(inside, clearance, ends[0].cell, ends[i].cell, rng, attempt)
+			var k := 0
+			while k < path.size() - 1:
+				# One straight run at a time.
+				var d: Vector2i = path[k + 1] - path[k]
+				var e := k + 1
+				while e + 1 < path.size() and path[e + 1] - path[e] == d:
+					e += 1
+				_carve_leg(path[k], path[e], inside, solid, keep, tall, step, reach)
+				k = e
+		if all_ok:
+			break
+
+## How far each of [param inside]'s cells is from the room's edge (1: on it), up to 4.
+static func _clearance(inside: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	var queue: Array[Vector2i] = []
+	for c: Vector2i in inside:
+		for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			if not inside.has(c + d):
+				out[c] = 1
+				queue.append(c)
+				break
+	var head := 0
+	while head < queue.size():
+		var c: Vector2i = queue[head]
+		head += 1
+		if int(out[c]) >= 4:
+			continue
+		for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			var n: Vector2i = c + d
+			if inside.has(n) and not out.has(n):
+				out[n] = int(out[c]) + 1
+				queue.append(n)
+	return out
+
+## The cells from [param a] to [param b] through [param inside]: off the room's edges where it
+## can be, and turning seldom (long straight runs). [param attempt] above 0 varies it.
+static func _inner_path(inside: Dictionary, clearance: Dictionary, a: Vector2i, b: Vector2i, rng: RandomNumberGenerator, attempt := 0) -> Array[Vector2i]:
+	var dirs: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]
+	var cost: Dictionary = {}
+	var prev: Dictionary = {}
+	var buckets: Array = [[]]
+	for d in 4:
+		var key := Vector3i(a.x, a.y, d)
+		cost[key] = 0
+		buckets[0].append(key)
+	var found := Vector3i(-1, -1, -1)
+	var at := 0
+	while at < buckets.size():
+		if buckets[at].is_empty():
+			at += 1
+			continue
+		var key: Vector3i = buckets[at].pop_back()
+		if int(cost[key]) != at:
+			continue
+		var c := Vector2i(key.x, key.y)
+		if c == b:
+			found = key
+			break
+		for nd in 4:
+			var n: Vector2i = c + dirs[nd]
+			if not inside.has(n):
+				continue
+			var step_cost := 1 + (4 - mini(int(clearance.get(n, 4)), 4)) * 2 + (4 if nd != key.z else 0)
+			if attempt > 0:
+				step_cost += rng.randi_range(0, 2 * attempt)
+			var nk := Vector3i(n.x, n.y, nd)
+			var nc := at + step_cost
+			if not cost.has(nk) or nc < int(cost[nk]):
+				cost[nk] = nc
+				prev[nk] = key
+				while buckets.size() <= nc:
+					buckets.append([])
+				buckets[nc].append(nk)
+	var out: Array[Vector2i] = []
+	if found.x == -1 and found.y == -1 and found.z == -1:
+		return out
+	var k: Variant = found
+	while k != null:
+		out.push_front(Vector2i(k.x, k.y))
+		k = prev.get(k)
+	return out
+
+## Where gate [param gate_name] of room [param id] leads into the room: {cell (where the player
+## stands or arrives, a few tiles in), side, mouth (the opening's cell at the room's edge)}, or
+## {} when it is outside the room.
+func gate_end(world: MDSWorld, id: String, gate_name: String, inside: Dictionary) -> Dictionary:
+	var ts := tile_size()
+	var side := world.get_gate_side(id, gate_name)
+	var inward: Vector2i = {"left": Vector2i.RIGHT, "right": Vector2i.LEFT, "top": Vector2i.DOWN, "bot": Vector2i.UP}.get(side, Vector2i.ZERO)
+	var gc := cell_at("Terrain", world.get_gate_local_pos(id, gate_name) + Vector2(inward) * ts * 0.5)
+	var cell := gc + inward * 4
+	if side == "left" or side == "right":
+		cell.y += 1
+	if not inside.has(cell):
+		return {}
+	return {"cell": cell, "side": side, "mouth": gc}
+
+func _open_cells(inside: Dictionary, solid: Dictionary) -> Dictionary:
+	var open: Dictionary = {}
+	for c in inside:
+		if not solid.has(c):
+			open[c] = true
+	return open
+
+## Whether a player gets from gate end [param a] to [param b] and back.
+func _both_ways(inside: Dictionary, solid: Dictionary, a: Dictionary, b: Dictionary, reach: int) -> bool:
+	var open := _open_cells(inside, solid)
+	var land := land_map(open)
+	var from_a := climb_reach(open, a.cell, reach, 3, land)
+	var from_b := climb_reach(open, b.cell, reach, 3, land)
+	return _arrives(from_a, b, open, land, reach) and _arrives(from_b, a, open, land, reach)
+
+## Whether standing cells [param reached] get the player out through gate end [param e]: to where
+## it stands for a side or bottom gate, near enough under the mouth to jump out for a top one.
+static func _arrives(reached: Dictionary, e: Dictionary, open: Dictionary, land: Dictionary, reach: int) -> bool:
+	if e.side == "top":
+		var mouth: Vector2i = e.mouth
+		for s: Vector2i in reached:
+			if absi(s.x - mouth.x) <= 2 and s.y - mouth.y <= reach:
+				return true
+		return false
+	return reached.has(land.get(e.cell, e.cell))
+
+## Carves a straight leg from [param p] to [param q]: across, a tunnel [param tall] tiles high,
+## floored where it crosses a drop deeper than [param reach] rows (that a player falling in
+## couldn't climb out of); up or down, a shaft four tiles wide with ledges every [param step]
+## rows, on alternate sides, to climb back up.
+func _carve_leg(p: Vector2i, q: Vector2i, inside: Dictionary, solid: Dictionary, keep: Dictionary, tall: int, step: int, reach := 6) -> void:
+	var clear := func(c: Vector2i) -> void:
+		if inside.has(c):
+			solid.erase(c)
+	var fill := func(c: Vector2i) -> void:
+		if inside.has(c) and not keep.has(c):
+			solid[c] = true
+	if p.y == q.y:
+		for x in range(mini(p.x, q.x) - 1, maxi(p.x, q.x) + 2):
+			for dy in tall:
+				clear.call(Vector2i(x, p.y - dy))
+			var deep := true
+			for dy in range(1, reach + 2):
+				var below := Vector2i(x, p.y + dy)
+				if not inside.has(below) or solid.has(below):
+					deep = false
+					break
+			if deep:
+				fill.call(Vector2i(x, p.y + 1))
+		return
+	var x0 := p.x - 1
+	var top := mini(p.y, q.y)
+	var bottom := maxi(p.y, q.y)
+	for y in range(top - tall + 1, bottom + 1):
+		for dx in 4:
+			clear.call(Vector2i(x0 + dx, y))
+	for dx in 4:
+		fill.call(Vector2i(x0 + dx, bottom + 1))
+	# Ledges half the shaft wide, so there is room to drop past them; they may stand in a gate's
+	# opening (the top one is what a player jumps out of a top gate from).
+	var left := true
+	var y := bottom + 1 - step
+	while y > top + 1:
+		for dx in 2:
+			var c := Vector2i(x0 + dx + (0 if left else 2), y)
+			if inside.has(c):
+				solid[c] = true
+		left = not left
+		y -= step
+
+## The cell each of [param open]'s cells falls to: the open cell over solid ground under it.
+static func land_map(open: Dictionary) -> Dictionary:
+	var cells: Array = open.keys()
+	cells.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y > b.y)
+	var land: Dictionary = {}
+	for c: Vector2i in cells:
+		var below: Vector2i = c + Vector2i.DOWN
+		land[c] = land.get(below, below) if open.has(below) else c
+	return land
+
+## The cells a player standing at (or let go at) [param from] can stand on, moving through the
+## [param open] tile cells: walking, jumping up to [param jump_h] tiles and across [param jump_w],
+## and falling. A rough platformer reach, to check a room can be crossed (and backtracked).
+static func climb_reach(open: Dictionary, from: Vector2i, jump_h := 4, jump_w := 3, land: Dictionary = {}) -> Dictionary:
+	if land.is_empty():
+		land = land_map(open)
+	var seen: Dictionary = {}
+	if not open.has(from):
+		return seen
+	var start: Vector2i = land[from]
+	seen[start] = true
+	var todo: Array[Vector2i] = [start]
+	while not todo.is_empty():
+		var s: Vector2i = todo.pop_back()
+		var rise := 0
+		while rise < jump_h and open.has(s + Vector2i(0, -(rise + 1))):
+			rise += 1
+		for up in rise + 1:
+			for dir in [-1, 1]:
+				for dx in range(1, jump_w + 1):
+					var c := Vector2i(s.x + dir * dx, s.y - up)
+					if not open.has(c):
+						break
+					var n: Vector2i = land[c]
+					if not seen.has(n):
+						seen[n] = true
+						todo.append(n)
+	return seen
 
 ## Grass and plants on floors, stalactites, vines and moss under ceilings. With
-## [param allowed] (cells), decorations stay inside those cells (the room's shape).
-func auto_decorate(seed_value := 0, clear := true, allowed: Dictionary = {}) -> int:
+## [param allowed] (cells), decorations stay inside those cells (the room's shape). With
+## [param floor_fill] (a fill, see [method paint_fill]), most floor decorations are of it.
+func auto_decorate(seed_value := 0, clear := true, allowed: Dictionary = {}, floor_fill: Dictionary = {}) -> int:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var kinds := get_decor_tiles()
@@ -1166,6 +1513,10 @@ func auto_decorate(seed_value := 0, clear := true, allowed: Dictionary = {}) -> 
 				kind = "flower"
 			elif roll < 0.49:
 				kind = "mushroom"
+			if not kind.is_empty() and not floor_fill.is_empty() and rng.randf() < 0.6:
+				paint_fill("Decor", [above], floor_fill, rng)
+				placed += 1
+				kind = ""
 			var t: Array = pick.call(kind) if not kind.is_empty() else []
 			if not t.is_empty():
 				decor.set_cell(above, t[0], t[1])

@@ -290,7 +290,16 @@ The map is one view of a room; the **Room view** is the other. It shows the room
   - Colored marks on tiles show which are solid (red), tagged (blue) or part of a terrain (bar).
 
 ![Room painted with shapes, a spritesheet terrain, palette bricks and a color background](docs/room_shapes.png)
-- **Generate cave** builds a starting room from the room's shape on the map. It places rough cave walls, a floor and ledges jutting from the walls, keeps openings wherever the room has gates, then adds background foliage and decorations. **New variation** rerolls it and **Auto-decorate** redoes only the decorations. Everything stays inside the room's shape, and irregular rooms get rock in their notches.
+- **Generate cave** builds a starting room from the room's shape on the map. It places rough cave walls, a floor and ledges jutting from the walls, and keeps openings wherever the room has gates. Then it adds the layers with what you picked for them:
+  - **Terrain:** the Terrain fill, autotiled or not. With palette tiles or a solid color it works even when the tileset has no terrains.
+  - **Background:** the Background fill, behind the cave only.
+  - **Decor:** decorations on floors and under ceilings, most floor ones of the Decor fill.
+  - **Foreground:** the Foreground fill in front. A solid color or a terrain fills the rock deep in the walls (the dark mass of a Hollow Knight room). Tiles hang from ceilings and tuft the floors' edges.
+  - **Stamps:** stamps of the set and category picked for the Stamps tool, along the floors. A new variation replaces the ones it scattered.
+  - **Paths:** every gate reaches every other one *and back*: walking, jumping and falling, checked with `MDSRoomPainter.climb_reach()`. Where the cave doesn't allow it, a path is carved through the room's own cells: tunnels as tall as the player, and shafts with ledges on alternate sides to climb. A floor goes under a tunnel only where a drop is too deep to climb out of. Jump height and player size come from **World settings > Player**.
+
+  Untick any of them under the buttons. **New variation** rerolls it and **Auto-decorate** redoes only the decorations. Everything stays inside the room's shape, and irregular rooms get rock in their notches.
+- **A whole area:** with an area selected on the map (or a room of one open), the Room view shows the area's rooms in the order a player meets them: **<** and **>** go through them. **Caves for the area** generates a cave in every room with these fills and options. Rooms without a scene get one, and every room joins its gates both ways, so the whole area can be crossed and backtracked. **Leave rooms already painted alone** keeps the painted ones. The Areas tab (**Generate caves...**) and the map's right-click menu do it too. In code: `MDSWorldSceneTools.generate_area_caves(world, ids, path_for, fills)`.
 - **Save** writes the tiles into the room scene's `Background`, `Terrain` and `Decor` TileMapLayers (creating the missing ones) and touches nothing else in the scene. A scene open in an editor tab is reloaded. The map's silhouette updates from the terrain, so the two views stay in sync. Leaving the Room view saves automatically.
 - **Tiles:** with no tileset, MDS generates a starter pixel-art "mossy cave" set at `res://idp_tiles/idp_cave_tileset.tres`. It has moss-topped rock with collision and autotiling, a cave wall, teal foliage and decorations, and a PNG copy sits next to it for repainting.
   - Rooms that already have a TileSet keep it. Its terrains appear in the fill list, and tiles with an `idp_kind` custom data string (`grass`, `vine_top`, `stalactite_small`, `foliage`...) are used by the kind fills and Auto-decorate.
@@ -471,7 +480,7 @@ painter.save()
 
 #### Environment effects
 
-Seventeen effects bring rooms to life: weather, hazards, scenery in motion and parallax backgrounds. Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
+Eighteen effects bring rooms to life: weather, hazards, scenery in motion and parallax backgrounds. Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
 
 | Effect | Node | What it does |
 |---|---|---|
@@ -489,6 +498,7 @@ Seventeen effects bring rooms to life: weather, hazards, scenery in motion and p
 | Lava pool | `MDSLava` | Molten rock with crust plates, glowing cracks, bursting bubbles, a heat glow and embers; `liquid` switches to magma, acid or cursed ooze. It hurts every `damage_interval` |
 | Waterfall | `MDSWaterfall` | A sheet of falling water with ragged sides, white water at its lip and foot, mist, and what's behind bent through it; `push_down` presses the player down |
 | Hot water falls | `MDSHotWaterfall` | Scalding mineral water: milky and pale where it runs thick, with a warm glow deep in it. Steam pours off its whole length and billows up from its foot, and the air around it wavers in the heat. It scalds (`damage`, `damage_interval`), and `push_down` presses the player down |
+| Falling rocks | `MDSRockfall` | Stones break off at the top of the rectangle (put it under a ceiling) and drop, tumbling, to crash on the ground in a puff of dust and a spray of chips. They pile up there as rubble resting on its bottom edge, and pebbles trickle down between them. `rate`, `rock_size`, `gravity`, `rubble` and `rubble_height`, `dust`, `pebbles`. With `activation` PLAYER_INSIDE it's a cave-in as the player comes near. With `damage`, it hurts |
 | Lava falls | `MDSLavaFall` | Molten rock pouring over a ledge, slow and thick. It has a white-hot core and orange streaks. Crust forms as it falls and breaks up with glowing cracks, and blobs bulge at its sides. It splashes molten drops where it lands, glows, sends up embers, and the air wavers in the heat. `liquid` switches it to magma, acid or cursed ooze. It burns (`damage`, `damage_interval`) |
 | Water | `MDSWater` | A pool: a rolling surface, refraction, a deeper tint toward the bottom, caustics, bubbles; `drag` slows bodies in it |
 | Parallax background | `MDSParallaxBackground` | Layers behind the room, the far ones moving slower: sky, mountains, hills, forest, city, ruins, cave rock, dunes, clouds, fog, stars, or your own pictures (see [Parallax backgrounds](#parallax-backgrounds)) |
@@ -496,7 +506,11 @@ Seventeen effects bring rooms to life: weather, hazards, scenery in motion and p
 Three ways to use them:
 
 - **Like any node:** Add Child Node, search "MDS", and set it up in the Inspector. `size` is the area it covers.
-- **Drag and drop in the Room view:** pick the **Effects** tool and drag an effect from its list onto the room (or pick one and click). Click one to select it; its settings open in the Inspector. Drag it to move it, drag its corner to resize it; Delete removes it. Effects are saved under the room scene's `Effects` node and are part of the Room view's undo. Effects elsewhere in the scene are left alone.
+- **Drag and drop in the Room view:** pick the **Effects** tool and drag an effect from its list onto the room.
+  - Or pick one and click: it is placed and selected, and dragging right away moves it. The list then goes back to **No effect**, so clicks select and drag effects again, the new one too. To place another, pick it again; **Ctrl+click** keeps it picked to place several. Esc drops the pick.
+  - Click an effect to select it; its settings open in the Inspector. Drag it to move it, drag its corner to resize it; Delete removes it. Most effects cover the whole room, so they stack: click the selected one again (without dragging) to select the next one under the mouse. Shift+click selects even while an effect is picked.
+  - **Remove all** takes every placed effect out. **No effects here** turns the area's weather off in this room (its weather: `none`).
+  - Effects are saved under the room scene's `Effects` node and are part of the Room view's undo. Effects elsewhere in the scene are left alone.
 - **As an area's weather** (see [Area weather](#area-weather)).
 
 Every effect has `intensity` and `activation`:
@@ -694,6 +708,13 @@ It handles:
   - Or use **Scenes > World settings > Camera** in the panel. With `use_world_settings` on (the default), those values override the exports, so the whole team shares one camera setup through the world file.
 - `zone_changed(zone)` is emitted when the camera switches zones; `get_active_pcam()` returns the active PhantomCamera2D.
 - **Camera motion** (`transition_style`, also in **World settings > Camera**): *Glide*, or *Cut, never glide*. With Cut, zone changes, room slides and blends, follow smoothing and the director's moves all cut. A camera that eases late makes the parallax and the backdrop late too.
+- **Zoom between rooms** (`auto_zoom`, also in **World settings > Camera > Auto zoom**). Like a PhantomCamera2D per room, the zoom can change from room to room and from zone to zone:
+  - **Off:** always `zoom`.
+  - **Per room:** each room's own zoom (**Inspect tab > Camera zoom**, the room value `camera_zoom`), else `zoom`.
+  - **Fit:** the zoom that fills the screen with the zone the player is in: farther out in big rooms and zones, closer in small ones. `zoom_factor` scales it (above 1 closer), and `min_zoom` and `max_zoom` bound it. A room's own zoom still wins.
+  - **Zoom changes** (`zoom_tween`): *Glide* or *Snap*. The zoom glides with slides, blends and zone changes, and over `zoom_time` (with `zoom_trans` and `zoom_ease`) after a cut or a fade. Changes smaller than `zoom_tween_threshold` (3%) snap. While zooming out, the limits grow with the view, so the camera stays centred.
+  - With Phantom Camera, each zone's PhantomCamera2D gets its zoom, and the host tweens it with the camera.
+  - The camera director punches in and pulls out from the room's zoom (`rest_zoom()`).
 
 #### Framing fights: MDSCameraDirector
 
@@ -1143,7 +1164,7 @@ addons/MetroidvaniaDeveloperSystem/
 │       ├── mds_parallax_layer.gd # MDSParallaxLayer: one layer (shader-drawn or a picture)
 │       └── mds_*.gd       # MDSDustStorm, MDSRain, MDSLightning, MDSSnowfall, MDSFog, MDSEmbers,
 │                          # MDSFireflies, MDSFallingLeaves, MDSLightShafts, MDSHeatHaze,
-│                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSHotWaterfall, MDSLavaFall, MDSWater
+│                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSHotWaterfall, MDSLavaFall, MDSRockfall, MDSWater
 ├── shaders/
 │   ├── terrain_skin.*     # Example terrain skin shader and its fill and edge materials
 │   └── environment/       # The effects' shaders and mds_env.gdshaderinc (noise, soft edges)

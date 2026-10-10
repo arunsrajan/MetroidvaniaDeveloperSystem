@@ -25,6 +25,8 @@ signal status_message(text: String)
 signal selection_changed(shape: MDSFreeform)
 ## The selected effect changed (null: none).
 signal effect_selected(effect: MDSEnvironmentEffect)
+## The effect a click places changed by itself (after placing one): "" for none.
+signal effect_pick_changed(effect_id: String)
 ## An image file was dropped on the view (to trace it).
 signal image_dropped(path: String)
 
@@ -83,7 +85,8 @@ var stamp_scale := 1.0
 var effect_id := ""
 var selected_effect: MDSEnvironmentEffect:
 	set(v):
-		if v != selected_effect:
+		# A selection that undo took out (and freed) is replaced too.
+		if v != selected_effect or not is_instance_valid(selected_effect):
 			selected_effect = v
 			effect_selected.emit(v)
 ## Show the room's weather (its own, else its area's) over the view, as in the game.
@@ -103,6 +106,9 @@ var _parallax_value := ""
 var _effect_drag := 0 ## 0 none, 1 move, 2 resize
 var _effect_from := Vector2.ZERO
 var _effect_orig := Rect2()
+var _effect_moved := false ## the press has moved or resized the effect
+var _effect_checkpointed := false ## the press already took an undo step
+var _effect_cycle := false ## a click without dragging picks the next effect under it
 ## Last Check room result: {issues, surfaces} (see MDSRoomCheck), drawn over the room until
 ## the next edit.
 var check_result: Dictionary = {}
@@ -813,9 +819,10 @@ func delete_selected() -> void:
 
 # --- Effects ----------------------------------------------------------------------------------
 
-## Whether [param e] is still one of the room's effects (undo remakes them).
-func _is_room_effect(e: MDSEnvironmentEffect) -> bool:
-	return is_instance_valid(e) and painter != null and e.get_parent() == painter.items_root.get_node(MDSRoomPainter.EFFECTS_GROUP)
+## Whether [param e] is still one of the room's effects. Undo remakes them and frees the ones it
+## takes out, so [param e] may be a freed one (the selection): it is checked before its type.
+func _is_room_effect(e: Variant) -> bool:
+	return is_instance_valid(e) and e is MDSEnvironmentEffect and painter != null and (e as Node).get_parent() == painter.items_root.get_node(MDSRoomPainter.EFFECTS_GROUP)
 
 ## Places an effect of [param id] centred on [param p] (scene-local), selects it and returns it.
 func place_effect(id: String, p: Vector2) -> MDSEnvironmentEffect:
@@ -828,7 +835,7 @@ func place_effect(id: String, p: Vector2) -> MDSEnvironmentEffect:
 	selected_effect = e
 	painted.emit()
 	_overlay.queue_redraw()
-	status_message.emit("%s added. Drag it to move it, drag its corner to resize it; its settings are in the Inspector. Delete removes it." % MDSEnvironment.display_name(id))
+	status_message.emit("%s added. Drag it to move it, drag its corner to resize it; its settings are in the Inspector. Delete removes it. To place another, pick it again (or Ctrl+click to keep it picked)." % MDSEnvironment.display_name(id))
 	return e
 
 func delete_selected_effect() -> void:
@@ -845,37 +852,72 @@ func _effect_screen_rect(e: MDSEnvironmentEffect) -> Rect2:
 	var r := e.transform * e.get_effect_rect()
 	return Rect2(local_to_screen(r.position), r.size * zoom)
 
+## Picks the effect a click places ("" for none: clicks select, move and resize).
+func set_effect_pick(id: String) -> void:
+	if id != effect_id:
+		effect_id = id
+		effect_pick_changed.emit(id)
+	_overlay.queue_redraw()
+
+func _begin_effect_drag(kind: int, p: Vector2, checkpointed: bool) -> void:
+	_effect_drag = kind
+	_effect_from = p
+	_effect_orig = Rect2(selected_effect.position, selected_effect.size)
+	_effect_moved = false
+	_effect_checkpointed = checkpointed
+
 func _effect_input(mb: InputEventMouseButton) -> void:
 	var p := screen_to_local(mb.position)
 	if not mb.pressed:
 		if _effect_drag != 0 and _is_room_effect(selected_effect):
-			status_message.emit("%s: %d x %d px at (%d, %d)." % [selected_effect.name, selected_effect.size.x, selected_effect.size.y, selected_effect.position.x, selected_effect.position.y])
+			if not _effect_moved and _effect_cycle:
+				# A click (no drag) on the selected effect: the next one under the mouse, for
+				# effects stacked on each other (most cover the whole room).
+				var hits := painter.effects_at(p)
+				if hits.size() > 1:
+					selected_effect = hits[(hits.find(selected_effect) + 1) % hits.size()]
+					status_message.emit("%s selected (one of %d effects here: click again for the next)." % [selected_effect.name, hits.size()])
+			elif _effect_moved:
+				status_message.emit("%s: %d x %d px at (%d, %d)." % [selected_effect.name, selected_effect.size.x, selected_effect.size.y, selected_effect.position.x, selected_effect.position.y])
 		_effect_drag = 0
+		_effect_cycle = false
 		return
 	if _is_room_effect(selected_effect) and _effect_screen_rect(selected_effect).end.distance_to(mb.position) <= 10.0:
-		painter.checkpoint()
-		_effect_drag = 2
-		_effect_from = p
-		_effect_orig = Rect2(selected_effect.position, selected_effect.size)
+		_begin_effect_drag(2, p, false)
 		return
-	var hit := painter.effect_at(p)
-	if hit:
-		selected_effect = hit
-		painter.checkpoint()
-		_effect_drag = 1
-		_effect_from = p
-		_effect_orig = Rect2(hit.position, hit.size)
-		status_message.emit("%s selected (its settings are in the Inspector): drag to move it, drag its corner to resize it, Delete removes it." % hit.name)
-	elif not effect_id.is_empty():
-		place_effect(effect_id, p)
-	else:
+	# An effect picked in the list: a click places it (dragging right away moves it), then clicks
+	# select and drag again, the new one too. Ctrl+click keeps the effect picked, to place several;
+	# Shift+click selects instead of placing.
+	if not effect_id.is_empty() and not mb.shift_pressed:
+		var placed := place_effect(effect_id, p)
+		if placed:
+			_begin_effect_drag(1, p, true)
+			if not (mb.ctrl_pressed or mb.meta_pressed):
+				set_effect_pick("")
+		return
+	var hits := painter.effects_at(p)
+	if hits.is_empty():
 		selected_effect = null
 		status_message.emit("Drag an effect from the list onto the room, or pick one and click.")
+		return
+	# The selected effect keeps the mouse when it is under it (to drag it); else the top-most.
+	_effect_cycle = _is_room_effect(selected_effect) and hits.has(selected_effect)
+	if not _effect_cycle:
+		selected_effect = hits[0]
+		status_message.emit("%s selected (its settings are in the Inspector): drag to move it, drag its corner to resize it, Delete removes it.%s" % [selected_effect.name, " Click it again for the next of the %d effects here." % hits.size() if hits.size() > 1 else ""])
+	_begin_effect_drag(1, p, false)
 
 func _effect_motion(mm: InputEventMouseMotion) -> void:
 	if _effect_drag == 0 or not _is_room_effect(selected_effect) or not (mm.button_mask & MOUSE_BUTTON_MASK_LEFT):
 		return
 	var d := screen_to_local(mm.position) - _effect_from
+	if not _effect_moved and d.length() * zoom < 3.0:
+		return
+	if not _effect_checkpointed:
+		# The undo step is taken when it starts moving, so a click alone adds none.
+		painter.checkpoint()
+		_effect_checkpointed = true
+	_effect_moved = true
 	if _effect_drag == 1:
 		selected_effect.position = (_effect_orig.position + d).round()
 	else:
@@ -1146,6 +1188,8 @@ func _gui_input(event: InputEvent) -> void:
 				_shaping = false
 				_draft.clear()
 				_draft_freehand = false
+				if tool == Tool.EFFECT:
+					set_effect_pick("")
 			KEY_ENTER, KEY_KP_ENTER:
 				if tool == Tool.FREEFORM and _draft.size() >= 3:
 					_finish_draft()
