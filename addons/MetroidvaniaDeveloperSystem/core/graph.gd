@@ -55,7 +55,7 @@ func get_edge(key: String) -> GEdge:
 func get_room(id: String) -> GRoom:
 	return rooms.get(id)
 
-## Graph of a MetSys map. Gates found in scenes ([code]idp_requires[/code] metadata) are
+## Graph of a MetSys map. Gates found in scenes ([code]mds_requires[/code] metadata) are
 ## attached to the passage closest to the gate node.
 static func from_metsys(model: MDSMapModel, scene_db: Dictionary, cell_size: Vector2) -> MDSGraph:
 	var g := MDSGraph.new()
@@ -118,7 +118,7 @@ static func from_world(world: MDSWorld, scene_db: Dictionary) -> MDSGraph:
 					e.requires.append(r)
 			if gate.get("one_way", false):
 				e.one_way_from = id
-		# Scanned gate nodes (idp_requires) attach to the closest transition.
+		# Scanned gate nodes (mds_requires) attach to the closest transition.
 		var meta: Dictionary = scene_db.get(world.get_scene_path(id), {})
 		for scanned_gate in meta.get("gates", []):
 			var best := ""

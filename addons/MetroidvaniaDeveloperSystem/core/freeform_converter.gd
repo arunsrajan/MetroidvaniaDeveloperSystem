@@ -101,7 +101,7 @@ func use_world_room(world: MDSWorld, id: String) -> void:
 func convert(painter: MDSRoomPainter) -> Dictionary:
 	var report := {"rock": 0, "ledges": 0, "back": 0, "front": 0, "old": 0, "openings": 0, "warnings": PackedStringArray(), "error": ""}
 	made.clear()
-	_rng.seed = hash("idp_convert_%d" % seed_value)
+	_rng.seed = hash("mds_convert_%d" % seed_value)
 	_noise.seed = _rng.randi()
 	_noise.frequency = 0.0045
 	_noise.fractal_octaves = 2
@@ -262,13 +262,13 @@ func _read_tiles(layer: TileMapLayer, out: Dictionary, solid: bool, into := "") 
 				start = xs[i]
 	out.tiles[String(layer.name)] = taken
 
-## Whether a static body is terrain to convert: [code]idp_convert[/code] metadata or group
+## Whether a static body is terrain to convert: [code]mds_convert[/code] metadata or group
 ## says so; else a body with no sprites, no script and no moving parts (moving platforms are
 ## AnimatableBody2D and stay).
 static func is_convertible(node: Node) -> bool:
-	if node.has_meta(&"idp_convert"):
-		return bool(node.get_meta(&"idp_convert"))
-	if node.is_in_group(&"idp_convert"):
+	if MDSLegacy.has_meta_key(node, &"mds_convert"):
+		return bool(MDSLegacy.get_meta_key(node, &"mds_convert"))
+	if MDSLegacy.in_group(node, &"mds_convert"):
 		return true
 	if not node is StaticBody2D or node is AnimatableBody2D or node.get_script() != null:
 		return false
@@ -279,7 +279,7 @@ static func is_convertible(node: Node) -> bool:
 
 func _read_bodies(node: Node, root: Node, painter: MDSRoomPainter, out: Dictionary) -> void:
 	for c in node.get_children():
-		if c is TileMapLayer or c is MDSFreeform or c is MDSGate or c.has_meta(&"idp_blockout") or painter.is_scene_node_hidden(c):
+		if c is TileMapLayer or c is MDSFreeform or c is MDSGate or MDSLegacy.has_meta_key(c, &"mds_blockout") or painter.is_scene_node_hidden(c):
 			continue
 		if c is StaticBody2D and is_convertible(c):
 			var any := false

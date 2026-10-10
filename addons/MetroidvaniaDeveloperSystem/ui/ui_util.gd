@@ -258,6 +258,66 @@ static func parallax_field(grid: GridContainer, text: String, value: String, pla
 	commit_line(edit, commit)
 	return edit
 
+## An animated background field: a style picked from its menu (or typed in, with settings in
+## parentheses if you like: aurora(blur=0.8)), or a scene of an [MDSAnimatedBackground]
+## dropped on it. [param commit] gets the new text.
+static func background_field(grid: GridContainer, text: String, value: String, placeholder: String, commit: Callable) -> LineEdit:
+	grid.add_child(label(text))
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var edit := LineEdit.new()
+	edit.text = value
+	edit.placeholder_text = placeholder
+	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	edit.tooltip_text = "Animated background, soft and out of focus, drawn by a shader: a style (bokeh, aurora, nebula, blood_moon...), with settings if you like (aurora(blur=0.8, speed=0.5)), or a .tscn holding an MDSAnimatedBackground. none: no background"
+	row.add_child(edit)
+	var menu := menu_button("+", "Pick an animated background style")
+	var popup := menu.get_popup()
+	for boss in [false, true]:
+		if boss:
+			popup.add_separator("For boss rooms")
+		for i in MDSAnimatedBackground.STYLE_IDS.size():
+			var id := MDSAnimatedBackground.STYLE_IDS[i]
+			if MDSAnimatedBackground.is_boss_style(id) != boss:
+				continue
+			popup.add_icon_item(background_icon(id), MDSAnimatedBackground.STYLE_NAMES[i])
+			popup.set_item_metadata(popup.item_count - 1, id)
+			popup.set_item_tooltip(popup.item_count - 1, MDSAnimatedBackground.STYLE_INFO[i])
+	popup.add_separator()
+	popup.add_item("None (no background here)")
+	popup.set_item_metadata(popup.item_count - 1, "none")
+	popup.add_item("Clear")
+	popup.set_item_metadata(popup.item_count - 1, "")
+	popup.index_pressed.connect(func(i: int) -> void:
+		edit.text = str(popup.get_item_metadata(i))
+		edit.text_submitted.emit(edit.text))
+	row.add_child(menu)
+	grid.add_child(row)
+	path_drop(edit)
+	commit_line(edit, commit)
+	return edit
+
+## A small picture of an animated background style: its sky, a light and an accent.
+static func background_icon(id: String, size := 16) -> Texture2D:
+	var key := "bg:" + id
+	if _type_icons.has(key):
+		return _type_icons[key]
+	var look: Dictionary = MDSAnimatedBackground.LOOKS.get(id, MDSAnimatedBackground.LOOKS.bokeh)
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var spots := [[Vector2(0.32, 0.38), 0.3, look.color_c], [Vector2(0.7, 0.68), 0.24, look.color_d], [Vector2(0.72, 0.26), 0.14, look.color_c]]
+	for y in size:
+		for x in size:
+			var uv := Vector2((x + 0.5) / size, (y + 0.5) / size)
+			var c: Color = (look.color_b as Color).lerp(look.color_a, uv.y)
+			for s in spots:
+				var k := clampf(1.0 - uv.distance_to(s[0]) / float(s[1]), 0.0, 1.0)
+				c = c.lerp(s[2], k * k * 0.85)
+			c.a = 1.0
+			img.set_pixel(x, y, c)
+	var tex := ImageTexture.create_from_image(img)
+	_type_icons[key] = tex
+	return tex
+
 ## Fields describing the player for the room checks ([code]settings.player[/code], see
 ## [constant MDSRoomCheck.PLAYER_DEFAULTS]). [param apply] gets the whole new dictionary on
 ## every change. Max jump height and jump velocity are two views of one value.

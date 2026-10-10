@@ -260,7 +260,7 @@ func _refresh_stats() -> void:
 			var sd: int = analysis.save_distance.get(id, -1)
 			t += "[url=room:%s]%s[/url]: %s (sphere %s, %s)\n" % [id, info.name, ", ".join(info.boss_names) if not info.boss_names.is_empty() else "unnamed", analysis.sphere_of.get(id, "-"), "save %d room(s) away" % sd if sd >= 0 else "no save reachable"]
 	if not any_boss:
-		t += "None found. Name a boss in the Inspector or add idp_boss_name metadata to a node.\n"
+		t += "None found. Name a boss in the Inspector or add mds_boss_name metadata to a node.\n"
 
 	var objectives := analysis.get_objectives()
 	if not objectives.is_empty():

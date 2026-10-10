@@ -47,7 +47,7 @@ static func fit_room_to_scene(world: MDSWorld, id: String, meta: Dictionary) -> 
 	return true
 
 ## Adds/updates map gates from the scene's gate nodes. Connections stored as node
-## metadata (idp_to_room / idp_to_gate) are applied to unconnected gates.
+## metadata (mds_to_room / mds_to_gate) are applied to unconnected gates.
 ## Returns the number of gates added or moved.
 static func import_gates(world: MDSWorld, id: String, meta: Dictionary) -> int:
 	var count := 0
@@ -503,7 +503,7 @@ static func _collect_gate_nodes(node: Node, root: Node, out: Dictionary) -> void
 		var n := String(node.name)
 		if node is MDSGate:
 			n = node.get_gate_name()
-		if node is MDSGate or node.is_in_group(&"idp_gate") or MDSSceneScanner._gate_name_re.search(n.to_lower()):
+		if node is MDSGate or MDSLegacy.in_group(node, &"mds_gate") or MDSSceneScanner._gate_name_re.search(n.to_lower()):
 			out[n] = node
 	for child in node.get_children():
 		_collect_gate_nodes(child, root, out)

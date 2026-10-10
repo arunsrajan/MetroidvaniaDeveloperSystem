@@ -223,7 +223,7 @@ func _draw_grid() -> void:
 	# Markers of the visible tiles: terrain (bottom bar), solid (red), kind tag (blue).
 	var kind_layer := -1
 	for i in painter.tile_set.get_custom_data_layers_count():
-		if painter.tile_set.get_custom_data_layer_name(i) == "idp_kind":
+		if MDSLegacy.is_kind_layer(painter.tile_set.get_custom_data_layer_name(i)):
 			kind_layer = i
 	var physics := painter.tile_set.get_physics_layers_count() > 0
 	for y in range(lo.y, hi.y + 1):

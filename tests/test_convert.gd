@@ -154,7 +154,7 @@ func _convert_blockout(keep_old: bool) -> void:
 	var scene := (load_fresh(out) as PackedScene).instantiate()
 	var step := scene.get_node_or_null("Step1")
 	if keep_old:
-		check(step and not step.visible and step.process_mode == Node.PROCESS_MODE_DISABLED and step.has_meta(&"idp_blockout"), "the old step is kept, hidden and without collision")
+		check(step and not step.visible and step.process_mode == Node.PROCESS_MODE_DISABLED and step.has_meta(&"mds_blockout"), "the old step is kept, hidden and without collision")
 		var bl := scene.get_node_or_null("TerrainBlockout") as TileMapLayer
 		check(bl and not bl.enabled and bl.get_used_cells().size() > 100, "the old tiles are kept in a disabled TerrainBlockout layer")
 	else:

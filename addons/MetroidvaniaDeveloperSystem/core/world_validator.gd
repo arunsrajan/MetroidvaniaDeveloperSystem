@@ -38,6 +38,9 @@ static func run(world: MDSWorld, analysis: MDSAnalysis, scene_db: Dictionary) ->
 		var parallax_problem := MDSEnvironment.check_parallax(str(world.get_room_value(id, "parallax", "")))
 		if not parallax_problem.is_empty():
 			MDSValidator._add(issues, W, CATEGORY_ROOMS, "%s's parallax background: %s" % [name, parallax_problem], id, Vector3i.MAX, at, layer)
+		var background_problem := MDSEnvironment.check_background(str(world.get_room_value(id, "background", "")))
+		if not background_problem.is_empty():
+			MDSValidator._add(issues, W, CATEGORY_ROOMS, "%s's animated background: %s" % [name, background_problem], id, Vector3i.MAX, at, layer)
 
 		# --- Gates ---
 		var gates := world.get_gates(id)
@@ -108,9 +111,17 @@ static func run(world: MDSWorld, analysis: MDSAnalysis, scene_db: Dictionary) ->
 		var p_problem := MDSEnvironment.check_parallax(str(world.get_areas()[area].get("parallax", "")))
 		if not p_problem.is_empty():
 			MDSValidator._add(issues, W, CATEGORY_ROOMS, "Area %s's parallax background: %s (Areas tab)" % [area, p_problem], rooms[0] if not rooms.is_empty() else "")
+		for key in ["background", "boss_background"]:
+			var b_problem := MDSEnvironment.check_background(str(world.get_areas()[area].get(key, "")))
+			if not b_problem.is_empty():
+				MDSValidator._add(issues, W, CATEGORY_ROOMS, "Area %s's %s: %s (Areas tab)" % [area, "boss room background" if key == "boss_background" else "animated background", b_problem], rooms[0] if not rooms.is_empty() else "")
 	var world_problem := MDSEnvironment.check(str(world.get_setting("weather", "")))
 	if not world_problem.is_empty():
 		MDSValidator._add(issues, W, CATEGORY_ROOMS, "The world's weather: %s (World settings)" % world_problem)
+	for key in ["background", "boss_background"]:
+		var bg_problem := MDSEnvironment.check_background(str(world.get_setting(key, "")))
+		if not bg_problem.is_empty():
+			MDSValidator._add(issues, W, CATEGORY_ROOMS, "The world's %s: %s (World settings)" % ["boss rooms background" if key == "boss_background" else "animated background", bg_problem])
 
 	for path in scene_users:
 		if scene_users[path].size() > 1:

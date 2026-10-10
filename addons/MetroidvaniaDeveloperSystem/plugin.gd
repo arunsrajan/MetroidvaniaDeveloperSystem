@@ -6,10 +6,10 @@ const MET_SYS_PLUGIN = "MetroidvaniaSystem"
 ## When true (default) the plugin has a "Map Dev" main screen tab next to
 ## 2D/3D/Script/MetSys; otherwise the panel starts in the right dock. Re-enable the plugin
 ## after changing it.
-const SETTING_MAIN_SCREEN = "interactive_dev_panel/use_main_screen"
+const SETTING_MAIN_SCREEN = "metroidvania_developer_system/use_main_screen"
 ## Where the panel is: see [enum Placement]. Changed from the panel's window menu.
-const SETTING_PLACEMENT = "interactive_dev_panel/placement"
-const METADATA_SECTION = "interactive_dev_panel"
+const SETTING_PLACEMENT = "metroidvania_developer_system/placement"
+const METADATA_SECTION = "metroidvania_developer_system"
 
 ## Where the panel lives. The panel can be detached into its own window (e.g. on a second
 ## monitor) and docked back at any time.
@@ -25,6 +25,9 @@ var _placeholder: Control
 var _metsys_check_timer: Timer
 
 func _enter_tree() -> void:
+	# Settings saved before 3.1 (interactive_dev_panel/...) move to their new names.
+	if MDSLegacy.upgrade_settings() > 0:
+		ProjectSettings.save()
 	if not ProjectSettings.has_setting(SETTING_MAIN_SCREEN):
 		ProjectSettings.set_setting(SETTING_MAIN_SCREEN, true)
 	ProjectSettings.set_initial_value(SETTING_MAIN_SCREEN, true)

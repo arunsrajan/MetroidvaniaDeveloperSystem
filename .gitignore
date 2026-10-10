@@ -5,10 +5,10 @@
 export_presets.cfg
 
 # Files the editor writes into the demo project
-MapData.idp.json
-MapData.idpworld.json
-idp_exports/
-idp_tiles/
+MapData.mds.json
+MapData.mdsworld.json
+mds_exports/
+mds_tiles/
 
 # Scenes the tests write
 tests/tmp/

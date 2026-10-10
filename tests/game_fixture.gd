@@ -10,7 +10,7 @@ extends RefCounted
 ## door. Areas have titles, music, objectives; the Crypt is dark.
 
 const DIR := "res://tests/tmp/world"
-const WORLD := DIR + "/test.idpworld.json"
+const WORLD := DIR + "/test.mdsworld.json"
 const FOLLOWER := DIR + "/follower.tscn"
 const MUSIC_A := DIR + "/music_gardens.tres"
 const MUSIC_B := DIR + "/music_crypt.tres"

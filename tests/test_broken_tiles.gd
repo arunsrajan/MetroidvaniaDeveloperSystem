@@ -123,7 +123,7 @@ func _reported() -> void:
 	var b: Array = meta.broken_tiles
 	check(b.size() == 1 and b[0].path == "Terrain" and (b[0].sample as Array).all(func(a: Vector2i) -> bool: return a.x >= 3 or a.y >= 3), "the scan names the layer and tiles past the new edge (%s)" % [b])
 	var world := MDSWorld.new()
-	world.path = TMP + "/broken.idpworld.json"
+	world.path = TMP + "/broken.mdsworld.json"
 	world.add_room("Broken", Rect2(0, 0, 192, 192))
 	world.set_room_scene("Broken", ROOM)
 	var db := {ROOM: meta}
@@ -133,7 +133,7 @@ func _reported() -> void:
 
 func _room_view() -> void:
 	var world := MDSWorld.new()
-	world.path = TMP + "/broken_view.idpworld.json"
+	world.path = TMP + "/broken_view.mdsworld.json"
 	world.add_room("Broken", Rect2(0, 0, 192, 192))
 	world.set_room_scene("Broken", ROOM)
 	var view := MDSRoomView.new()

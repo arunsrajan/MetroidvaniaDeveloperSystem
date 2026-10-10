@@ -8,11 +8,11 @@ extends RefCounted
 ## MetSysGame, or simply has a [code]starting_map[/code] property or a
 ## [code]load_room(path)[/code] method, is found automatically.
 ## When several exist (one per level, say) the one closest to the room in the file tree
-## wins. Override with the project setting [code]interactive_dev_panel/play_scene[/code]
+## wins. Override with the project setting [code]metroidvania_developer_system/play_scene[/code]
 ## (or the world's "Play scene" setting in non-linear mode).
 
 const LAUNCHER := "res://addons/MetroidvaniaDeveloperSystem/nodes/mds_play_launcher.tscn"
-const SETTING_PLAY_SCENE := "interactive_dev_panel/play_scene"
+const SETTING_PLAY_SCENE := "metroidvania_developer_system/play_scene"
 const CACHE_SECONDS := 60.0
 
 static var _cache: Array = []
@@ -58,7 +58,7 @@ static func _common_dir_length(a: String, b: String) -> int:
 	return n
 
 ## Scenes that can host a room: root script extends MetSysGame, has a starting_map
-## property, or implements mds_play_from(request) (idp_play_from before 3.0) or load_room(path). Cached for a minute.
+## property, or implements mds_play_from(request) or load_room(path). Cached for a minute.
 static func find_game_scenes() -> Array:
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - _cache_time < CACHE_SECONDS:
@@ -80,7 +80,7 @@ static func _collect_scenes(dir: String, out: PackedStringArray, depth: int) -> 
 		if f.ends_with(".tscn"):
 			out.append(dir.path_join(f))
 	for d in DirAccess.get_directories_at(dir):
-		if not d.begins_with(".") and d != "addons" and d != "idp_exports":
+		if not d.begins_with(".") and d != "addons" and d != MDSWorldPanel.EXPORT_DIR.get_file() and d != MDSLegacy.OLD_EXPORT_DIR.get_file():
 			_collect_scenes(dir.path_join(d), out, depth + 1)
 
 ## Reads the root node of a .tscn as text (no instancing): its script, inherited scene and
@@ -130,7 +130,7 @@ static func is_game_script(script_path: String) -> bool:
 			if p.name == "starting_map":
 				return true
 		for m in script.get_script_method_list():
-			if m.name in ["mds_play_from", "idp_play_from", "load_room"]:
+			if m.name in ["mds_play_from", MDSLegacy.OLD_PLAY_HOOK, "load_room"]:
 				return true
 		script = script.get_base_script()
 	return false

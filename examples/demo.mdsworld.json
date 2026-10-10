@@ -1,6 +1,7 @@
 {
 	"areas": {
 		"Acrid Lane": {
+			"background": "sunset_haze",
 			"color": "#f2dd4a",
 			"map_zone": "ACRID_LANE",
 			"weather": "sandstorm"
@@ -14,6 +15,7 @@
 			"map_zone": "DISTRIBUTION"
 		},
 		"Forsaken Ducts": {
+			"background": "deep_water",
 			"color": "#4db2e6",
 			"map_zone": "FORSAKEN_DUCTS",
 			"weather": "cave_mist"
@@ -23,6 +25,8 @@
 			"map_zone": "INNER_SUBURBS"
 		},
 		"Power Core": {
+			"background": "ember_glow",
+			"boss_background": "arcane_vortex",
 			"color": "#e04848",
 			"map_zone": "POWER_CORE",
 			"weather": "volcanic"
@@ -41,12 +45,13 @@
 			"weather": "storm"
 		},
 		"The Greenhouse": {
+			"background": "forest_canopy",
 			"color": "#5b6fd6",
 			"map_zone": "THE_GREENHOUSE",
 			"weather": "firefly_grove"
 		}
 	},
-	"format": "idp_world",
+	"format": "mds_world",
 	"layers": [
 		"Main"
 	],
@@ -2550,6 +2555,7 @@
 		}
 	},
 	"settings": {
+		"boss_background": "blood_moon",
 		"default_room_size": [
 			1296,
 			648

@@ -51,6 +51,7 @@ const EFFECTS := {
 	"lava_fall": ["Lava falls", "mds_lava_fall.gd", false, "Molten rock pouring over a ledge: a white-hot core, crust sliding and cracking, a splash of molten drops, a glow, embers; it burns"],
 	"rockfall": ["Falling rocks", "mds_rockfall.gd", false, "Rocks breaking off and crashing to the ground in dust and chips, piling up as rubble; a cave-in with PLAYER_INSIDE; can hurt"],
 	"water": ["Water", "mds_water.gd", false, "A pool: waves, what is behind bent and tinted, caustics, bubbles"],
+	"animated_background": ["Animated background", "mds_animated_background.gd", false, "A soft, out-of-focus background in motion, drawn by a shader: bokeh lights, an aurora, a nebula, molten blobs, deep water, storm clouds, a starfield... 20 styles, some made for boss rooms (void pulse, blood moon, arcane vortex, infection, holy light). Pick the style in the Inspector; drop an image on it to show the image blurred"],
 	"parallax": ["Parallax background", "mds_parallax_background.gd", false, "Layers behind the room moving slower the further back they are: sky, mountains, forest, city, ruins, cave rock, dunes, clouds, fog, stars or your own pictures. Drop an image on it to add a layer"],
 }
 
@@ -288,6 +289,71 @@ static func check_parallax(value: String) -> String:
 	if not v.begins_with("res://") and not v.begins_with("uid://") and not v.contains("(") and not MDSParallaxBackground.PRESET_IDS.has(v.to_lower().replace(" ", "_")):
 		return "'%s' is not a parallax preset (%s)" % [v, ", ".join(MDSParallaxBackground.PRESET_IDS.slice(1))]
 	return check(parallax_spec(v))
+
+# --- Animated backgrounds ------------------------------------------------------------------------
+
+## Whether room [param id] is a boss room: its type is boss or mini_boss, or it names a boss.
+static func is_boss_room(world: MDSWorld, id: String) -> bool:
+	var type := str(world.get_room_value(id, "type", "")).to_lower()
+	return type == "boss" or type == "mini_boss" or not str(world.get_room_value(id, "boss", "")).strip_edges().is_empty()
+
+## The animated background of a room ([MDSAnimatedBackground]): its own
+## ([code]rooms[id].background[/code]); for a boss room ([method is_boss_room]) its area's
+## [code]boss_background[/code], else the world's ([code]settings.boss_background[/code]); else
+## its area's [code]background[/code], else the world's ([code]settings.background[/code]).
+## "none" when it is turned off, "" when there is none.
+static func background_for_room(world: MDSWorld, id: String) -> String:
+	var s := str(world.get_room_value(id, "background", "")).strip_edges()
+	var area: Dictionary = world.get_areas().get(world.get_room_area(id), {})
+	if s.is_empty() and is_boss_room(world, id):
+		s = str(area.get("boss_background", "")).strip_edges()
+		if s.is_empty():
+			s = str(world.get_setting("boss_background", "")).strip_edges()
+	if s.is_empty():
+		s = str(area.get("background", "")).strip_edges()
+	if s.is_empty():
+		s = str(world.get_setting("background", "")).strip_edges()
+	return s
+
+## The spec [method build] makes an animated background from: a style id
+## ([constant MDSAnimatedBackground.STYLE_IDS]) becomes
+## [code]animated_background(style=id)[/code], and [code]aurora(blur=0.8)[/code] becomes
+## [code]animated_background(style=aurora, blur=0.8)[/code]; scenes and other specs stay as they are.
+static func background_spec(value: String) -> String:
+	var v := value.strip_edges()
+	if v.is_empty() or is_none(v) or v.begins_with("res://") or v.begins_with("uid://"):
+		return v
+	var head := v
+	var args := ""
+	var open := v.find("(")
+	if open > 0 and v.ends_with(")"):
+		head = v.substr(0, open)
+		args = v.substr(open + 1, v.length() - open - 2).strip_edges()
+	var id := head.strip_edges().to_lower().replace(" ", "_")
+	if not MDSAnimatedBackground.STYLE_IDS.has(id):
+		return v
+	return "animated_background(style=%s%s)" % [id, ", " + args if not args.is_empty() else ""]
+
+## The animated background named by [param value] (a style id, with settings in parentheses if
+## you like, or a scene) as a node covering [param bounds] like [method build], or null for none.
+static func build_background(value: String, bounds: Rect2) -> Node2D:
+	var spec := background_spec(value)
+	if spec.is_empty() or is_none(spec):
+		return null
+	var node := build(spec, bounds)
+	if node:
+		node.name = "MDSBackground"
+	return node
+
+## What is wrong with an animated background value ("" when nothing).
+static func check_background(value: String) -> String:
+	var v := value.strip_edges()
+	if v.is_empty() or is_none(v):
+		return ""
+	var spec := background_spec(v)
+	if spec == v and not v.begins_with("res://") and not v.begins_with("uid://") and not v.to_lower().begins_with("animated_background"):
+		return "'%s' is not an animated background style (%s)" % [v, ", ".join(MDSAnimatedBackground.STYLE_IDS)]
+	return check(spec)
 
 ## The weather of [param spec] as a node to add to a room, its effects covering
 ## [param bounds] (the room's rectangle, in the coordinates of the node it goes in) and

@@ -2,11 +2,11 @@
 class_name MDSWorldGame
 extends Node2D
 ## Game runtime for non-linear worlds: the counterpart of MetSys' MetSysGame, with no
-## MetSys dependency. Reads the same .idpworld.json the Map Dev panel edits.
+## MetSys dependency. Reads the same .mdsworld.json the Map Dev panel edits.
 ##
 ## Use it as the root of your game scene (or extend it):
 ## [codeblock]
-## Game (MDSWorldGame)      world_file = "res://world.idpworld.json", starting_room = "Crossroads_01"
+## Game (MDSWorldGame)      world_file = "res://world.mdsworld.json", starting_room = "Crossroads_01"
 ## ├── Player               assigned to "player"
 ## ├── Camera2D             optional; limited to the room on every room change
 ## ├── RoomCamera (MDSRoomCamera)  optional; irregular-room camera zones and transitions
@@ -46,7 +46,7 @@ signal defeated(id: String, boss: String)
 ## cards, music, banners, barriers.
 static var instance: MDSWorldGame
 
-@export_file("*.idpworld.json") var world_file := ""
+@export_file("*.mdsworld.json", "*.idpworld.json") var world_file := ""
 ## Room id (as on the map) loaded when the game starts without save data.
 @export var starting_room := ""
 ## Gate the player starts at in the starting room (empty: the room's first save point or
@@ -100,6 +100,11 @@ static var instance: MDSWorldGame
 ## ([code]rooms[id].parallax[/code]), else its area's, else the world's
 ## ([code]settings.parallax[/code]), see [MDSParallaxBackground].
 @export var room_parallax := true
+## Add each room's animated background as it loads: the room's
+## ([code]rooms[id].background[/code]); in a boss room its area's or the world's
+## [code]boss_background[/code]; else its area's, else the world's
+## ([code]settings.background[/code]), see [MDSAnimatedBackground].
+@export var room_background := true
 ## Nodes in these groups carry a soft light in dark rooms (the player, enemies, lanterns).
 ## The world setting [code]light_groups[/code] replaces the list.
 @export var light_groups: PackedStringArray = ["player", "enemy", "lantern"]
@@ -138,6 +143,8 @@ var darkness := 0.0
 var weather: Node2D
 ## The current room's parallax background (null: none).
 var parallax: Node2D
+## The current room's animated background (null: none).
+var background: Node2D
 
 var _cooldown_until := 0
 var _fade: ColorRect
@@ -160,7 +167,7 @@ func _ready() -> void:
 		push_warning("MDSWorldGame: '%s' was loaded inside another MDSWorldGame. Room scenes should have a plain Node2D root; only the game scene uses MDSWorldGame." % scene_file_path)
 		return
 	if world_file.is_empty():
-		world_file = ProjectSettings.get_setting("interactive_dev_panel/world_file", "")
+		world_file = str(MDSLegacy.get_setting("metroidvania_developer_system/world_file", ""))
 	world = MDSWorld.get_cached(world_file)
 	if world.get_room_ids().is_empty():
 		push_error("MDSWorldGame: world file '%s' has no rooms." % world_file)
@@ -360,6 +367,7 @@ func _dress_room(room: Node2D, id: String) -> void:
 		d.player = player
 		room.add_child(d)
 	_apply_weather(room, id)
+	_apply_background(room, id)
 	_apply_parallax(room, id)
 	_apply_darkness(room, id)
 
@@ -433,6 +441,27 @@ func _apply_parallax(room: Node2D, id: String) -> void:
 	parallax = MDSEnvironment.build_parallax(value, b)
 	if parallax:
 		room.add_child(parallax)
+
+## The animated background of a room ("none": off), see
+## [method MDSEnvironment.background_for_room].
+func get_background_value(id: String) -> String:
+	return MDSEnvironment.background_for_room(world, id)
+
+## Adds the room's animated background to it.
+func _apply_background(room: Node2D, id: String) -> void:
+	background = null
+	if not room_background:
+		return
+	var value := get_background_value(id)
+	var rects := world.get_local_rects(id)
+	if value.is_empty() or MDSEnvironment.is_none(value) or rects.is_empty():
+		return
+	var b := rects[0]
+	for r in rects:
+		b = b.merge(r)
+	background = MDSEnvironment.build_background(value, b)
+	if background:
+		room.add_child(background)
 
 ## A resource named by a world setting (a res:// path), or null.
 func _setting_resource(key: String) -> Resource:
@@ -667,10 +696,10 @@ func has_ability(ability: String) -> bool:
 
 ## Stable id for a node in the current room ("Room_01/Items/HeartPiece"), for
 ## remembering collected items, opened walls and defeated enemies across rooms and saves. A
-## node carried into another room keeps the id it had ([code]idp_object_id[/code] metadata).
+## node carried into another room keeps the id it had ([code]mds_object_id[/code] metadata).
 func object_id(node: Node) -> String:
-	if node.has_meta(&"idp_object_id"):
-		return str(node.get_meta(&"idp_object_id"))
+	if MDSLegacy.has_meta_key(node, &"mds_object_id"):
+		return str(MDSLegacy.get_meta_key(node, &"mds_object_id"))
 	return "%s/%s" % [current_room, room_node.get_path_to(node) if room_node and room_node.is_ancestor_of(node) else node.name]
 
 func store_object(node_or_id: Variant) -> void:
@@ -683,7 +712,7 @@ func is_object_stored(node_or_id: Variant) -> bool:
 # --- Defeated enemies and bosses ------------------------------------------------------------------
 
 ## Records an enemy (or anything) as defeated: it stays gone when its room loads again, and
-## after saving and loading. A boss (group boss/bosses/mini_boss, or idp_boss_name metadata)
+## after saving and loading. A boss (group boss/bosses/mini_boss, or mds_boss_name metadata)
 ## is also recorded by name, for objectives. Freeing the node is up to the caller.
 func mark_defeated(node_or_id: Variant) -> void:
 	var id: String = node_or_id if node_or_id is String else object_id(node_or_id)
@@ -692,8 +721,8 @@ func mark_defeated(node_or_id: Variant) -> void:
 	var boss := ""
 	if node_or_id is Node:
 		var n := node_or_id as Node
-		if n.has_meta(&"idp_boss_name"):
-			boss = str(n.get_meta(&"idp_boss_name"))
+		if MDSLegacy.has_meta_key(n, &"mds_boss_name"):
+			boss = str(MDSLegacy.get_meta_key(n, &"mds_boss_name"))
 		elif n.is_in_group(&"boss") or n.is_in_group(&"bosses") or n.is_in_group(&"mini_boss"):
 			boss = String(n.name)
 	if not boss.is_empty():
@@ -747,13 +776,13 @@ func _record_followers(room: Node, id: String, to_room: String, to_gate: String)
 	for n in get_tree().get_nodes_in_group(carry_over_group):
 		if not n is Node2D or not room.is_ancestor_of(n) or n.scene_file_path.is_empty():
 			continue
-		var oid := str(n.get_meta(&"idp_object_id")) if n.has_meta(&"idp_object_id") else "%s/%s" % [id, room.get_path_to(n)]
+		var oid := str(MDSLegacy.get_meta_key(n, &"mds_object_id")) if MDSLegacy.has_meta_key(n, &"mds_object_id") else "%s/%s" % [id, room.get_path_to(n)]
 		if defeated_ids.has(oid):
 			continue
 		var gp: Vector2 = (n as Node2D).global_position
 		if not _exit.is_empty() and gp.distance_to(_exit.pos) <= carry_over_distance:
 			moved[oid] = {"scene": n.scene_file_path, "name": String(n.name), "room": to_room, "gate": to_gate, "offset": [gp.x - _exit.pos.x, gp.y - _exit.pos.y]}
-		elif moved.has(oid) or n.has_meta(&"idp_carried"):
+		elif moved.has(oid) or n.has_meta(&"mds_carried"):
 			var local := gp - world.get_origin(id)
 			moved[oid] = {"scene": n.scene_file_path, "name": String(n.name), "room": id, "pos": [local.x, local.y]}
 
@@ -770,8 +799,8 @@ func _place_followers(room: Node, id: String, entry_gate: String) -> void:
 			continue
 		if node.is_empty():
 			inst.name = e.name
-			inst.set_meta(&"idp_object_id", oid)
-			inst.set_meta(&"idp_carried", true)
+			inst.set_meta(&"mds_object_id", oid)
+			inst.set_meta(&"mds_carried", true)
 			room.add_child(inst)
 		if e.has("offset"):
 			# Just inside the gate the player came through, as far along it as it was.

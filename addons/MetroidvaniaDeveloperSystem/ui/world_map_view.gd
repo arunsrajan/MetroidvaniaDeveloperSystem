@@ -2,7 +2,7 @@
 @icon("res://addons/MetroidvaniaDeveloperSystem/assets/labels_mds.png")
 class_name MDSWorldMapView
 extends Control
-## In-game map for non-linear worlds, drawn from the same .idpworld.json the editor uses.
+## In-game map for non-linear worlds, drawn from the same .mdsworld.json the editor uses.
 ##
 ## Reveal rules follow Hollow Knight: a room shows once it is visited, or dimmed when the
 ## player owns the map of its area (Cornifer/Shakra); everything else stays hidden.
@@ -13,7 +13,7 @@ extends Control
 ## save["map"] = map_view.get_save_data()
 ## [/codeblock]
 
-@export_file("*.idpworld.json") var world_file := "":
+@export_file("*.mdsworld.json", "*.idpworld.json") var world_file := "":
 	set(value):
 		world_file = value
 		world = MDSWorld.load_world(value) if not value.is_empty() and FileAccess.file_exists(value) else null

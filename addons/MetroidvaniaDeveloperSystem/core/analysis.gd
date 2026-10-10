@@ -418,7 +418,7 @@ func get_objectives() -> Array:
 					o.problem = "no room has the boss '%s'" % o.target
 			"object":
 				# Object ids are "<room id>/<node path>" (MDSWorldGame.object_id) unless a node
-				# sets idp_object_id: only the room part can be checked.
+				# sets mds_object_id: only the room part can be checked.
 				var room_id := str(o.target).get_slice("/", 0)
 				if str(o.target).contains("/"):
 					if room_info.has(room_id):

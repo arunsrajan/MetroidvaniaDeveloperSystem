@@ -183,7 +183,7 @@ static func _gone(node: Node, painter: MDSRoomPainter) -> bool:
 	return painter != null and painter.is_scene_node_hidden(node)
 
 func _add_node(node: Node, root: Node, skip_painted: bool, painter: MDSRoomPainter = null) -> void:
-	if node.has_meta(&"idp_blockout") or _gone(node, painter) or skip_nodes.has(node):
+	if MDSLegacy.has_meta_key(node, &"mds_blockout") or _gone(node, painter) or skip_nodes.has(node):
 		return
 	if node is TileMapLayer:
 		if not skip_painted:

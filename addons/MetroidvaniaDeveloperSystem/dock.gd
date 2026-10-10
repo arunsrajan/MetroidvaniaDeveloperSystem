@@ -4,7 +4,7 @@ extends Control
 ##
 ## - MetSys mode ([MDSMetSysPanel]): works on MetSys' grid MapData.txt.
 ## - Non-linear mode ([MDSWorldPanel]): free-form world map where scenes are drawn and
-##   placed anywhere, connected by Hollow Knight-style named gates, saved as .idpworld.json.
+##   placed anywhere, connected by Hollow Knight-style named gates, saved as .mdsworld.json.
 ##
 ## Panels are created on first use, so an unused mode costs nothing.
 ##
@@ -17,7 +17,7 @@ signal placement_requested(placement: int)
 
 enum Mode { METSYS, NON_LINEAR }
 const MODE_NAMES: PackedStringArray = ["MetSys mode", "Non-linear mode"]
-const SETTING_MODE := "interactive_dev_panel/mode"
+const SETTING_MODE := "metroidvania_developer_system/mode"
 const PLACEMENT_ITEMS: PackedStringArray = ["Dock in main screen (Map Dev tab)", "Detach to floating window", "Dock on the right", "Dock in bottom panel"]
 
 var mode: int = Mode.METSYS
@@ -34,7 +34,7 @@ func _ready() -> void:
 	mode_switch = OptionButton.new()
 	for i in MODE_NAMES.size():
 		mode_switch.add_item(MODE_NAMES[i], i)
-	mode_switch.tooltip_text = "MetSys mode: MetSys' grid map (MapData.txt).\nNon-linear mode: draw and place scenes freely on a world map (.idpworld.json)."
+	mode_switch.tooltip_text = "MetSys mode: MetSys' grid map (MapData.txt).\nNon-linear mode: draw and place scenes freely on a world map (.mdsworld.json)."
 	mode_switch.item_selected.connect(func(idx: int) -> void: set_mode(mode_switch.get_item_id(idx)))
 	placement_menu = MenuButton.new()
 	placement_menu.flat = true

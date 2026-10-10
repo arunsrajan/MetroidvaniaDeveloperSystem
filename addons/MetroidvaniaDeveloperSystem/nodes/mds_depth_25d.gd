@@ -201,7 +201,7 @@ func rescan() -> void:
 			_scan(s)
 
 func _scan(n: Node) -> void:
-	if n == self or n.has_meta(&"idp_blockout"):
+	if n == self or MDSLegacy.has_meta_key(n, &"mds_blockout"):
 		return
 	if n is CanvasItem and not (n as CanvasItem).visible:
 		return

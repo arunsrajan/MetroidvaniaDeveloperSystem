@@ -7,7 +7,7 @@ extends "res://tests/test_case.gd"
 ##   Hall: (0,0)-(2304,1296) plus the leg (0,1296)-(1152,1944); missing: the bottom right.
 
 const DIR := "res://tests/tmp/camera"
-const WORLD := DIR + "/camera.idpworld.json"
+const WORLD := DIR + "/camera.mdsworld.json"
 const HALL: Array[Rect2] = [Rect2(0, 0, 2304, 1296), Rect2(0, 1296, 1152, 648)]
 const CHASER_SCRIPT := "extends Node2D\nenum State { IDLE, CHASE }\nvar state := State.IDLE\n"
 

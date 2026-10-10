@@ -938,7 +938,7 @@ func _update_previews() -> void:
 			var r := MDSRoomPictures.room_rect(world, id)
 			pic.position = world.get_origin(id) + r.position
 			pic.scale = r.size / Vector2(tex.get_size())
-			pic.set_meta(&"idp_offset", r.position)
+			pic.set_meta(&"mds_offset", r.position)
 			_preview_root.add_child(pic)
 			_preview_nodes[id] = pic
 			continue
@@ -958,7 +958,7 @@ func _update_previews() -> void:
 func _sync_preview_position(id: String) -> void:
 	var node = _preview_nodes.get(id)
 	if node is Node2D and is_instance_valid(node):
-		node.position = world.get_origin(id) + node.get_meta(&"idp_offset", Vector2.ZERO)
+		node.position = world.get_origin(id) + node.get_meta(&"mds_offset", Vector2.ZERO)
 
 # --- Hit testing -------------------------------------------------------------------------------
 

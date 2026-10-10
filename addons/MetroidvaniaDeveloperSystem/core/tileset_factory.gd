@@ -10,7 +10,12 @@ extends RefCounted
 ## - rows 2-3: "Cave wall" terrain (terrain set 1) for the Background layer.
 ## - row 4: foliage x4 (background), grass, fern, flower, mushroom.
 ## - row 5: vine top, vine middle, vine end, small stalactite, large stalactite, hanging moss.
-## Decoration tiles carry an "idp_kind" custom data string used by auto-decorate.
+## Decoration tiles carry an "mds_kind" custom data string used by auto-decorate.
+
+## Where the starter tileset is made when a room has none.
+const DEFAULT_PATH := "res://mds_tiles/mds_cave_tileset.tres"
+## Name of the custom data layer (a String) that tags decoration tiles with their kind.
+const KIND_LAYER := "mds_kind"
 
 const PX := 16
 const SCALE := 2
@@ -43,7 +48,9 @@ const LEAF := Color("#1b4f43")
 const LEAF_LIGHT := Color("#2c7560")
 
 ## Creates (or loads) the starter tileset at [param path] (.tres, texture embedded).
-static func get_or_create(path := "res://idp_tiles/idp_cave_tileset.tres") -> TileSet:
+static func get_or_create(path := DEFAULT_PATH) -> TileSet:
+	if path == DEFAULT_PATH:
+		path = MDSLegacy.tileset_path(path)
 	if ResourceLoader.exists(path):
 		var existing := load(path) as TileSet
 		if existing:
@@ -60,7 +67,7 @@ static func build_tileset() -> TileSet:
 	ts.tile_size = Vector2i(TILE, TILE)
 	ts.add_physics_layer()
 	ts.add_custom_data_layer()
-	ts.set_custom_data_layer_name(0, "idp_kind")
+	ts.set_custom_data_layer_name(0, KIND_LAYER)
 	ts.set_custom_data_layer_type(0, TYPE_STRING)
 	ts.add_terrain_set()
 	ts.set_terrain_set_mode(0, TileSet.TERRAIN_MODE_MATCH_SIDES)
@@ -88,16 +95,16 @@ static func build_tileset() -> TileSet:
 			for i in 4:
 				if m & (1 << i):
 					td.set_terrain_peering_bit(sides[i], 0)
-			td.set_custom_data("idp_kind", "rock" if terrain_set == 0 else "wall")
+			td.set_custom_data(KIND_LAYER, "rock" if terrain_set == 0 else "wall")
 			if terrain_set == 0:
 				td.add_collision_polygon(0)
 				td.set_collision_polygon_points(0, 0, PackedVector2Array([Vector2(-half, -half), Vector2(half, -half), Vector2(half, half), Vector2(-half, half)]))
 	for i in FOLIAGE.size():
 		src.create_tile(FOLIAGE[i])
-		src.get_tile_data(FOLIAGE[i], 0).set_custom_data("idp_kind", "foliage")
+		src.get_tile_data(FOLIAGE[i], 0).set_custom_data(KIND_LAYER, "foliage")
 	for kind in DECOR:
 		src.create_tile(DECOR[kind])
-		src.get_tile_data(DECOR[kind], 0).set_custom_data("idp_kind", kind)
+		src.get_tile_data(DECOR[kind], 0).set_custom_data(KIND_LAYER, kind)
 	return ts
 
 # --- Pixel art ------------------------------------------------------------------------------
