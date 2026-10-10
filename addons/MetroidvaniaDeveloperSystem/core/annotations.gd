@@ -5,13 +5,15 @@ extends RefCounted
 ## boss labels, build status, ability gates on doors, extra links (elevators, cross-layer
 ## transitions), map pins and notes.
 ##
-## Stored as JSON next to the map file ("MapData.txt" -> "MapData.idp.json") so it can be
+## Stored as JSON next to the map file ("MapData.txt" -> "MapData.mds.json") so it can be
 ## versioned and diffed. Rooms are keyed by scene UID and doors by edge key, so moving
 ## scene files around does not lose data.
 
 signal changed
 
 const VERSION := 1
+## The notes file beside a map: "MapData.txt" -> "MapData.mds.json".
+const NOTES_EXTENSION := ".mds.json"
 
 const ROOM_TYPES: PackedStringArray = [
 	"", "normal", "corridor", "hub", "save", "boss", "mini_boss", "shop", "npc",
@@ -38,18 +40,21 @@ func clear() -> void:
 	}
 
 static func path_for_map(map_path: String) -> String:
-	return map_path.get_basename() + ".idp.json"
+	return map_path.get_basename() + NOTES_EXTENSION
 
 static func load_for_map(map_path: String) -> MDSAnnotations:
 	var ann := MDSAnnotations.new()
 	ann.path = path_for_map(map_path)
-	if FileAccess.file_exists(ann.path):
-		var parsed = JSON.parse_string(FileAccess.get_file_as_string(ann.path))
+	# Notes from before 3.1 (MapData.idp.json) are read, and saved under the new name.
+	var old := MDSLegacy.old_notes_path(map_path, ann.path)
+	var source := old if not old.is_empty() else ann.path
+	if FileAccess.file_exists(source):
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(source))
 		if parsed is Dictionary:
 			for key in parsed:
 				ann.data[key] = parsed[key]
 		else:
-			push_warning("Metroidvania Developer System: could not parse %s" % ann.path)
+			push_warning("Metroidvania Developer System: could not parse %s" % source)
 	return ann
 
 func save() -> Error:

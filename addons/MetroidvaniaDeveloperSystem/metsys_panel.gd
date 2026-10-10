@@ -9,8 +9,8 @@ extends Control
 
 const DEFAULT_FILTERS: PackedStringArray = ["Save Points", "Bosses", "Collectibles", "Teleporters", "Shops", "Enemies"]
 const DEFAULT_FILTERS_ON: PackedStringArray = ["Save Points", "Bosses"]
-const EXPORT_DIR := "res://idp_exports"
-const SETTING_AUTO_SCAN := "interactive_dev_panel/auto_scan_map_scenes"
+const EXPORT_DIR := "res://mds_exports"
+const SETTING_AUTO_SCAN := "metroidvania_developer_system/auto_scan_map_scenes"
 
 enum ViewItem { LABELS, TERRAIN, PREVIEWS, DOORS, MARKERS, ELEMENTS, PINS, ISSUES, GRID, LEGEND, AUTO_SCAN = 100 }
 enum ExportItem { JSON, PNG, DOT, MARKDOWN }
@@ -926,7 +926,7 @@ func _rebuild_inspector() -> void:
 
 	var scanned_grants: PackedStringArray = meta.get("grants", PackedStringArray())
 	var grants_edit := MDSUi.field_line(grid, "Grants", ", ".join(annotations.get_room_grants(id)), ("scanned: " + ", ".join(scanned_grants)) if not scanned_grants.is_empty() else "abilities/keys found here, e.g. dash")
-	grants_edit.tooltip_text = "Comma separated. Abilities from idp_grants node metadata are added automatically."
+	grants_edit.tooltip_text = "Comma separated. Abilities from mds_grants node metadata are added automatically."
 	MDSUi.commit_line(grants_edit, func(t: String) -> void: annotations.set_room_value(id, "grants", Array(MDSAnnotations.parse_list(t))))
 
 	inspector.add_child(MDSUi.label("Notes (TODO lines show up in Issues)"))
@@ -1058,7 +1058,7 @@ func _add_exit_row(room: MDSMapModel.Room, door: MDSMapModel.Door) -> void:
 		if not gate_sources.is_empty():
 			var scanned := analysis.get_door_requires(door.key)
 			req.placeholder_text = "scanned gate: " + ", ".join(scanned)
-			req.tooltip_text = "Gate node(s) %s set idp_requires = %s" % [", ".join(gate_sources), ", ".join(scanned)]
+			req.tooltip_text = "Gate node(s) %s set mds_requires = %s" % [", ".join(gate_sources), ", ".join(scanned)]
 		MDSUi.commit_line(req, func(t: String) -> void: annotations.set_door_value(door.key, "requires", Array(MDSAnnotations.parse_list(t))))
 		box.add_child(req)
 	if door.is_one_sided() and annotations.get_door_one_way_from(door.key).is_empty():

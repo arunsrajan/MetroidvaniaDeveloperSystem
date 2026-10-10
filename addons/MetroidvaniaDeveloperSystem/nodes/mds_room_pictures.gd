@@ -26,7 +26,7 @@ signal all_ready
 
 enum Scope { AREA, LAYER, WORLD }
 
-const CACHE_DIR := "user://idp_room_pictures/"
+const CACHE_DIR := "user://mds_room_pictures/"
 ## Groups whose nodes are left out of pictures (they act on the game).
 const GAMEPLAY_GROUPS: PackedStringArray = ["player", "enemy", "enemies", "boss", "bosses", "mini_boss", "carry_over"]
 
@@ -170,10 +170,10 @@ static func bake(host: Node, path: String, rect: Rect2, in_background := false) 
 
 ## Takes out of a room copy made to be looked at everything that would act on the game: nodes in
 ## [constant GAMEPLAY_GROUPS] (players, enemies, followers), cameras, canvas layers (UI), and
-## nodes with the [code]idp_preview_skip[/code] metadata; sounds are silenced. The root gets the
-## [code]idp_preview[/code] metadata, so room scripts can skip gameplay setup.
+## nodes with the [code]mds_preview_skip[/code] metadata; sounds are silenced. The root gets the
+## [code]mds_preview[/code] metadata, so room scripts can skip gameplay setup.
 static func strip_for_preview(root: Node) -> void:
-	root.set_meta(&"idp_preview", true)
+	root.set_meta(&"mds_preview", true)
 	silence(root)
 	var doomed: Array[Node] = []
 	for n in root.find_children("*", "", true, false):
@@ -193,7 +193,7 @@ static func strip_for_preview(root: Node) -> void:
 			n.free()
 
 static func is_gameplay_only(n: Node) -> bool:
-	if n.has_meta(&"idp_preview_skip"):
+	if MDSLegacy.has_meta_key(n, &"mds_preview_skip"):
 		return true
 	for g in GAMEPLAY_GROUPS:
 		if n.is_in_group(g):

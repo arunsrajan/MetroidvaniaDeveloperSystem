@@ -53,7 +53,7 @@ const ENEMY_GROUPS: PackedStringArray = ["enemy", "enemies", "boss", "bosses", "
 # --- What objects are ----------------------------------------------------------------------------
 
 static func rank(node: Node) -> Rank:
-	if MDSRoomObjects.is_protected(node) or node.is_in_group(&"idp_fixed") or bool(node.get_meta(&"idp_fixed", false)):
+	if MDSRoomObjects.is_protected(node) or MDSLegacy.in_group(node, &"mds_fixed") or bool(MDSLegacy.get_meta_key(node, &"mds_fixed", false)):
 		return Rank.FIXED
 	if node is AnimatableBody2D or node is Path2D or node is PathFollow2D:
 		return Rank.FIXED
@@ -69,11 +69,11 @@ static func rank(node: Node) -> Rank:
 	return Rank.OTHER
 
 ## Something only there to be looked at, which may be removed when it has nowhere to go: no
-## collision, no script, no gameplay group in it, and not standing ([code]idp_decoration[/code]
+## collision, no script, no gameplay group in it, and not standing ([code]mds_decoration[/code]
 ## metadata forces it either way).
 static func is_decoration(node: Node) -> bool:
-	if node.has_meta(&"idp_decoration"):
-		return bool(node.get_meta(&"idp_decoration"))
+	if MDSLegacy.has_meta_key(node, &"mds_decoration"):
+		return bool(MDSLegacy.get_meta_key(node, &"mds_decoration"))
 	if rank(node) != Rank.OTHER:
 		return false
 	for n in [node] + node.find_children("*", "", true, false):

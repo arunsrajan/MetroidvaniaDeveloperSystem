@@ -8,9 +8,9 @@ extends RefCounted
 ##
 ## The shapes are decorations ([enum MDSFreeformStyle.Role] DECOR), so the map silhouette, the
 ## scanner and the checks ignore them. They carry the room shape they were made for (metadata
-## [code]idp_fill_outside[/code]), so the Room view redoes them when the shape changes.
+## [code]mds_fill_outside[/code]), so the Room view redoes them when the shape changes.
 
-const META := &"idp_fill_outside"
+const META := &"mds_fill_outside"
 ## How far the fill runs past the room's box (out of the camera's sight).
 const MARGIN := 96.0
 
@@ -64,7 +64,7 @@ static func signature(rects: Array, shape: Array = []) -> String:
 static func shapes_of(painter: MDSRoomPainter) -> Array[MDSFreeform]:
 	var out: Array[MDSFreeform] = []
 	for f in MDSFreeform.shapes_in(painter.items_root):
-		if f.has_meta(META):
+		if MDSLegacy.has_meta_key(f, META):
 			out.append(f)
 	return out
 
@@ -72,7 +72,7 @@ static func shapes_of(painter: MDSRoomPainter) -> Array[MDSFreeform]:
 static func is_stale(painter: MDSRoomPainter, rects: Array, shape: Array = []) -> bool:
 	var sig := signature(rects, shape)
 	for f in shapes_of(painter):
-		if str(f.get_meta(META)) != sig:
+		if str(MDSLegacy.get_meta_key(f, META)) != sig:
 			return true
 	return false
 

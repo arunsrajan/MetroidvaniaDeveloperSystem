@@ -1,7 +1,7 @@
 extends SceneTree
 ## Builds the pack's Godot resources from pack.json and the PNGs, wherever the pack folder
 ## sits in the project:
-##   mossgrove_tileset.tres   terrains (autotiling, collision) + decorations (idp_kind tags)
+##   mossgrove_tileset.tres   terrains (autotiling, collision) + decorations (mds_kind tags)
 ##   frames/*.tres            SpriteFrames for the player, enemies and effects
 ##   demo/mossgrove_demo.tscn a small level with parallax, the player, enemies and props
 ##   freeform/*.freeform.tres  styles for MDS's freeform terrain (needs the MDS addon)
@@ -100,7 +100,7 @@ func build_tileset() -> TileSet:
 	ts.tile_size = Vector2i(32, 32)
 	ts.add_physics_layer()
 	ts.add_custom_data_layer()
-	ts.set_custom_data_layer_name(0, "idp_kind")
+	ts.set_custom_data_layer_name(0, "mds_kind")
 	ts.set_custom_data_layer_type(0, TYPE_STRING)
 	var terrain_src := TileSetAtlasSource.new()
 	terrain_src.resource_name = "Mossgrove terrain"
@@ -131,7 +131,7 @@ func build_tileset() -> TileSet:
 			for b in 4:
 				td.set_terrain_peering_bit(sides[b], 0 if int(c[1]) & (1 << b) else -1)
 			td.probability = c[2]
-			td.set_custom_data("idp_kind", "rock" if t.solid else "wall")
+			td.set_custom_data("mds_kind", "rock" if t.solid else "wall")
 			if t.solid:
 				td.add_collision_polygon(0)
 				td.set_collision_polygon_points(0, 0, solid_square)
@@ -143,7 +143,7 @@ func build_tileset() -> TileSet:
 	for d in pack.decor:
 		var coords := Vector2i(int(d.coords[0]), int(d.coords[1]))
 		decor_src.create_tile(coords)
-		decor_src.get_tile_data(coords, 0).set_custom_data("idp_kind", d.kind)
+		decor_src.get_tile_data(coords, 0).set_custom_data("mds_kind", d.kind)
 	return ts
 
 # --- Sprites --------------------------------------------------------------------------------------

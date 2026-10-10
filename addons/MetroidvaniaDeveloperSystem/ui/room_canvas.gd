@@ -99,10 +99,13 @@ var _weather_spec := ""
 ## Parts of the room's rects outside its outline on the map (shaded), and what they were made for.
 var _shape_shade: Array[PackedVector2Array] = []
 var _shape_shade_key := 0
-## Show the room's parallax background (its own, else its area's) behind it.
+## Show the room's backgrounds behind it: its parallax and its animated background (its own,
+## else its area's...).
 var parallax_preview := true
 var _parallax: Node2D
 var _parallax_value := ""
+var _background: Node2D
+var _background_value := ""
 var _effect_drag := 0 ## 0 none, 1 move, 2 resize
 var _effect_from := Vector2.ZERO
 var _effect_orig := Rect2()
@@ -210,6 +213,10 @@ func close() -> void:
 		_parallax.queue_free()
 	_parallax = null
 	_parallax_value = ""
+	if is_instance_valid(_background):
+		_background.queue_free()
+	_background = null
+	_background_value = ""
 	selected_effect = null
 	if painter:
 		for l in painter.layers.values():
@@ -951,6 +958,7 @@ func _draw_effects(ci: CanvasItem, font: Font) -> void:
 ## the game adds it. It is only a preview: nothing is saved into the scene.
 func refresh_weather() -> void:
 	_refresh_parallax()
+	_refresh_background()
 	var spec := ""
 	if weather_preview and world and painter and world.has_room(room_id):
 		spec = MDSEnvironment.spec_for_room(world, room_id)
@@ -996,6 +1004,34 @@ func _refresh_parallax() -> void:
 		_view.add_child(_parallax)
 		_view.move_child(_parallax, 0)
 
+## Shows the room's animated background behind it, as the game adds it (not saved).
+func _refresh_background() -> void:
+	var value := ""
+	if parallax_preview and world and painter and world.has_room(room_id):
+		value = MDSEnvironment.background_for_room(world, room_id)
+	if value == _background_value and (value.is_empty() or MDSEnvironment.is_none(value) or is_instance_valid(_background)):
+		return
+	_background_value = value
+	if is_instance_valid(_background):
+		_background.queue_free()
+	_background = null
+	if value.is_empty() or MDSEnvironment.is_none(value):
+		return
+	var b := Rect2()
+	var first := true
+	for r in world.get_local_rects(room_id):
+		b = r if first else b.merge(r)
+		first = false
+	_background = MDSEnvironment.build_background(value, b)
+	if _background:
+		_background.name = "BackgroundPreview"
+		_view.add_child(_background)
+		_view.move_child(_background, 0)
+
+## The animated background preview (null when the room has none).
+func get_background_preview() -> Node2D:
+	return _background if is_instance_valid(_background) else null
+
 ## The parallax background preview (null when the room has none).
 func get_parallax_preview() -> Node2D:
 	return _parallax if is_instance_valid(_parallax) else null
@@ -1003,6 +1039,7 @@ func get_parallax_preview() -> Node2D:
 func set_parallax_preview(on: bool) -> void:
 	parallax_preview = on
 	_refresh_parallax()
+	_refresh_background()
 
 ## The weather preview node (null when the room has none).
 func get_weather_preview() -> Node2D:
@@ -1025,15 +1062,18 @@ func _can_drop_data(_at: Vector2, data: Variant) -> bool:
 				return true
 	return false
 
-## The parallax background an image dropped at [param at] goes to: the selected one under the
-## Effects tool, or the one under the mouse.
-func _parallax_at(at: Vector2) -> MDSParallaxBackground:
+## The background an image dropped at [param at] goes to (a parallax background, as a layer,
+## or an animated one, as its picture): the selected one under the Effects tool, or the one
+## under the mouse.
+func _background_at(at: Vector2) -> MDSEnvironmentEffect:
 	if tool != Tool.EFFECT:
 		return null
-	if _is_room_effect(selected_effect) and selected_effect is MDSParallaxBackground:
+	if _is_room_effect(selected_effect) and (selected_effect is MDSParallaxBackground or selected_effect is MDSAnimatedBackground):
 		return selected_effect
-	var hit := painter.effect_at(screen_to_local(at))
-	return hit if hit is MDSParallaxBackground else null
+	for hit in painter.effects_at(screen_to_local(at)):
+		if hit is MDSParallaxBackground or hit is MDSAnimatedBackground:
+			return hit
+	return null
 
 func _drop_data(at: Vector2, data: Variant) -> void:
 	if not data is Dictionary:
@@ -1043,17 +1083,23 @@ func _drop_data(at: Vector2, data: Variant) -> void:
 			before_effect_drop.call()
 		place_effect(str(data.effect), screen_to_local(at))
 		return
-	var target := _parallax_at(at)
+	var target := _background_at(at)
 	for f in data.get("files", []):
 		if str(f).get_extension().to_lower() in IMAGE_EXTENSIONS:
 			if target:
 				var tex: Texture2D = load(str(f)) as Texture2D if ResourceLoader.exists(str(f)) else null
 				if tex:
 					painter.checkpoint()
-					target.add_picture(tex)
+					if target is MDSAnimatedBackground:
+						var bg := target as MDSAnimatedBackground
+						bg.style = MDSAnimatedBackground.Style.PICTURE
+						bg.picture = tex
+						status_message.emit("%s now shows %s, blurred (Blur, Size and the colors are in the Inspector)." % [target.name, str(f).get_file()])
+					else:
+						(target as MDSParallaxBackground).add_picture(tex)
+						status_message.emit("%s added to %s as its nearest layer. Its settings are in the Inspector (layers)." % [str(f).get_file(), target.name])
 					painter.dirty = true
 					painted.emit()
-					status_message.emit("%s added to %s as its nearest layer. Its settings are in the Inspector (layers)." % [str(f).get_file(), target.name])
 				continue
 			image_dropped.emit(str(f))
 			return

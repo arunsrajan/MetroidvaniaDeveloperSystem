@@ -19,10 +19,10 @@ config/features=PackedStringArray("4.7")
 
 enabled=PackedStringArray("res://addons/MetroidvaniaDeveloperSystem/plugin.cfg")
 
-[interactive_dev_panel]
+[metroidvania_developer_system]
 
 mode=1
-world_file="res://examples/demo.idpworld.json"
+world_file="res://examples/demo.mdsworld.json"
 placement=0
 
 [rendering]

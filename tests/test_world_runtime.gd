@@ -3,7 +3,7 @@ extends "res://tests/test_case.gd"
 ## interactive transitions and persistence, on the fixture world (game_fixture.gd).
 
 const Fixture := preload("res://tests/game_fixture.gd")
-const EXPLORATION := "user://idp_test_exploration.json"
+const EXPLORATION := "user://mds_test_exploration.json"
 
 var game: MDSWorldGame
 
@@ -218,7 +218,7 @@ func _defeated_and_followers() -> void:
 	await settle()
 	check(game.current_room == "Crypt_01", "the player went through right1")
 	var came := game.room_node.get_node_or_null("Follower") as Node2D
-	check(came != null and came.has_meta(&"idp_carried"), "the follower came along into the next room")
+	check(came != null and came.has_meta(&"mds_carried"), "the follower came along into the next room")
 	if came:
 		var entry := MDSGate.find_gate(game.room_node, "left1")
 		check(came.global_position.distance_to(entry.global_position) < 140.0, "it appears by the gate it came through (%s)" % came.global_position)

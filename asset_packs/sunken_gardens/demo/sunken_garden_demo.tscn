@@ -68,7 +68,7 @@ edge_clumps = false
 seed_value = 50597
 override_collision = true
 role = 2
-metadata/idp_fill_outside = "[[0.0,0.0,2304.0,648.0],[0.0,648.0,1152.0,648.0]]"
+metadata/mds_fill_outside = "[[0.0,0.0,2304.0,648.0],[0.0,648.0,1152.0,648.0]]"
 
 [node name="Player" type="CharacterBody2D" parent="." unique_id=1537884416 groups=["player"]]
 position = Vector2(300, 1150)
@@ -98,7 +98,7 @@ style = ExtResource("8_o86ki")
 solid = false
 smooth = false
 seed_value = 78819
-metadata/idp_decor = true
+metadata/mds_decor = true
 
 [node name="Column2" type="Node2D" parent="FreeformBack" unique_id=1587299443]
 script = ExtResource("3_rqsf4")
@@ -107,7 +107,7 @@ style = ExtResource("8_o86ki")
 solid = false
 smooth = false
 seed_value = 13601
-metadata/idp_decor = true
+metadata/mds_decor = true
 
 [node name="Column3" type="Node2D" parent="FreeformBack" unique_id=1060644900]
 script = ExtResource("3_rqsf4")
@@ -116,7 +116,7 @@ style = ExtResource("8_o86ki")
 solid = false
 smooth = false
 seed_value = 56839
-metadata/idp_decor = true
+metadata/mds_decor = true
 
 [node name="Column4" type="Node2D" parent="FreeformBack" unique_id=377191323]
 script = ExtResource("3_rqsf4")
@@ -125,7 +125,7 @@ style = ExtResource("8_o86ki")
 solid = false
 smooth = false
 seed_value = 34769
-metadata/idp_decor = true
+metadata/mds_decor = true
 
 [node name="Garden5" type="Node2D" parent="FreeformBack" unique_id=773848923]
 script = ExtResource("3_rqsf4")
@@ -133,7 +133,7 @@ points = PackedVector2Array(417.81735, 1218, 417.81735, 1157.3894, 462.51376, 11
 style = ExtResource("8_o86ki")
 solid = false
 seed_value = 45003
-metadata/idp_decor = true
+metadata/mds_decor = true
 
 [node name="StampsBack" type="Node2D" parent="." unique_id=1116181883]
 z_index = -6
@@ -147,8 +147,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(768, 128, 128, 128)
-metadata/idp_stamp = 14
-metadata/idp_decor = true
+metadata/mds_stamp = 14
+metadata/mds_decor = true
 
 [node name="Stamp2" type="Sprite2D" parent="StampsBack" unique_id=586196356]
 position = Vector2(747.3418, 1029.7256)
@@ -159,8 +159,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(896, 128, 128, 128)
-metadata/idp_stamp = 15
-metadata/idp_decor = true
+metadata/mds_stamp = 15
+metadata/mds_decor = true
 
 [node name="Stamp3" type="Sprite2D" parent="StampsBack" unique_id=947532617]
 position = Vector2(279.0463, 111.53278)
@@ -171,8 +171,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(896, 128, 128, 128)
-metadata/idp_stamp = 15
-metadata/idp_decor = true
+metadata/mds_stamp = 15
+metadata/mds_decor = true
 
 [node name="Stamp4" type="Sprite2D" parent="StampsBack" unique_id=181386258]
 position = Vector2(443.71387, 119.90763)
@@ -183,8 +183,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(768, 128, 128, 128)
-metadata/idp_stamp = 14
-metadata/idp_decor = true
+metadata/mds_stamp = 14
+metadata/mds_decor = true
 
 [node name="Stamp5" type="Sprite2D" parent="StampsBack" unique_id=634967053]
 position = Vector2(605.2126, 101.241585)
@@ -195,8 +195,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(0, 256, 128, 128)
-metadata/idp_stamp = 16
-metadata/idp_decor = true
+metadata/mds_stamp = 16
+metadata/mds_decor = true
 
 [node name="Stamp6" type="Sprite2D" parent="StampsBack" unique_id=505084519]
 position = Vector2(772.84576, 116.46915)
@@ -207,8 +207,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(896, 128, 128, 128)
-metadata/idp_stamp = 15
-metadata/idp_decor = true
+metadata/mds_stamp = 15
+metadata/mds_decor = true
 
 [node name="Stamp7" type="Sprite2D" parent="StampsBack" unique_id=1722996185]
 position = Vector2(944.63654, 106.636)
@@ -219,8 +219,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(0, 256, 128, 128)
-metadata/idp_stamp = 16
-metadata/idp_decor = true
+metadata/mds_stamp = 16
+metadata/mds_decor = true
 
 [node name="Stamp8" type="Sprite2D" parent="StampsBack" unique_id=1871747098]
 position = Vector2(1034.4719, 121.93767)
@@ -231,8 +231,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(896, 128, 128, 128)
-metadata/idp_stamp = 15
-metadata/idp_decor = true
+metadata/mds_stamp = 15
+metadata/mds_decor = true
 
 [node name="Stamp9" type="Sprite2D" parent="StampsBack" unique_id=1915261075]
 position = Vector2(1210.1361, 100.547676)
@@ -243,8 +243,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(768, 128, 128, 128)
-metadata/idp_stamp = 14
-metadata/idp_decor = true
+metadata/mds_stamp = 14
+metadata/mds_decor = true
 
 [node name="Stamp10" type="Sprite2D" parent="StampsBack" unique_id=1329584826]
 position = Vector2(1329.7964, 99.81087)
@@ -255,8 +255,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(768, 128, 128, 128)
-metadata/idp_stamp = 14
-metadata/idp_decor = true
+metadata/mds_stamp = 14
+metadata/mds_decor = true
 
 [node name="Stamp11" type="Sprite2D" parent="StampsBack" unique_id=814334904]
 position = Vector2(1464.4594, 117.22538)
@@ -267,8 +267,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(0, 256, 128, 128)
-metadata/idp_stamp = 16
-metadata/idp_decor = true
+metadata/mds_stamp = 16
+metadata/mds_decor = true
 
 [node name="Stamp12" type="Sprite2D" parent="StampsBack" unique_id=1448490040]
 position = Vector2(1604.7545, 109.6533)
@@ -279,8 +279,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(896, 128, 128, 128)
-metadata/idp_stamp = 15
-metadata/idp_decor = true
+metadata/mds_stamp = 15
+metadata/mds_decor = true
 
 [node name="Stamp13" type="Sprite2D" parent="StampsBack" unique_id=1602936700]
 position = Vector2(1798.7203, 113.951065)
@@ -291,8 +291,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(896, 128, 128, 128)
-metadata/idp_stamp = 15
-metadata/idp_decor = true
+metadata/mds_stamp = 15
+metadata/mds_decor = true
 
 [node name="Stamp14" type="Sprite2D" parent="StampsBack" unique_id=1999037788]
 position = Vector2(1891.3331, 112.114334)
@@ -303,8 +303,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(768, 128, 128, 128)
-metadata/idp_stamp = 14
-metadata/idp_decor = true
+metadata/mds_stamp = 14
+metadata/mds_decor = true
 
 [node name="Stamp15" type="Sprite2D" parent="StampsBack" unique_id=470632742]
 position = Vector2(2059.113, 108.56238)
@@ -315,8 +315,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(896, 128, 128, 128)
-metadata/idp_stamp = 15
-metadata/idp_decor = true
+metadata/mds_stamp = 15
+metadata/mds_decor = true
 
 [node name="Stamp16" type="Sprite2D" parent="StampsBack" unique_id=1593741092]
 position = Vector2(2191.6138, 117.94526)
@@ -327,8 +327,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(768, 128, 128, 128)
-metadata/idp_stamp = 14
-metadata/idp_decor = true
+metadata/mds_stamp = 14
+metadata/mds_decor = true
 
 [node name="Stamp17" type="Sprite2D" parent="StampsBack" unique_id=2115737638]
 position = Vector2(166.70729, 94.60784)
@@ -339,8 +339,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(0, 256, 128, 128)
-metadata/idp_stamp = 16
-metadata/idp_decor = true
+metadata/mds_stamp = 16
+metadata/mds_decor = true
 
 [node name="Stamp18" type="Sprite2D" parent="StampsBack" unique_id=91293458]
 position = Vector2(210.58235, 661.0532)
@@ -351,8 +351,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(768, 128, 128, 128)
-metadata/idp_stamp = 14
-metadata/idp_decor = true
+metadata/mds_stamp = 14
+metadata/mds_decor = true
 
 [node name="Stamp19" type="Sprite2D" parent="StampsBack" unique_id=466583250]
 position = Vector2(372.59323, 665.1569)
@@ -363,8 +363,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(768, 128, 128, 128)
-metadata/idp_stamp = 14
-metadata/idp_decor = true
+metadata/mds_stamp = 14
+metadata/mds_decor = true
 
 [node name="Stamp20" type="Sprite2D" parent="StampsBack" unique_id=566784992]
 position = Vector2(465.62064, 667.1096)
@@ -375,8 +375,8 @@ centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(896, 128, 128, 128)
-metadata/idp_stamp = 15
-metadata/idp_decor = true
+metadata/mds_stamp = 15
+metadata/mds_decor = true
 
 [node name="Stamp21" type="Sprite2D" parent="StampsBack" unique_id=152618958]
 position = Vector2(1224.6454, 549.74854)
@@ -387,8 +387,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(256, 128, 128, 128)
-metadata/idp_stamp = 10
-metadata/idp_decor = true
+metadata/mds_stamp = 10
+metadata/mds_decor = true
 
 [node name="Stamp22" type="Sprite2D" parent="StampsBack" unique_id=2055466933]
 position = Vector2(1297.561, 547.81)
@@ -399,8 +399,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(256, 128, 128, 128)
-metadata/idp_stamp = 10
-metadata/idp_decor = true
+metadata/mds_stamp = 10
+metadata/mds_decor = true
 
 [node name="Stamp23" type="Sprite2D" parent="StampsBack" unique_id=1462733643]
 position = Vector2(1373.4647, 555.5884)
@@ -411,8 +411,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(0, 128, 128, 128)
-metadata/idp_stamp = 8
-metadata/idp_decor = true
+metadata/mds_stamp = 8
+metadata/mds_decor = true
 
 [node name="Stamp24" type="Sprite2D" parent="StampsBack" unique_id=1975166643]
 position = Vector2(1469.4437, 555.9999)
@@ -423,8 +423,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(512, 0, 128, 128)
-metadata/idp_stamp = 4
-metadata/idp_decor = true
+metadata/mds_stamp = 4
+metadata/mds_decor = true
 
 [node name="Stamp25" type="Sprite2D" parent="StampsBack" unique_id=1473407192]
 position = Vector2(1521.1669, 556)
@@ -435,8 +435,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(512, 0, 128, 128)
-metadata/idp_stamp = 4
-metadata/idp_decor = true
+metadata/mds_stamp = 4
+metadata/mds_decor = true
 
 [node name="Stamp26" type="Sprite2D" parent="StampsBack" unique_id=563542820]
 position = Vector2(1599.9813, 555.99994)
@@ -447,8 +447,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(512, 0, 128, 128)
-metadata/idp_stamp = 4
-metadata/idp_decor = true
+metadata/mds_stamp = 4
+metadata/mds_decor = true
 
 [node name="Stamp27" type="Sprite2D" parent="StampsBack" unique_id=1292940083]
 position = Vector2(1663.1039, 556.0524)
@@ -459,8 +459,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(128, 0, 128, 128)
-metadata/idp_stamp = 1
-metadata/idp_decor = true
+metadata/mds_stamp = 1
+metadata/mds_decor = true
 
 [node name="Stamp28" type="Sprite2D" parent="StampsBack" unique_id=1817658478]
 position = Vector2(1730.4342, 555.6375)
@@ -471,8 +471,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(0, 0, 128, 128)
-metadata/idp_stamp = 0
-metadata/idp_decor = true
+metadata/mds_stamp = 0
+metadata/mds_decor = true
 
 [node name="Stamp29" type="Sprite2D" parent="StampsBack" unique_id=2080866053]
 position = Vector2(1795.7964, 547.3492)
@@ -483,8 +483,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(0, 0, 128, 128)
-metadata/idp_stamp = 0
-metadata/idp_decor = true
+metadata/mds_stamp = 0
+metadata/mds_decor = true
 
 [node name="Stamp30" type="Sprite2D" parent="StampsBack" unique_id=741362013]
 position = Vector2(1843.6608, 553.29004)
@@ -495,8 +495,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(640, 0, 128, 128)
-metadata/idp_stamp = 5
-metadata/idp_decor = true
+metadata/mds_stamp = 5
+metadata/mds_decor = true
 
 [node name="Stamp31" type="Sprite2D" parent="StampsBack" unique_id=1647961880]
 position = Vector2(1906.5605, 556.8385)
@@ -507,8 +507,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(256, 0, 128, 128)
-metadata/idp_stamp = 2
-metadata/idp_decor = true
+metadata/mds_stamp = 2
+metadata/mds_decor = true
 
 [node name="Stamp32" type="Sprite2D" parent="StampsBack" unique_id=2057448799]
 position = Vector2(1989.0497, 550.6633)
@@ -519,8 +519,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(128, 128, 128, 128)
-metadata/idp_stamp = 9
-metadata/idp_decor = true
+metadata/mds_stamp = 9
+metadata/mds_decor = true
 
 [node name="Stamp33" type="Sprite2D" parent="StampsBack" unique_id=247563532]
 position = Vector2(2064.3481, 555.3046)
@@ -531,8 +531,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(896, 0, 128, 128)
-metadata/idp_stamp = 7
-metadata/idp_decor = true
+metadata/mds_stamp = 7
+metadata/mds_decor = true
 
 [node name="Stamp34" type="Sprite2D" parent="StampsBack" unique_id=1974843681]
 position = Vector2(2168.9966, 547.5341)
@@ -543,8 +543,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(128, 128, 128, 128)
-metadata/idp_stamp = 9
-metadata/idp_decor = true
+metadata/mds_stamp = 9
+metadata/mds_decor = true
 
 [node name="Stamp35" type="Sprite2D" parent="StampsBack" unique_id=461131592]
 position = Vector2(164.46791, 556.68164)
@@ -555,8 +555,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(768, 0, 128, 128)
-metadata/idp_stamp = 6
-metadata/idp_decor = true
+metadata/mds_stamp = 6
+metadata/mds_decor = true
 
 [node name="Stamp36" type="Sprite2D" parent="StampsBack" unique_id=292964760]
 position = Vector2(255.27032, 556)
@@ -567,8 +567,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(256, 128, 128, 128)
-metadata/idp_stamp = 10
-metadata/idp_decor = true
+metadata/mds_stamp = 10
+metadata/mds_decor = true
 
 [node name="Stamp37" type="Sprite2D" parent="StampsBack" unique_id=1491911360]
 position = Vector2(354.60452, 556)
@@ -579,8 +579,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(0, 0, 128, 128)
-metadata/idp_stamp = 0
-metadata/idp_decor = true
+metadata/mds_stamp = 0
+metadata/mds_decor = true
 
 [node name="Stamp38" type="Sprite2D" parent="StampsBack" unique_id=1285903605]
 position = Vector2(404.93472, 556)
@@ -591,8 +591,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(896, 0, 128, 128)
-metadata/idp_stamp = 7
-metadata/idp_decor = true
+metadata/mds_stamp = 7
+metadata/mds_decor = true
 
 [node name="Stamp39" type="Sprite2D" parent="StampsBack" unique_id=1603605515]
 position = Vector2(499.08896, 556)
@@ -603,8 +603,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(896, 0, 128, 128)
-metadata/idp_stamp = 7
-metadata/idp_decor = true
+metadata/mds_stamp = 7
+metadata/mds_decor = true
 
 [node name="Stamp40" type="Sprite2D" parent="StampsBack" unique_id=1424565933]
 position = Vector2(185.53593, 1205.9073)
@@ -615,8 +615,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(512, 0, 128, 128)
-metadata/idp_stamp = 4
-metadata/idp_decor = true
+metadata/mds_stamp = 4
+metadata/mds_decor = true
 
 [node name="Stamp41" type="Sprite2D" parent="StampsBack" unique_id=516481496]
 position = Vector2(508.02615, 1196.5828)
@@ -627,8 +627,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(0, 0, 128, 128)
-metadata/idp_stamp = 0
-metadata/idp_decor = true
+metadata/mds_stamp = 0
+metadata/mds_decor = true
 
 [node name="Stamp42" type="Sprite2D" parent="StampsBack" unique_id=975030699]
 position = Vector2(556.0786, 1202.5327)
@@ -639,8 +639,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(128, 128, 128, 128)
-metadata/idp_stamp = 9
-metadata/idp_decor = true
+metadata/mds_stamp = 9
+metadata/mds_decor = true
 
 [node name="Stamp43" type="Sprite2D" parent="StampsBack" unique_id=1364304397]
 position = Vector2(647.2905, 1204)
@@ -651,8 +651,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(256, 128, 128, 128)
-metadata/idp_stamp = 10
-metadata/idp_decor = true
+metadata/mds_stamp = 10
+metadata/mds_decor = true
 
 [node name="Stamp44" type="Sprite2D" parent="StampsBack" unique_id=2139338922]
 position = Vector2(711.13434, 1204.0005)
@@ -663,8 +663,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(896, 0, 128, 128)
-metadata/idp_stamp = 7
-metadata/idp_decor = true
+metadata/mds_stamp = 7
+metadata/mds_decor = true
 
 [node name="Stamp45" type="Sprite2D" parent="StampsBack" unique_id=1075144395]
 position = Vector2(806.65314, 1191.2375)
@@ -675,8 +675,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(512, 0, 128, 128)
-metadata/idp_stamp = 4
-metadata/idp_decor = true
+metadata/mds_stamp = 4
+metadata/mds_decor = true
 
 [node name="Stamp46" type="Sprite2D" parent="StampsBack" unique_id=717818933]
 position = Vector2(889.10693, 1103.9899)
@@ -687,8 +687,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(0, 128, 128, 128)
-metadata/idp_stamp = 8
-metadata/idp_decor = true
+metadata/mds_stamp = 8
+metadata/mds_decor = true
 
 [node name="Stamp47" type="Sprite2D" parent="StampsBack" unique_id=977106859]
 position = Vector2(991.17126, 1104.118)
@@ -699,8 +699,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(768, 0, 128, 128)
-metadata/idp_stamp = 6
-metadata/idp_decor = true
+metadata/mds_stamp = 6
+metadata/mds_decor = true
 
 [node name="Stamp48" type="Sprite2D" parent="StampsBack" unique_id=1558563935]
 position = Vector2(1038.5107, 1079.2865)
@@ -711,8 +711,8 @@ centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
 region_rect = Rect2(256, 128, 128, 128)
-metadata/idp_stamp = 10
-metadata/idp_decor = true
+metadata/mds_stamp = 10
+metadata/mds_decor = true
 
 [node name="Stamp49" type="Sprite2D" parent="StampsBack" unique_id=1688300839]
 position = Vector2(518.49536, 296.37476)
@@ -722,8 +722,8 @@ centered = false
 offset = Vector2(-64, -64)
 region_enabled = true
 region_rect = Rect2(128, 256, 128, 128)
-metadata/idp_stamp = 17
-metadata/idp_decor = true
+metadata/mds_stamp = 17
+metadata/mds_decor = true
 
 [node name="Stamp50" type="Sprite2D" parent="StampsBack" unique_id=2114617740]
 position = Vector2(395.43768, 328.2364)
@@ -734,8 +734,8 @@ centered = false
 offset = Vector2(-64, -64)
 region_enabled = true
 region_rect = Rect2(256, 256, 128, 128)
-metadata/idp_stamp = 18
-metadata/idp_decor = true
+metadata/mds_stamp = 18
+metadata/mds_decor = true
 
 [node name="Stamp51" type="Sprite2D" parent="StampsBack" unique_id=1157585999]
 position = Vector2(2074.7974, 257.45728)
@@ -745,8 +745,8 @@ centered = false
 offset = Vector2(-64, -64)
 region_enabled = true
 region_rect = Rect2(256, 256, 128, 128)
-metadata/idp_stamp = 18
-metadata/idp_decor = true
+metadata/mds_stamp = 18
+metadata/mds_decor = true
 
 [node name="Stamp52" type="Sprite2D" parent="StampsBack" unique_id=1002257409]
 position = Vector2(1972.3927, 221.1015)
@@ -756,8 +756,8 @@ centered = false
 offset = Vector2(-64, -64)
 region_enabled = true
 region_rect = Rect2(384, 256, 128, 128)
-metadata/idp_stamp = 19
-metadata/idp_decor = true
+metadata/mds_stamp = 19
+metadata/mds_decor = true
 
 [node name="Stamp53" type="Sprite2D" parent="StampsBack" unique_id=1051832844]
 position = Vector2(1631.4294, 205.83702)
@@ -768,8 +768,8 @@ centered = false
 offset = Vector2(-64, -64)
 region_enabled = true
 region_rect = Rect2(256, 256, 128, 128)
-metadata/idp_stamp = 18
-metadata/idp_decor = true
+metadata/mds_stamp = 18
+metadata/mds_decor = true
 
 [node name="Stamp54" type="Sprite2D" parent="StampsBack" unique_id=1477136298]
 position = Vector2(1635.6742, 225.17218)
@@ -780,8 +780,8 @@ centered = false
 offset = Vector2(-64, -64)
 region_enabled = true
 region_rect = Rect2(128, 256, 128, 128)
-metadata/idp_stamp = 17
-metadata/idp_decor = true
+metadata/mds_stamp = 17
+metadata/mds_decor = true
 
 [node name="Stamp55" type="Sprite2D" parent="StampsBack" unique_id=136734638]
 position = Vector2(214.36827, 870.53107)
@@ -791,8 +791,8 @@ centered = false
 offset = Vector2(-64, -64)
 region_enabled = true
 region_rect = Rect2(128, 256, 128, 128)
-metadata/idp_stamp = 17
-metadata/idp_decor = true
+metadata/mds_stamp = 17
+metadata/mds_decor = true
 
 [node name="Stamp56" type="Sprite2D" parent="StampsBack" unique_id=134945807]
 position = Vector2(161.10997, 900.42017)
@@ -802,8 +802,8 @@ centered = false
 offset = Vector2(-64, -64)
 region_enabled = true
 region_rect = Rect2(256, 256, 128, 128)
-metadata/idp_stamp = 18
-metadata/idp_decor = true
+metadata/mds_stamp = 18
+metadata/mds_decor = true
 
 [node name="Stamp57" type="Sprite2D" parent="StampsBack" unique_id=1522733368]
 position = Vector2(455.03064, 1136.1934)
@@ -813,8 +813,8 @@ centered = false
 offset = Vector2(-64, -64)
 region_enabled = true
 region_rect = Rect2(256, 256, 128, 128)
-metadata/idp_stamp = 18
-metadata/idp_decor = true
+metadata/mds_stamp = 18
+metadata/mds_decor = true
 
 [node name="FreeformFront" type="Node2D" parent="." unique_id=98660314]
 z_index = 22
@@ -825,7 +825,7 @@ points = PackedVector2Array(-96, -96, 270.87234, -96, 270.87234, 135.36649, 216.
 style = ExtResource("10_wiw62")
 solid = false
 seed_value = 18465
-metadata/idp_decor = true
+metadata/mds_decor = true
 
 [node name="Leaves2" type="Node2D" parent="FreeformFront" unique_id=1382123232]
 script = ExtResource("3_rqsf4")
@@ -833,4 +833,4 @@ points = PackedVector2Array(2400, -96, 1990.0615, -96, 1990.0615, 115.03214, 205
 style = ExtResource("10_wiw62")
 solid = false
 seed_value = 79078
-metadata/idp_decor = true
+metadata/mds_decor = true

@@ -23,7 +23,7 @@ extends RefCounted
 ## [/codeblock]
 ## Requests expire after [constant MAX_AGE_SECONDS], so a normal run is never affected.
 
-const REQUEST_PATH := "user://idp_play_request.json"
+const REQUEST_PATH := "user://mds_play_request.json"
 const MAX_AGE_SECONDS := 120
 
 ## The request being played by the launcher, or empty in normal runs.

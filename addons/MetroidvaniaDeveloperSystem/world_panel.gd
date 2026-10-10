@@ -3,12 +3,12 @@ class_name MDSWorldPanel
 extends Control
 ## Non-linear mode: draw rooms freely on a world map, place scenes on it, connect them
 ## with Hollow Knight-style gates and group them into areas. Data lives in a
-## [code].idpworld.json[/code] file ([MDSWorld]); MetSys is not needed.
+## [code].mdsworld.json[/code] file ([MDSWorld]); MetSys is not needed.
 
 const DEFAULT_FILTERS: PackedStringArray = ["Save Points", "Bosses", "Collectibles", "Teleporters", "Shops", "Enemies"]
 const DEFAULT_FILTERS_ON: PackedStringArray = ["Save Points", "Bosses"]
-const EXPORT_DIR := "res://idp_exports"
-const SETTING_WORLD_FILE := "interactive_dev_panel/world_file"
+const EXPORT_DIR := "res://mds_exports"
+const SETTING_WORLD_FILE := "metroidvania_developer_system/world_file"
 
 const SECTION_TOOLS := "Map tools"
 const SECTION_DISPLAY := "Map display"
@@ -166,7 +166,7 @@ func _build_ui() -> void:
 	world_picker = OptionButton.new()
 	world_picker.fit_to_longest_item = false
 	world_picker.clip_text = true
-	world_picker.tooltip_text = "World file (.idpworld.json)"
+	world_picker.tooltip_text = "World file (.mdsworld.json)"
 	world_picker.item_selected.connect(_on_world_picked)
 	toolbar.add_child(world_picker)
 
@@ -764,9 +764,9 @@ func _on_world_picked(idx: int) -> void:
 	_select_world_in_picker()
 	match id:
 		WorldItem.NEW:
-			_open_file_dialog("new_world", EditorFileDialog.FILE_MODE_SAVE_FILE, ["*.idpworld.json ; MDS World"], "res://world.idpworld.json")
+			_open_file_dialog("new_world", EditorFileDialog.FILE_MODE_SAVE_FILE, ["*%s ; MDS World" % MDSWorld.EXTENSION], "res://world.mdsworld.json")
 		WorldItem.OPEN:
-			_open_file_dialog("open_world", EditorFileDialog.FILE_MODE_OPEN_FILE, ["*.idpworld.json ; MDS World"])
+			_open_file_dialog("open_world", EditorFileDialog.FILE_MODE_OPEN_FILE, MDSWorld.file_filters())
 		WorldItem.IMPORT_METSYS:
 			_open_file_dialog("import_metsys", EditorFileDialog.FILE_MODE_OPEN_FILE, ["*.txt ; MetSys map data"], _metsys_map_path())
 		WorldItem.RELOAD:
@@ -825,7 +825,7 @@ func create_world(p: String) -> void:
 		p = p.get_basename().get_basename() + MDSWorld.EXTENSION
 	var w := MDSWorld.new()
 	w.path = p
-	w.data.name = p.get_file().trim_suffix(MDSWorld.EXTENSION).capitalize()
+	w.data.name = MDSWorld.base_name(p).capitalize()
 	w.save()
 	load_world(p)
 	_set_status("Created %s. Press R and drag to draw a room, or drop scenes on the map." % p)
@@ -1176,6 +1176,14 @@ func _parallax_changed(value: String) -> void:
 	if room_view and room_view.visible:
 		room_view.refresh_weather()
 
+## After an animated background field changed: the Room view shows it, and a value with
+## mistakes is reported.
+func _background_changed(value: String) -> void:
+	var problem := MDSEnvironment.check_background(value)
+	_set_status("Animated background: %s." % (problem if not problem.is_empty() else (value.strip_edges() if not value.strip_edges().is_empty() else "inherited")))
+	if room_view and room_view.visible:
+		room_view.refresh_weather()
+
 func show_room_view(id: String) -> void:
 	if not world or not world.has_room(id):
 		_set_status("Select a room on the map first, then open the Room view.")
@@ -1429,6 +1437,8 @@ func _rebuild_area_editor() -> void:
 		["Boss music", "boss_music", "path", "res://.../boss.ogg", "MDSMusic.play_boss() starts it from silence; end_boss() returns to the area's music"],
 		["Backdrop", "backdrop", "path", "world default", "MDSBackdrop (.tres) drawn in the distance behind the area's rooms. A room can have its own"],
 		["Parallax", "parallax", "parallax", "world default", "Parallax background behind every room of the area (MDSWorldGame adds it as each room loads; the Room view shows it): a preset like dusk_mountains or misty_forest, or a .tscn with an MDSParallaxBackground. A room can have its own, or none"],
+		["Animated bg", "background", "background", "world default", "Animated background behind every room of the area, soft and out of focus (MDSWorldGame adds it as each room loads; the Room view shows it): a style like bokeh, aurora, nebula or deep_water, or a .tscn with an MDSAnimatedBackground. It is drawn behind the parallax background: use one without a sky to see both. A room can have its own, or none"],
+		["Boss room bg", "boss_background", "background", "world's boss rooms", "Animated background of the area's boss rooms (type boss or mini_boss, or a boss named in the Inspect tab), instead of the area's: blood_moon, void_pulse, arcane_vortex, infection... Empty: the world's boss rooms background, else the area's"],
 		["Weather", "weather", "weather", "world default", "Weather and effects in every room of the area (MDSWorldGame adds them as each room loads; the Room view shows them): presets like storm or sandstorm, effects like rain or fog(ground=1), comma-separated, or a .tscn of effect nodes. A room can have its own, or none"],
 		["Darkness", "darkness", "float", "auto", "0 lit, 0.05 to 0.8 dimmed (lights carve pools around the player and enemies). Empty: automatic, from the world's Dark room share. A room can have its own"],
 		["Objective", "objective", "", "e.g. Find the crypt key", "Shown by MDSObjectiveBanner on arrival and on the map until done"],
@@ -1450,6 +1460,13 @@ func _rebuild_area_editor() -> void:
 				world.set_area_value(a, key, t.strip_edges())
 				_parallax_changed(t))
 			parallax_edit.tooltip_text = f[4]
+			continue
+		if kind == "background":
+			var background_edit := MDSUi.background_field(grid, f[0], str(data.get(key, "")), f[3], func(t: String) -> void:
+				world.checkpoint()
+				world.set_area_value(a, key, t.strip_edges())
+				_background_changed(t))
+			background_edit.tooltip_text = f[4]
 			continue
 		var edit := MDSUi.field_line(grid, f[0], str(data.get(key, "")), f[3])
 		edit.tooltip_text = f[4]
@@ -1798,6 +1815,12 @@ func _rebuild_inspector() -> void:
 		world.set_room_value(id, "parallax", t.strip_edges())
 		_parallax_changed(t))
 	parallax_edit.tooltip_text = "Parallax background behind this room. Empty: the area's, else the world's; none: none here"
+	var inherited_background := MDSEnvironment.background_for_room(world, id) if str(world.get_room_value(id, "background", "")).strip_edges().is_empty() else ""
+	var background_edit := MDSUi.background_field(grid, "Animated bg", str(world.get_room_value(id, "background", "")), "inherited: %s" % inherited_background if not inherited_background.is_empty() else "none", func(t: String) -> void:
+		world.checkpoint()
+		world.set_room_value(id, "background", t.strip_edges())
+		_background_changed(t))
+	background_edit.tooltip_text = "Animated background behind this room, soft and out of focus. Empty: for a boss room the boss rooms background, else the area's, else the world's; none: none here"
 	var cam_zoom_edit := MDSUi.field_line(grid, "Camera zoom", str(world.get_room_value(id, MDSRoomCamera.ROOM_ZOOM_KEY, "")), "auto")
 	cam_zoom_edit.tooltip_text = "The camera's zoom in this room (1: as set, 2: twice as close, 0.5: twice as far) when World settings > Camera > Auto zoom is Per room or Fit. The camera glides to it as the player comes in. Empty: the world's zoom, or the fitted one"
 	MDSUi.commit_line(cam_zoom_edit, func(t: String) -> void:
@@ -2331,6 +2354,14 @@ func _show_settings() -> void:
 		world.set_setting("parallax", t.strip_edges())
 		_parallax_changed(t))
 	world_parallax.tooltip_text = "Parallax background behind every room whose area and room set none"
+	var world_background := MDSUi.background_field(grid, "Animated bg", str(world.get_setting("background", "")), "none", func(t: String) -> void:
+		world.set_setting("background", t.strip_edges())
+		_background_changed(t))
+	world_background.tooltip_text = "Animated background behind every room whose area and room set none"
+	var boss_background := MDSUi.background_field(grid, "Boss rooms bg", str(world.get_setting("boss_background", "")), "none", func(t: String) -> void:
+		world.set_setting("boss_background", t.strip_edges())
+		_background_changed(t))
+	boss_background.tooltip_text = "Animated background of every boss room (type boss or mini_boss, or a boss named in the Inspect tab) whose area and room set none: blood_moon, void_pulse, arcane_vortex, infection, holy_light..."
 	var share_edit := MDSUi.field_line(grid, "Dark room share", str(world.get_setting("dark_room_share", 0.0)), "0")
 	share_edit.tooltip_text = "0 to 1: this share of the rooms with automatic darkness (no darkness on the room or its area) is dimmed by 0.35 to 0.55. Picked from the room id, so a room is always the same"
 	MDSUi.commit_line(share_edit, func(t: String) -> void: world.set_setting("dark_room_share", clampf(t.to_float(), 0.0, 1.0)))
@@ -2406,7 +2437,7 @@ func _show_settings() -> void:
 func _on_export_menu(item: int) -> void:
 	if not world:
 		return
-	var base := "%s/%s_%s" % [EXPORT_DIR, world_path.get_file().trim_suffix(MDSWorld.EXTENSION), Time.get_datetime_string_from_system().replace(":", "-")]
+	var base := "%s/%s_%s" % [EXPORT_DIR, MDSWorld.base_name(world_path), Time.get_datetime_string_from_system().replace(":", "-")]
 	DirAccess.make_dir_recursive_absolute(EXPORT_DIR)
 	match item:
 		ExportItem.JSON:

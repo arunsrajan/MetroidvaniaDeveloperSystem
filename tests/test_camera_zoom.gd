@@ -6,7 +6,7 @@ extends "res://tests/test_case.gd"
 ##   Big (3456 x 1944) -> Small (768 x 432) -> Own (1152 x 648, camera_zoom 1.5)
 
 const DIR := "res://tests/tmp/camera_zoom"
-const WORLD := DIR + "/zoom.idpworld.json"
+const WORLD := DIR + "/zoom.mdsworld.json"
 
 var game: MDSWorldGame
 var rc: MDSRoomCamera

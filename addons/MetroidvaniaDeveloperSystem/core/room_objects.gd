@@ -7,14 +7,14 @@ extends RefCounted
 ## them. No editor dependencies.
 ##
 ## Designers can steer it with groups or metadata:
-## - [code]idp_protected[/code] (group or metadata): an area nothing may grow into. A
+## - [code]mds_protected[/code] (group or metadata): an area nothing may grow into. A
 ##   [ReferenceRect] or [Control] protects its rectangle; any other node its visuals or its
 ##   collision shapes.
-## - [code]idp_stands[/code] (group, or metadata true/false): the node stands on the floor (or,
+## - [code]mds_stands[/code] (group, or metadata true/false): the node stands on the floor (or,
 ##   with false, doesn't, though its group says so).
-## - [code]idp_scenery[/code] (group or metadata): the node is scenery, not an object.
+## - [code]mds_scenery[/code] (group or metadata): the node is scenery, not an object.
 
-const STAND_GROUPS: PackedStringArray = ["save_point", "savepoint", "save", "checkpoint", "bench", "shop", "merchant", "vendor", "trader", "npc", "player_spawn", "idp_stands"]
+const STAND_GROUPS: PackedStringArray = ["save_point", "savepoint", "save", "checkpoint", "bench", "shop", "merchant", "vendor", "trader", "npc", "player_spawn", "mds_stands"]
 const BIG_GROUPS: PackedStringArray = ["boss", "bosses", "mini_boss"]
 ## Item groups of the Room view (shapes and stamps), and other containers of scenery.
 const SCENERY_NAMES: PackedStringArray = ["FreeformBack", "StampsBack", "Freeform", "StampsFront", "FreeformFront", "StampsForeground", "MapBounds", "Gates", "MDSItems"]
@@ -25,7 +25,7 @@ const DEFAULT_SIZE := Vector2(64, 96)
 ## Whether [param node] is terrain or scenery (never an object): tile layers, freeform shapes
 ## and stamps, cameras, gates, parallax, audio...
 static func is_scenery(node: Node) -> bool:
-	if node.is_in_group(&"idp_scenery") or node.has_meta(&"idp_scenery") or node.has_meta(&"idp_blockout"):
+	if MDSLegacy.in_group(node, &"mds_scenery") or MDSLegacy.has_meta_key(node, &"mds_scenery") or MDSLegacy.has_meta_key(node, &"mds_blockout"):
 		return true
 	if node is TileMapLayer or node.is_class("TileMap") or node is MDSFreeform or MDSRoomPainter.is_stamp(node) or node is MDSGate:
 		return true
@@ -86,14 +86,14 @@ static func _is_object(node: Node2D) -> bool:
 	return node is Sprite2D or node is AnimatedSprite2D or node is Polygon2D or node is CollisionObject2D or node is Path2D or node is GPUParticles2D or node is CPUParticles2D
 
 static func is_protected(node: Node) -> bool:
-	return node.is_in_group(&"idp_protected") or bool(node.get_meta(&"idp_protected", false))
+	return MDSLegacy.in_group(node, &"mds_protected") or bool(MDSLegacy.get_meta_key(node, &"mds_protected", false))
 
 ## Whether [param node] stands on the floor (save points, shops, NPCs, spawn points...).
 static func stands(node: Node) -> bool:
-	if node.has_meta(&"idp_stands"):
-		return bool(node.get_meta(&"idp_stands"))
+	if MDSLegacy.has_meta_key(node, &"mds_stands"):
+		return bool(MDSLegacy.get_meta_key(node, &"mds_stands"))
 	for g in STAND_GROUPS:
-		if node.is_in_group(g):
+		if MDSLegacy.in_group(node, g):
 			return true
 	var n := String(node.name).to_lower()
 	return n.contains("savepoint") or n.contains("bench") or n.contains("checkpoint") or n.contains("shop")
@@ -201,7 +201,7 @@ static func feet(node: Node, root: Node) -> Vector2:
 
 ## Areas of a room that nothing may grow into or be placed over: every object's visual rect
 ## grown by [param margin] (more for objects that stand, which need room around them), and
-## the areas designers marked [code]idp_protected[/code].
+## the areas designers marked [code]mds_protected[/code].
 static func protected_rects(root: Node, margin := 40.0) -> Array[Rect2]:
 	var out: Array[Rect2] = []
 	var objs := objects(root)

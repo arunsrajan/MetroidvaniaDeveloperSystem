@@ -5,16 +5,16 @@ extends RefCounted
 ## metadata and terrain, so the map can show what is actually inside every room.
 ##
 ## Node metadata understood by the scanner (set in the Inspector, "Add Metadata"):
-## - [code]idp_grants[/code] (String or Array): abilities/items picked up here, e.g. "dash".
-## - [code]idp_requires[/code] (String or Array): put on a gate/breakable wall near a door;
+## - [code]mds_grants[/code] (String or Array): abilities/items picked up here, e.g. "dash".
+## - [code]mds_requires[/code] (String or Array): put on a gate/breakable wall near a door;
 ##   the requirement is attached to the closest passage of that cell.
-## - [code]idp_boss_name[/code] (String): marks the node as a boss and names it.
-## - [code]idp_room_type[/code] (String, on the scene root): overrides the inferred type.
+## - [code]mds_boss_name[/code] (String): marks the node as a boss and names it.
+## - [code]mds_room_type[/code] (String, on the scene root): overrides the inferred type.
 ##
 ## Transition gates (non-linear mode) are nodes named like Hollow Knight's gates
 ## ([code]left1[/code], [code]right2[/code], [code]top1[/code], [code]bot1[/code],
-## [code]door1[/code]), nodes in the [code]idp_gate[/code] group, or [MDSGate] nodes.
-## Optional metadata: [code]idp_to_room[/code], [code]idp_to_gate[/code].
+## [code]door1[/code]), nodes in the [code]mds_gate[/code] group, or [MDSGate] nodes.
+## Optional metadata: [code]mds_to_room[/code], [code]mds_to_gate[/code].
 
 signal scan_progress_updated(current: int, total: int, current_file: String)
 signal scan_completed(scene_database: Dictionary)
@@ -32,7 +32,7 @@ const SHOP_NAME_PATTERNS := ["shop", "merchant", "vendor", "trader", "store"]
 const TELEPORTER_NAME_PATTERNS := ["teleport", "warp", "portal"]
 const BREAKABLE_NAME_PATTERNS := ["break", "crate", "pot", "barrel", "rock"]
 const SAVE_NAME_PATTERNS := ["savepoint", "save_point", "bench", "checkpoint"]
-const GATE_GROUPS := ["idp_gate", "transition_point", "scene_transition"]
+const GATE_GROUPS := ["mds_gate", "transition_point", "scene_transition"]
 
 static var _gate_name_re := RegEx.create_from_string("^(left|right|top|bot|bottom|door)\\d+$")
 
@@ -169,7 +169,7 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 	if room_instance:
 		metadata.room_instance = {"position": _local_transform(room_instance, instance).origin}
 	if room_instance or not require_room:
-		metadata.room_type_hint = str(instance.get_meta(&"idp_room_type", ""))
+		metadata.room_type_hint = str(MDSLegacy.get_meta_key(instance, &"mds_room_type", ""))
 		var solids: Array[Rect2] = []
 		var polygons: Array[PackedVector2Array] = []
 		_scan_node(instance, instance, metadata, solids, polygons)
@@ -198,7 +198,7 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 func _find_broken_tiles(instance: Node, metadata: Dictionary) -> void:
 	for node in instance.find_children("*", "TileMapLayer", true, false):
 		var layer := node as TileMapLayer
-		if layer.has_meta(&"idp_blockout"):
+		if MDSLegacy.has_meta_key(layer, &"mds_blockout"):
 			continue
 		var broken := MDSRoomPainter.broken_cells_of(layer)
 		if broken.is_empty():
@@ -252,7 +252,7 @@ func _scan_node(node: Node, root: Node, metadata: Dictionary, solids: Array[Rect
 	if _in_any_group(node, SHOP_GROUPS) or (node is Node2D and _name_matches(words, SHOP_NAME_PATTERNS)):
 		metadata.has_shopkeeper = true
 		metadata.shops.append(create_feature_entry(node, root, "shop"))
-	var boss_name := str(node.get_meta(&"idp_boss_name", ""))
+	var boss_name := str(MDSLegacy.get_meta_key(node, &"mds_boss_name", ""))
 	if not boss_name.is_empty() or _in_any_group(node, BOSS_GROUPS) or (node != root and _name_matches(words, BOSS_NAME_PATTERNS)):
 		metadata.has_boss = true
 		var entry := create_feature_entry(node, root, "boss")
@@ -260,18 +260,18 @@ func _scan_node(node: Node, root: Node, metadata: Dictionary, solids: Array[Rect
 		metadata.bosses.append(entry)
 	if node is Area2D and (name_lower.contains("secret") or name_lower.contains("hidden")):
 		metadata.has_hidden_passage = true
-	if node.has_meta(&"idp_grants"):
-		for ability in _meta_list(node.get_meta(&"idp_grants")):
+	if MDSLegacy.has_meta_key(node, &"mds_grants"):
+		for ability in _meta_list(MDSLegacy.get_meta_key(node, &"mds_grants")):
 			if not ability in metadata.grants:
 				metadata.grants.append(ability)
-	if node.has_meta(&"idp_requires"):
+	if MDSLegacy.has_meta_key(node, &"mds_requires"):
 		metadata.gates.append({
-			"requires": _meta_list(node.get_meta(&"idp_requires")),
+			"requires": _meta_list(MDSLegacy.get_meta_key(node, &"mds_requires")),
 			"position": _local_transform(node, root).origin,
 			"name": String(node.name),
 		})
 	# Old terrain hidden by Convert to freeform: not part of the room any more.
-	if node.has_meta(&"idp_blockout"):
+	if MDSLegacy.has_meta_key(node, &"mds_blockout"):
 		return
 	_collect_solids(node, root, metadata, solids, polygons)
 	for child in node.get_children():
@@ -288,21 +288,21 @@ func _scan_transition(node: Node, root: Node, metadata: Dictionary) -> bool:
 		gate_name = str(node.get("gate_name"))
 	if not (is_mds_gate or _in_any_group(node, GATE_GROUPS) or _gate_name_re.search(gate_name.to_lower())):
 		return false
-	var side := str(node.get_meta(&"idp_side", ""))
+	var side := str(MDSLegacy.get_meta_key(node, &"mds_side", ""))
 	if side.is_empty():
 		side = MDSWorld.side_from_name(gate_name.to_lower())
 	metadata.transitions.append({
 		"name": gate_name,
 		"position": _local_transform(node, root).origin,
 		"side": side,
-		"to_room": str(node.get_meta(&"idp_to_room", "")),
-		"to_gate": str(node.get_meta(&"idp_to_gate", "")),
+		"to_room": str(MDSLegacy.get_meta_key(node, &"mds_to_room", "")),
+		"to_gate": str(MDSLegacy.get_meta_key(node, &"mds_to_gate", "")),
 	})
 	return true
 
 func _in_any_group(node: Node, groups: Array) -> bool:
 	for group in groups:
-		if node.is_in_group(group):
+		if MDSLegacy.in_group(node, group):
 			return true
 	return false
 

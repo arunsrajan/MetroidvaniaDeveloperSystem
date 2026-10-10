@@ -46,7 +46,7 @@ func make_sprite(i: int) -> Sprite2D:
 	s.region_rect = regions[i]
 	s.centered = false
 	s.offset = -anchor(i) * regions[i].size
-	s.set_meta(&"idp_stamp", i)
+	s.set_meta(&"mds_stamp", i)
 	return s
 
 static func find_in_project(root := "res://", depth := 7) -> Array[MDSStampSet]:

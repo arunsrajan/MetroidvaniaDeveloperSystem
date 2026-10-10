@@ -251,7 +251,7 @@ func _room_view() -> void:
 	root.free()
 	load_fresh(ROOM)
 	var world := MDSWorld.new()
-	world.path = TMP + "/trace.idpworld.json"
+	world.path = TMP + "/trace.mdsworld.json"
 	world.add_room("Cave", Rect2(0, 0, 2400, 1200))
 	world.set_room_scene("Cave", ROOM)
 	var view := MDSRoomView.new()

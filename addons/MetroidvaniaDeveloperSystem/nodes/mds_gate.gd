@@ -7,7 +7,7 @@ extends Area2D
 ## Put one per exit in a room scene and name it like the gate on the world map
 ## ([code]left1[/code], [code]right1[/code], [code]top1[/code], [code]bot1[/code],
 ## [code]door1[/code]...). When the player enters it, [signal player_entered] reports
-## where to go, read from the [code].idpworld.json[/code] file, so connections are edited
+## where to go, read from the [code].mdsworld.json[/code] file, so connections are edited
 ## on the map instead of in every scene:
 ## [codeblock]
 ## func _on_gate_player_entered(t: Dictionary) -> void:
@@ -29,8 +29,8 @@ signal player_entered(transition: Dictionary)
 enum Mode { TOUCH, INTERACT }
 
 ## World file to read connections from. Empty: the project setting
-## [code]interactive_dev_panel/world_file[/code].
-@export_file("*.idpworld.json") var world_file := ""
+## [code]metroidvania_developer_system/world_file[/code].
+@export_file("*.mdsworld.json", "*.idpworld.json") var world_file := ""
 ## Gate name on the world map. Empty: this node's name.
 @export var gate_name := ""
 ## Room id on the world map. Empty: looked up from the owning scene's path.
@@ -59,7 +59,7 @@ var _inside: Node2D
 var _prompt: Label
 
 func _ready() -> void:
-	add_to_group(&"idp_gate")
+	add_to_group(&"mds_gate")
 	if Engine.is_editor_hint():
 		return
 	body_entered.connect(_on_body_entered)
@@ -71,7 +71,7 @@ func get_gate_name() -> String:
 func get_world() -> MDSWorld:
 	var file := world_file
 	if file.is_empty():
-		file = ProjectSettings.get_setting("interactive_dev_panel/world_file", "")
+		file = str(MDSLegacy.get_setting("metroidvania_developer_system/world_file", ""))
 	return MDSWorld.get_cached(file) if not file.is_empty() else null
 
 func get_room_id() -> String:

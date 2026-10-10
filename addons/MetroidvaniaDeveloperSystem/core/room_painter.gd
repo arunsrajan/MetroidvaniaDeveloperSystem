@@ -51,8 +51,6 @@ var _detached: Dictionary = {} ## path -> [node, parent path, index]: removed by
 var _created: Dictionary = {} ## paths of layers and groups a save added (removed again when empty)
 
 const COLOR_SOURCE_NAME := "MDS colors"
-## The name the color source had before the IDP to MDS rename (still recognized).
-const LEGACY_COLOR_SOURCE_NAME := "IDP colors"
 const MAX_UNDO := 60
 
 static func open(path: String, default_tile_set: TileSet = null) -> MDSRoomPainter:
@@ -63,14 +61,16 @@ static func open(path: String, default_tile_set: TileSet = null) -> MDSRoomPaint
 	p.scene_path = path
 	p.packed_scene = packed
 	p.root = packed.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
+	# Metadata and groups with their names from before 3.1 get the new ones (saved with the scene).
+	MDSLegacy.upgrade_nodes(p.root)
 	var found: Dictionary = {}
-	var all_layers: Array = p.root.find_children("*", "TileMapLayer", true, false).filter(func(l: Node) -> bool: return not l.has_meta(&"idp_blockout"))
+	var all_layers: Array = p.root.find_children("*", "TileMapLayer", true, false).filter(func(l: Node) -> bool: return not MDSLegacy.has_meta_key(l, &"mds_blockout"))
 	for layer in all_layers:
 		if layer.name in LAYER_Z and not found.has(String(layer.name)):
 			found[String(layer.name)] = layer
 	for layer in p.root.find_children("*Blockout", "TileMapLayer", true, false):
 		var base := String(layer.name).trim_suffix("Blockout")
-		if base in LAYER_Z and layer.has_meta(&"idp_blockout") and not p.blockout.has(base):
+		if base in LAYER_Z and MDSLegacy.has_meta_key(layer, &"mds_blockout") and not p.blockout.has(base):
 			var copy: TileMapLayer = layer.duplicate()
 			copy.transform = _local_transform(layer, p.root)
 			p.blockout[base] = copy
@@ -116,7 +116,7 @@ static func open(path: String, default_tile_set: TileSet = null) -> MDSRoomPaint
 	return p
 
 static func is_stamp(node: Node) -> bool:
-	return node is Sprite2D and node.has_meta(&"idp_stamp")
+	return node is Sprite2D and MDSLegacy.has_meta_key(node, &"mds_stamp")
 
 ## Whether [param cell] of [param layer] holds a tile its tileset can draw. A painted cell can
 ## point at a tile that is gone: its sheet was removed, or the sheet's tile size was made bigger
@@ -248,10 +248,10 @@ static func _item_data(node: Node) -> Dictionary:
 	var s := node as Sprite2D
 	var meta: Dictionary = {}
 	for k in s.get_meta_list():
-		if k != &"idp_stamp":
+		if k != &"mds_stamp":
 			meta[k] = s.get_meta(k)
 	return {"kind": "stamp", "texture": s.texture, "region": s.region_rect, "offset": s.offset,
-		"transform": s.transform, "index": s.get_meta(&"idp_stamp", 0), "meta": meta}
+		"transform": s.transform, "index": MDSLegacy.get_meta_key(s, &"mds_stamp", 0), "meta": meta}
 
 static func _item_from(d: Dictionary) -> Node2D:
 	if d.kind == "freeform":
@@ -265,7 +265,7 @@ static func _item_from(d: Dictionary) -> Node2D:
 	s.centered = false
 	s.offset = d.offset
 	s.transform = d.transform
-	s.set_meta(&"idp_stamp", d.index)
+	s.set_meta(&"mds_stamp", d.index)
 	for k in d.get("meta", {}):
 		s.set_meta(k, d.meta[k])
 	return s
@@ -323,7 +323,6 @@ func add_effect(id: String, pos: Vector2, settings: Dictionary = {}) -> MDSEnvir
 func effects() -> Array:
 	return items(EFFECTS_GROUP)
 
-## The top-most effect whose area holds [param p] (scene-local), or null.
 ## Every effect whose area holds [param p] (scene-local), the top-most first.
 func effects_at(p: Vector2) -> Array[MDSEnvironmentEffect]:
 	var out: Array[MDSEnvironmentEffect] = []
@@ -334,6 +333,7 @@ func effects_at(p: Vector2) -> Array[MDSEnvironmentEffect]:
 			out.append(e)
 	return out
 
+## The top-most effect whose area holds [param p] (scene-local), or null.
 func effect_at(p: Vector2) -> MDSEnvironmentEffect:
 	var list := effects()
 	for i in range(list.size() - 1, -1, -1):
@@ -383,7 +383,7 @@ func blockout_layer(layer_name: String) -> TileMapLayer:
 		l.transform = src.transform
 		l.z_index = src.z_index
 		l.enabled = false
-		l.set_meta(&"idp_blockout", true)
+		l.set_meta(&"mds_blockout", true)
 		blockout[layer_name] = l
 	return blockout[layer_name]
 
@@ -407,7 +407,7 @@ func _remember(node: Node) -> String:
 	var p := _scene_path_of(node)
 	if not _scene_originals.has(p):
 		_scene_originals[p] = {"visible": node.visible if node is CanvasItem else true, "process_mode": node.process_mode,
-			"position": node.position if node is Node2D else Vector2.ZERO, "blockout": node.has_meta(&"idp_blockout")}
+			"position": node.position if node is Node2D else Vector2.ZERO, "blockout": MDSLegacy.has_meta_key(node, &"mds_blockout")}
 	if not scene_edits.has(p):
 		scene_edits[p] = {}
 	return p
@@ -480,8 +480,8 @@ func _apply_scene_edits() -> void:
 		n.process_mode = o.process_mode
 		if n is Node2D:
 			n.position = o.position
-		if not o.blockout and n.has_meta(&"idp_blockout"):
-			n.remove_meta(&"idp_blockout")
+		if not o.blockout and MDSLegacy.has_meta_key(n, &"mds_blockout"):
+			MDSLegacy.remove_meta_key(n, &"mds_blockout")
 	for p in scene_edits:
 		var n := root.get_node_or_null(NodePath(p))
 		if not n:
@@ -496,7 +496,7 @@ func _apply_scene_edits() -> void:
 			if n is CanvasItem:
 				n.visible = false
 			n.process_mode = Node.PROCESS_MODE_DISABLED
-			n.set_meta(&"idp_blockout", true)
+			n.set_meta(&"mds_blockout", true)
 
 ## Layers and groups an earlier save added that are empty again (after undo) go, so the
 ## scene is as it was.
@@ -536,7 +536,7 @@ func _save_blockout() -> void:
 			target.name = key
 			target.z_index = copy.z_index
 			target.enabled = false
-			target.set_meta(&"idp_blockout", true)
+			target.set_meta(&"mds_blockout", true)
 			var src: Node = root.get_node_or_null(_source_paths[n]) if _source_paths.has(n) else null
 			if src and src.get_parent():
 				src.get_parent().add_child(target)
@@ -719,13 +719,13 @@ static func _apply_item(node: Node2D, d: Dictionary) -> void:
 			s.set(k, values[k])
 	s.region_enabled = true
 	s.centered = false
-	s.set_meta(&"idp_stamp", d.index)
+	s.set_meta(&"mds_stamp", d.index)
 	var meta: Dictionary = d.get("meta", {})
 	for k in meta:
 		if not s.has_meta(k) or s.get_meta(k) != meta[k]:
 			s.set_meta(k, meta[k])
 	for k in s.get_meta_list():
-		if k != &"idp_stamp" and not meta.has(k):
+		if k != &"mds_stamp" and not meta.has(k):
 			s.remove_meta(k)
 
 # --- Coordinates --------------------------------------------------------------------------
@@ -774,7 +774,7 @@ func get_atlas_sources() -> Array:
 	for i in tile_set.get_source_count():
 		var sid := tile_set.get_source_id(i)
 		var src := tile_set.get_source(sid) as TileSetAtlasSource
-		if not src or not src.texture or src.resource_name in [COLOR_SOURCE_NAME, LEGACY_COLOR_SOURCE_NAME]:
+		if not src or not src.texture or src.resource_name in [COLOR_SOURCE_NAME, MDSLegacy.OLD_COLOR_SOURCE_NAME]:
 			continue
 		var n := src.resource_name
 		if n.is_empty():
@@ -794,12 +794,12 @@ func get_terrains() -> Array:
 			out.append([s, t, tile_set.get_terrain_name(s, t)])
 	return out
 
-## Decoration tiles by "idp_kind" custom data: kind -> Array of [source_id, atlas_coords].
+## Decoration tiles by "mds_kind" custom data: kind -> Array of [source_id, atlas_coords].
 func get_decor_tiles() -> Dictionary:
 	var out: Dictionary = {}
 	var layer_index := -1
 	for i in tile_set.get_custom_data_layers_count():
-		if tile_set.get_custom_data_layer_name(i) == "idp_kind":
+		if MDSLegacy.is_kind_layer(tile_set.get_custom_data_layer_name(i)):
 			layer_index = i
 	for si in tile_set.get_source_count():
 		var sid := tile_set.get_source_id(si)
@@ -919,7 +919,7 @@ func place_kind(layer_name: String, cells: Array, kind: String, rng: RandomNumbe
 
 ## Paints [param cells] of a layer with a fill:
 ## [code]{type = "terrain", set, terrain}[/code] (autotiled),
-## [code]{type = "kind", kind}[/code] (random tiles tagged with that idp_kind),
+## [code]{type = "kind", kind}[/code] (random tiles tagged with that mds_kind),
 ## [code]{type = "stamp", source, region, random}[/code] (tiles picked in the palette) or
 ## [code]{type = "color", color}[/code] (a solid color).
 func paint_fill(layer_name: String, cells: Array, fill: Dictionary, rng: RandomNumberGenerator = null) -> void:
@@ -962,7 +962,7 @@ func color_tile(color: Color) -> Array:
 	var sid := -1
 	for i in tile_set.get_source_count():
 		var id := tile_set.get_source_id(i)
-		if tile_set.get_source(id).resource_name in [COLOR_SOURCE_NAME, LEGACY_COLOR_SOURCE_NAME]:
+		if tile_set.get_source(id).resource_name in [COLOR_SOURCE_NAME, MDSLegacy.OLD_COLOR_SOURCE_NAME]:
 			sid = id
 	var src: TileSetAtlasSource
 	if sid < 0:
@@ -1739,7 +1739,7 @@ func is_solid(source_id: int, coords: Vector2i) -> bool:
 	var src := tile_set.get_source(source_id) as TileSetAtlasSource
 	return src != null and tile_set.get_physics_layers_count() > 0 and src.has_tile(coords) and src.get_tile_data(coords, 0).get_collision_polygons_count(0) > 0
 
-## Tags tiles with an idp_kind ("grass", "foliage", "vine_top"...) so Auto-decorate,
+## Tags tiles with an mds_kind ("grass", "foliage", "vine_top"...) so Auto-decorate,
 ## Generate cave and the kind fills use them. An empty kind removes the tag.
 func tag_tiles(source_id: int, coords: Array, kind: String) -> void:
 	var src := tile_set.get_source(source_id) as TileSetAtlasSource
@@ -1753,17 +1753,17 @@ func tag_tiles(source_id: int, coords: Array, kind: String) -> void:
 func get_tile_kind(source_id: int, coords: Vector2i) -> String:
 	var src := tile_set.get_source(source_id) as TileSetAtlasSource
 	for i in tile_set.get_custom_data_layers_count():
-		if tile_set.get_custom_data_layer_name(i) == "idp_kind" and src and src.has_tile(coords):
+		if MDSLegacy.is_kind_layer(tile_set.get_custom_data_layer_name(i)) and src and src.has_tile(coords):
 			return str(src.get_tile_data(coords, 0).get_custom_data_by_layer_id(i))
 	return ""
 
 func _kind_layer() -> int:
 	for i in tile_set.get_custom_data_layers_count():
-		if tile_set.get_custom_data_layer_name(i) == "idp_kind":
+		if MDSLegacy.is_kind_layer(tile_set.get_custom_data_layer_name(i)):
 			return i
 	tile_set.add_custom_data_layer()
 	var index := tile_set.get_custom_data_layers_count() - 1
-	tile_set.set_custom_data_layer_name(index, "idp_kind")
+	tile_set.set_custom_data_layer_name(index, MDSTilesetFactory.KIND_LAYER)
 	tile_set.set_custom_data_layer_type(index, TYPE_STRING)
 	return index
 

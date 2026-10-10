@@ -561,7 +561,7 @@ func _make_pcam(z: Rect2) -> Node2D:
 		_prop(tween_res, "transition", 1) # sine
 		_prop(tween_res, "ease", 2) # in-out
 		_prop(pcam, "tween_resource", tween_res)
-	pcam.set_meta(&"idp_zone", z)
+	pcam.set_meta(&"mds_zone", z)
 	pcam.global_position = target.global_position if target else l.get_center()
 	add_child(pcam)
 	_prop(pcam, "follow_target", target)
@@ -602,7 +602,7 @@ func _enter_room_phantom(start: Rect2, style: int) -> void:
 
 func _activate_pcam(z: Rect2) -> void:
 	for p in _pcams:
-		_prop(p, "priority", phantom_priority if p.get_meta(&"idp_zone", Rect2()) == z else 0)
+		_prop(p, "priority", phantom_priority if p.get_meta(&"mds_zone", Rect2()) == z else 0)
 	for p in _old_pcams:
 		if is_instance_valid(p):
 			_prop(p, "priority", 0)

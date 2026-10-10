@@ -10,7 +10,7 @@ extends "res://tests/test_case.gd"
 ##   Keep: A (0,0) B (1152,0) on top, C (0,648) 2304 wide under them.   Yard (another area): D.
 
 const DIR := "res://tests/tmp/pictures"
-const WORLD := DIR + "/pictures.idpworld.json"
+const WORLD := DIR + "/pictures.mdsworld.json"
 
 var world: MDSWorld
 var game: MDSWorldGame
@@ -44,9 +44,9 @@ func fake_picture(id: String) -> Texture2D:
 func _strip() -> void:
 	var inst := (load(path_of("A")) as PackedScene).instantiate()
 	MDSRoomPictures.strip_for_preview(inst)
-	check(inst.has_meta(&"idp_preview"), "a room copy for a picture is marked as a preview")
+	check(inst.has_meta(&"mds_preview"), "a room copy for a picture is marked as a preview")
 	check(inst.get_node_or_null("Guard") == null and inst.get_node_or_null("Cam") == null and inst.get_node_or_null("Hud") == null, "its enemies, cameras and UI are left out")
-	check(inst.get_node_or_null("Ground") != null and inst.get_node_or_null("Skip") == null, "its art stays; nodes marked idp_preview_skip don't")
+	check(inst.get_node_or_null("Ground") != null and inst.get_node_or_null("Skip") == null, "its art stays; nodes marked mds_preview_skip don't")
 	var sound := inst.get_node("Sound") as AudioStreamPlayer
 	check(sound.stream == null and not sound.autoplay, "its sounds are silenced")
 	inst.free()
@@ -191,7 +191,7 @@ func _save_room(id: String, ground_color: Color) -> void:
 	root.add_child(hud)
 	var skip := Node2D.new()
 	skip.name = "Skip"
-	skip.set_meta(&"idp_preview_skip", true)
+	skip.set_meta(&"mds_preview_skip", true)
 	root.add_child(skip)
 	var sound := AudioStreamPlayer.new()
 	sound.name = "Sound"

@@ -2,7 +2,7 @@
 class_name MDSWorld
 extends MDSAnnotations
 ## Non-linear world map: rooms (scenes) placed freely in world pixels and connected by
-## Hollow Knight-style named gates. Saved as [code]*.idpworld.json[/code].
+## Hollow Knight-style named gates. Saved as [code]*.mdsworld.json[/code].
 ##
 ## The format combines three proven ideas:
 ## - Tiled/LDtk "free" world layouts: every room is a scene at an x/y position in world
@@ -14,7 +14,7 @@ extends MDSAnnotations
 ##
 ## [codeblock]
 ## {
-##   "format": "idp_world", "version": 1, "name": "Pharloom",
+##   "format": "mds_world", "version": 1, "name": "Pharloom",
 ##   "settings": {"grid": 32, "default_room_size": [1152, 648], "save_distance_warn": 4},
 ##   "layers": ["Main"],
 ##   "areas": {"The Greenhouse": {"color": "#5b6fd6", "map_zone": "GREENHOUSE", "label_pos": null}},
@@ -37,9 +37,9 @@ extends MDSAnnotations
 ## work on worlds exactly like on MetSys maps. At runtime use [method get_transition]
 ## (see [MDSGate]).
 
-const FORMAT := "idp_world"
+const FORMAT := "mds_world"
 const WORLD_VERSION := 1
-const EXTENSION := ".idpworld.json"
+const EXTENSION := ".mdsworld.json"
 const SIDES: PackedStringArray = ["left", "right", "top", "bot", "door"]
 const UNDO_LIMIT := 100
 
@@ -62,19 +62,30 @@ func clear() -> void:
 		"start_room": "",
 	}
 
+## Whether [param file_path] names a world file ([code]*.mdsworld.json[/code], or
+## [code]*.idpworld.json[/code] from before 3.1).
 static func is_world_file(file_path: String) -> bool:
-	return file_path.ends_with(EXTENSION)
+	return file_path.ends_with(EXTENSION) or file_path.ends_with(MDSLegacy.OLD_WORLD_EXTENSION)
+
+## The world file's name without its extension ("res://pharloom.mdsworld.json" -> "pharloom").
+static func base_name(file_path: String) -> String:
+	return MDSLegacy.trim_world_extension(file_path.get_file())
+
+## The file dialog filters of world files.
+static func file_filters() -> PackedStringArray:
+	return PackedStringArray(["*%s, *%s ; MDS World" % [EXTENSION, MDSLegacy.OLD_WORLD_EXTENSION]])
 
 static func load_world(file_path: String) -> MDSWorld:
 	var world := MDSWorld.new()
 	world.path = file_path
 	if FileAccess.file_exists(file_path):
 		var parsed = JSON.parse_string(FileAccess.get_file_as_string(file_path))
-		if parsed is Dictionary and parsed.get("format", "") == FORMAT:
+		if parsed is Dictionary and MDSLegacy.is_world_format(str(parsed.get("format", ""))):
 			for key in parsed:
 				world.data[key] = parsed[key]
+			world.data.format = FORMAT
 		else:
-			push_warning("Metroidvania Developer System: %s is not an idp_world file" % file_path)
+			push_warning("Metroidvania Developer System: %s is not an %s file" % [file_path, FORMAT])
 	return world
 
 ## Loads once and caches; for runtime lookups from many gates.

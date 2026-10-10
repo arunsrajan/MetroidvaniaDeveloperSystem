@@ -1,8 +1,8 @@
 # Metroidvania Developer System
 
-A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards and parallax backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, distant mountains and cities...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
+A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
 
-Every class and node of the plugin starts with `MDS` (`MDSWorldGame`, `MDSGate`, `MDSFreeform`...). Before 3.0 they started with `IDP`, from the plugin's first name, Interactive Dev Panel: see [Upgrading from 2.x](#upgrading-from-2x-idp-to-mds).
+Every class and node of the plugin starts with `MDS` (`MDSWorldGame`, `MDSGate`, `MDSFreeform`...), and so do its metadata, groups, files and settings (`mds_stamp`, `*.mdsworld.json`, `metroidvania_developer_system/...`). Before 3.0 the classes started with `IDP`, from the plugin's first name, Interactive Dev Panel, and before 3.1 the data did: see [Upgrading from 3.0](#upgrading-from-30-idp-data-to-mds) and [Upgrading from 2.x](#upgrading-from-2x-idp-to-mds). Projects made with the old names still load.
 
 It has two modes, switched from the first drop-down in the tool panel:
 
@@ -11,7 +11,7 @@ It has two modes, switched from the first drop-down in the tool panel:
 | Map | MetSys' grid map (`MapData.txt`) | Free-form world map, like Hollow Knight's |
 | Rooms | Cells painted in the MetSys editor | Drawn on the map or dropped in as scenes, any size and shape |
 | Connections | MetSys passages | Named gates (`left1`, `right1`, `door1`...) like Hollow Knight transitions |
-| Saved in | `MapData.idp.json` (annotations next to `MapData.txt`) | `*.idpworld.json` |
+| Saved in | `MapData.mds.json` (annotations next to `MapData.txt`) | `*.mdsworld.json` |
 | Game runtime | MetSys' `MetSysGame` | Built in: `MDSWorldGame`, `MDSGate`, `MDSWorldMapView` |
 | Needs MetSys | Yes | No |
 
@@ -43,7 +43,7 @@ The **⧉** menu in the tool panel's title row moves Map Dev at any time, withou
 - **Dock in main screen:** the Map Dev tab next to 2D / 3D / Script.
 - **Dock on the right** or **Dock in bottom panel:** an editor dock.
 
-The choice is saved in `interactive_dev_panel/placement`. To have no Map Dev tab at all, set `interactive_dev_panel/use_main_screen` to `false` and re-enable the plugin.
+The choice is saved in `metroidvania_developer_system/placement`. To have no Map Dev tab at all, set `metroidvania_developer_system/use_main_screen` to `false` and re-enable the plugin.
 
 **Everything fits the screen.** Detached, docked or on a small display, Map Dev stays within the screen:
 
@@ -87,7 +87,7 @@ The world file borrows proven designs:
 
 ```json
 {
-  "format": "idp_world", "version": 1, "name": "Pharloom",
+  "format": "mds_world", "version": 1, "name": "Pharloom",
   "settings": {"grid": 32, "default_room_size": [1152, 648], "save_distance_warn": 4},
   "layers": ["Main"],
   "areas": {"The Greenhouse": {"color": "#5b6fd6", "map_zone": "GREENHOUSE"}},
@@ -116,9 +116,9 @@ The world file borrows proven designs:
 
 In the world picker (tool panel, World section):
 
-- **New world...** creates an empty `.idpworld.json`.
+- **New world...** creates an empty `.mdsworld.json`.
 - **Import from MetSys map...** converts a MetSys map (with your annotations) into a world. Cells merge into rectangles, and passages become named, connected gates.
-- To see a bigger example, copy [`examples/demo.idpworld.json`](examples/demo.idpworld.json) into your project and open it.
+- To see a bigger example, copy [`examples/demo.mdsworld.json`](examples/demo.mdsworld.json) into your project and open it.
 
 Then:
 
@@ -301,8 +301,8 @@ The map is one view of a room; the **Room view** is the other. It shows the room
   Untick any of them under the buttons. **New variation** rerolls it and **Auto-decorate** redoes only the decorations. Everything stays inside the room's shape, and irregular rooms get rock in their notches.
 - **A whole area:** with an area selected on the map (or a room of one open), the Room view shows the area's rooms in the order a player meets them: **<** and **>** go through them. **Caves for the area** generates a cave in every room with these fills and options. Rooms without a scene get one, and every room joins its gates both ways, so the whole area can be crossed and backtracked. **Leave rooms already painted alone** keeps the painted ones. The Areas tab (**Generate caves...**) and the map's right-click menu do it too. In code: `MDSWorldSceneTools.generate_area_caves(world, ids, path_for, fills)`.
 - **Save** writes the tiles into the room scene's `Background`, `Terrain` and `Decor` TileMapLayers (creating the missing ones) and touches nothing else in the scene. A scene open in an editor tab is reloaded. The map's silhouette updates from the terrain, so the two views stay in sync. Leaving the Room view saves automatically.
-- **Tiles:** with no tileset, MDS generates a starter pixel-art "mossy cave" set at `res://idp_tiles/idp_cave_tileset.tres`. It has moss-topped rock with collision and autotiling, a cave wall, teal foliage and decorations, and a PNG copy sits next to it for repainting.
-  - Rooms that already have a TileSet keep it. Its terrains appear in the fill list, and tiles with an `idp_kind` custom data string (`grass`, `vine_top`, `stalactite_small`, `foliage`...) are used by the kind fills and Auto-decorate.
+- **Tiles:** with no tileset, MDS generates a starter pixel-art "mossy cave" set at `res://mds_tiles/mds_cave_tileset.tres`. It has moss-topped rock with collision and autotiling, a cave wall, teal foliage and decorations, and a PNG copy sits next to it for repainting.
+  - Rooms that already have a TileSet keep it. Its terrains appear in the fill list, and tiles with an `mds_kind` custom data string (`grass`, `vine_top`, `stalactite_small`, `foliage`...) are used by the kind fills and Auto-decorate.
   - Sheets, terrains, tags and colors added from the palette are saved into that TileSet: its `.tres` file, or the scene when the TileSet is embedded in it.
   - Solid colors are one white tile tinted by alternative tiles.
   - **Broken tiles:** when a sheet is removed, or its tile size is made bigger so fewer tiles fit, the tiles painted with the lost tiles draw nothing, and Godot logs "The TileSetAtlasSource atlas has no tile at ..." each time it loads the tileset. The Issues tab lists the rooms that have them, and **Remove broken tiles** (Room view, shown when the room has some) erases them and rewrites the tileset so it loads cleanly. Sheets scaled to the room grid are saved as `<sheet>_<tile size>_to_<grid>.png`, so adding a sheet again with another tile size never overwrites one a tileset already uses.
@@ -399,7 +399,7 @@ Block a room out fast with tiles, rectangles or collision polygons, then make it
 - **Kept clear:** rock never grows into these.
   - **Doorways:** every gap in the room's outline, gates or not, with a 300 px corridor inside it.
   - The space above every platform.
-  - **Objects:** every object in the room (its sprites or shapes) with a margin, more for objects that stand (save points, NPCs...) and for bosses. Mark any other area with an `idp_protected` group or metadata. A `ReferenceRect` marked that way protects its rectangle.
+  - **Objects:** every object in the room (its sprites or shapes) with a margin, more for objects that stand (save points, NPCs...) and for bosses. Mark any other area with an `mds_protected` group or metadata. A `ReferenceRect` marked that way protects its rectangle.
 - **Floors stay put** under everything standing in the room, within 2.5 px. Where rounding or growth would move one, that stretch is pinned and the rock is designed again.
 - **Platforms** become one-way freeform ledges with exactly their old top and a rounded underside. This covers one-way bodies, one-way tiles and blockout shapes with the Platform role.
 - **Background** and **Foreground** tiles can become freeform shapes of a style too, or stay tiles.
@@ -410,7 +410,7 @@ The dialog sets the rock, ledge, background and foreground styles. It also sets 
 - **kept hidden:** the tiles move to a disabled `TerrainBlockout` layer, and the bodies are hidden and taken out of physics, all still in the scene. The scanner and the checks skip them.
 - **removed.**
 
-**Preview** applies it so you can look; **Cancel** takes it back out. It's one step of the Room view's undo. Static bodies with a script or a sprite are objects, not terrain, and stay. So do moving platforms (`AnimatableBody2D`). Override this with `idp_convert` metadata (`true` or `false`) or the `idp_convert` group.
+**Preview** applies it so you can look; **Cancel** takes it back out. It's one step of the Room view's undo. Static bodies with a script or a sprite are objects, not terrain, and stay. So do moving platforms (`AnimatableBody2D`). Override this with `mds_convert` metadata (`true` or `false`) or the `mds_convert` group.
 
 The algorithm is `MDSFreeformConverter` in `core/`, so tools and CI can run it on any room:
 
@@ -480,7 +480,7 @@ painter.save()
 
 #### Environment effects
 
-Eighteen effects bring rooms to life: weather, hazards, scenery in motion and parallax backgrounds. Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
+Nineteen effects bring rooms to life: weather, hazards, scenery in motion, and parallax and animated backgrounds. Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
 
 | Effect | Node | What it does |
 |---|---|---|
@@ -502,6 +502,7 @@ Eighteen effects bring rooms to life: weather, hazards, scenery in motion and pa
 | Lava falls | `MDSLavaFall` | Molten rock pouring over a ledge, slow and thick. It has a white-hot core and orange streaks. Crust forms as it falls and breaks up with glowing cracks, and blobs bulge at its sides. It splashes molten drops where it lands, glows, sends up embers, and the air wavers in the heat. `liquid` switches it to magma, acid or cursed ooze. It burns (`damage`, `damage_interval`) |
 | Water | `MDSWater` | A pool: a rolling surface, refraction, a deeper tint toward the bottom, caustics, bubbles; `drag` slows bodies in it |
 | Parallax background | `MDSParallaxBackground` | Layers behind the room, the far ones moving slower: sky, mountains, hills, forest, city, ruins, cave rock, dunes, clouds, fog, stars, or your own pictures (see [Parallax backgrounds](#parallax-backgrounds)) |
+| Animated background | `MDSAnimatedBackground` | A soft, out-of-focus background in motion, drawn by a shader: 20 styles, from bokeh lights, an aurora and a nebula to a blood moon and an arcane vortex for boss rooms, or your own picture blurred (see [Animated backgrounds](#animated-backgrounds)) |
 
 Three ways to use them:
 
@@ -554,7 +555,7 @@ The progression checks work on the room graph: they know a door exists, not whet
 - **Platforms** (one-way bodies and freeform shapes with the Platform role):
   - a body landing on one must stop at its top (±3 px);
   - it needs **head clearance** above (90 px by default).
-- **Standing objects** (save points, benches, shops, NPCs, spawn points, nodes in the `idp_stands` group) must have ground within 48 px under them and must not be buried.
+- **Standing objects** (save points, benches, shops, NPCs, spawn points, nodes in the `mds_stands` group) must have ground within 48 px under them and must not be buried.
 - **Climbs:** a player-sized body jumps, steering in the air, from floor to floor. It starts where the player lands after coming in through each gate. Every exit up out of the room must be reached.
 
 **Check room** marks problems in the view. With **Reachability** on, it draws every floor the player gets to in green and the rest in red. The marks clear at the next edit.
@@ -575,7 +576,7 @@ The **Issues** tab runs the same checks on every room in the background, one roo
 | Run speed | 300 px/s | How far a jump carries sideways |
 | Head clearance | 90 px | Room needed above platforms |
 
-They're stored in the world file as `settings.player` (`MapData.idp.json` in MetSys mode). From code or CI:
+They're stored in the world file as `settings.player` (`MapData.mds.json` in MetSys mode). From code or CI:
 
 ```gdscript
 var check := MDSRoomCheck.new(world.get_setting("player", {}))
@@ -591,9 +592,9 @@ check.free_proxy()
 
 Generated or quickly dressed rooms end up with props floating, sunk into floors, or standing inside each other. Two Room view buttons fix that. Both are undoable (Ctrl+Z) and saved with the room:
 
-- **Fit props to floor** stands every object that stands on the floor under it, or lifts it out of the ground it is sunk in. That covers save points, shops, NPCs, benches, spawn points and nodes in the `idp_stands` group. It then steps the object along its floor out of any platform. Hanging things and enemies are left alone.
+- **Fit props to floor** stands every object that stands on the floor under it, or lifts it out of the ground it is sunk in. That covers save points, shops, NPCs, benches, spawn points and nodes in the `mds_stands` group. It then steps the object along its floor out of any platform. Hanging things and enemies are left alone.
 - **Declutter** takes objects in order of importance. Each one that overlaps something already placed steps sideways along its own floor to the nearest clear spot, at least 8 px from everything:
-  1. Doors, gates, machines (lifts, ladders, ropes, bridges, levers...), `idp_protected` and `idp_fixed` nodes, and path-moved bodies never move.
+  1. Doors, gates, machines (lifts, ladders, ropes, bridges, levers...), `mds_protected` and `mds_fixed` nodes, and path-moved bodies never move.
   2. Enemies and bosses never move either: their patrols start where they stand.
   3. Objects that stand move first.
   4. Everything else moves next, bigger first, and must also keep clear of the platforms.
@@ -639,7 +640,7 @@ Everything saves automatically to the world file. It reloads if the file changes
 ### Keeping map and scenes in sync (Inspect tab)
 
 - **Fit to scene** resizes the room to the scene's terrain (TileMapLayers and static collision).
-- **Import from scene** adds or moves map gates to match the scene's gate nodes. Any node named `left1`, `right2`, `top1`, `bot1` or `door1` counts, as do nodes in the `idp_gate` group and `MDSGate` nodes. Connections can come from `idp_to_room` / `idp_to_gate` node metadata.
+- **Import from scene** adds or moves map gates to match the scene's gate nodes. Any node named `left1`, `right2`, `top1`, `bot1` or `door1` counts, as do nodes in the `mds_gate` group and `MDSGate` nodes. Connections can come from `mds_to_room` / `mds_to_gate` node metadata.
 - **Gate nodes follow the map automatically.** Adding or connecting a gate on the map adds the matching `MDSGate` nodes to the rooms' scenes. That covers the Gate tool, **Add gate**, **Add doors between touching rooms** and **Auto-connect facing gates**. They go under a `Gates` node, at the gate's map position, with a collision shape across the doorway.
   - A closed scene is saved right away, keeping its UID.
   - A scene open in an editor tab gets the nodes as an unsaved edit that the scene's own Ctrl+Z undoes; save it as usual.
@@ -654,7 +655,7 @@ Everything saves automatically to the world file. It reloads if the file changes
 
 ### At runtime: MDSWorldGame (no MetSys needed)
 
-Non-linear mode comes with its own game runtime. **`MDSWorldGame`** is the counterpart of MetSys' `MetSysGame`, and it reads the same `.idpworld.json` you edit in the panel. **Scenes > Create game scene...** generates a runnable one: an `MDSWorldGame` root with a placeholder player, a following camera, a room camera with a camera director, area music, and a UI with an in-game map, area titles and objective banners. Swap in your player and press F6.
+Non-linear mode comes with its own game runtime. **`MDSWorldGame`** is the counterpart of MetSys' `MetSysGame`, and it reads the same `.mdsworld.json` you edit in the panel. **Scenes > Create game scene...** generates a runnable one: an `MDSWorldGame` root with a placeholder player, a following camera, a room camera with a camera director, area music, and a UI with an in-game map, area titles and objective banners. Swap in your player and press F6.
 
 ```
 Game (MDSWorldGame)     world_file, starting_room, starting_gate, player, camera, map_view, room_camera
@@ -786,7 +787,7 @@ In the editor, the Room view's **2.5D preview** shows the room as it will look i
 **`MDSWorldMapView`** is an in-game map Control following Hollow Knight's rules: rooms appear once visited, or dimmed once the player owns the map of their area. `MDSWorldGame` updates it for you. On its own:
 
 ```gdscript
-map_view.world_file = "res://world.idpworld.json"
+map_view.world_file = "res://world.mdsworld.json"
 map_view.mark_visited(room_id)
 map_view.map_area("The Greenhouse")        # when the area map is bought
 map_view.set_player(room_id, player.position)
@@ -869,7 +870,54 @@ Use one three ways:
 - **As a node:** Add Child Node > `MDSParallaxBackground`.
 - **By drag and drop:** drag it from the Room view's Effects list onto the room.
 
-`MDSWorldGame` adds the room's background as it loads (`parallax` holds it; `room_parallax` off skips it). The Room view shows it behind the room (**Show the parallax background**). The Issues tab reports unknown presets and missing scenes. In code: `MDSEnvironment.parallax_for_room(world, id)` and `MDSEnvironment.build_parallax("misty_forest", rect)`.
+`MDSWorldGame` adds the room's background as it loads (`parallax` holds it; `room_parallax` off skips it). The Room view shows it behind the room (**Show the backgrounds**). The Issues tab reports unknown presets and missing scenes. In code: `MDSEnvironment.parallax_for_room(world, id)` and `MDSEnvironment.build_parallax("misty_forest", rect)`.
+
+#### Animated backgrounds
+
+The other kind of background: an **`MDSAnimatedBackground`** fills the distance with something soft and out of focus that moves, drawn by one shader, as if far behind the room and seen through a lens. Twenty styles:
+
+![Animated backgrounds](docs/animated_backgrounds.png)
+
+| Style | What it shows |
+|---|---|
+| `bokeh` | Out-of-focus lights drifting at three depths, like a city or lanterns seen through a lens |
+| `aurora` | Curtains of green and violet light waving over a starry night |
+| `nebula` | Slowly turning clouds of cosmic gas, soft stars twinkling |
+| `molten_blobs` | Big soft blobs of molten color merging and parting, like a lava lamp |
+| `deep_water` | Soft caustics, light rays from the surface, bubbles rising |
+| `ember_glow` | A dark red heat glowing from below, smoke, blurred embers rising |
+| `storm_clouds` | Dark clouds rolling, lightning flashing behind them, a veil of rain |
+| `forest_canopy` | Light through leaves: swaying shadows, sun flecks, soft rays |
+| `sunset_haze` | A warm sky, a big soft sun, bands of cloud drifting by |
+| `crystal_cave` | Glowing crystal spikes rising from the floor and hanging from the ceiling, sparkles |
+| `void_pulse` | Boss: a dark void throbbing, rings rippling out from a glowing core |
+| `blood_moon` | Boss: a huge blood-red moon, red mist drifting across it |
+| `arcane_vortex` | Boss: a spiral of arcane light turning around a bright eye |
+| `frozen_night` | A cold night, snowflakes falling out of focus, near ones large and soft |
+| `spore_drift` | A teal haze, bioluminescent spores wandering |
+| `infection` | Boss: glowing orange veins pulsing through the dark, motes drifting up |
+| `starfield` | Stars at several depths drifting slowly, a faint haze |
+| `holy_light` | Boss or shrine: golden rays falling from above, dust shining in them |
+| `toxic_swamp` | A green murk swirling, bubbles rising, a sickly glow |
+| `picture` | Your own picture, blurred out of focus, drifting and breathing slowly |
+
+- **Style** (`style`): picking one gives the background its colors and pace. Change them after: `color_a` (the deep, the bottom of the sky), `color_b` (the top), `color_c` (the lights) and `color_d` (the accent).
+- **Look:** `blur` (0 sharp, 1 very soft: lights become wide discs, clouds lose their fine detail), `speed`, `feature_scale`, `density` (how many lights, motes or stars), `brightness`, `vignette` and `grain` (it also hides banding in the soft gradients).
+- **For boss rooms:** `pulse` makes it throb like a heartbeat, `pulse_rate` beats a second. The boss styles throb already.
+- **Your picture:** style `picture` shows `picture` blurred by `blur`, tinted by `color_c` and hazed by `color_d` (its alpha is how much). Drop an image from the FileSystem dock on an animated background in the Room view (**Effects** tool) to do it in one go.
+- **In the game** it covers the whole view and follows the camera (`follow_camera`), moving a little with it (`scroll_scale`: 0 stays on the screen). Its features keep their size on the screen whatever the camera's zoom. In the editor it covers its rectangle.
+- **With a parallax background:** both can be behind a room. The animated one is the farthest (`z_index` -110), and the parallax layers are drawn over it (-100). A parallax with a sky layer hides it, so take the sky out of the parallax (`CUSTOM` preset) to see silhouettes against an aurora, say.
+
+Set one for:
+
+- **An area:** **Areas tab > Animated bg** (the **+** menu picks a style; boss styles are listed apart).
+- **The area's boss rooms:** **Areas tab > Boss room bg**. A boss room is a room of type `boss` or `mini_boss`, or one with a boss named in the Inspect tab.
+- **One room:** **Inspect tab > Animated bg**, for any room, boss rooms included. `none` turns it off there.
+- **Every room**, or **every boss room:** **World settings > Animated bg** and **Boss rooms bg**.
+
+The most specific wins: the room's own, then (for a boss room) its area's boss room background and the world's boss rooms one, then its area's, then the world's. A value is a style id (`aurora`), a style with settings (`aurora(blur=0.8, speed=0.5)`), a `.tscn` holding an `MDSAnimatedBackground`, or a spec like `animated_background(style=nebula, density=0.8)`. It can also be added as a node (Add Child Node > `MDSAnimatedBackground`) or dragged from the Room view's Effects list.
+
+`MDSWorldGame` adds the room's animated background as it loads (`background` holds it; `room_background` off skips it). The Room view shows it behind the room (**Show the backgrounds**), and the Issues tab reports unknown styles and missing scenes. In code: `MDSEnvironment.background_for_room(world, id)`, `MDSEnvironment.is_boss_room(world, id)` and `MDSEnvironment.build_background("blood_moon", rect)`.
 
 #### Area titles and music
 
@@ -886,7 +934,7 @@ Each area can have one objective: `objective` (the text) and `objective_done_whe
 
 - `ability:dash`, or just `dash`: the player has the ability or key (`grant_ability`);
 - `object:Crypt_01/Chest`: the object is stored (`store_object`);
-- `boss:Warden`: the boss is defeated (`defeat_boss`, or `mark_defeated` on a node with `idp_boss_name` metadata);
+- `boss:Warden`: the boss is defeated (`defeat_boss`, or `mark_defeated` on a node with `mds_boss_name` metadata);
 - empty: your code calls `complete_objective(area)`.
 
 `MDSWorldGame` checks objectives whenever one of these changes and emits `objective_completed(area)`; completed objectives are in the save data. **`MDSObjectiveBanner`** shows the objective when the player arrives in an area where it isn't done, and again, marked done, when it completes. The in-game map (`MDSWorldMapView`) shows the current area's objective too.
@@ -903,7 +951,7 @@ In the editor, the **Progress** and **Stats** tabs list every objective with whe
 #### Exploration, defeated enemies and followers
 
 - **Exploration file** (`exploration_file`, e.g. `user://exploration.json`): visited rooms and the map's reveal are written there as soon as a room is first entered, separately from save points, so dying or quitting never forgets the map. `reset_exploration()` forgets it for a new game.
-- **Defeated enemies:** `mark_defeated(node)` keeps an enemy gone: loading its room again removes it before the room enters the tree, also after saving and loading. A node with `idp_boss_name` metadata also counts its boss as defeated (`is_boss_defeated`). `defeated(id, boss)` is emitted.
+- **Defeated enemies:** `mark_defeated(node)` keeps an enemy gone: loading its room again removes it before the room enters the tree, also after saving and loading. A node with `mds_boss_name` metadata also counts its boss as defeated (`is_boss_defeated`). `defeated(id, boss)` is emitted.
 - **Followers:** instanced scenes in the `carry_over` group (`carry_over_group`) within `carry_over_distance` of the gate the player leaves through come along: they're re-created just inside the gate the player arrives at, at the same offset along it, and removed from the room they left. They stay where they end up, in saves too.
 
 Save data now also holds area visits, completed objectives, defeated enemies and bosses, and followers that moved.
@@ -924,10 +972,10 @@ func _on_player_died() -> void:
 
 Building a dozen rooms at the moment the overview opens would stall the game, so the pictures are made ahead of time by **`MDSRoomPictures`**. Add one to the game scene:
 
-- **Cache:** pictures are kept in memory for the session and in `user://idp_room_pictures/`, named after the scene's path and the time it was last saved. An edited room is drawn again; an unchanged one never is.
+- **Cache:** pictures are kept in memory for the session and in `user://mds_room_pictures/`, named after the scene's path and the time it was last saved. An edited room is drawn again; an unchanged one never is.
 - **Background work:** when a room loads, the node first reads the pictures already on disk for the rooms in its `scope` (off the main thread, one per frame). Then it draws the missing ones, one room every `bake_gap` seconds, with the scene loaded off the main thread first. It never draws while an overview is open. `bake_started(path)`, `picture_ready(path, texture)` and `all_ready` are emitted.
 - **Size:** rooms are drawn at `MDSRoomPictures.bake_scale` (0.35) of their size.
-- **What's left out:** a room drawn for a picture is a copy made only to be looked at (`strip_for_preview()`). Nodes in the player, enemy, boss and carry-over groups, cameras, canvas layers and nodes with `idp_preview_skip` metadata are left out, and sounds are silenced. Its root gets `idp_preview` metadata, so your room scripts can skip gameplay setup. Nothing in it runs.
+- **What's left out:** a room drawn for a picture is a copy made only to be looked at (`strip_for_preview()`). Nodes in the player, enemy, boss and carry-over groups, cameras, canvas layers and nodes with `mds_preview_skip` metadata are left out, and sounds are silenced. Its root gets `mds_preview` metadata, so your room scripts can skip gameplay setup. Nothing in it runs.
 - **Static API:** `picture(path)` (memory only, cheap in any frame), `load_cached(path)`, `bake(host, path, rect)`, `store(path, image)`, `is_stale(path)`, `forget()`, `clear_disk()`.
 - **In the editor:** the World map's **View > Scene previews** uses these pictures (the editor and the game share `user://`) and falls back to the live scene for rooms never pictured or changed since.
 
@@ -958,7 +1006,7 @@ MetSys mode works on the map painted in the MetSys editor.
 4. Type the ability a door needs (for example `dash`) next to that exit.
 5. Check the **Issues** tab.
 
-What you type is saved to `MapData.idp.json` next to `MapData.txt`; MetSys' own file is never modified.
+What you type is saved to `MapData.mds.json` next to `MapData.txt`; MetSys' own file is never modified.
 
 - **Exact room shapes.** Cells are grouped into rooms exactly like MetSys does it, so irregular rooms are drawn with their real outline and hit-tested per cell.
 - **Doors.** Passages are gaps in the wall. Ability-gated doors show a colored lock, one-way doors an arrow, custom MetSys borders are orange, and a passage to nowhere is a red `?`.
@@ -1007,11 +1055,11 @@ The scanner detects features by group and node name (whole words, so `Walking` n
 
 | Metadata | On | Meaning |
 |---|---|---|
-| `idp_grants` | pickup node | Abilities or keys given here, for example `"dash"` |
-| `idp_requires` | gate or breakable wall near an exit | The closest exit needs these abilities |
-| `idp_boss_name` | boss node | Marks and names the boss |
-| `idp_room_type` | scene root | Overrides the inferred room type |
-| `idp_to_room`, `idp_to_gate` | gate node (non-linear) | Where the gate leads, used by **Import from scene** |
+| `mds_grants` | pickup node | Abilities or keys given here, for example `"dash"` |
+| `mds_requires` | gate or breakable wall near an exit | The closest exit needs these abilities |
+| `mds_boss_name` | boss node | Marks and names the boss |
+| `mds_room_type` | scene root | Overrides the inferred room type |
+| `mds_to_room`, `mds_to_gate` | gate node (non-linear) | Where the gate leads, used by **Import from scene** |
 
 ### Play from here
 **Play from here** runs the game starting in the chosen room: the Inspector button starts at the room's save point (or its middle), the right-click menu at the exact spot you clicked. No game code is needed for MetSys-style games:
@@ -1024,7 +1072,7 @@ It works the same in both modes:
 
 A non-linear world played through a `MetSysGame` host only works if its rooms are also on the MetSys map, because `MetSysGame.load_room` reads MetSys' room data; non-linear games usually have their own `load_room`.
 
-To force a host scene, set **Project Settings > interactive_dev_panel/play_scene** (or **World settings > Play scene** in non-linear mode). With no game scene at all, the room scene runs on its own.
+To force a host scene, set **Project Settings > metroidvania_developer_system/play_scene** (or **World settings > Play scene** in non-linear mode). With no game scene at all, the room scene runs on its own.
 
 Games that load rooms their own way can add one method to the game scene's root script; the launcher then calls it and does nothing else:
 
@@ -1037,7 +1085,7 @@ func mds_play_from(request: Dictionary) -> void:
 During such a run `MDSRuntime.active_request` holds the request (handy for skipping intros); in normal runs it's empty.
 
 ### Exports
-**Export** writes to `res://idp_exports/`:
+**Export** writes to `res://mds_exports/`:
 
 - **JSON:** map data and annotations (or the world), plus progression and the scan database
 - **PNG:** the whole current layer at high resolution
@@ -1082,7 +1130,7 @@ The repository:
 addons/MetroidvaniaDeveloperSystem/  # the plugin (all you need)
 asset_packs/mossgrove/               # optional art pack: tiles, characters, freeform styles, demos
 asset_packs/sunken_gardens/          # optional art pack: freeform styles and stamps, a demo room
-examples/                            # a sample .idpworld.json
+examples/                            # a sample .mdsworld.json
 docs/                                # screenshots for this README
 tests/                               # headless tests (not needed in your project)
 project.godot                        # demo project with the plugin enabled
@@ -1113,8 +1161,9 @@ addons/MetroidvaniaDeveloperSystem/
 ├── play_here.gd           # MDSPlayHere: picks the host game scene, starts the launcher
 ├── core/
 │   ├── map_model.gd       # MDSMapModel: MapData.txt parser, rooms, doors
-│   ├── annotations.gd     # MDSAnnotations: MapData.idp.json
-│   ├── world.gd           # MDSWorld: .idpworld.json (rooms, gates, areas, undo, runtime lookups)
+│   ├── annotations.gd     # MDSAnnotations: MapData.mds.json
+│   ├── legacy.gd          # MDSLegacy: reads the names from before 3.1 (idp_ metadata, .idpworld.json...)
+│   ├── world.gd           # MDSWorld: .mdsworld.json (rooms, gates, areas, undo, runtime lookups)
 │   ├── world_scene_tools.gd # MDSWorldSceneTools: place/create scenes, sync gates, fit rooms
 │   ├── area_generator.gd  # MDSAreaGenerator: area outlines (curves, slants, blocks) split into rooms with doors
 │   ├── area_tools.gd      # MDSAreaTools: areas as one piece (cells, outline, sliding, auto doors)
@@ -1159,9 +1208,10 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── mds_play_launcher.* # Boots the game scene in the chosen room
 │   └── environment/
 │       ├── mds_environment_effect.gd # MDSEnvironmentEffect: base of the effects (area, fades, forces)
-│       ├── mds_environment.gd # MDSEnvironment: the effects, weather presets and specs, area weather and parallax
+│       ├── mds_environment.gd # MDSEnvironment: the effects, weather presets and specs, area weather and backgrounds
 │       ├── mds_parallax_background.gd # MDSParallaxBackground: layers behind the room, presets
 │       ├── mds_parallax_layer.gd # MDSParallaxLayer: one layer (shader-drawn or a picture)
+│       ├── mds_animated_background.gd # MDSAnimatedBackground: soft animated backgrounds, 20 styles
 │       └── mds_*.gd       # MDSDustStorm, MDSRain, MDSLightning, MDSSnowfall, MDSFog, MDSEmbers,
 │                          # MDSFireflies, MDSFallingLeaves, MDSLightShafts, MDSHeatHaze,
 │                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSHotWaterfall, MDSLavaFall, MDSRockfall, MDSWater
@@ -1189,6 +1239,30 @@ addons/MetroidvaniaDeveloperSystem/
 
 The `core/` classes have no editor dependencies, so you can use them from tool scripts or CI. For example, fail a build when `MDSWorldValidator.run()` reports errors.
 
+## Upgrading from 3.0 (idp data to MDS)
+
+In 3.1 the plugin's data traded its old `idp` names for `mds` too. Projects made before keep working: the old names are still read (by `MDSLegacy`, `core/legacy.gd`), and written with the new ones:
+
+| Before 3.1 | Now | What happens to the old one |
+|---|---|---|
+| Metadata and groups `idp_stamp`, `idp_kind`, `idp_stands`, `idp_protected`, `idp_fixed`, `idp_scenery`, `idp_convert`, `idp_blockout`, `idp_gate`, `idp_grants`, `idp_requires`, `idp_boss_name`, `idp_room_type`, `idp_to_room`, `idp_to_gate`, `idp_object_id`, `idp_preview_skip`... | `mds_stamp`, `mds_kind`, `mds_stands`... | Read. The Room view renames them in the scenes it opens, so saving a room writes the new names (nodes of scenes instanced in it keep theirs) |
+| The tile kind layer `idp_kind` | `mds_kind` | Used as it is: tagging adds no second layer |
+| World files `*.idpworld.json`, format `idp_world` | `*.mdsworld.json`, format `mds_world` | Open as before. Saving writes format `mds_world` under the same file name |
+| MetSys notes `MapData.idp.json` | `MapData.mds.json` | Read when there is no new file, then saved to the new one |
+| Project settings `interactive_dev_panel/...` | `metroidvania_developer_system/...` | Moved when the plugin starts |
+| Starter tileset `res://idp_tiles/idp_cave_tileset.tres` | `res://mds_tiles/mds_cave_tileset.tres` | Still used while the old one is there |
+| Folders `idp_exports/`, `user://idp_room_pictures/`, `user://idp_play_request.json` | `mds_exports/`, `user://mds_room_pictures/`... | Not used (the pictures are made again) |
+| Seeds of Convert to freeform and Decorate | `mds_convert_%d`, `mds_decor_%d` | The same seed gives a different variation than before |
+
+Two things are not read under their old names, because your code checks them, not the plugin's: the `idp_preview` metadata on a room copied for a picture is now `mds_preview`, and a follower carried into another room has `mds_carried`. Update scripts that check them.
+
+To move a whole project to the new names at once (rooms you never open in the Room view too), close it, back it up (or commit it), then run this in it and check the diff:
+
+```bash
+git grep -lE "metadata/idp_|\"idp_[a-z_]+\"|\.idpworld\.json|MapData\.idp\.json" -- "*.tscn" "*.tres" "*.gd" "*.json" "project.godot" | xargs sed -i -E "s#metadata/idp_#metadata/mds_#g; s/\"idp_([a-z_]+)\"/\"mds_\1\"/g; s/\.idpworld\.json/.mdsworld.json/g; s/MapData\.idp\.json/MapData.mds.json/g"
+for f in $(git ls-files "*.idpworld.json"); do git mv "$f" "${f%.idpworld.json}.mdsworld.json"; done
+```
+
 ## Upgrading from 2.x (IDP to MDS)
 
 In 3.0 every class and node traded its old `IDP` prefix for `MDS`: `IDPWorldGame` is now `MDSWorldGame`, `IDPGate` is `MDSGate`, `IDPFreeformStyle` is `MDSFreeformStyle`, and so on. The script files followed (`nodes/idp_gate.gd` is now `nodes/mds_gate.gd`) and kept their `.uid` files.
@@ -1203,12 +1277,7 @@ Paths and names are one find and replace. Close the project, back it up (or comm
 git grep -lE "IDP[A-Z]|nodes/idp_|idp_runtime|idp_play_launcher|_idp\.png|idp_play_from" -- "*.gd" "*.tscn" "*.tres" "*.cfg" | xargs sed -i -E "s/\bIDP([A-Z])/MDS\1/g; s#nodes/idp_#nodes/mds_#g; s/idp_runtime/mds_runtime/g; s/idp_play_launcher/mds_play_launcher/g; s/_idp\.png/_mds.png/g; s/\bidp_play_from\b/mds_play_from/g"
 ```
 
-These are **unchanged**, so existing worlds and rooms load as they are:
-
-- world files (`*.idpworld.json`, `MapData.idp.json`);
-- the project settings (`interactive_dev_panel/...`);
-- metadata and groups in scenes and tilesets (`idp_stamp`, `idp_kind`, `idp_stands`, `idp_protected`, `idp_convert`...);
-- the folders the plugin writes (`idp_tiles/`, `idp_exports/`, `idp_room_pictures/`).
+In 3.0 the data kept its `idp` names: world files (`*.idpworld.json`, `MapData.idp.json`), project settings (`interactive_dev_panel/...`), metadata and groups (`idp_stamp`, `idp_kind`, `idp_stands`...) and the folders the plugin writes. 3.1 renamed them too and still reads the old ones: see [Upgrading from 3.0](#upgrading-from-30-idp-data-to-mds).
 
 ## Upgrading from InteractiveDevPanel
 
@@ -1219,11 +1288,11 @@ Scenes and resources often reference the plugin's scripts by path only (`res://a
 3. Delete `addons/InteractiveDevPanel/` and copy in `addons/MetroidvaniaDeveloperSystem/`.
 4. Open the project and enable **Metroidvania Developer System** in **Project Settings > Plugins** if it isn't already.
 
-Project settings (`interactive_dev_panel/...`) and world files are unchanged.
+The project settings (`interactive_dev_panel/...`) move to `metroidvania_developer_system/...` when the plugin starts, and old world files still load (see [Upgrading from 3.0](#upgrading-from-30-idp-data-to-mds)).
 
 ## Upgrading from 1.x
 
-- The panel is now a main screen tab with two modes; set `interactive_dev_panel/use_main_screen = false` to keep the dock.
+- The panel is now a main screen tab with two modes; set `metroidvania_developer_system/use_main_screen = false` to keep the dock.
 - Room width and height fields are gone; MetSys mode takes the size from MetSys' `in_game_cell_size`.
 - Scenes referenced by the map are scanned automatically. **Scan > Scan project folder** replaces **Open Project Folder**.
 - The **Show** checkboxes control map markers; room list filtering is opt-in.

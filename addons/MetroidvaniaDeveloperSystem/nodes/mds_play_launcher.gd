@@ -6,8 +6,8 @@ extends Node
 ## scene and switches to it) and as a small helper left on the root that places the player
 ## once the game has loaded the room.
 
-## The game's own room-loading hook, and the name it had before the IDP to MDS rename.
-const PLAY_HOOKS: PackedStringArray = ["mds_play_from", "idp_play_from"]
+## The game's own room-loading hook (and the name it had before 3.0).
+const PLAY_HOOKS: PackedStringArray = ["mds_play_from", MDSLegacy.OLD_PLAY_HOOK]
 
 var _game: Node
 var _req: Dictionary

@@ -123,7 +123,7 @@ func _fills() -> void:
 			return false
 		for c in cells:
 			var src := painter.tile_set.get_source(painter.layers[layer].get_cell_source_id(c))
-			if src.resource_name not in [MDSRoomPainter.COLOR_SOURCE_NAME, MDSRoomPainter.LEGACY_COLOR_SOURCE_NAME]:
+			if src.resource_name not in [MDSRoomPainter.COLOR_SOURCE_NAME, MDSLegacy.OLD_COLOR_SOURCE_NAME]:
 				return false
 		return true
 	check(color_source.call("Terrain"), "the rock is painted with the Terrain fill, autotiled or not (a solid color here)")

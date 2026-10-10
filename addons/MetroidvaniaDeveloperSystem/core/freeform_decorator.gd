@@ -13,7 +13,7 @@ extends RefCounted
 ## afterwards) and is tagged, so running it again replaces it: the same seed gives the same
 ## room. No editor dependencies.
 
-const META := &"idp_decor"
+const META := &"mds_decor"
 ## Structures and plants are spread over regions of this size (a screen).
 const REGION := Vector2(1152, 648)
 
@@ -59,10 +59,10 @@ func use_world_room(world: MDSWorld, id: String) -> void:
 func decorate(painter: MDSRoomPainter) -> Dictionary:
 	var report := {"hanging": 0, "plants": 0, "structures": 0, "foreground": 0, "removed": 0}
 	placed.clear()
-	_rng.seed = hash("idp_decor_%d" % seed_value)
+	_rng.seed = hash("mds_decor_%d" % seed_value)
 	for g in MDSRoomPainter.ITEM_GROUPS:
 		for item in painter.items(g):
-			if item.has_meta(META):
+			if MDSLegacy.has_meta_key(item, META):
 				painter.remove_item(item)
 				report.removed += 1
 	_rock.clear()

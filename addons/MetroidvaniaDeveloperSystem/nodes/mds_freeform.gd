@@ -357,7 +357,7 @@ static func edge_runs(poly: PackedVector2Array, normals: PackedVector2Array, dir
 
 func rebuild() -> void:
 	for c in get_children(true):
-		if c.has_meta(&"idp_part"):
+		if c.has_meta(&"mds_part"):
 			remove_child(c)
 			c.queue_free()
 	var outline := get_outline()
@@ -443,7 +443,7 @@ func _report_validity(outline: PackedVector2Array) -> void:
 		push_warning("MDSFreeform %s: its outline crosses itself, so it has no fill and no collision. Select it in the Room view (Freeform > Edit) and press Repair." % describe())
 
 func _part(node: Node) -> void:
-	node.set_meta(&"idp_part", true)
+	node.set_meta(&"mds_part", true)
 	add_child(node, false, Node.INTERNAL_MODE_BACK)
 
 ## A textured strip along a left-to-right edge run, shifted by [param shift] along the

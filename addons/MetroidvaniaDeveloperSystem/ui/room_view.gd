@@ -25,7 +25,7 @@ signal room_requested(room_id: String)
 ## Generate caves in all the rooms of [param area] ([param rooms]) was pressed.
 signal area_caves_requested(area: String, rooms: Array[String])
 
-const DEFAULT_TILESET := "res://idp_tiles/idp_cave_tileset.tres"
+const DEFAULT_TILESET := MDSTilesetFactory.DEFAULT_PATH
 const Shape := MDSTerrainShapes.Shape
 const TOOL_LAYERS: PackedStringArray = ["Terrain", "Background", "Decor", "Erase", "Foreground", "Freeform", "Stamps", "Effects"]
 const FREEFORM_LAYERS: PackedStringArray = ["Terrain (solid)", "Background", "Foreground"]
@@ -195,7 +195,7 @@ func _init() -> void:
 	no_effects_check.tooltip_text = "No weather or effects from the room's area (or the world) in this room: its weather is set to none (Inspect tab). Effects placed in the room itself stay"
 	no_effects_check.toggled.connect(set_no_effects)
 	MDSSidePanel.row(_effect_box, [clear_effects, no_effects_check])
-	_effect_box.add_child(MDSUi.hint("Drag onto the room. Click one in the room to edit it in the Inspector; drag its corner to resize it. Drop an image on a parallax background to add it as a layer."))
+	_effect_box.add_child(MDSUi.hint("Drag onto the room. Click one in the room to edit it in the Inspector; drag its corner to resize it. Drop an image on a parallax background to add it as a layer, or on an animated background to show it blurred."))
 	var weather_check := CheckBox.new()
 	weather_check.text = "Show the area's weather"
 	weather_check.button_pressed = true
@@ -205,9 +205,9 @@ func _init() -> void:
 		_update_weather_label())
 	_effect_box.add_child(weather_check)
 	var parallax_check := CheckBox.new()
-	parallax_check.text = "Show the parallax background"
+	parallax_check.text = "Show the backgrounds"
 	parallax_check.button_pressed = true
-	parallax_check.tooltip_text = "Show the parallax background of the room's area (Areas tab > Parallax), or of the room itself, behind the room as the game adds it; pan the view to see it move. Only a preview: it isn't saved into the scene"
+	parallax_check.tooltip_text = "Show the parallax and animated backgrounds of the room's area (Areas tab > Parallax, Animated bg), of the boss rooms or of the room itself, behind the room as the game adds them; pan the view to see them move. Only a preview: they aren't saved into the scene"
 	parallax_check.toggled.connect(func(on: bool) -> void:
 		canvas.set_parallax_preview(on)
 		_update_weather_label())
@@ -351,7 +351,7 @@ func _init() -> void:
 		canvas.show_reachability = on
 		canvas._overlay.queue_redraw())
 	MDSSidePanel.row(generation, [check, reach])
-	var fit_props := MDSUi.button("Fit props to floor", "Stand every object that stands (save points, shops, NPCs, benches, spawn points: see the idp_stands group) on the floor under it, or lift it out of the ground it is sunk in, then step it along its floor out of any platform. Ctrl+Z undoes it")
+	var fit_props := MDSUi.button("Fit props to floor", "Stand every object that stands (save points, shops, NPCs, benches, spawn points: see the mds_stands group) on the floor under it, or lift it out of the ground it is sunk in, then step it along its floor out of any platform. Ctrl+Z undoes it")
 	fit_props.pressed.connect(fit_props_to_floor)
 	var declutter := MDSUi.button("Declutter", "Separate objects that stand in or behind each other: doors, machines and enemies stay; save points and shops, then everything else, step along their floor to the nearest clear spot. A decoration with nowhere to go is removed. Ctrl+Z undoes it")
 	declutter.pressed.connect(declutter_room)
@@ -776,6 +776,10 @@ func _update_weather_label() -> void:
 	if not p.is_empty() and not MDSEnvironment.is_none(p):
 		var p_problem := MDSEnvironment.check_parallax(p)
 		text += "\nParallax background: %s%s" % [p, " (%s)" % p_problem if not p_problem.is_empty() else ""]
+	var bg := MDSEnvironment.background_for_room(world, room_id) if world and world.has_room(room_id) else ""
+	if not bg.is_empty() and not MDSEnvironment.is_none(bg):
+		var bg_problem := MDSEnvironment.check_background(bg)
+		text += "\nAnimated background: %s%s" % [bg, " (%s)" % bg_problem if not bg_problem.is_empty() else ""]
 	_weather_label.text = text
 
 ## Status after Convert to freeform (or its preview).
