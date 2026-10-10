@@ -507,8 +507,8 @@ Three ways to use them:
 
 - **Like any node:** Add Child Node, search "MDS", and set it up in the Inspector. `size` is the area it covers.
 - **Drag and drop in the Room view:** pick the **Effects** tool and drag an effect from its list onto the room.
-  - Or pick one and click: each click places another, one after another, also over effects already there (most cover the whole room). Drag right away to move the new one.
-  - Pick **No effect** (or Shift+click) to select an effect already there; its settings open in the Inspector. Drag it to move it, drag its corner to resize it; Delete removes it.
+  - Or pick one and click: it is placed and selected, and dragging right away moves it. The list then goes back to **No effect**, so clicks select and drag effects again, the new one too. To place another, pick it again; **Ctrl+click** keeps it picked to place several. Esc drops the pick.
+  - Click an effect to select it; its settings open in the Inspector. Drag it to move it, drag its corner to resize it; Delete removes it. Most effects cover the whole room, so they stack: click the selected one again (without dragging) to select the next one under the mouse. Shift+click selects even while an effect is picked.
   - **Remove all** takes every placed effect out. **No effects here** turns the area's weather off in this room (its weather: `none`).
   - Effects are saved under the room scene's `Effects` node and are part of the Room view's undo. Effects elsewhere in the scene are left alone.
 - **As an area's weather** (see [Area weather](#area-weather)).

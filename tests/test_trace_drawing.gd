@@ -273,6 +273,20 @@ func _room_view() -> void:
 	view.set_tool(MDSRoomCanvas.Tool.TERRAIN)
 	view.canvas._drop_data(Vector2(300, 300), drag)
 	check(view.canvas.tool == MDSRoomCanvas.Tool.EFFECT and view.painter.effects().size() == 1, "dropping it switches to the Effects tool and places it")
+	# Picked in the list, placed with a click: the list goes back to No effect.
+	view.effect_list.select(3)
+	view.effect_list.item_clicked.emit(3, Vector2.ZERO, MOUSE_BUTTON_LEFT)
+	check(view.canvas.effect_id == str(view.effect_list.get_item_metadata(3)), "clicking an entry picks its effect")
+	var mb := InputEventMouseButton.new()
+	mb.button_index = MOUSE_BUTTON_LEFT
+	mb.pressed = true
+	mb.position = Vector2(450, 300)
+	view.canvas._effect_input(mb)
+	mb.pressed = false
+	view.canvas._effect_input(mb)
+	check(view.painter.effects().size() == 2 and view.effect_list.get_selected_items() == PackedInt32Array([0]) and view.canvas.effect_id.is_empty(), "a click places it and the list shows No effect again (%s)" % view.effect_list.get_selected_items())
+	view.effect_list.item_clicked.emit(3, Vector2.ZERO, MOUSE_BUTTON_LEFT)
+	check(view.canvas.effect_id == str(view.effect_list.get_item_metadata(3)), "clicking the entry again picks it again")
 	view.set_tool(MDSRoomCanvas.Tool.FREEFORM)
 	check(not view._effect_box.visible and view.fill_opt.get_parent().visible, "other tools hide the list")
 	# Trace drawing.

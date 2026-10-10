@@ -324,6 +324,16 @@ func effects() -> Array:
 	return items(EFFECTS_GROUP)
 
 ## The top-most effect whose area holds [param p] (scene-local), or null.
+## Every effect whose area holds [param p] (scene-local), the top-most first.
+func effects_at(p: Vector2) -> Array[MDSEnvironmentEffect]:
+	var out: Array[MDSEnvironmentEffect] = []
+	var list := effects()
+	for i in range(list.size() - 1, -1, -1):
+		var e: MDSEnvironmentEffect = list[i]
+		if e.get_effect_rect().has_point(e.transform.affine_inverse() * p):
+			out.append(e)
+	return out
+
 func effect_at(p: Vector2) -> MDSEnvironmentEffect:
 	var list := effects()
 	for i in range(list.size() - 1, -1, -1):

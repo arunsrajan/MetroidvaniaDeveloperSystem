@@ -6,6 +6,12 @@ extends "res://tests/test_case.gd"
 const DIR := TMP + "/cave_paths"
 const STAMPS := "res://asset_packs/mossgrove/freeform/mossgrove.stamps.tres"
 
+## Collects the engine errors logged while it is added (OS.add_logger).
+class ErrorCatcher extends Logger:
+	var errors: PackedStringArray = []
+	func _log_error(function: String, _file: String, _line: int, code: String, rationale: String, _editor_notify: bool, _error_type: int, _script_backtraces: Array[ScriptBacktrace]) -> void:
+		errors.append("%s: %s %s" % [function, code, rationale])
+
 func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(DIR)
 	_reach()
@@ -189,33 +195,87 @@ func _effects_one_after_another() -> void:
 	add_child(canvas)
 	canvas.open(world, "Fx", painter)
 	canvas.tool = MDSRoomCanvas.Tool.EFFECT
-	canvas.effect_id = "rain"
-	var click := func(at: Vector2, shift := false) -> void:
+	var picks: Array = []
+	canvas.effect_pick_changed.connect(func(id: String) -> void: picks.append(id))
+	var press := func(at: Vector2, pressed: bool, shift := false, ctrl := false) -> void:
 		var mb := InputEventMouseButton.new()
 		mb.button_index = MOUSE_BUTTON_LEFT
-		mb.pressed = true
+		mb.pressed = pressed
 		mb.shift_pressed = shift
+		mb.ctrl_pressed = ctrl
 		mb.position = at
 		canvas._effect_input(mb)
-		var up := mb.duplicate()
-		up.pressed = false
-		canvas._effect_input(up)
+	var click := func(at: Vector2, shift := false, ctrl := false) -> void:
+		press.call(at, true, shift, ctrl)
+		press.call(at, false, shift, ctrl)
+	var drag := func(from: Vector2, to: Vector2) -> void:
+		press.call(from, true)
+		for k in range(1, 5):
+			var mm := InputEventMouseMotion.new()
+			mm.position = from.lerp(to, k / 4.0)
+			mm.button_mask = MOUSE_BUTTON_MASK_LEFT
+			canvas._effect_motion(mm)
+		press.call(to, false)
+	# Place one: picked in the list, a click places it and selects it.
+	canvas.effect_id = "rain"
 	click.call(Vector2(300, 200))
-	click.call(Vector2(500, 300))
-	check(painter.effects().size() == 2, "with an effect picked, each click places another, also over the first (%d)" % painter.effects().size())
+	var rain: MDSEnvironmentEffect = canvas.selected_effect
+	check(painter.effects().size() == 1 and rain is MDSRain, "a click places the picked effect, selected")
+	check(canvas.effect_id.is_empty() and picks == [""], "then the list goes back to No effect")
+	# The same effect is selectable and draggable again.
+	canvas.selected_effect = null
+	click.call(Vector2(310, 210))
+	check(painter.effects().size() == 1 and canvas.selected_effect == rain, "clicking it again selects it, no new one")
+	var before := rain.position
+	var undo_steps := painter._undo.size()
+	drag.call(Vector2(310, 210), Vector2(410, 260))
+	check(painter.effects().size() == 1 and rain.position.distance_to(before + (Vector2(100, 50) / canvas.zoom)) < 2.0, "and dragging moves it (%s -> %s)" % [before, rain.position])
+	check(painter._undo.size() == undo_steps + 1, "one undo step for the move")
+	undo_steps = painter._undo.size()
+	click.call(Vector2(410, 260))
+	check(painter._undo.size() == undo_steps, "a click alone adds no undo step")
+	# Dragging right after placing moves the new one.
 	canvas.effect_id = "fog"
-	click.call(Vector2(400, 250))
-	check(painter.effects().size() == 3 and painter.effects()[2] is MDSFog, "one after another, of different kinds")
-	var placed: MDSEnvironmentEffect = canvas.selected_effect
-	check(placed == painter.effects()[2], "the new one is selected")
+	press.call(Vector2(500, 300), true)
+	var fog: MDSEnvironmentEffect = canvas.selected_effect
+	var fog_at := fog.position
+	for k in range(1, 5):
+		var mm := InputEventMouseMotion.new()
+		mm.position = Vector2(500, 300) + Vector2(15, 5) * k
+		mm.button_mask = MOUSE_BUTTON_MASK_LEFT
+		canvas._effect_motion(mm)
+	press.call(Vector2(560, 320), false)
+	check(fog is MDSFog and fog.position.distance_to(fog_at + Vector2(60, 20) / canvas.zoom) < 2.0 and painter.effects().size() == 2, "placing and dragging at once puts it where you let go")
 	painter.undo()
-	check(painter.effects().size() == 2, "each placement is one undo step")
-	painter.redo()
-	click.call(Vector2(420, 260), true)
+	check(painter.effects().size() == 1, "and placing it is one undo step")
+	await get_tree().process_frame
+	# Several in a row: Ctrl+click keeps it picked.
+	canvas.effect_id = "fog"
+	click.call(Vector2(200, 150), false, true)
+	click.call(Vector2(250, 180), false, true)
+	check(painter.effects().size() == 3 and canvas.effect_id == "fog", "Ctrl+click places several, the effect staying picked")
+	click.call(Vector2(260, 190), true)
 	check(painter.effects().size() == 3, "Shift+click selects instead of placing")
+	# Stacked effects (most cover the whole room): clicking the selected one picks the next.
 	canvas.effect_id = ""
-	click.call(Vector2(420, 260))
-	check(painter.effects().size() == 3 and canvas.selected_effect != null, "No effect: a click selects one already there")
+	var here := painter.effects_at(canvas.screen_to_local(Vector2(320, 220)))
+	click.call(Vector2(320, 220))
+	var first := canvas.selected_effect
+	click.call(Vector2(320, 220))
+	check(here.size() >= 2 and canvas.selected_effect != first and here.has(canvas.selected_effect), "clicking the selected effect again selects the next one under it (%d here)" % here.size())
+	# Undo takes the selected effect out (and frees it): clicking on stays quiet.
+	canvas.effect_id = "rain"
+	click.call(Vector2(600, 300))
+	painter.undo()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var catcher := ErrorCatcher.new()
+	OS.add_logger(catcher)
+	click.call(Vector2(600, 300), true)
+	drag.call(Vector2(620, 320), Vector2(640, 340))
+	canvas.delete_selected_effect()
+	OS.remove_logger(catcher)
+	check(catcher.errors.is_empty(), "after undo took the selected effect out, clicks, drags and Delete raise no errors (%s)" % "; ".join(catcher.errors))
 	canvas.close()
 	canvas.queue_free()
 	painter.free_instance()

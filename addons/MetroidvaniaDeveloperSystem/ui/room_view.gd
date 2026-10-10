@@ -167,7 +167,7 @@ func _init() -> void:
 	effect_list = EffectList.new()
 	effect_list.custom_minimum_size.y = 230 * MDSUi.editor_scale()
 	effect_list.fixed_icon_size = Vector2i(16, 16) * int(maxf(1.0, MDSUi.editor_scale()))
-	effect_list.tooltip_text = "Drag an effect onto the room, or pick one and click in the room (each click places another; Shift+click selects one already there). No effect: clicks only select, move and resize effects"
+	effect_list.tooltip_text = "Drag an effect onto the room, or pick one and click in the room: it is placed, and clicks then select, move and resize effects again (the new one too). Ctrl+click keeps it picked, to place several. Click a selected effect again for the next one under it"
 	effect_list.add_item("No effect (select and move)")
 	effect_list.set_item_metadata(0, "")
 	effect_list.set_item_tooltip(0, "Place nothing: click an effect in the room to select it, drag it to move it, drag its corner to resize it")
@@ -175,12 +175,17 @@ func _init() -> void:
 		effect_list.add_item(MDSEnvironment.display_name(id), MDSEnvironment.icon(id))
 		effect_list.set_item_metadata(effect_list.item_count - 1, id)
 		effect_list.set_item_tooltip(effect_list.item_count - 1, MDSEnvironment.describe(id))
-	effect_list.item_selected.connect(func(i: int) -> void:
+	# Clicking an entry picks it, the one already selected too (to place another).
+	effect_list.item_clicked.connect(func(i: int, _at: Vector2, button: int) -> void:
+		if button != MOUSE_BUTTON_LEFT:
+			return
 		canvas.effect_id = str(effect_list.get_item_metadata(i))
 		if canvas.effect_id.is_empty():
 			status_message.emit("No effect: click an effect in the room to select, move or resize it.")
 		else:
-			status_message.emit("Click in the room to place %s; each click places another (Shift+click selects one already there)." % effect_list.get_item_text(i)))
+			status_message.emit("Click in the room to place %s, then drag it into place (Ctrl+click to place several)." % effect_list.get_item_text(i)))
+	effect_list.item_selected.connect(func(i: int) -> void:
+		canvas.effect_id = str(effect_list.get_item_metadata(i)))
 	effect_list.select(0)
 	_effect_box.add_child(effect_list)
 	var clear_effects := MDSUi.button("Remove all", "Remove every effect placed in this room (Ctrl+Z undoes it)")
@@ -415,6 +420,11 @@ func _init() -> void:
 		if f and canvas.freeform_mode == MDSRoomCanvas.FreeformMode.EDIT:
 			role_opt.select(MDSRoomCanvas.role_choice_of(f)))
 	canvas.effect_selected.connect(_inspect_effect)
+	canvas.effect_pick_changed.connect(func(id: String) -> void:
+		for i in effect_list.item_count:
+			if str(effect_list.get_item_metadata(i)) == id:
+				effect_list.select(i)
+				break)
 	canvas.image_dropped.connect(func(path: String) -> void: open_trace_dialog(path))
 	canvas.before_effect_drop = func() -> void:
 		if canvas.tool != MDSRoomCanvas.Tool.EFFECT:
