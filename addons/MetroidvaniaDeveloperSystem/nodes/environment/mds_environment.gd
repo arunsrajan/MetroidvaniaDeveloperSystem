@@ -51,6 +51,16 @@ const EFFECTS := {
 	"lava_fall": ["Lava falls", "mds_lava_fall.gd", false, "Molten rock pouring over a ledge: a white-hot core, crust sliding and cracking, a splash of molten drops, a glow, embers; it burns"],
 	"rockfall": ["Falling rocks", "mds_rockfall.gd", false, "Rocks breaking off and crashing to the ground in dust and chips, piling up as rubble; a cave-in with PLAYER_INSIDE; can hurt"],
 	"water": ["Water", "mds_water.gd", false, "A pool: waves, what is behind bent and tinted, caustics, bubbles"],
+	"silk_threads": ["Silk threads", "mds_silk_threads.gd", true, "Strands of silk drifting and turning in the air, light running along them, threads hanging from above (Silksong's Weavenest)"],
+	"wisps": ["Will-o'-wisps", "mds_wisps.gd", true, "Ghostly flames drifting on slow paths, flickering tails licking upward, halos lighting the air (the Wisp Thicket)"],
+	"gnat_swarm": ["Gnat swarm", "mds_gnat_swarm.gd", true, "Clouds of tiny gnats buzzing about; a swarm gathers around the player who comes near (Bilewater)"],
+	"ceiling_drips": ["Dripping water", "mds_drips.gd", true, "Drops gathering under the ceiling, falling and splashing on the floor (the Wormways, the Deep Docks)"],
+	"hanging_moss": ["Hanging moss", "mds_hanging_moss.gd", false, "Leafy strands hanging from a ceiling, swaying, parting around the player passing through (Greymoor, the Moss Grotto)"],
+	"swaying_grass": ["Swaying grass", "mds_swaying_grass.gd", false, "Blades of grass along a floor swaying in gusts, bending away as the player walks through (the Far Fields)"],
+	"cobwebs": ["Cobwebs", "mds_cobwebs.gd", false, "Spider webs across corners, dew glinting, trembling as the player moves through them; can slow them (the Weavenest, Shellwood)"],
+	"void_tendrils": ["Void tendrils", "mds_void_tendrils.gd", false, "Black tendrils writhing up from a pool of darkness, a violet glow at their rims, reaching for the player; can hurt (the Abyss)"],
+	"incense_smoke": ["Incense smoke", "mds_incense_smoke.gd", false, "Ribbons of smoke curling up from a censer, golden ash glinting in them (the Citadel's choral chambers)"],
+	"forge_sparks": ["Forge sparks", "mds_forge_sparks.gd", false, "Sparks spraying from a forge or a grinding wheel, arcing down and bouncing off the floor, in a stream or bursts; can burn (the Deep Docks)"],
 	"animated_background": ["Animated background", "mds_animated_background.gd", false, "A soft, out-of-focus background in motion, drawn by a shader: bokeh lights, an aurora, a nebula, molten blobs, deep water, storm clouds, a starfield... 20 styles, some made for boss rooms (void pulse, blood moon, arcane vortex, infection, holy light). Pick the style in the Inspector; drop an image on it to show the image blurred"],
 	"parallax": ["Parallax background", "mds_parallax_background.gd", false, "Layers behind the room moving slower the further back they are: sky, mountains, forest, city, ruins, cave rock, dunes, clouds, fog, stars or your own pictures. Drop an image on it to add a layer"],
 }
@@ -71,6 +81,11 @@ const PRESETS := {
 	"autumn": ["Autumn wind", "Leaves tumbling down on a breeze", "leaves"],
 	"petals": ["Petals", "Pink petals drifting down", "leaves(color_a=#f2a7c3, color_b=#e57fa8, color_c=#fbd3e0, leaf_size=6, fall_speed=40)"],
 	"glitter": ["Glitter", "Pink and white glitter twinkling in the air (a stage, a fairy grove)", "fireflies(color=#ffb3d1, color_b=#ffffff, mote_size=1.4, glow_radius=5, spacing=60, density=0.5, blink=1)"],
+	"weavenest": ["Weavenest", "Silk drifting and hanging in a pale, still haze (Silksong's Weavenest)", "silk_threads, fog(color=#d8cde6, density=0.25, drift=6)"],
+	"bilewater": ["Bilewater", "Gnats over a reeking green haze, water dripping from above", "gnat_swarm, ceiling_drips(color=#a7c27a, density=0.35), fog(color=#4d6638, density=0.35, ground=0.8)"],
+	"wisp_thicket": ["Wisp Thicket", "Will-o'-wisps drifting through a dark, smoky wood, ash falling", "wisps, fog(color=#2a2140, density=0.3), embers(kind=ash, density=0.15)"],
+	"deep_docks": ["Deep Docks", "Sparks and embers in the heat of the forges, a rusty haze", "embers(kind=sparks, density=0.35), heat_haze(strength=1.5, rise=0.7), fog(color=#5c3a26, density=0.25, ground=0.6)"],
+	"wormways": ["Wormways", "Water dripping through a damp, dim tunnel", "ceiling_drips, fog(color=#3c4249, density=0.3, ground=0.5)"],
 }
 
 # --- The catalog -------------------------------------------------------------------------------

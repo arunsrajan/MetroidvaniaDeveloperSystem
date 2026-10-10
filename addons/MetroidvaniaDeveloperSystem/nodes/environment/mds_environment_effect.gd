@@ -5,7 +5,9 @@ extends Node2D
 ## Base of the environment effects: weather ([MDSDustStorm], [MDSRain], [MDSSnowfall],
 ## [MDSLightning], [MDSFog]), hazards ([MDSSteamVent], [MDSLava]) and scenery in motion
 ## ([MDSWaterfall], [MDSWater], [MDSLightShafts], [MDSEmbers], [MDSFireflies],
-## [MDSFallingLeaves], [MDSHeatHaze]). Each one covers a rectangle ([method get_effect_rect],
+## [MDSFallingLeaves], [MDSHeatHaze]) and Silksong-style scenery ([MDSSilkThreads], [MDSWisps],
+## [MDSGnatSwarm], [MDSDrips], [MDSHangingMoss], [MDSSwayingGrass], [MDSCobwebs],
+## [MDSVoidTendrils], [MDSIncenseSmoke], [MDSForgeSparks]). Each one covers a rectangle ([method get_effect_rect],
 ## sized by [member size]) and draws it with a shader from [code]shaders/environment/[/code],
 ## in the editor too.
 ##
@@ -310,6 +312,34 @@ func bodies_inside(margin := 0.0, rect := Rect2()) -> Array[Node2D]:
 			if n is Node2D and not out.has(n) and r.has_point(inv * (n as Node2D).global_position):
 				out.append(n)
 	return out
+
+## Where up to [param count] nodes of [member affect_groups] within [param margin] px of the
+## effect are, in its shaders' pixels (from the rectangle's top-left corner), the nearest to its
+## middle first. For effects that bend away from bodies or reach for them (grass, moss, tendrils).
+func body_points(count := 4, margin := 0.0) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	if not is_inside_tree():
+		return out
+	var r := get_effect_rect()
+	var inv := global_transform.affine_inverse()
+	var mid := r.get_center()
+	var near: Array[Vector2] = []
+	for b in bodies_inside(margin, r):
+		near.append(inv * b.global_position)
+	near.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.distance_squared_to(mid) < b.distance_squared_to(mid))
+	for i in mini(count, near.size()):
+		out.append(near[i] - r.position)
+	return out
+
+## Sends [method body_points] to the shaders: [code]bodies[/code] (vec2[4]) and
+## [code]body_count[/code]. Returns how many there are.
+func send_bodies(margin := 0.0) -> int:
+	var pts := body_points(4, margin)
+	var n := pts.size()
+	pts.resize(4)
+	set_param(&"bodies", pts)
+	set_param(&"body_count", n)
+	return n
 
 ## Pushes [param body] along [param velocity] (px/s, global) for this physics frame: wind,
 ## a current. Moves a CharacterBody2D with move_and_collide, so it never goes through walls.

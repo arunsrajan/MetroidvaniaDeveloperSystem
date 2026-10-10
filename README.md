@@ -1,6 +1,6 @@
 # Metroidvania Developer System
 
-A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
+A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, silk threads, will-o'-wisps, void tendrils, cobwebs, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
 
 Every class and node of the plugin starts with `MDS` (`MDSWorldGame`, `MDSGate`, `MDSFreeform`...), and so do its metadata, groups, files and settings (`mds_stamp`, `*.mdsworld.json`, `metroidvania_developer_system/...`). Before 3.0 the classes started with `IDP`, from the plugin's first name, Interactive Dev Panel, and before 3.1 the data did: see [Upgrading from 3.0](#upgrading-from-30-idp-data-to-mds) and [Upgrading from 2.x](#upgrading-from-2x-idp-to-mds). Projects made with the old names still load.
 
@@ -480,7 +480,7 @@ painter.save()
 
 #### Environment effects
 
-Nineteen effects bring rooms to life: weather, hazards, scenery in motion, and parallax and animated backgrounds. Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
+Twenty-nine effects bring rooms to life: weather, hazards, scenery in motion, and parallax and animated backgrounds. Ten of them are made after Hollow Knight: Silksong's places (see [Silksong-style effects](#silksong-style-effects)). Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
 
 | Effect | Node | What it does |
 |---|---|---|
@@ -501,6 +501,16 @@ Nineteen effects bring rooms to life: weather, hazards, scenery in motion, and p
 | Falling rocks | `MDSRockfall` | Stones break off at the top of the rectangle (put it under a ceiling) and drop, tumbling, to crash on the ground in a puff of dust and a spray of chips. They pile up there as rubble resting on its bottom edge, and pebbles trickle down between them. `rate`, `rock_size`, `gravity`, `rubble` and `rubble_height`, `dust`, `pebbles`. With `activation` PLAYER_INSIDE it's a cave-in as the player comes near. With `damage`, it hurts |
 | Lava falls | `MDSLavaFall` | Molten rock pouring over a ledge, slow and thick. It has a white-hot core and orange streaks. Crust forms as it falls and breaks up with glowing cracks, and blobs bulge at its sides. It splashes molten drops where it lands, glows, sends up embers, and the air wavers in the heat. `liquid` switches it to magma, acid or cursed ooze. It burns (`damage`, `damage_interval`) |
 | Water | `MDSWater` | A pool: a rolling surface, refraction, a deeper tint toward the bottom, caustics, bubbles; `drag` slows bodies in it |
+| Silk threads | `MDSSilkThreads` | Strands of silk drifting and turning in the air, light running along them, threads hanging from the top edge with a bead of silk at the end (the Weavenest) |
+| Will-o'-wisps | `MDSWisps` | Ghostly flames drifting on slow loops, a flickering tongue of fire trailing behind each and licking upward, a halo lighting the air (the Wisp Thicket) |
+| Gnat swarm | `MDSGnatSwarm` | Clouds of tiny gnats buzzing about drifting swarm centres, wings glinting. A swarm near the player gathers around its head (`lure`, `lure_radius`) (Bilewater) |
+| Dripping water | `MDSDrips` | Drops gathering under the top edge (a ceiling), swelling, falling and splashing on the bottom edge in a ring and droplets; the ceiling glints wet. Green for bile, orange for molten drips (the Wormways, the Deep Docks) |
+| Hanging moss | `MDSHangingMoss` | Leafy strands hanging from the top edge, swaying, a darker layer behind. They part around the player passing through and fall back behind it (`part_radius`) (Greymoor, the Moss Grotto) |
+| Swaying grass | `MDSSwayingGrass` | Blades of grass along the bottom edge (the floor) swaying in gusts (`wind`, `sway`), a flower on some. They bend away as the player walks through and spring back (`bend`, `part_radius`) (the Far Fields) |
+| Cobwebs | `MDSCobwebs` | Spider webs across the corners (`top_left`... and a whole one in the `middle`), sagging rings, torn pieces, dew glinting. They tremble while the player moves through them, and `stickiness` slows it (the Weavenest, Shellwood) |
+| Void tendrils | `MDSVoidTendrils` | Black tendrils writhing up from a pool of darkness on the bottom edge, a violet glow at their rims, motes of void rising. They lean toward the player within `reach`, and with `damage` they hurt (the Abyss) |
+| Incense smoke | `MDSIncenseSmoke` | Ribbons of smoke curling up from censers on the bottom edge (`plumes`), spreading as they rise, an ember at each censer, golden ash glinting (the Citadel's choral chambers) |
+| Forge sparks | `MDSForgeSparks` | Sparks spraying from `source` in a fan (`angle`, `spread`), arcing down and bouncing off the bottom edge, white-hot cooling to red. A steady stream or `bursts`; with `damage` they burn (the Deep Docks) |
 | Parallax background | `MDSParallaxBackground` | Layers behind the room, the far ones moving slower: sky, mountains, hills, forest, city, ruins, cave rock, dunes, clouds, fog, stars, or your own pictures (see [Parallax backgrounds](#parallax-backgrounds)) |
 | Animated background | `MDSAnimatedBackground` | A soft, out-of-focus background in motion, drawn by a shader: 20 styles, from bokeh lights, an aurora and a nebula to a blood moon and an arcane vortex for boss rooms, or your own picture blurred (see [Animated backgrounds](#animated-backgrounds)) |
 
@@ -537,6 +547,24 @@ func mds_environment_hurt(amount: float, effect: MDSEnvironmentEffect) -> void: 
 ```
 
 The shaders work on their own too. Put one on any `CanvasItem` and set `rect_origin` and `rect_size` (the rectangle, in the item's own pixels), or let `MDSEnvironmentEffect.add_quad()` do it. They share `mds_env.gdshaderinc`: noise, cellular noise and the soft edge.
+
+#### Silksong-style effects
+
+Ten of the effects are made after places in Hollow Knight: Silksong. Four cover whole rooms and work as area weather (silk threads, will-o'-wisps, a gnat swarm, dripping water); the others are placed where they belong: moss under a ceiling, grass on a floor, webs in a corner, tendrils in a pit, smoke on a censer, sparks at a forge.
+
+![Silksong-style effects](docs/silksong_effects.png)
+
+Several react to the player, or to any node of `affect_groups`:
+
+- **Swaying grass** bends away as it walks through, and **hanging moss** parts around it.
+- **Void tendrils** lean toward it once it is within `reach` px, and hurt with `damage`.
+- **A gnat swarm** drifts over to gather around its head.
+- **Cobwebs** tremble as it moves through them, and slow it with `stickiness`.
+- **Forge sparks** burn with `damage`.
+
+Your own effects can do the same: `body_points(count, margin)` gives where the nearest bodies are in the shader's pixels, and `send_bodies(margin)` sends them to it as `bodies` (a `vec2[4]`) and `body_count`.
+
+The five presets (`weavenest`, `bilewater`, `wisp_thicket`, `deep_docks`, `wormways`) set an area's weather in one go.
 
 #### Fill outside the room's shape
 
@@ -841,7 +869,8 @@ Give an area weather and every room of it gets it as the room loads, sized to th
   - `blizzard`, `snowfall`;
   - `volcanic`: embers, ash, heat haze and a red haze; `ashfall`;
   - `cave_mist`: mist along the floor and light shafts; `firefly_grove`; `spore_cavern`;
-  - `autumn`, `petals`, `glitter`.
+  - `autumn`, `petals`, `glitter`;
+  - after Silksong: `weavenest` (silk in a pale haze), `bilewater` (gnats, drips and a green haze), `wisp_thicket` (wisps in a smoky wood), `deep_docks` (sparks, heat haze and a rusty haze), `wormways` (drips in a damp tunnel).
 - **Scenes** of effect nodes give you full control. Effects in them with `fit_room` on are sized to the room; the others stay where you put them.
 - The Room view shows the room's weather over it (**Effects** tool > **Show the area's weather**), as a preview that isn't saved into the scene.
 - The **Issues** tab reports unknown names and missing scenes.
@@ -1214,7 +1243,9 @@ addons/MetroidvaniaDeveloperSystem/
 │       ├── mds_animated_background.gd # MDSAnimatedBackground: soft animated backgrounds, 20 styles
 │       └── mds_*.gd       # MDSDustStorm, MDSRain, MDSLightning, MDSSnowfall, MDSFog, MDSEmbers,
 │                          # MDSFireflies, MDSFallingLeaves, MDSLightShafts, MDSHeatHaze,
-│                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSHotWaterfall, MDSLavaFall, MDSRockfall, MDSWater
+│                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSHotWaterfall, MDSLavaFall, MDSRockfall, MDSWater,
+│                          # MDSSilkThreads, MDSWisps, MDSGnatSwarm, MDSDrips, MDSHangingMoss, MDSSwayingGrass,
+│                          # MDSCobwebs, MDSVoidTendrils, MDSIncenseSmoke, MDSForgeSparks
 ├── shaders/
 │   ├── terrain_skin.*     # Example terrain skin shader and its fill and edge materials
 │   └── environment/       # The effects' shaders and mds_env.gdshaderinc (noise, soft edges)
