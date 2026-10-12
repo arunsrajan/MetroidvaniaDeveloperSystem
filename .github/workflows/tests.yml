@@ -1,0 +1,36 @@
+# Runs the headless test suite (tests/run_all.tscn) on the oldest and newest supported Godot
+# versions. A failed check makes run_all exit with 1, which fails the job.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Godot ${{ matrix.godot }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        godot: ["4.6.1", "4.7.2"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Godot ${{ matrix.godot }}
+        run: |
+          curl -sSfL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/${{ matrix.godot }}-stable/Godot_v${{ matrix.godot }}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${{ matrix.godot }}-stable_linux.x86_64" godot
+          chmod +x godot
+          ./godot --version
+
+      - name: Import the project
+        # The first import registers every class_name; the tests need them.
+        run: timeout 600 ./godot --headless --path . --import
+
+      - name: Run the tests
+        run: timeout 1800 ./godot --headless --path . res://tests/run_all.tscn

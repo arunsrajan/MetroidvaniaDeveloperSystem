@@ -189,7 +189,7 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 		# Godot reports a twisted collision polygon as "Convex decomposing failed!" without
 		# saying where: name it.
 		for t in metadata.twisted:
-			push_warning("%s: %s %s crosses itself, so it has no fill and no collision (see Map Dev's Issues tab)." % [scene_path, "Freeform shape" if t.kind == "freeform" else "CollisionPolygon2D", t.path])
+			push_warning("%s: %s %s crosses itself, so it has no fill and no collision (see MetDevSys's Issues tab)." % [scene_path, "Freeform shape" if t.kind == "freeform" else "CollisionPolygon2D", t.path])
 	instance.free()
 	return metadata
 

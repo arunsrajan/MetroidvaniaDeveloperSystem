@@ -23,7 +23,7 @@ func _ready() -> void:
 func _boot() -> void:
 	var req := MDSRuntime.take_play_request()
 	if req.is_empty():
-		push_error("Play from here: no fresh play request. Start it again from the Map Dev panel.")
+		push_error("Play from here: no fresh play request. Start it again from the MetDevSys panel.")
 		return
 	MDSRuntime.active_request = req
 	var room_path: String = req.scene_path

@@ -11,13 +11,13 @@ extends HBoxContainer
 ## waterfalls...) by dragging them from its list onto the room, and shows the weather of the
 ## room's area over it. Trace drawing turns a picture of the room into freeform shapes.
 ##
-## Its buttons are in [member controls], a narrow column that Map Dev puts in its left
-## tool panel, and Map Dev shows the [member palette] as a tab. Used on its own, the view
+## Its buttons are in [member controls], a narrow column that MetDevSys puts in its left
+## tool panel, and MetDevSys shows the [member palette] as a tab. Used on its own, the view
 ## shows the column on its left and the palette on its right.
 
 signal saved(scene_path: String)
 signal status_message(text: String)
-## The Tile palette button was pressed while the palette lives elsewhere (Map Dev shows it
+## The Tile palette button was pressed while the palette lives elsewhere (MetDevSys shows it
 ## as a tab).
 signal palette_requested
 ## The area bar asks for another room of the area.
@@ -479,7 +479,7 @@ func _ready() -> void:
 		if inspector and not inspector.property_edited.is_connected(_on_inspector_edited):
 			inspector.property_edited.connect(_on_inspector_edited)
 
-## Used on its own (not in Map Dev), the button column goes on the left of the view and
+## Used on its own (not in MetDevSys), the button column goes on the left of the view and
 ## the palette on its right.
 func _adopt_controls() -> void:
 	if palette and not palette.get_parent():

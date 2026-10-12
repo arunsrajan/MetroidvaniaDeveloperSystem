@@ -1,5 +1,7 @@
 # Metroidvania Developer System
 
+[![Tests](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml/badge.svg)](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml) Version 3.2.0 ([changelog](CHANGELOG.md))
+
 A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, silk threads, will-o'-wisps, void tendrils, cobwebs, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight, glowing bees, spiders, birds and owls watching it...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
 
 Every class and node of the plugin starts with `MDS` (`MDSWorldGame`, `MDSGate`, `MDSFreeform`...), and so do its metadata, groups, files and settings (`mds_stamp`, `*.mdsworld.json`, `metroidvania_developer_system/...`). Before 3.0 the classes started with `IDP`, from the plugin's first name, Interactive Dev Panel, and before 3.1 the data did: see [Upgrading from 3.0](#upgrading-from-30-idp-data-to-mds) and [Upgrading from 2.x](#upgrading-from-2x-idp-to-mds). Projects made with the old names still load.
@@ -29,33 +31,33 @@ The addon lives in `addons/MetroidvaniaDeveloperSystem/`, so it installs into an
 - **From the editor's AssetLib tab or a GitHub ZIP:** download it, keep `addons/MetroidvaniaDeveloperSystem/` checked and install. The optional art packs in `asset_packs/mossgrove/` and `asset_packs/sunken_gardens/` come with it; uncheck them if you don't need them.
 - **By hand:** copy `addons/MetroidvaniaDeveloperSystem/` into your project's `addons/` folder, and the packs you want from `asset_packs/` into `asset_packs/`.
 
-Then enable **Metroidvania Developer System** in **Project Settings > Plugins**. A **Map Dev** tab appears at the top of the editor, next to 2D / 3D / Script. Without MetSys installed, it starts in non-linear mode.
+Then enable **Metroidvania Developer System** in **Project Settings > Plugins**. A **MetDevSys** tab appears at the top of the editor, next to 2D / 3D / Script. Without MetSys installed, it starts in non-linear mode.
 
 This repository is also a Godot project: open its `project.godot` to try the plugin with the Mossgrove demo scenes.
 
 ### Detaching and docking
 
-The **⧉** menu in the tool panel's title row moves Map Dev at any time, without restarting:
+The **⧉** menu in the tool panel's title row moves MetDevSys at any time, without restarting:
 
 - **Detach to floating window:** its own window, for a second monitor. Its size and position are remembered per project.
-  - While detached, the Map Dev tab shows **Dock Map Dev back here**.
+  - While detached, the MetDevSys tab shows **Dock MetDevSys back here**.
   - Closing the window docks the panel back.
-- **Dock in main screen:** the Map Dev tab next to 2D / 3D / Script.
+- **Dock in main screen:** the MetDevSys tab next to 2D / 3D / Script.
 - **Dock on the right** or **Dock in bottom panel:** an editor dock.
 
-The choice is saved in `metroidvania_developer_system/placement`. To have no Map Dev tab at all, set `metroidvania_developer_system/use_main_screen` to `false` and re-enable the plugin.
+The choice is saved in `metroidvania_developer_system/placement`. To have no MetDevSys tab at all, set `metroidvania_developer_system/use_main_screen` to `false` and re-enable the plugin.
 
-**Everything fits the screen.** Detached, docked or on a small display, Map Dev stays within the screen:
+**Everything fits the screen.** Detached, docked or on a small display, MetDevSys stays within the screen:
 
 - The floating window is never bigger than the usable screen. A remembered size or position that no longer fits, after a resolution change or with a monitor unplugged, is pulled back onto the screen.
 - The panels shrink with the window. Below their usual width, the tool panel folds to its strip and the side tabs and canvas give up room first.
 - Dialogs (World settings, Trace drawing, Generate area, Convert, Decorate...) are at most 92% of the window they open over. What doesn't fit scrolls, and they open centred over that window.
 
-![Map Dev detached into its own window](docs/floating_window.png)
+![MetDevSys detached into its own window](docs/floating_window.png)
 
 ### Layout
 
-Like MetSys' own editor, Map Dev keeps its buttons in a **tool panel on the left** and gives the rest of the screen to the map:
+Like MetSys' own editor, MetDevSys keeps its buttons in a **tool panel on the left** and gives the rest of the screen to the map:
 
 - **Left: the tool panel.** It is split into foldable sections:
   - **World** or **Map**: mode switch, map or world file, Scenes/Scan, Export and **Side tabs**.
@@ -1080,7 +1082,7 @@ On top of the shared progression and design checks:
 
 MetSys mode works on the map painted in the MetSys editor.
 
-1. Open the **Map Dev** tab. The map configured in MetSys Settings (`map_data_file`) loads automatically, and its room scenes are scanned in the background.
+1. Open the **MetDevSys** tab. The map configured in MetSys Settings (`map_data_file`) loads automatically, and its room scenes are scanned in the background.
 2. Click a room to inspect it; double-click to open its scene. Shift+click a second room to see the route between them.
 3. Name rooms, set their type (boss, save, shop...), mark boss names and the abilities they grant in the **Inspect** tab.
 4. Type the ability a door needs (for example `dash`) next to that exit.
@@ -1211,8 +1213,10 @@ addons/MetroidvaniaDeveloperSystem/  # the plugin (all you need)
 asset_packs/mossgrove/               # optional art pack: tiles, characters, freeform styles, demos
 asset_packs/sunken_gardens/          # optional art pack: freeform styles and stamps, a demo room
 examples/                            # a sample .mdsworld.json
-docs/                                # screenshots for this README
+docs/                                # screenshots for this README and the store icon (not imported: .gdignore)
 tests/                               # headless tests (not needed in your project)
+.github/workflows/tests.yml          # CI: the tests on Godot 4.6.1 and 4.7.2, for every push and pull request
+CHANGELOG.md                         # what changed in each version
 project.godot                        # demo project with the plugin enabled
 ```
 
@@ -1232,7 +1236,9 @@ The plugin:
 
 ```
 addons/MetroidvaniaDeveloperSystem/
-├── plugin.gd              # EditorPlugin: main screen tab (or dock), scene-save hook
+├── plugin.cfg             # name, version (3.2.0), entry script
+├── README.md, LICENSE     # a short guide and the license, shipped with the plugin
+├── plugin.gd              # EditorPlugin: the MetDevSys main screen tab (or dock), scene-save hook
 ├── dock.gd / dock.tscn    # Mode host: switches between the two panels
 ├── metsys_panel.gd        # MDSMetSysPanel: MetSys mode
 ├── world_panel.gd         # MDSWorldPanel: non-linear mode
@@ -1321,6 +1327,10 @@ addons/MetroidvaniaDeveloperSystem/
 ```
 
 The `core/` classes have no editor dependencies, so you can use them from tool scripts or CI. For example, fail a build when `MDSWorldValidator.run()` reports errors.
+
+## Upgrading from 3.1
+
+The editor tab is now called **MetDevSys** (it was **Map Dev**). Nothing else changes: settings, world files and scenes load as they are. See the [changelog](CHANGELOG.md) for what's new.
 
 ## Upgrading from 3.0 (idp data to MDS)
 
