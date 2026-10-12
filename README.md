@@ -1,6 +1,6 @@
 # Metroidvania Developer System
 
-A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, silk threads, will-o'-wisps, void tendrils, cobwebs, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
+A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, silk threads, will-o'-wisps, void tendrils, cobwebs, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight, glowing bees, spiders, birds and owls watching it...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
 
 Every class and node of the plugin starts with `MDS` (`MDSWorldGame`, `MDSGate`, `MDSFreeform`...), and so do its metadata, groups, files and settings (`mds_stamp`, `*.mdsworld.json`, `metroidvania_developer_system/...`). Before 3.0 the classes started with `IDP`, from the plugin's first name, Interactive Dev Panel, and before 3.1 the data did: see [Upgrading from 3.0](#upgrading-from-30-idp-data-to-mds) and [Upgrading from 2.x](#upgrading-from-2x-idp-to-mds). Projects made with the old names still load.
 
@@ -480,7 +480,7 @@ painter.save()
 
 #### Environment effects
 
-Twenty-nine effects bring rooms to life: weather, hazards, scenery in motion, and parallax and animated backgrounds. Ten of them are made after Hollow Knight: Silksong's places (see [Silksong-style effects](#silksong-style-effects)). Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
+Thirty effects bring rooms to life: weather, hazards, scenery in motion, and parallax, animated and creature backgrounds. Ten of them are made after Hollow Knight: Silksong's places (see [Silksong-style effects](#silksong-style-effects)). Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
 
 | Effect | Node | What it does |
 |---|---|---|
@@ -512,6 +512,7 @@ Twenty-nine effects bring rooms to life: weather, hazards, scenery in motion, an
 | Incense smoke | `MDSIncenseSmoke` | Ribbons of smoke curling up from censers on the bottom edge (`plumes`), spreading as they rise, an ember at each censer, golden ash glinting (the Citadel's choral chambers) |
 | Forge sparks | `MDSForgeSparks` | Sparks spraying from `source` in a fan (`angle`, `spread`), arcing down and bouncing off the bottom edge, white-hot cooling to red. A steady stream or `bursts`; with `damage` they burn (the Deep Docks) |
 | Parallax background | `MDSParallaxBackground` | Layers behind the room, the far ones moving slower: sky, mountains, hills, forest, city, ruins, cave rock, dunes, clouds, fog, stars, or your own pictures (see [Parallax backgrounds](#parallax-backgrounds)) |
+| Creatures | `MDSCreatures` | A background of glowing creatures for boss rooms, one kind at a time: bees, spiders, small birds, bats, jellyfish, owls... 20 kinds. Each carries a light over its habitat, and they stir as the player moves about (see [Creature backgrounds](#creature-backgrounds)) |
 | Animated background | `MDSAnimatedBackground` | A soft, out-of-focus background in motion, drawn by a shader: 20 styles, from bokeh lights, an aurora and a nebula to a blood moon and an arcane vortex for boss rooms, or your own picture blurred (see [Animated backgrounds](#animated-backgrounds)) |
 
 Three ways to use them:
@@ -948,6 +949,56 @@ The most specific wins: the room's own, then (for a boss room) its area's boss r
 
 `MDSWorldGame` adds the room's animated background as it loads (`background` holds it; `room_background` off skips it). The Room view shows it behind the room (**Show the backgrounds**), and the Issues tab reports unknown styles and missing scenes. In code: `MDSEnvironment.background_for_room(world, id)`, `MDSEnvironment.is_boss_room(world, id)` and `MDSEnvironment.build_background("blood_moon", rect)`.
 
+#### Creature backgrounds
+
+An **`MDSCreatures`** fills the background with living things, made for boss rooms. Each background has one kind of creature, many of them, drawn soft and out of focus. Each one glows and carries its own light, which lights the place it lives in as it moves: the honeycomb behind the bees, the rock behind the spiders, the water around the jellyfish.
+
+![Creature backgrounds](docs/creature_backgrounds.png)
+
+| Creature | How they move | Where they live |
+|---|---|---|
+| `bees` | swarming around drifting centres, glowing stripes | a hive (honeycomb) |
+| `wasps` | swarming; they close in on a busy player | a hive |
+| `lumaflies` | drifting, lanterns blinking | a night forest |
+| `moths` | fluttering; they come to a player standing still, like to a flame | a night forest |
+| `butterflies` | fluttering, glowing wing edges; they scatter from the player | a marsh |
+| `dragonflies` | hovering, then darting off | a marsh |
+| `songbirds` | a flock wheeling together (small birds) | a dusk sky |
+| `crows` | circling slowly, flapping then gliding, red eyes | a grey sky |
+| `bats` | flitting erratically, glowing eyes | a cave |
+| `firebirds` | sweeping in a flock, trailing flame | a red sky |
+| `spiders` | some lowering themselves on silk, some crawling; they climb away when it gets busy | webbed rock |
+| `beetles` | crawling, resting, running from the player | a cave |
+| `centipedes` | winding, segments glowing | the earth |
+| `snails` | gliding, leaving glowing trails; they stop when it gets busy | a cave |
+| `crabs` | scuttling sideways on the seabed | deep water |
+| `jellyfish` | pulsing upward, drifting down | deep water |
+| `glowfish` | a school turning together, splitting around the player | deep water |
+| `eels` | winding slowly | deep water |
+| `owls` | on their perches, heads turning to follow the player, blinking | a night forest |
+| `worms` | rising out of the earth in arcs and diving back | the earth |
+
+They react to the player (the nodes of `affect_groups`):
+
+- **Activity:** the faster the player moves, the more stirred up they get (`activity`, 0 to 1). They move faster, and each kind reacts in its own way (see the table). `reactivity` sets how much they care.
+- **Jolts:** a sudden jump, dash or hit startles them. From code, `startle(at, strength)` scatters them from a point (a boss's slam), and `excitement` keeps them stirred (a second phase).
+- **Light:** those near the player on screen glow brighter (`proximity_glow`).
+
+**They never touch the fight.** Nothing in the background collides, pushes or hurts.
+
+In a world, their light takes the area's color (`area_tint`): `MDSWorldGame` and the Room view set `area_color` from the room's area.
+
+Settings:
+
+- **Creature:** `creature` (picking one gives it its look), `count` (up to 32), `creature_size` and `speed`.
+- **Look:** `glow_color` and `body_color`.
+- **Habitat:** `habitat` and its colors `back_color_a` and `back_color_b`; `backdrop` (0 draws only the creatures, over another background).
+- **Light and focus:** `light_radius`, `light_strength`, `ambient` and `blur`.
+
+Set them where you set an animated background: **Areas tab > Boss room bg**, **World settings > Boss rooms bg**, or **Animated bg** for an area or a room. The **+** menu lists them under *Creatures (boss rooms)*.
+
+A value can be a creature (`bats`), a creature with settings (`owls(count=3)`), or a style and a creature (`blood_moon, bats`). With a style, they draw no habitat of their own, so the style shows behind them. In code: `MDSEnvironment.build_background("void_pulse, spiders", rect)`.
+
 #### Area titles and music
 
 Areas in the world file have presentation fields, set in the **Areas tab**: `title`, `subtitle`, `music` (a stream path), `music_volume_db` and `boss_music`.
@@ -1241,6 +1292,7 @@ addons/MetroidvaniaDeveloperSystem/
 │       ├── mds_parallax_background.gd # MDSParallaxBackground: layers behind the room, presets
 │       ├── mds_parallax_layer.gd # MDSParallaxLayer: one layer (shader-drawn or a picture)
 │       ├── mds_animated_background.gd # MDSAnimatedBackground: soft animated backgrounds, 20 styles
+│       ├── mds_creatures.gd # MDSCreatures: creature backgrounds for boss rooms, 20 kinds, lit by them
 │       └── mds_*.gd       # MDSDustStorm, MDSRain, MDSLightning, MDSSnowfall, MDSFog, MDSEmbers,
 │                          # MDSFireflies, MDSFallingLeaves, MDSLightShafts, MDSHeatHaze,
 │                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSHotWaterfall, MDSLavaFall, MDSRockfall, MDSWater,

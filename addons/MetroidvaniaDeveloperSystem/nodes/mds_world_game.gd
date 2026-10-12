@@ -461,6 +461,9 @@ func _apply_background(room: Node2D, id: String) -> void:
 		b = b.merge(r)
 	background = MDSEnvironment.build_background(value, b)
 	if background:
+		var area := world.get_room_area(id)
+		if not area.is_empty():
+			MDSEnvironment.apply_area_color(background, world.get_area_color(area))
 		room.add_child(background)
 
 ## A resource named by a world setting (a res:// path), or null.

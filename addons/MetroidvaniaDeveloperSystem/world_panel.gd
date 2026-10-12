@@ -1438,7 +1438,7 @@ func _rebuild_area_editor() -> void:
 		["Backdrop", "backdrop", "path", "world default", "MDSBackdrop (.tres) drawn in the distance behind the area's rooms. A room can have its own"],
 		["Parallax", "parallax", "parallax", "world default", "Parallax background behind every room of the area (MDSWorldGame adds it as each room loads; the Room view shows it): a preset like dusk_mountains or misty_forest, or a .tscn with an MDSParallaxBackground. A room can have its own, or none"],
 		["Animated bg", "background", "background", "world default", "Animated background behind every room of the area, soft and out of focus (MDSWorldGame adds it as each room loads; the Room view shows it): a style like bokeh, aurora, nebula or deep_water, or a .tscn with an MDSAnimatedBackground. It is drawn behind the parallax background: use one without a sky to see both. A room can have its own, or none"],
-		["Boss room bg", "boss_background", "background", "world's boss rooms", "Animated background of the area's boss rooms (type boss or mini_boss, or a boss named in the Inspect tab), instead of the area's: blood_moon, void_pulse, arcane_vortex, infection... Empty: the world's boss rooms background, else the area's"],
+		["Boss room bg", "boss_background", "background", "world's boss rooms", "Animated background of the area's boss rooms (type boss or mini_boss, or a boss named in the Inspect tab), instead of the area's: blood_moon, void_pulse, arcane_vortex, infection..., or creatures (bees, spiders, songbirds, bats, owls...), or both (blood_moon, bats). Empty: the world's boss rooms background, else the area's"],
 		["Weather", "weather", "weather", "world default", "Weather and effects in every room of the area (MDSWorldGame adds them as each room loads; the Room view shows them): presets like storm or sandstorm, effects like rain or fog(ground=1), comma-separated, or a .tscn of effect nodes. A room can have its own, or none"],
 		["Darkness", "darkness", "float", "auto", "0 lit, 0.05 to 0.8 dimmed (lights carve pools around the player and enemies). Empty: automatic, from the world's Dark room share. A room can have its own"],
 		["Objective", "objective", "", "e.g. Find the crypt key", "Shown by MDSObjectiveBanner on arrival and on the map until done"],
@@ -2361,7 +2361,7 @@ func _show_settings() -> void:
 	var boss_background := MDSUi.background_field(grid, "Boss rooms bg", str(world.get_setting("boss_background", "")), "none", func(t: String) -> void:
 		world.set_setting("boss_background", t.strip_edges())
 		_background_changed(t))
-	boss_background.tooltip_text = "Animated background of every boss room (type boss or mini_boss, or a boss named in the Inspect tab) whose area and room set none: blood_moon, void_pulse, arcane_vortex, infection, holy_light..."
+	boss_background.tooltip_text = "Animated background of every boss room (type boss or mini_boss, or a boss named in the Inspect tab) whose area and room set none: blood_moon, void_pulse, arcane_vortex, infection, holy_light..., or creatures (bees, spiders, songbirds, bats, owls...), or both (blood_moon, bats)"
 	var share_edit := MDSUi.field_line(grid, "Dark room share", str(world.get_setting("dark_room_share", 0.0)), "0")
 	share_edit.tooltip_text = "0 to 1: this share of the rooms with automatic darkness (no darkness on the room or its area) is dimmed by 0.35 to 0.55. Picked from the room id, so a room is always the same"
 	MDSUi.commit_line(share_edit, func(t: String) -> void: world.set_setting("dark_room_share", clampf(t.to_float(), 0.0, 1.0)))

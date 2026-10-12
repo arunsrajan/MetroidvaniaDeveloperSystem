@@ -61,6 +61,7 @@ const EFFECTS := {
 	"void_tendrils": ["Void tendrils", "mds_void_tendrils.gd", false, "Black tendrils writhing up from a pool of darkness, a violet glow at their rims, reaching for the player; can hurt (the Abyss)"],
 	"incense_smoke": ["Incense smoke", "mds_incense_smoke.gd", false, "Ribbons of smoke curling up from a censer, golden ash glinting in them (the Citadel's choral chambers)"],
 	"forge_sparks": ["Forge sparks", "mds_forge_sparks.gd", false, "Sparks spraying from a forge or a grinding wheel, arcing down and bouncing off the floor, in a stream or bursts; can burn (the Deep Docks)"],
+	"creatures": ["Creatures", "mds_creatures.gd", false, "A background of glowing creatures, one kind at a time (bees, spiders, small birds, bats, jellyfish, owls... 20 kinds), soft and out of focus, each carrying a light over its habitat. They stir as the player moves about and never touch the fight: made for boss rooms"],
 	"animated_background": ["Animated background", "mds_animated_background.gd", false, "A soft, out-of-focus background in motion, drawn by a shader: bokeh lights, an aurora, a nebula, molten blobs, deep water, storm clouds, a starfield... 20 styles, some made for boss rooms (void pulse, blood moon, arcane vortex, infection, holy light). Pick the style in the Inspector; drop an image on it to show the image blurred"],
 	"parallax": ["Parallax background", "mds_parallax_background.gd", false, "Layers behind the room moving slower the further back they are: sky, mountains, forest, city, ruins, cave rock, dunes, clouds, fog, stars or your own pictures. Drop an image on it to add a layer"],
 }
@@ -330,24 +331,68 @@ static func background_for_room(world: MDSWorld, id: String) -> String:
 		s = str(world.get_setting("background", "")).strip_edges()
 	return s
 
-## The spec [method build] makes an animated background from: a style id
-## ([constant MDSAnimatedBackground.STYLE_IDS]) becomes
-## [code]animated_background(style=id)[/code], and [code]aurora(blur=0.8)[/code] becomes
-## [code]animated_background(style=aurora, blur=0.8)[/code]; scenes and other specs stay as they are.
+## The spec [method build] makes an animated background from. A comma-separated list of:
+## - style ids ([constant MDSAnimatedBackground.STYLE_IDS]): [code]aurora[/code] becomes
+##   [code]animated_background(style=aurora)[/code], [code]aurora(blur=0.8)[/code]
+##   [code]animated_background(style=aurora, blur=0.8)[/code];
+## - creature ids ([constant MDSCreatures.CREATURE_IDS]): [code]bats[/code] becomes
+##   [code]creatures(creature=bats)[/code]. Next to a style ([code]blood_moon, bats[/code]) the
+##   creatures draw no habitat of their own ([code]backdrop=0[/code]), so the style shows behind them;
+## - scenes and other specs, as they are.
 static func background_spec(value: String) -> String:
 	var v := value.strip_edges()
-	if v.is_empty() or is_none(v) or v.begins_with("res://") or v.begins_with("uid://"):
+	if v.is_empty() or is_none(v):
 		return v
-	var head := v
+	var tokens := split_list(v)
+	var with_style := false
+	for t in tokens:
+		if _background_kind(t) == "style":
+			with_style = true
+	var out: PackedStringArray = []
+	for t in tokens:
+		var parts := _head_args(t)
+		var id: String = parts[0]
+		var args: String = parts[1]
+		match _background_kind(t):
+			"style":
+				out.append("animated_background(style=%s%s)" % [id, ", " + args if not args.is_empty() else ""])
+			"creature":
+				if with_style and not args.contains("backdrop"):
+					args = "backdrop=0" + (", " + args if not args.is_empty() else "")
+				out.append("creatures(creature=%s%s)" % [id, ", " + args if not args.is_empty() else ""])
+			_:
+				out.append(t.strip_edges())
+	return ", ".join(out)
+
+## A background token's id (lower case) and the settings in its parentheses.
+static func _head_args(token: String) -> PackedStringArray:
+	var t := token.strip_edges()
+	var head := t
 	var args := ""
-	var open := v.find("(")
-	if open > 0 and v.ends_with(")"):
-		head = v.substr(0, open)
-		args = v.substr(open + 1, v.length() - open - 2).strip_edges()
-	var id := head.strip_edges().to_lower().replace(" ", "_")
-	if not MDSAnimatedBackground.STYLE_IDS.has(id):
-		return v
-	return "animated_background(style=%s%s)" % [id, ", " + args if not args.is_empty() else ""]
+	var open := t.find("(")
+	if open > 0 and t.ends_with(")"):
+		head = t.substr(0, open)
+		args = t.substr(open + 1, t.length() - open - 2).strip_edges()
+	return PackedStringArray([head.strip_edges().to_lower().replace(" ", "_"), args])
+
+## "style", "creature" or "" (anything else) for a background token.
+static func _background_kind(token: String) -> String:
+	var t := token.strip_edges()
+	if t.begins_with("res://") or t.begins_with("uid://"):
+		return ""
+	var id := _head_args(t)[0]
+	if MDSAnimatedBackground.STYLE_IDS.has(id):
+		return "style"
+	if MDSCreatures.CREATURE_IDS.has(id):
+		return "creature"
+	return ""
+
+## Gives the effects under [param node] that take an area's color ([MDSCreatures]) the color
+## [param color] of the area they are in.
+static func apply_area_color(node: Node, color: Color) -> void:
+	for fx in effects_in(node):
+		if "area_color" in fx:
+			fx.set("area_color", color)
 
 ## The animated background named by [param value] (a style id, with settings in parentheses if
 ## you like, or a scene) as a node covering [param bounds] like [method build], or null for none.
@@ -365,10 +410,11 @@ static func check_background(value: String) -> String:
 	var v := value.strip_edges()
 	if v.is_empty() or is_none(v):
 		return ""
-	var spec := background_spec(v)
-	if spec == v and not v.begins_with("res://") and not v.begins_with("uid://") and not v.to_lower().begins_with("animated_background"):
-		return "'%s' is not an animated background style (%s)" % [v, ", ".join(MDSAnimatedBackground.STYLE_IDS)]
-	return check(spec)
+	for t in split_list(v):
+		var s := t.strip_edges()
+		if _background_kind(s).is_empty() and not s.begins_with("res://") and not s.begins_with("uid://") and not EFFECTS.has(_head_args(s)[0]):
+			return "'%s' is not an animated background style (%s) or a creature (%s)" % [s, ", ".join(MDSAnimatedBackground.STYLE_IDS), ", ".join(MDSCreatures.CREATURE_IDS)]
+	return check(background_spec(v))
 
 ## The weather of [param spec] as a node to add to a room, its effects covering
 ## [param bounds] (the room's rectangle, in the coordinates of the node it goes in) and
