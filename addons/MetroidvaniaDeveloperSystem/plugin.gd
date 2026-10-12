@@ -3,7 +3,7 @@ extends EditorPlugin
 
 const MET_SYS_PLUGIN_NAME = "MetSys"
 const MET_SYS_PLUGIN = "MetroidvaniaSystem"
-## When true (default) the plugin has a "Map Dev" main screen tab next to
+## When true (default) the plugin has a "MetDevSys" main screen tab next to
 ## 2D/3D/Script/MetSys; otherwise the panel starts in the right dock. Re-enable the plugin
 ## after changing it.
 const SETTING_MAIN_SCREEN = "metroidvania_developer_system/use_main_screen"
@@ -14,12 +14,12 @@ const METADATA_SECTION = "metroidvania_developer_system"
 ## Where the panel lives. The panel can be detached into its own window (e.g. on a second
 ## monitor) and docked back at any time.
 enum Placement { MAIN_SCREEN, WINDOW, RIGHT_DOCK, BOTTOM_PANEL }
-const PLACEMENT_NAMES: PackedStringArray = ["Main screen (Map Dev tab)", "Floating window", "Right dock", "Bottom panel"]
+const PLACEMENT_NAMES: PackedStringArray = ["Main screen (MetDevSys tab)", "Floating window", "Right dock", "Bottom panel"]
 
 var dock_instance: Control
 var placement: int = -1
 var _in_main_screen := false ## the plugin has a main screen tab
-var _main_visible := false ## the Map Dev tab is the current main screen
+var _main_visible := false ## the MetDevSys tab is the current main screen
 var _window: Window
 var _placeholder: Control
 var _metsys_check_timer: Timer
@@ -47,7 +47,7 @@ func _has_main_screen() -> bool:
 	return ProjectSettings.get_setting(SETTING_MAIN_SCREEN, true)
 
 func _get_plugin_name() -> String:
-	return "Map Dev"
+	return "MetDevSys"
 
 func _get_plugin_icon() -> Texture2D:
 	return EditorInterface.get_editor_theme().get_icon(&"TileMapLayer", &"EditorIcons")
@@ -114,7 +114,7 @@ func set_placement(new_placement: int, focus := true) -> void:
 			make_bottom_panel_item_visible(dock_instance)
 	if _placeholder:
 		_placeholder.visible = _main_visible and placement != Placement.MAIN_SCREEN
-		_placeholder.get_node("Box/Text").text = "Map Dev is in the %s." % ["main screen", "floating window", "right dock", "bottom panel"][placement]
+		_placeholder.get_node("Box/Text").text = "MetDevSys is in the %s." % ["main screen", "floating window", "right dock", "bottom panel"][placement]
 	if dock_instance.has_method("set_placement_state"):
 		dock_instance.set_placement_state(placement, _in_main_screen)
 	if int(ProjectSettings.get_setting(SETTING_PLACEMENT, -1)) != placement:
@@ -144,7 +144,7 @@ func _detach() -> void:
 
 func _open_window() -> void:
 	_window = Window.new()
-	_window.title = "Map Dev - Metroidvania Developer System"
+	_window.title = "MetDevSys - Metroidvania Developer System"
 	_window.theme = EditorInterface.get_editor_theme()
 	var scale := EditorInterface.get_editor_scale()
 	var usable := MDSUi.usable_screen_rect(EditorInterface.get_base_control().get_window())
@@ -190,7 +190,7 @@ func _save_window_rect() -> void:
 	if _window and _window.visible:
 		EditorInterface.get_editor_settings().set_project_metadata(METADATA_SECTION, "window_rect", Rect2i(_window.position, _window.size))
 
-## Shown in the Map Dev tab while the panel is somewhere else.
+## Shown in the MetDevSys tab while the panel is somewhere else.
 func _build_placeholder() -> Control:
 	var root := CenterContainer.new()
 	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -202,7 +202,7 @@ func _build_placeholder() -> Control:
 	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(text)
 	var back := Button.new()
-	back.text = "Dock Map Dev back here"
+	back.text = "Dock MetDevSys back here"
 	back.pressed.connect(func() -> void: set_placement(Placement.MAIN_SCREEN))
 	box.add_child(back)
 	var show_it := Button.new()

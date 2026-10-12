@@ -1,5 +1,5 @@
 extends "res://tests/test_case.gd"
-## Map Dev's windows fit the screen: the floating window and the dialogs are never bigger
+## MetDevSys's windows fit the screen: the floating window and the dialogs are never bigger
 ## than the screen (or the window they open over) and stay on it, dialogs scroll what doesn't
 ## fit, and the panel's row shrinks (the tool panel collapses) instead of running off the edge
 ## of a small window or a narrow dock.

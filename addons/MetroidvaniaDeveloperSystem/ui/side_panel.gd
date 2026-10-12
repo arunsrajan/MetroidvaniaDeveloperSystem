@@ -1,7 +1,7 @@
 @tool
 class_name MDSSidePanel
 extends VBoxContainer
-## The left tool panel of Map Dev, like MetSys' editor: every button and picker stacked
+## The left tool panel of MetDevSys, like MetSys' editor: every button and picker stacked
 ## in foldable sections, so the map canvas gets the rest of the screen. The « button
 ## collapses the panel to a thin strip.
 
@@ -22,7 +22,7 @@ func _init() -> void:
 	var head := HBoxContainer.new()
 	header = head
 	add_child(head)
-	_title = MDSUi.title("Map Dev", 14)
+	_title = MDSUi.title("MetDevSys", 14)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(_title)
 	_collapse = MDSUi.button("«", "Collapse the tool panel (more room for the map)")
@@ -62,7 +62,7 @@ func fit_width(available: float, needed: float) -> void:
 		set_collapsed(false)
 		_auto = false
 
-## The narrowest the rest of a Map Dev row can be: the map and the tabs, shrunk to their
+## The narrowest the rest of a MetDevSys row can be: the map and the tabs, shrunk to their
 ## minimum for [param available] px (see [method fit_row]).
 static func fit_row(available: float, side: MDSSidePanel, canvas: Control, tabs: Control) -> void:
 	var s := MDSUi.editor_scale()

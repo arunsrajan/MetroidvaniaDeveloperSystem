@@ -18,7 +18,7 @@ signal placement_requested(placement: int)
 enum Mode { METSYS, NON_LINEAR }
 const MODE_NAMES: PackedStringArray = ["MetSys mode", "Non-linear mode"]
 const SETTING_MODE := "metroidvania_developer_system/mode"
-const PLACEMENT_ITEMS: PackedStringArray = ["Dock in main screen (Map Dev tab)", "Detach to floating window", "Dock on the right", "Dock in bottom panel"]
+const PLACEMENT_ITEMS: PackedStringArray = ["Dock in main screen (MetDevSys tab)", "Detach to floating window", "Dock on the right", "Dock in bottom panel"]
 
 var mode: int = Mode.METSYS
 var mode_switch: OptionButton
@@ -39,7 +39,7 @@ func _ready() -> void:
 	placement_menu = MenuButton.new()
 	placement_menu.flat = true
 	placement_menu.text = "⧉"
-	placement_menu.tooltip_text = "Detach Map Dev into its own window, or dock it in the editor"
+	placement_menu.tooltip_text = "Detach MetDevSys into its own window, or dock it in the editor"
 	var pm := placement_menu.get_popup()
 	for i in PLACEMENT_ITEMS.size():
 		pm.add_radio_check_item(PLACEMENT_ITEMS[i], i)
@@ -88,7 +88,7 @@ func set_placement_state(current: int, main_screen_available: bool) -> void:
 	for i in pm.item_count:
 		pm.set_item_checked(i, pm.get_item_id(i) == current)
 	pm.set_item_disabled(pm.get_item_index(0), not main_screen_available)
-	placement_menu.tooltip_text = "Map Dev is in the %s. Detach it into its own window, or dock it in the editor" % ["main screen", "floating window", "right dock", "bottom panel"][current]
+	placement_menu.tooltip_text = "MetDevSys is in the %s. Detach it into its own window, or dock it in the editor" % ["main screen", "floating window", "right dock", "bottom panel"][current]
 
 func get_active_panel() -> Control:
 	return metsys_panel if mode == Mode.METSYS else world_panel

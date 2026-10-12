@@ -2,7 +2,7 @@
 class_name MDSWorldGame
 extends Node2D
 ## Game runtime for non-linear worlds: the counterpart of MetSys' MetSysGame, with no
-## MetSys dependency. Reads the same .mdsworld.json the Map Dev panel edits.
+## MetSys dependency. Reads the same .mdsworld.json the MetDevSys panel edits.
 ##
 ## Use it as the root of your game scene (or extend it):
 ## [codeblock]
@@ -602,7 +602,7 @@ func _warn_missing_gate_nodes(id: String, path: String) -> void:
 			continue
 		if MDSGate.find_gate(room_node, g) == null:
 			_warned_gates[key] = true
-			push_warning("MDSWorldGame: gate '%s' of room '%s' is connected on the map but %s has no MDSGate node for it, so the player can't leave through it. In Map Dev, select the room and press Write to scene (Inspect tab)." % [g, id, path])
+			push_warning("MDSWorldGame: gate '%s' of room '%s' is connected on the map but %s has no MDSGate node for it, so the player can't leave through it. In MetDevSys, select the room and press Write to scene (Inspect tab)." % [g, id, path])
 
 func _spawn_position(id: String, entry_gate: String, world_position: Vector2) -> Vector2:
 	if not entry_gate.is_empty():
@@ -966,7 +966,7 @@ func _apply_save(data: Dictionary) -> void:
 		current_area = world.get_room_area(room)
 		load_room.call_deferred(room, "", Vector2(float(p[0]), float(p[1])) if p.size() == 2 else Vector2.INF)
 
-## Called by the Map Dev panel's "Play from here".
+## Called by the MetDevSys panel's "Play from here".
 func mds_play_from(request: Dictionary) -> void:
 	if not world:
 		return
