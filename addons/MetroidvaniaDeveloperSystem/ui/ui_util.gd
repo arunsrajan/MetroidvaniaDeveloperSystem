@@ -269,7 +269,7 @@ static func background_field(grid: GridContainer, text: String, value: String, p
 	edit.text = value
 	edit.placeholder_text = placeholder
 	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	edit.tooltip_text = "Animated background, soft and out of focus, drawn by a shader: a style (bokeh, aurora, nebula, blood_moon...), with settings if you like (aurora(blur=0.8, speed=0.5)), or a .tscn holding an MDSAnimatedBackground. none: no background"
+	edit.tooltip_text = "Animated background, soft and out of focus, drawn by a shader: a style (bokeh, aurora, nebula, blood_moon...), with settings if you like (aurora(blur=0.8, speed=0.5)); creatures (bees, spiders, songbirds, bats, jellyfish, owls...); a style and creatures (blood_moon, bats); or a .tscn holding an MDSAnimatedBackground or MDSCreatures. none: no background"
 	row.add_child(edit)
 	var menu := menu_button("+", "Pick an animated background style")
 	var popup := menu.get_popup()
@@ -283,19 +283,59 @@ static func background_field(grid: GridContainer, text: String, value: String, p
 			popup.add_icon_item(background_icon(id), MDSAnimatedBackground.STYLE_NAMES[i])
 			popup.set_item_metadata(popup.item_count - 1, id)
 			popup.set_item_tooltip(popup.item_count - 1, MDSAnimatedBackground.STYLE_INFO[i])
+	popup.add_separator("Creatures (boss rooms)")
+	for i in MDSCreatures.CREATURE_IDS.size():
+		var id := MDSCreatures.CREATURE_IDS[i]
+		popup.add_icon_item(creature_icon(id), MDSCreatures.CREATURE_NAMES[i])
+		popup.set_item_metadata(popup.item_count - 1, ["creature", id])
+		popup.set_item_tooltip(popup.item_count - 1, MDSCreatures.CREATURE_INFO[i] + ". Added to a style already in the field, they fly in front of it")
 	popup.add_separator()
 	popup.add_item("None (no background here)")
 	popup.set_item_metadata(popup.item_count - 1, "none")
 	popup.add_item("Clear")
 	popup.set_item_metadata(popup.item_count - 1, "")
 	popup.index_pressed.connect(func(i: int) -> void:
-		edit.text = str(popup.get_item_metadata(i))
+		var m: Variant = popup.get_item_metadata(i)
+		if m is Array:
+			# A creature: on its own, or after the style already there.
+			var current := edit.text.strip_edges()
+			var keep: PackedStringArray = []
+			for t in MDSEnvironment.split_list(current):
+				if MDSEnvironment._background_kind(t) == "style":
+					keep.append(t.strip_edges())
+			keep.append(str(m[1]))
+			edit.text = ", ".join(keep)
+		else:
+			edit.text = str(m)
 		edit.text_submitted.emit(edit.text))
 	row.add_child(menu)
 	grid.add_child(row)
 	path_drop(edit)
 	commit_line(edit, commit)
 	return edit
+
+## A small picture of a creature: its glow over its habitat's dark.
+static func creature_icon(id: String, size := 16) -> Texture2D:
+	var key := "creature:" + id
+	if _type_icons.has(key):
+		return _type_icons[key]
+	var look: Dictionary = MDSCreatures.LOOKS.get(id, MDSCreatures.LOOKS.bees)
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var dots := [Vector2(0.3, 0.35), Vector2(0.68, 0.3), Vector2(0.5, 0.7)]
+	for y in size:
+		for x in size:
+			var uv := Vector2((x + 0.5) / size, (y + 0.5) / size)
+			var c: Color = (look.back_color_b as Color).lerp(look.back_color_a, uv.y)
+			for d in dots:
+				var k := clampf(1.0 - uv.distance_to(d) / 0.22, 0.0, 1.0)
+				c = c.lerp(look.glow_color, k * k)
+				if uv.distance_to(d) < 0.07:
+					c = (look.body_color as Color).lerp(look.glow_color, 0.4)
+			c.a = 1.0
+			img.set_pixel(x, y, c)
+	var tex := ImageTexture.create_from_image(img)
+	_type_icons[key] = tex
+	return tex
 
 ## A small picture of an animated background style: its sky, a light and an accent.
 static func background_icon(id: String, size := 16) -> Texture2D:

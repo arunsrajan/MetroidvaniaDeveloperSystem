@@ -1024,6 +1024,9 @@ func _refresh_background() -> void:
 		first = false
 	_background = MDSEnvironment.build_background(value, b)
 	if _background:
+		var area := world.get_room_area(room_id)
+		if not area.is_empty():
+			MDSEnvironment.apply_area_color(_background, world.get_area_color(area))
 		_background.name = "BackgroundPreview"
 		_view.add_child(_background)
 		_view.move_child(_background, 0)
