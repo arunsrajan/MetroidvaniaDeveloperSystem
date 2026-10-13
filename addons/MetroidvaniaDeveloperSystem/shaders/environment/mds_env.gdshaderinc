@@ -85,3 +85,24 @@ vec2 env_rotate(vec2 p, float a) {
 	float s = sin(a);
 	return vec2(c * p.x - s * p.y, s * p.x + c * p.y);
 }
+
+// Straight streaks running down a falling sheet (waterfalls, lava falls). The sheet is cut into
+// lanes `lane` px wide; each lane's streaks slide down at a pace of its own (`speed` px/s, give
+// or take a fifth) and are about `len` px long. Nothing changes across a lane but its soft
+// edges, so every streak is a straight vertical line: the flow never bends or curves. 0..1.
+float env_fall_streaks(float x, float y, float t, float speed, float lane, float len, float s) {
+	float lx = x / max(lane, 1.0);
+	float id = floor(lx);
+	float f = fract(lx);
+	float pace = speed * (0.8 + 0.4 * env_hash(vec2(id, s)));
+	float span = len * (0.6 + 0.8 * env_hash(vec2(id, s + 3.0)));
+	float n = env_noise(vec2(id * 7.31 + s, (y - t * pace) / span));
+	float edge = smoothstep(0.0, 0.4, f) * smoothstep(1.0, 0.6, f);
+	return smoothstep(0.5, 0.85, n) * edge;
+}
+
+// A shade that changes from lane to lane across a falling sheet, about `lane` px wide, and never
+// along it: straight vertical bands (0..1).
+float env_fall_lanes(float x, float lane, float s) {
+	return env_noise(vec2(x / max(lane, 1.0), s));
+}

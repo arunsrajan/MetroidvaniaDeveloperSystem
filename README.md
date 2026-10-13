@@ -510,7 +510,7 @@ painter.save()
 
 #### Environment effects
 
-Thirty effects bring rooms to life: weather, hazards, scenery in motion, and parallax, animated and creature backgrounds. Ten of them are made after Hollow Knight: Silksong's places (see [Silksong-style effects](#silksong-style-effects)). Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
+Thirty effects bring rooms to life: weather, hazards, scenery in motion, and parallax, animated and creature backgrounds. Ten of them are made after Hollow Knight: Silksong's places (see [Silksong-style effects](#silksong-style-effects)). The same list has a **bench** to save the game at (see [Benches, saving and the map](#benches-saving-and-the-map)). Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
 
 | Effect | Node | What it does |
 |---|---|---|
@@ -526,11 +526,12 @@ Thirty effects bring rooms to life: weather, hazards, scenery in motion, and par
 | Heat haze | `MDSHeatHaze` | Everything behind it shimmers, rippling upward |
 | Steam vent | `MDSSteamVent` | A vent forcing out hot steam under pressure: wisps, a warning glow, then a jet (white-hot at the vent, cooling to a dark red crest, glitter thrown up along it) that throws the player (`launch_speed`) and scalds them (`damage`). It repeats (`rest_time`), blasts constantly, or waits for `erupt()`; `phase_offset` lets a row of vents take turns. Rotate it to blast sideways or down. |
 | Lava pool | `MDSLava` | Molten rock with crust plates, glowing cracks, bursting bubbles, a heat glow and embers; `liquid` switches to magma, acid or cursed ooze. It hurts every `damage_interval` |
-| Waterfall | `MDSWaterfall` | A sheet of falling water with ragged sides, white water at its lip and foot, mist, and what's behind bent through it; `push_down` presses the player down |
-| Hot water falls | `MDSHotWaterfall` | Scalding mineral water: milky and pale where it runs thick, with a warm glow deep in it. Steam pours off its whole length and billows up from its foot, and the air around it wavers in the heat. It scalds (`damage`, `damage_interval`), and `push_down` presses the player down |
+| Waterfall | `MDSWaterfall` | A sheet of water falling straight down: straight sides and straight streaks racing down it, so the flow never curves. It has white water at its lip and foot, mist, and what's behind is bent through it in straight strips. `push_down` presses the player down |
+| Hot water falls | `MDSHotWaterfall` | Scalding mineral water falling straight down, with straight sides and streaks: milky and pale where it runs thick, with a warm glow deep in it. Steam pours off its whole length and billows up from its foot, and the air around it wavers in the heat. It scalds (`damage`, `damage_interval`), and `push_down` presses the player down |
 | Falling rocks | `MDSRockfall` | Stones break off at the top of the rectangle (put it under a ceiling) and drop, tumbling, to crash on the ground in a puff of dust and a spray of chips. They pile up there as rubble resting on its bottom edge, and pebbles trickle down between them. `rate`, `rock_size`, `gravity`, `rubble` and `rubble_height`, `dust`, `pebbles`. With `activation` PLAYER_INSIDE it's a cave-in as the player comes near. With `damage`, it hurts |
-| Lava falls | `MDSLavaFall` | Molten rock pouring over a ledge, slow and thick. It has a white-hot core and orange streaks. Crust forms as it falls and breaks up with glowing cracks, and blobs bulge at its sides. It splashes molten drops where it lands, glows, sends up embers, and the air wavers in the heat. `liquid` switches it to magma, acid or cursed ooze. It burns (`damage`, `damage_interval`) |
+| Lava falls | `MDSLavaFall` | Molten rock pouring straight down over a ledge, slow and thick, with straight sides. It has a white-hot core and straight orange streaks; dark crust rides down it in long straight strands, glowing where they meet. Each lane of it slides at its own pace (faster in the middle), so nothing on it bends. It splashes molten drops where it lands, glows, sends up embers, and the air wavers in the heat. `liquid` switches it to magma, acid or cursed ooze. It burns (`damage`, `damage_interval`) |
 | Water | `MDSWater` | A pool: a rolling surface, refraction, a deeper tint toward the bottom, caustics, bubbles; `drag` slows bodies in it |
+| Bench / save point | `MDSBench` | A bench to rest on, after Silksong's: an iron bench with a cushion and a lantern that flickers and lights it, motes drifting up. At it, **Up** sits the player down: the game is saved, health restored, and the bench glows and sends up threads of light. See [Benches, saving and the map](#benches-saving-and-the-map) |
 | Silk threads | `MDSSilkThreads` | Strands of silk drifting and turning in the air, light running along them, threads hanging from the top edge with a bead of silk at the end (the Weavenest) |
 | Will-o'-wisps | `MDSWisps` | Ghostly flames drifting on slow loops, a flickering tongue of fire trailing behind each and licking upward, a halo lighting the air (the Wisp Thicket) |
 | Gnat swarm | `MDSGnatSwarm` | Clouds of tiny gnats buzzing about drifting swarm centres, wings glinting. A swarm near the player gathers around its head (`lure`, `lure_radius`) (Bilewater) |
@@ -739,10 +740,52 @@ It handles:
 - **Requirements** (`enforce_requirements`): gates whose map requirements the player lacks emit `transition_blocked(transition, missing)` instead.
 - **Progress:** `grant_ability()` / `has_ability()`, `store_object()` / `is_object_stored()` for collected items and opened walls (`object_id(node)` gives stable ids), visited rooms and the current area.
 - **Presentation:** the room's backdrop, weather, darkness and lights, and 2.5D (see below).
-- **Save data:** `get_save_data()` / `set_save_data()` restore room, position, abilities, visited rooms, stored objects, the map's reveal state, completed objectives, defeated enemies and bosses, and followers. `set_save_data()` works before or after the game enters the tree.
-- **Signals:** `room_changed(from, to)`, `area_changed(from, to)`, `room_loaded(room)` (emitted last), `transition_blocked(transition, missing)`, `ability_gained(ability)`, `objective_completed(area)` and `defeated(id, boss)`.
+- **Saving and continuing:** resting on a bench saves the game. A game started again continues on that bench, and the map shows everything explored (see [Benches, saving and the map](#benches-saving-and-the-map)).
+- **Save data:** `get_save_data()` / `set_save_data()` restore room, position, abilities, visited rooms, stored objects, the map's reveal state, completed objectives, defeated enemies and bosses, followers, the benches found and the one to come back to. `set_save_data()` works before or after the game enters the tree.
+- **Signals:** `room_changed(from, to)`, `area_changed(from, to)`, `room_loaded(room)` (emitted last), `transition_blocked(transition, missing)`, `ability_gained(ability)`, `objective_completed(area)`, `defeated(id, boss)`, `game_saved(save_point)` and `game_loaded`.
 - **Helpers:** `load_room(room_or_scene, entry_gate, world_position)`, `get_room_bounds()`, `apply_camera_limits(camera)`, `get_room_name()`.
 - **Play from here** works automatically: the game implements `mds_play_from()`.
+
+#### Benches, saving and the map
+
+A save point is any node in the `save_point`, `savepoint`, `save`, `checkpoint` or `bench` group, or named like one (`SavePoint`, `Bench`, `Checkpoint`...).
+
+- **In the editor,** the scanner finds them in every room scene:
+  - the map marks them (the **Save Points** filter);
+  - the analysis measures how far each room is from one, and warns about boss rooms far from any;
+  - **Play from here** starts at the room's save point;
+  - **Fit props to floor** stands them on the floor.
+- **In the game,** `MDSWorldGame` starts a room at its save point when it has no gate to come in by.
+
+![A bench in the Mossgrove cave, the player resting on it, threads of light rising](docs/bench_save_point.png)
+
+**`MDSBench`** is a save point to rest on, after Hollow Knight: Silksong's benches. It is a wrought-iron bench with a wooden seat, a red cushion, a carved back and a lantern on a hook, drawn and animated by a shader: the lantern flickers and lights the bench, and motes drift up in its light. Place it from the Room view's **Effects** tool (**Bench / save point**): it stands on the floor where you click, and dragging its corner sizes it. You can also add it like any node.
+
+- **At the bench,** a warm rim shows and **Rest** floats above it. **Up** (`rest_actions`: `interact`, `ui_up`, `move_up`) sits the player down:
+  - the player is held still on it until a step or a jump (`leave_actions`). A player with `mds_bench_rest(bench)` / `mds_bench_leave(bench)` plays its own sitting animation instead;
+  - its health is restored: `heal_full()`, `restore_health()`, or `health = max_health` (`heal_on_rest`);
+  - the game is saved there (`save_on_rest`) and "Game saved" shows;
+  - the bench glows, threads of light rise from the cushion, and a ring of light spreads out.
+- It is in the `bench`, `save_point` and `lantern` groups: the map, the analysis and Play from here know it, and dark rooms give it a light. `rested(body)` and `left(body)` signal it; `rest(body)` and `leave()` do it from code.
+
+**Saving** (`MDSWorldGame`, Persistence):
+
+- `save_game(bench)` writes the game to `save_file` (`user://mds_save.json`) as JSON. That is every bit of `get_save_data()`, with the room and position set to the bench's. The bench becomes the place to come back to (`respawn`).
+- **Continuing:** with `load_on_start` (on), a game started again continues from the save, on that bench. Play from here, and a save your own code loads first, win.
+- **The map, as far as the player got:** the exploration file (`exploration_file`, `user://mds_exploration.json`) is written as soon as a room is first entered or a bench found, saved or not. It keeps the rooms visited, the map's reveal and the benches. A restarted game's map shows all of it, rooms explored after the last save too.
+- `return_to_save_point()` takes the player back to the bench last rested on, for when it dies (the starting room if it never rested). `new_game()` starts over, deleting the save and the explored map. `has_save_game()`, `read_save_game()`, `load_game()` and `delete_save_game()` are there for a title screen.
+
+**The map (`MDSWorldMapView`)** marks the benches found, the one last rested on brighter (`show_save_points`). With **`follow_player`** it is a minimap: it follows the player in a corner of the screen, showing `view_span` px of the world (3000 by default) in a frame. **Scenes > Create game scene...** sets this up: a minimap in the top-right corner, and save and exploration files named after the world (`user://<world>_save.json`, `user://<world>_exploration.json`).
+
+```gdscript
+# A title screen: continue, or start over.
+if game.has_save_game():
+    game.load_game()
+else:
+    game.new_game()
+# The player died: back to the last bench.
+await game.return_to_save_point()
+```
 
 #### Camera for irregular rooms: MDSRoomCamera
 
@@ -1060,7 +1103,7 @@ In the editor, the **Progress** and **Stats** tabs list every objective with whe
 
 #### Exploration, defeated enemies and followers
 
-- **Exploration file** (`exploration_file`, e.g. `user://exploration.json`): visited rooms and the map's reveal are written there as soon as a room is first entered, separately from save points, so dying or quitting never forgets the map. `reset_exploration()` forgets it for a new game.
+- **Exploration file** (`exploration_file`, `user://mds_exploration.json` by default): visited rooms, the map's reveal and the benches found are written there as soon as a room is first entered, separately from saving, so dying or quitting never forgets the map. `reset_exploration()` forgets it for a new game (`new_game()` does).
 - **Defeated enemies:** `mark_defeated(node)` keeps an enemy gone: loading its room again removes it before the room enters the tree, also after saving and loading. A node with `mds_boss_name` metadata also counts its boss as defeated (`is_boss_defeated`). `defeated(id, boss)` is emitted.
 - **Followers:** instanced scenes in the `carry_over` group (`carry_over_group`) within `carry_over_distance` of the gate the player leaves through come along: they're re-created just inside the gate the player arrives at, at the same offset along it, and removed from the room they left. They stay where they end up, in saves too.
 
@@ -1300,7 +1343,7 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── edge_band.gd       # MDSEdgeBand: band meshes for shader-skinned freeform shapes
 │   └── exporters.gd       # MDSExporters: JSON, Graphviz, Markdown
 ├── nodes/
-│   ├── mds_world_game.gd  # MDSWorldGame: non-linear game runtime (MetSysGame counterpart)
+│   ├── mds_world_game.gd  # MDSWorldGame: non-linear game runtime (MetSysGame counterpart), saving at benches
 │   ├── mds_room_camera.gd # MDSRoomCamera: irregular-room camera zones and transitions (Camera2D / Phantom Camera)
 │   ├── mds_camera_director.gd # MDSCameraDirector: framing threats, reveals, punch-ins and focus in fights
 │   ├── mds_freeform.gd    # MDSFreeform: curved freeform terrain (fill, edge strips, clumps, collision)
@@ -1330,7 +1373,7 @@ addons/MetroidvaniaDeveloperSystem/
 │       ├── mds_creatures.gd # MDSCreatures: creature backgrounds for boss rooms, 20 kinds, lit by them
 │       └── mds_*.gd       # MDSDustStorm, MDSRain, MDSLightning, MDSSnowfall, MDSFog, MDSEmbers,
 │                          # MDSFireflies, MDSFallingLeaves, MDSLightShafts, MDSHeatHaze,
-│                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSHotWaterfall, MDSLavaFall, MDSRockfall, MDSWater,
+│                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSHotWaterfall, MDSLavaFall, MDSRockfall, MDSWater, MDSBench,
 │                          # MDSSilkThreads, MDSWisps, MDSGnatSwarm, MDSDrips, MDSHangingMoss, MDSSwayingGrass,
 │                          # MDSCobwebs, MDSVoidTendrils, MDSIncenseSmoke, MDSForgeSparks
 ├── shaders/
@@ -1340,7 +1383,7 @@ addons/MetroidvaniaDeveloperSystem/
 ├── ui/
 │   ├── map_canvas.gd      # MDSMapCanvas: MetSys map
 │   ├── world_canvas.gd    # MDSWorldCanvas: free-form world editor
-│   ├── world_map_view.gd  # MDSWorldMapView: in-game map
+│   ├── world_map_view.gd  # MDSWorldMapView: in-game map or minimap (benches found, the player)
 │   ├── map_style.gd       # MDSMapStyle: tilesets (built-in, custom PNG, MetSys themes), glowing areas
 │   ├── room_view.gd       # MDSRoomView: the Room view (actual view) and its brush controls
 │   ├── side_panel.gd      # MDSSidePanel: the left tool panel (foldable sections)
@@ -1357,6 +1400,16 @@ addons/MetroidvaniaDeveloperSystem/
 ```
 
 The `core/` classes have no editor dependencies, so you can use them from tool scripts or CI. For example, fail a build when `MDSWorldValidator.run()` reports errors.
+
+## Upgrading from 3.3
+
+- `MDSWorldGame` now saves by default, and continues on start:
+  - `save_file` is `user://mds_save.json`, written when the player rests on a bench;
+  - `exploration_file` is `user://mds_exploration.json`;
+  - `load_on_start` is on.
+- A game that saved its own way keeps working: a save it loads first wins. To keep the old behaviour, clear both paths.
+- `MDSWorldMapView` draws the benches found; turn off `show_save_points` to hide them.
+- Waterfalls, hot water falls and lava falls now fall straight: there are no ragged sides, bulges or curving streaks any more.
 
 ## Upgrading from 3.2
 

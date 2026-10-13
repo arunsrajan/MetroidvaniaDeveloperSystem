@@ -425,13 +425,18 @@ static func file_uid(path: String) -> int:
 
 ## Creates a ready-to-run game scene for the world: an MDSWorldGame root, a placeholder
 ## player (CharacterBody2D in the "player" group) with a following camera, a room camera with a
-## camera director, area music, and a UI with an in-game map (MDSWorldMapView) in the
-## top-right corner, area titles and objective banners.
+## camera director, area music, and a UI with a minimap (MDSWorldMapView following the player)
+## in the top-right corner, area titles and objective banners. The game saves at benches and
+## keeps the explored map in user:// files named after the world, so a restarted game continues
+## from the last bench with the map as far as the player got.
 static func create_game_scene(world: MDSWorld, scene_path: String) -> Error:
 	var game := MDSWorldGame.new()
 	game.name = world.get_world_name().to_pascal_case() + "Game" if not world.get_world_name().is_empty() else "WorldGame"
 	game.world_file = world.path
 	game.starting_room = world.get_start_room()
+	var stem := world.get_world_name().to_snake_case().validate_filename() if not world.get_world_name().is_empty() else "world"
+	game.save_file = "user://%s_save.json" % stem
+	game.exploration_file = "user://%s_exploration.json" % stem
 	var player := CharacterBody2D.new()
 	player.name = "Player"
 	player.add_to_group(&"player", true)
@@ -472,6 +477,7 @@ static func create_game_scene(world: MDSWorld, scene_path: String) -> Error:
 	var map := MDSWorldMapView.new()
 	map.name = "Map"
 	map.world_file = world.path
+	map.follow_player = true
 	map.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	map.offset_left = -320
 	map.offset_bottom = 220

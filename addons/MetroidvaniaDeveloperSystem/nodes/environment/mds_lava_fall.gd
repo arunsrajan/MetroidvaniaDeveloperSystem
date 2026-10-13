@@ -2,9 +2,9 @@
 @icon("res://addons/MetroidvaniaDeveloperSystem/assets/environment/lava_fall.svg")
 class_name MDSLavaFall
 extends MDSEnvironmentEffect
-## Lava falls: molten rock pouring over a ledge down the rectangle, slow and thick. A white-hot
-## core with orange streaks racing down it, dark crust forming as it falls and breaking up
-## with glowing cracks, heavy blobs bulging at its sides, a bright lip where it pours over and
+## Lava falls: molten rock pouring straight down over a ledge, slow and thick, with straight
+## sides (the flow never curves). A white-hot core with straight orange streaks racing down it,
+## dark crust plates riding down in straight lanes with glowing cracks, a bright lip where it pours over and
 ## a splash where it lands throwing molten drops, a heat glow around it, embers rising and the
 ## air wavering in the heat. [member liquid] switches it to magma, acid or cursed ooze. By
 ## default it falls behind the terrain, so the rock frames it. Bodies of

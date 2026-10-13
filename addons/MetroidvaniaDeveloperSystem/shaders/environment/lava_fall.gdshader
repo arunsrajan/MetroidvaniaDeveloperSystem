@@ -1,8 +1,8 @@
 shader_type canvas_item;
-// Lava falls: molten rock pouring over a ledge, slow and thick. A white-hot core with orange
-// streaks racing down it, dark crust forming as it falls and breaking up with glowing cracks,
-// heavy blobs bulging at its sides, a bright lip where it pours over and a splash where it
-// lands throwing molten drops, a heat glow around it, embers rising and the air wavering in
+// Lava falls: molten rock pouring straight down over a ledge, slow and thick, with straight
+// sides. A white-hot core with straight orange streaks racing down it, dark crust plates riding
+// down in straight lanes with glowing cracks between them, a bright lip where it pours over and
+// a splash where it lands throwing molten drops, a heat glow around it, embers rising and the air wavering in
 // the heat. `column` is the fall (x, y, width, height) in px within the rectangle, which also
 // holds the glow, the splash and the embers around it.
 
@@ -59,25 +59,25 @@ void fragment() {
 	float t = TIME;
 	float across_raw = 1.0 - abs(x - w * 0.5) / max(w * 0.5, 1.0);
 	float across = clamp(across_raw, 0.0, 1.0);
-	// Thick, slow sides: blobs bulging as they slide down.
-	float ys = y - t * flow_speed * 0.7;
-	float wob_l = (env_fbm(vec2(ys * 0.011, seed), 3) - 0.5) * w * 0.32;
-	float wob_r = (env_fbm(vec2(ys * 0.011, seed + 7.0), 3) - 0.5) * w * 0.32;
-	// It pours out wide over the lip and narrows as it falls.
-	float lip_wide = smoothstep(40.0, 0.0, y) * w * 0.12;
-	float inside = smoothstep(-1.5, 1.5, x - wob_l + lip_wide) * smoothstep(-1.5, 1.5, w + wob_r + lip_wide - x) * step(0.0, y) * step(y, h);
-	// Faster in the middle, dragging at the sides.
-	float speed = flow_speed * (0.45 + 0.55 * sqrt(across));
-	float fy = y - t * speed;
-	float melt = env_fbm(vec2(x / 30.0, fy / 110.0) + vec2(seed, 0.0), 4);
-	float streak = smoothstep(0.42, 0.85, env_fbm(vec2(x / 11.0, fy / 70.0) + seed * 1.7, 3) * 0.6 + melt * 0.5);
-	// Crust riding down and breaking up: plates with glowing cracks between them.
-	// Warped, so the plates break up unevenly rather than in a net.
-	vec2 warp = vec2(env_noise(vec2(x / 50.0, fy / 80.0) + seed + 3.0), env_noise(vec2(x / 50.0 + 7.0, fy / 80.0) + seed)) - 0.5;
-	vec2 cell = env_voronoi(vec2(x / 28.0, fy / 64.0) + warp * 1.2 + seed * 2.3);
-	float crack = smoothstep(0.02, 0.12, cell.y - cell.x);
-	float plates = smoothstep(0.55, 0.72, env_noise(vec2(x / 42.0, fy / 85.0) + seed + 11.0) + (1.0 - across) * 0.4 + crust * 0.3 - 0.15);
-	plates *= crust * smoothstep(0.0, 140.0, y);
+	// Straight sides: the molten rock falls plumb, without bulges or a curve.
+	float inside = smoothstep(-1.5, 1.5, x) * smoothstep(-1.5, 1.5, w - x) * step(0.0, y) * step(y, h);
+	// Lanes of molten rock sliding down side by side, faster in the middle and dragging at the
+	// sides. Each lane keeps one pace, so whatever rides on it stays a straight line.
+	float id = floor(x / 8.0);
+	float mid = clamp(1.0 - abs((id + 0.5) * 8.0 - w * 0.5) / max(w * 0.5, 1.0), 0.0, 1.0);
+	float fy = y - t * flow_speed * (0.45 + 0.55 * sqrt(mid));
+	float melt = env_noise(vec2(id * 3.7 + seed, fy / 110.0)) * 0.65 + env_noise(vec2(id * 1.9 + seed + 5.0, fy / 45.0)) * 0.35;
+	float streak = max(env_fall_streaks(x, y, t, flow_speed * 0.8, 5.0, 70.0, seed * 1.7), smoothstep(0.55, 0.9, melt) * 0.6);
+	// Crust riding down in long straight strands, a lane wide, glowing where they meet.
+	float cl = x / 12.0;
+	float cid = floor(cl);
+	float cmid = clamp(1.0 - abs((cid + 0.5) * 12.0 - w * 0.5) / max(w * 0.5, 1.0), 0.0, 1.0);
+	float cfy = y - t * flow_speed * (0.45 + 0.55 * sqrt(cmid));
+	float plate_n = env_noise(vec2(cid * 5.3 + seed + 11.0, cfy / (150.0 + 90.0 * env_hash(vec2(cid, seed + 4.0)))));
+	float plates = smoothstep(0.58, 0.78, plate_n + (1.0 - across) * 0.4 + crust * 0.3 - 0.15);
+	plates *= crust * smoothstep(0.0, 140.0, y) * 0.9;
+	float fx = fract(cl);
+	float crack = smoothstep(0.0, 0.18, min(fx, 1.0 - fx));
 	vec3 col = mix(hot_color.rgb, bright_color.rgb, streak * (0.4 + 0.6 * across));
 	// A white-hot core.
 	col = mix(col, mix(bright_color.rgb, vec3(1.0, 0.97, 0.88), 0.35), smoothstep(0.55, 1.0, across) * (0.3 + 0.3 * melt));
