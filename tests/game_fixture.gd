@@ -141,13 +141,15 @@ static func _room(world: MDSWorld, id: String) -> Node2D:
 	return root
 
 ## A game for the world: a player with a capsule and camera, UI with title, music, banner and
-## map. Add it to the tree and await [signal MDSWorldGame.room_loaded].
-static func make_game(exploration := "") -> MDSWorldGame:
+## map. Add it to the tree and await [signal MDSWorldGame.room_loaded]. It reads and writes no
+## save or exploration file unless given ones (never the player's own, in user://).
+static func make_game(exploration := "", save := "") -> MDSWorldGame:
 	var game := MDSWorldGame.new()
 	game.world_file = WORLD
 	game.fade_time = 0.0
 	game.gate_cooldown = 0.0
 	game.exploration_file = exploration
+	game.save_file = save
 	var player := CharacterBody2D.new()
 	player.name = "Player"
 	player.add_to_group(&"player", true)

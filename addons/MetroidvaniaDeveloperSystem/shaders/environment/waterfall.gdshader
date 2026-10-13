@@ -1,7 +1,7 @@
 shader_type canvas_item;
-// A waterfall: a sheet of water pouring down with streaks racing along it, ragged sides,
-// white water at the lip and where it plunges, and mist billowing out at its foot. What is
-// behind it shows through, bent by the water. `column` is the sheet (x, y, width, height) in
+// A waterfall: a sheet of water pouring straight down, with straight sides and straight
+// streaks racing along it, white water at the lip and where it plunges, and mist billowing out
+// at its foot. What is behind it shows through, bent by the water in straight strips. `column` is the sheet (x, y, width, height) in
 // px within the rectangle, which also holds the mist around its foot.
 
 render_mode blend_mix;
@@ -29,24 +29,23 @@ void fragment() {
 	float w = column.z;
 	float h = column.w;
 	float t = TIME;
-	// Ragged sides that breathe along the fall.
-	float wob_l = (env_noise(vec2((y - t * flow_speed * 0.3) * 0.012, seed)) - 0.5) * w * 0.14;
-	float wob_r = (env_noise(vec2((y - t * flow_speed * 0.3) * 0.012, seed + 7.0)) - 0.5) * w * 0.14;
-	float inside = smoothstep(-1.5, 1.5, x - wob_l) * smoothstep(-1.5, 1.5, w + wob_r - x) * step(0.0, y) * step(y, h);
-	// Streaks racing down the sheet.
-	float s1 = env_noise(vec2(x / 9.0, (y - t * flow_speed) / 120.0) + seed);
-	float s2 = env_noise(vec2(x / 4.0 + 13.0, (y - t * flow_speed * 1.3) / 60.0));
-	float streak = smoothstep(0.45, 0.9, s1 * 0.6 + s2 * 0.5);
+	// Straight sides: the sheet falls plumb, without a wobble or a curve.
+	float inside = smoothstep(-1.0, 1.0, x) * smoothstep(-1.0, 1.0, w - x) * step(0.0, y) * step(y, h);
+	// Straight streaks racing down the sheet, each lane at a pace of its own.
+	float s1 = env_fall_streaks(x, y, t, flow_speed, 9.0, 120.0, seed);
+	float s2 = env_fall_streaks(x + 3.0, y, t, flow_speed * 1.3, 4.0, 60.0, seed + 13.0);
+	float streak = clamp(s1 * 0.75 + s2 * 0.6, 0.0, 1.0);
+	float lanes = env_fall_lanes(x, 14.0, seed + 2.0);
 	// A rounded sheet: darker at its sides.
 	float across = clamp(1.0 - abs((x - w * 0.5) / max(w * 0.5, 1.0)), 0.0, 1.0);
-	vec3 col = mix(water_color.rgb, foam_color.rgb, streak * 0.55);
-	col *= mix(0.72, 1.08, sqrt(across));
+	vec3 col = mix(water_color.rgb, foam_color.rgb, streak * 0.55 + lanes * 0.08);
+	col *= mix(0.72, 1.08, sqrt(across)) * (0.94 + 0.12 * lanes);
 	// White water at the lip and where it plunges.
-	float lip = smoothstep(22.0, 0.0, y) * (0.6 + 0.4 * s2);
-	float plunge = smoothstep(h - 50.0, h, y) * (0.5 + 0.5 * s1);
+	float lip = smoothstep(22.0, 0.0, y) * (0.6 + 0.4 * lanes);
+	float plunge = smoothstep(h - 50.0, h, y) * (0.5 + 0.5 * max(s1, lanes));
 	col = mix(col, foam_color.rgb, clamp(max(lip, plunge), 0.0, 1.0) * 0.85);
-	// What is behind, bent by the water.
-	vec2 bend = vec2((s1 - 0.5) * refraction * 10.0, 0.0) * SCREEN_PIXEL_SIZE;
+	// What is behind, bent by the water in straight strips down the sheet.
+	vec2 bend = vec2((lanes - 0.5) * refraction * 10.0, 0.0) * SCREEN_PIXEL_SIZE;
 	vec3 behind = texture(screen_tex, SCREEN_UV + bend * inside).rgb;
 	float wa = water_color.a + (1.0 - water_color.a) * max(streak * 0.5, max(lip, plunge));
 	vec3 sheet = mix(behind, col, wa);

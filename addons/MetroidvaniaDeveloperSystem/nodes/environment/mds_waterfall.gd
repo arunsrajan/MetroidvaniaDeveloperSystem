@@ -2,9 +2,9 @@
 @icon("res://addons/MetroidvaniaDeveloperSystem/assets/environment/waterfall.svg")
 class_name MDSWaterfall
 extends MDSEnvironmentEffect
-## A waterfall: a sheet of water pouring down the rectangle with streaks racing along it,
-## ragged sides, white water at the lip and where it plunges, and mist billowing out at its
-## foot. What is behind shows through, bent by the water. By default it falls behind the
+## A waterfall: a sheet of water pouring straight down the rectangle, with straight sides and
+## straight streaks racing along it (the flow never curves), white water at the lip and where it
+## plunges, and mist billowing out at its foot. What is behind shows through, bent by the water. By default it falls behind the
 ## terrain, so the rock it pours over frames it. With [member push_down], bodies under it are
 ## pressed down.
 

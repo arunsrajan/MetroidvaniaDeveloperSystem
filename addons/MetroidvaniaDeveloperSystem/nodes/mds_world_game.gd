@@ -26,7 +26,13 @@ extends Node2D
 ##   [MDSEnvironment]), darkness with lights around the player and enemies.
 ## - Tracks visited rooms, the current area, abilities, collected objects, defeated enemies
 ##   and bosses, and area objectives, with [method get_save_data] / [method set_save_data].
-##   An exploration file keeps the map explored even when the game isn't saved.
+##   An exploration file keeps the map explored (and the save points found) even when the game
+##   isn't saved, so a restarted game shows the map as far as the player got.
+## - Saves the game at save points, like Hollow Knight's benches: [method save_game] writes
+##   [member save_file] (an [MDSBench] calls it when the player rests on it) and records the
+##   bench as the place to come back to ([method return_to_save_point], after dying). A game
+##   started again continues from that save ([member load_on_start]); [method new_game] starts
+##   over.
 ## - Carries followers (the [member carry_over_group]) through gates with the player.
 ## - Works with the panel's "Play from here" ([method mds_play_from]).
 
@@ -38,6 +44,10 @@ signal transition_blocked(transition: Dictionary, missing: PackedStringArray)
 signal ability_gained(ability: String)
 ## An area's objective ([code]areas[name].objective[/code]) was completed.
 signal objective_completed(area: String)
+## The game was saved to [member save_file], at [param save_point] (a bench; null: elsewhere).
+signal game_saved(save_point: Node)
+## A save was loaded (see [method load_game], [member load_on_start]).
+signal game_loaded
 ## A node was recorded as defeated ([method mark_defeated]); [param boss] is the boss's name
 ## when it was one.
 signal defeated(id: String, boss: String)
@@ -110,9 +120,17 @@ static var instance: MDSWorldGame
 @export var light_groups: PackedStringArray = ["player", "enemy", "lantern"]
 
 @export_group("Persistence")
-## A file of its own that keeps the visited rooms and the map's reveal, written as soon as a
-## room is first entered: dying or quitting without saving never forgets the map. Empty: off.
-@export var exploration_file := ""
+## Where [method save_game] writes the game, as JSON (resting on a bench saves there). Empty:
+## no save file ([method get_save_data] still gives the data, to save it your own way).
+@export var save_file := "user://mds_save.json"
+## When the game starts, continue from [member save_file] if there is one (at the bench it was
+## saved at), else start a new game in [member starting_room]. "Play from here" and a save
+## your own code loads first win.
+@export var load_on_start := true
+## A file of its own that keeps the visited rooms, the map's reveal and the save points found,
+## written as soon as a room is first entered: dying or quitting without saving never forgets
+## the map, and a restarted game shows it as far as the player got. Empty: off.
+@export var exploration_file := "user://mds_exploration.json"
 ## Nodes in this group that are near the gate the player leaves through (a guard giving
 ## chase) come along into the next room, and stay where they end up.
 @export var carry_over_group: StringName = &"carry_over"
@@ -137,6 +155,12 @@ var defeated_ids: Dictionary = {}
 var defeated_bosses: Dictionary = {}
 ## Followers away from where their room placed them: object id -> {scene, name, room, pos}.
 var moved: Dictionary = {}
+## Where the player comes back to (the bench last rested on): {room, position (world, [x, y]),
+## save_point (its object id)}. Empty: nowhere yet (see [method return_to_save_point]).
+var respawn: Dictionary = {}
+## The save points (benches) found so far: room id -> list of [x, y] positions in the room.
+## Kept in the exploration file and the save, and shown on the map.
+var save_points: Dictionary = {}
 ## Darkness of the current room (0 = lit).
 var darkness := 0.0
 ## The current room's weather node (null: none), see [method get_weather_spec].
@@ -224,6 +248,9 @@ func _find_player_and_camera() -> void:
 func _auto_start() -> void:
 	if _load_requested or not MDSRuntime.active_request.is_empty():
 		return
+	# Continue where the last save left off.
+	if load_on_start and load_game():
+		return
 	var room := starting_room if world.has_room(starting_room) else world.get_start_room()
 	if not world.has_room(room):
 		room = world.get_room_ids()[0]
@@ -257,6 +284,11 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 		push_error("MDSWorldGame: room '%s' has no scene." % room)
 		return
 	changing_room = true
+	# A player resting on a bench gets up first (the bench holds it still, and the room it is in
+	# is about to go).
+	for b in find_save_points(room_node):
+		if b.has_method(&"is_resting") and b.is_resting():
+			b.leave()
 	# The player is held still during the transition; its velocity carries over.
 	var carried := Vector2.ZERO
 	var player_mode := Node.PROCESS_MODE_INHERIT
@@ -306,6 +338,7 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 		gate.player_entered.connect(_on_gate_entered)
 	var first_visit := not visited_rooms.has(id)
 	visited_rooms[id] = true
+	var found_save_point := _record_save_points(room_node, id)
 	_dress_room(room_node, id)
 	if player:
 		# Back in the physics space first: a body moved while it is out of it keeps its old
@@ -323,7 +356,7 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 		old_room.queue_free()
 	if map_view:
 		map_view.mark_visited(id)
-	if first_visit:
+	if first_visit or found_save_point:
 		_save_exploration()
 	_cooldown_until = Time.get_ticks_msec() + int(gate_cooldown * 1000.0)
 	_arrived_frame = Engine.get_physics_frames()
@@ -614,11 +647,35 @@ func _spawn_position(id: String, entry_gate: String, world_position: Vector2) ->
 			return world.get_gate_world_pos(id, entry_gate) + inward.get(world.get_gate_side(id, entry_gate), Vector2.ZERO) * 96.0
 	if world_position != Vector2.INF:
 		return world_position
-	var save := room_node.find_children("*", "", true, false).filter(func(n: Node) -> bool:
-		return n is Node2D and (n.is_in_group(&"save_point") or n.is_in_group(&"bench") or String(n.name).to_lower().contains("savepoint")))
+	var save := find_save_points(room_node)
 	if not save.is_empty():
-		return save[0].global_position
+		return save[0].get_spawn_position() if save[0].has_method(&"get_spawn_position") else save[0].global_position
 	return world.get_room_label_pos(id)
+
+## The save points under [param root] (a room): nodes in the save_point or bench groups, or named
+## like one (SavePoint...).
+static func find_save_points(root: Node) -> Array[Node2D]:
+	var out: Array[Node2D] = []
+	if not root:
+		return out
+	for n in root.find_children("*", "", true, false):
+		if n is Node2D and (n.is_in_group(&"save_point") or n.is_in_group(&"bench") or String(n.name).to_lower().contains("savepoint")):
+			out.append(n)
+	return out
+
+## Remembers the save points of room [param id] (for the map). Returns whether it found new ones.
+func _record_save_points(room: Node, id: String) -> bool:
+	var found: Array = []
+	for n in find_save_points(room):
+		var local: Vector2 = MDSRoomObjects.local_transform(n, room).origin
+		found.append([local.x, local.y])
+	if found.is_empty() or save_points.get(id, []) == found:
+		return false
+	save_points[id] = found
+	if map_view and map_view.has_method(&"mark_save_point"):
+		for p in found:
+			map_view.mark_save_point(id, Vector2(p[0], p[1]))
+	return true
 
 func _on_gate_entered(t: Dictionary) -> void:
 	# A teleported CharacterBody2D moves to its new place during the next physics step,
@@ -882,6 +939,7 @@ func _load_exploration() -> void:
 		visited_rooms[id] = true
 		if map_view:
 			map_view.mark_visited(id)
+	_merge_save_points(data.get("save_points", {}))
 	if map_view:
 		for a in data.get("map", {}).get("mapped_areas", []):
 			map_view.map_area(a)
@@ -889,19 +947,117 @@ func _load_exploration() -> void:
 func _save_exploration() -> void:
 	if exploration_file.is_empty():
 		return
-	var data := {"visited": visited_rooms.keys()}
+	var data := {"visited": visited_rooms.keys(), "save_points": save_points.duplicate(true)}
 	if map_view:
 		data.map = map_view.get_save_data()
-	var f := FileAccess.open(exploration_file, FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify(data))
-		f.close()
+	_write_json(exploration_file, data)
+
+static func _write_json(path: String, data: Dictionary) -> Error:
+	if path.begins_with("res://") or path.begins_with("user://"):
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if not f:
+		return FileAccess.get_open_error()
+	f.store_string(JSON.stringify(data, "\t"))
+	f.close()
+	return OK
+
+## Save points from a file (room -> [[x, y], ...]) join the ones known, and show on the map.
+func _merge_save_points(from: Variant) -> void:
+	if not from is Dictionary:
+		return
+	for id in from:
+		if not from[id] is Array:
+			continue
+		save_points[id] = (from[id] as Array).duplicate(true)
+		if map_view and map_view.has_method(&"mark_save_point"):
+			for p in from[id]:
+				if p is Array and p.size() == 2:
+					map_view.mark_save_point(id, Vector2(float(p[0]), float(p[1])))
 
 ## A new game forgets the explored map (the exploration file is deleted).
 func reset_exploration() -> void:
 	visited_rooms.clear()
+	save_points.clear()
+	if map_view:
+		map_view.set_save_data({})
 	if not exploration_file.is_empty() and FileAccess.file_exists(exploration_file):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(exploration_file))
+
+# --- Saving at benches ----------------------------------------------------------------------------
+
+## Saves the game to [member save_file]. At [param save_point] (a bench), the player will come
+## back there: [method return_to_save_point] takes them back to it. Once a bench was rested on,
+## loading a save always puts the player on it, like Hollow Knight, wherever the game was saved
+## from. Returns the error ([code]OK[/code] without a save file: the progress is kept in memory
+## only).
+func save_game(save_point: Node2D = null) -> Error:
+	if save_point and not current_room.is_empty():
+		var at: Vector2 = save_point.get_spawn_position() if save_point.has_method(&"get_spawn_position") else save_point.global_position
+		respawn = {"room": current_room, "position": [at.x, at.y], "save_point": object_id(save_point)}
+		if map_view and map_view.has_method(&"set_respawn"):
+			map_view.set_respawn(current_room, at - world.get_origin(current_room))
+	var data := get_save_data()
+	if not respawn.is_empty():
+		# Loading the save puts the player on the bench, wherever they were when saving.
+		data.room = respawn.room
+		data.position = respawn.position
+	_save_exploration()
+	var err := OK
+	if not save_file.is_empty():
+		err = _write_json(save_file, data)
+	if err == OK:
+		game_saved.emit(save_point)
+	return err
+
+## Whether [member save_file] holds a save.
+func has_save_game() -> bool:
+	return not save_file.is_empty() and FileAccess.file_exists(save_file)
+
+## The save in [member save_file] ({} when there is none, or it can't be read).
+func read_save_game() -> Dictionary:
+	if not has_save_game():
+		return {}
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(save_file))
+	return data if data is Dictionary else {}
+
+## Continues from [member save_file]: progress restored, the player at the bench it was saved at.
+## Returns false when there is no save to load.
+func load_game() -> bool:
+	var data := read_save_game()
+	if data.is_empty() or not world or not world.has_room(str(data.get("room", ""))):
+		return false
+	set_save_data(data)
+	game_loaded.emit()
+	return true
+
+## Deletes [member save_file].
+func delete_save_game() -> void:
+	if has_save_game():
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(save_file))
+
+## Starts over: the save and the explored map are deleted, progress is forgotten, and the
+## player starts in [member starting_room].
+func new_game() -> void:
+	delete_save_game()
+	reset_exploration()
+	_apply_save({})
+	var room := starting_room if world.has_room(starting_room) else world.get_start_room()
+	if not world.has_room(room):
+		room = world.get_room_ids()[0]
+	_load_requested = true
+	load_room(room, starting_gate)
+
+## Takes the player back to the bench last rested on (after dying, like Hollow Knight), or to
+## the starting room when they never rested. Asynchronous: await it or use
+## [signal room_loaded].
+func return_to_save_point() -> void:
+	if respawn.is_empty() or not world.has_room(str(respawn.get("room", ""))):
+		var room := starting_room if world.has_room(starting_room) else world.get_start_room()
+		await load_room(room, starting_gate)
+		return
+	var p: Array = respawn.position
+	await load_room(respawn.room, "", Vector2(float(p[0]), float(p[1])))
 
 # --- Save data ------------------------------------------------------------------------------
 
@@ -917,6 +1073,8 @@ func get_save_data() -> Dictionary:
 		"defeated": defeated_ids.keys(),
 		"bosses": defeated_bosses.keys(),
 		"moved": moved.duplicate(true),
+		"respawn": respawn.duplicate(true),
+		"save_points": save_points.duplicate(true),
 	}
 	if map_view:
 		data.map = map_view.get_save_data()
@@ -954,10 +1112,19 @@ func _apply_save(data: Dictionary) -> void:
 		defeated_bosses[b] = true
 	area_visits = (data.get("areas", {}) as Dictionary).duplicate()
 	moved = (data.get("moved", {}) as Dictionary).duplicate(true)
+	respawn = (data.get("respawn", {}) as Dictionary).duplicate(true) if data.get("respawn", {}) is Dictionary else {}
+	var known_save_points := save_points.duplicate(true) if not exploration_file.is_empty() else {}
+	save_points.clear()
 	if map_view and data.has("map"):
 		map_view.set_save_data(data.map)
 		for id in explored:
 			map_view.mark_visited(id)
+	_merge_save_points(data.get("save_points", {}))
+	_merge_save_points(known_save_points)
+	if map_view and map_view.has_method(&"set_respawn") and respawn.has("room") and world.has_room(str(respawn.room)):
+		var rp: Array = respawn.get("position", [])
+		if rp.size() == 2:
+			map_view.set_respawn(respawn.room, Vector2(float(rp[0]), float(rp[1])) - world.get_origin(respawn.room))
 	var room: String = data.get("room", "")
 	if world.has_room(room):
 		_load_requested = true

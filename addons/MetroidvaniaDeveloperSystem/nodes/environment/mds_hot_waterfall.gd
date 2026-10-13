@@ -2,8 +2,9 @@
 @icon("res://addons/MetroidvaniaDeveloperSystem/assets/environment/hot_waterfall.svg")
 class_name MDSHotWaterfall
 extends MDSEnvironmentEffect
-## Hot water falls: scalding mineral water pouring down the rectangle, milky and pale where it
-## runs thick, with a warm glow deep in it, streaks racing along it, white water at its lip and
+## Hot water falls: scalding mineral water pouring straight down the rectangle, milky and pale
+## where it runs thick, with a warm glow deep in it, straight sides and straight streaks racing
+## along it (the flow never curves), white water at its lip and
 ## where it plunges, steam pouring off its whole length and billowing up from its foot, and the
 ## air around it wavering in the heat. By default it falls behind the terrain, so the rock it
 ## pours over frames it. Bodies of [member MDSEnvironmentEffect.affect_groups] under it are

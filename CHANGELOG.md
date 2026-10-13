@@ -2,6 +2,27 @@
 
 All notable changes to the Metroidvania Developer System. Versions follow [Semantic Versioning](https://semver.org/): a new major version can need changes in your project (see the README's upgrading notes), a minor one only adds.
 
+## Unreleased
+
+### Added
+
+- **Benches** (`MDSBench`): save points to rest on, after Silksong's benches.
+  - An iron bench with a cushion and a lantern that flickers and lights it, motes drifting up, all drawn by a shader.
+  - **Up** at it sits the player down: held still, healed, the game saved. The bench glows, threads of light rise and a ring of light spreads out.
+  - Place it from the Room view's Effects tool.
+- **Saving and continuing** in `MDSWorldGame`:
+  - `save_game()` writes `save_file`; `load_on_start` continues from it on the bench it was saved at;
+  - `return_to_save_point()` takes the player back after dying;
+  - `new_game()`, `has_save_game()`, `load_game()` and `delete_save_game()` cover the rest;
+  - new signals: `game_saved` and `game_loaded`.
+- **The map remembers:** the exploration file keeps the benches found too, and a restarted game's map shows every room explored, also after the last save.
+- **Minimap:** `MDSWorldMapView.follow_player`, with `view_span`. The map also marks benches, the last one rested on brighter. Created game scenes get a minimap and save files named after the world.
+
+### Changed
+
+- Waterfalls, hot water falls and lava falls fall straight. Their sides are straight and their streaks run in straight lanes; the lava's crust rides down in straight strands. There are no ragged sides, bulges or curves any more.
+- `MDSWorldGame.save_file` (`user://mds_save.json`), `exploration_file` (`user://mds_exploration.json`) and `load_on_start` are on by default. Clear the paths to turn them off.
+
 ## 3.3.0 (2026-10-13)
 
 ### Added

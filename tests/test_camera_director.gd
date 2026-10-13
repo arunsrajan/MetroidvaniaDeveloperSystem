@@ -241,6 +241,9 @@ func _build_world() -> void:
 func _make_game(backend: MDSRoomCamera.Backend) -> void:
 	game = MDSWorldGame.new()
 	game.world_file = WORLD
+	# Tests never read or write the player's save and explored map.
+	game.save_file = ""
+	game.exploration_file = ""
 	game.fade_time = 0.0
 	game.room_darkness = false
 	player = CharacterBody2D.new()
