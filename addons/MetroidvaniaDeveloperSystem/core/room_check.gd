@@ -132,6 +132,9 @@ func build_from_painter(painter: MDSRoomPainter, host: Node) -> void:
 	_begin()
 	for n in MDSRoomPainter.LAYER_ORDER:
 		_add_tile_layer(painter.layers[n], painter.layers[n].transform)
+	# Free tile pieces collide like their layer's tiles, wherever they were moved or turned.
+	for piece in painter.tile_pieces():
+		_add_tile_layer(piece, MDSRoomObjects.local_transform(piece, painter.items_root))
 	for f in MDSFreeform.shapes_in(painter.items_root):
 		_add_freeform(f, MDSRoomObjects.local_transform(f, painter.items_root))
 	_add_node(painter.root, painter.root, true, painter)
@@ -221,16 +224,19 @@ func _add_tile_layer(layer: TileMapLayer, xform: Transform2D) -> void:
 		if not td:
 			continue
 		var center := layer.map_to_local(cell)
+		# A turned or flipped tile (alternative-tile flags) collides turned too.
+		var alt := layer.get_cell_alternative_tile(cell)
+		var turn := MDSRoomPainter.flags_basis(alt) if alt & MDSRoomPainter.TRANSFORM_FLAGS else Transform2D.IDENTITY
 		for pl in ts.get_physics_layers_count():
 			for pi in td.get_collision_polygons_count(pl):
 				var pts := td.get_collision_polygon_points(pl, pi)
 				var one_way := td.is_collision_polygon_one_way(pl, pi)
-				if pts.size() == 4 and MDSGeometry.bounds(pts).is_equal_approx(Rect2(-half, half * 2.0)) and ts.tile_shape == TileSet.TILE_SHAPE_SQUARE:
+				if pts.size() == 4 and MDSGeometry.bounds(pts).is_equal_approx(Rect2(-half, half * 2.0)) and ts.tile_shape == TileSet.TILE_SHAPE_SQUARE and (not one_way or turn == Transform2D.IDENTITY):
 					(one_way_full if one_way else full)[cell] = true
 				elif pts.size() >= 3:
 					var poly := PackedVector2Array()
 					for p in pts:
-						poly.append(xform * (center + p))
+						poly.append(xform * (center + turn * p))
 					_add_polygon(poly, one_way)
 	# Full tiles merged into rectangles (cell (x, y) covers (x, y) * tile_size).
 	for cells in [full, one_way_full]:

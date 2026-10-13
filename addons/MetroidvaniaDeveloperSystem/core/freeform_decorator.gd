@@ -74,6 +74,8 @@ func decorate(painter: MDSRoomPainter) -> Dictionary:
 			if f.is_platform():
 				platforms.append(poly)
 	_rock.append_array(_tile_rock(painter.layers["Terrain"]))
+	for piece in painter.tile_pieces("Terrain"):
+		_rock.append_array(_tile_rock(piece))
 	if room_rects.is_empty():
 		var b := Rect2()
 		for i in _rock.size():

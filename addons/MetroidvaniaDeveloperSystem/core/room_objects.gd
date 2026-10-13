@@ -16,8 +16,9 @@ extends RefCounted
 
 const STAND_GROUPS: PackedStringArray = ["save_point", "savepoint", "save", "checkpoint", "bench", "shop", "merchant", "vendor", "trader", "npc", "player_spawn", "mds_stands"]
 const BIG_GROUPS: PackedStringArray = ["boss", "bosses", "mini_boss"]
-## Item groups of the Room view (shapes and stamps), and other containers of scenery.
-const SCENERY_NAMES: PackedStringArray = ["FreeformBack", "StampsBack", "Freeform", "StampsFront", "FreeformFront", "StampsForeground", "MapBounds", "Gates", "MDSItems"]
+## Item groups of the Room view (shapes, stamps, free tiles and pictures), and other containers
+## of scenery.
+const SCENERY_NAMES: PackedStringArray = ["FreeformBack", "StampsBack", "Freeform", "StampsFront", "FreeformFront", "StampsForeground", "Tiles", "Pictures", "MapBounds", "Gates", "MDSItems"]
 ## Footprint of an object with nothing visible (a spawn marker, an empty Node2D): above its
 ## origin, as if it stood there.
 const DEFAULT_SIZE := Vector2(64, 96)
@@ -27,7 +28,7 @@ const DEFAULT_SIZE := Vector2(64, 96)
 static func is_scenery(node: Node) -> bool:
 	if MDSLegacy.in_group(node, &"mds_scenery") or MDSLegacy.has_meta_key(node, &"mds_scenery") or MDSLegacy.has_meta_key(node, &"mds_blockout"):
 		return true
-	if node is TileMapLayer or node.is_class("TileMap") or node is MDSFreeform or MDSRoomPainter.is_stamp(node) or node is MDSGate:
+	if node is TileMapLayer or node.is_class("TileMap") or node is MDSFreeform or MDSRoomPainter.is_stamp(node) or node is MDSDrawing or node is MDSGate:
 		return true
 	if node is Camera2D or node is CanvasLayer or node is Parallax2D or node is ParallaxBackground or node is CanvasModulate:
 		return true

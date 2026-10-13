@@ -18,6 +18,15 @@ extends Control
 ## Effects tool: drag an effect from the palette onto the room (or pick one and click), click
 ## one to select it (it shows in the Inspector), drag it to move it, drag its corner to
 ## resize it, Delete removes it. An image file dropped on the view opens Trace drawing.
+## Place tool: click to place the tiles picked in the tile palette anywhere, at the angle and
+## mirror picked there (R / Shift+R turn them), off the grid: a free tile piece (see
+## [method MDSRoomPainter.add_tile_piece]) that draws and collides like its layer's tiles.
+## Shift+click removes a free tile piece.
+## Select tool: click tiles, free tiles, stamps, pictures and freeform shapes to select them
+## (Shift or Ctrl adds or removes), or drag a box around them; drag the selection to move it by
+## pixels ([member snap_to_grid]: by whole tiles). Tiles moved off the grid become free tiles;
+## moved by whole tiles, they stay on the grid. R / Shift+R turn the selection, the arrows
+## nudge it a pixel (Shift: a tile), Delete removes it, Esc clears it.
 
 signal painted
 signal status_message(text: String)
@@ -29,16 +38,26 @@ signal effect_selected(effect: MDSEnvironmentEffect)
 signal effect_pick_changed(effect_id: String)
 ## An image file was dropped on the view (to trace it).
 signal image_dropped(path: String)
+## What the Select tool has selected changed (see [member selection], [member selected_cells]).
+signal picked_changed
+## R / Shift+R under the Place tool: turn the palette's tiles by [param degrees].
+signal turn_requested(degrees: float)
 
-enum Tool { TERRAIN, BACKGROUND, DECOR, ERASE, FOREGROUND, FREEFORM, STAMP, EFFECT }
+enum Tool { TERRAIN, BACKGROUND, DECOR, ERASE, FOREGROUND, FREEFORM, STAMP, EFFECT, PLACE, SELECT }
+## What the Select tool's clicks and boxes pick: everything, the tiles of one layer (on the grid
+## and free), or only items (free tiles, stamps, pictures, freeform shapes).
+enum PickLayer { ALL, TERRAIN, BACKGROUND, DECOR, FOREGROUND, ITEMS }
+const PICK_LAYER_NAMES: PackedStringArray = ["Everything", "Terrain tiles", "Background tiles", "Decor tiles", "Foreground tiles", "Items only (free tiles, stamps, pictures, shapes)"]
+const PICK_LAYERS := {PickLayer.ALL: ["Foreground", "Decor", "Terrain", "Background"], PickLayer.TERRAIN: ["Terrain"], PickLayer.BACKGROUND: ["Background"],
+	PickLayer.DECOR: ["Decor"], PickLayer.FOREGROUND: ["Foreground"], PickLayer.ITEMS: []}
 ## Collision role of new (and the selected) freeform shapes: the style's, or an override.
 enum RoleChoice { STYLE, TERRAIN, PLATFORM_ONE_WAY, PLATFORM, DECOR }
 ## Freeform tool shapes from MDSShapeGenerators have ids from here on (Column = 100...).
 const GENERATOR_BASE := 100
 const ROLE_CHOICE_NAMES: PackedStringArray = ["Style's role", "Terrain", "Platform, one-way", "Platform, two-way", "Decoration (no collision)"]
 enum EraseMode { TOP, DECOR, TERRAIN, BACKGROUND, ALL, FOREGROUND }
-const ERASE_MODE_NAMES: PackedStringArray = ["Top tile (stamp, foreground, decor, terrain, then background)", "Decor only", "Terrain only", "Background only", "All layers", "Foreground only"]
-const TOOL_COLORS: Array[Color] = [Color(0.5, 1, 0.4), Color(0.3, 0.8, 1), Color(1, 0.8, 0.3), Color(1, 0.35, 0.35), Color(0.75, 0.6, 1), Color(0.4, 1, 0.85), Color(1, 0.6, 0.85), Color(0.55, 0.85, 1)]
+const ERASE_MODE_NAMES: PackedStringArray = ["Top tile (stamp, free tiles, foreground, decor, terrain, then background)", "Decor only", "Terrain only", "Background only", "All layers", "Foreground only"]
+const TOOL_COLORS: Array[Color] = [Color(0.5, 1, 0.4), Color(0.3, 0.8, 1), Color(1, 0.8, 0.3), Color(1, 0.35, 0.35), Color(0.75, 0.6, 1), Color(0.4, 1, 0.85), Color(1, 0.6, 0.85), Color(0.55, 0.85, 1), Color(1, 0.9, 0.45), Color(0.95, 0.95, 1)]
 ## Image files Trace drawing reads (dropped on the view).
 const IMAGE_EXTENSIONS: PackedStringArray = ["png", "jpg", "jpeg", "webp", "bmp", "tga", "svg"]
 ## Drag data of an effect from the palette: {"type": DRAG_EFFECT, "effect": id}.
@@ -120,6 +139,32 @@ var show_reachability := true
 ## Show the room as MDSDepth25D will draw it in the game.
 var depth_preview := false
 var _depth: MDSDepth25D
+## Place and Select: move by whole tiles (on the grid) instead of by pixels.
+var snap_to_grid := false
+## Place: the tiles to place (a palette fill: {source, region, random, rotation, flip}) and the
+## tile layer whose depth they go to.
+var place_fill: Dictionary = {}
+var place_layer := "Terrain"
+## Place and Select: how far R / Shift+R turn (degrees).
+var turn_step := 15.0
+## Select: what clicks and boxes pick (see [enum PickLayer]).
+var pick_layer: int = PickLayer.ALL
+## Select: the selected items (free tile pieces, stamps, pictures, freeform shapes)...
+var selection: Array[Node2D] = []
+## ...and grid tiles: layer name -> {cell: true}.
+var selected_cells: Dictionary = {}
+var _sel_drag := 0 ## 0 none, 1 box, 2 move
+var _sel_from := Vector2.ZERO
+var _sel_to := Vector2.ZERO
+var _sel_add := false
+var _sel_moved := false
+var _sel_pick: Dictionary = {} ## what the press picked when it was selected already
+var _sel_orig: Dictionary = {} ## node -> position when the move started
+var _lifted: Array[TileMapLayer] = [] ## grid tiles taken off the grid for this move
+var _place_drag: TileMapLayer ## the piece just placed, following the mouse until release
+var _place_from := Vector2.ZERO
+var _place_orig := Vector2.ZERO
+var _place_pick := Vector2i(-1, -1) ## Random: the tile the next click places
 
 var _view: Node2D
 var _display_scene: Node
@@ -188,7 +233,7 @@ func open(p_world: MDSWorld, id: String, p_painter: MDSRoomPainter) -> void:
 		_display_scene.process_mode = Node.PROCESS_MODE_DISABLED
 		for l in _display_scene.find_children("*", "", true, false):
 			# The painter's copies are shown instead.
-			if l is TileMapLayer or l is MDSFreeform or MDSRoomPainter.is_stamp(l) or MDSRoomPainter.is_room_effect(l, _display_scene):
+			if l is TileMapLayer or MDSRoomPainter.is_item(l, _display_scene):
 				l.visible = false
 		_view.add_child(_display_scene)
 	for n in MDSRoomPainter.LAYER_ORDER:
@@ -196,6 +241,7 @@ func open(p_world: MDSWorld, id: String, p_painter: MDSRoomPainter) -> void:
 	_view.add_child(painter.items_root)
 	selected = null
 	selected_effect = null
+	set_selection([])
 	_draft.clear()
 	set_depth_preview(depth_preview)
 	refresh_weather()
@@ -218,6 +264,11 @@ func close() -> void:
 	_background = null
 	_background_value = ""
 	selected_effect = null
+	selection.clear()
+	selected_cells.clear()
+	_lifted.clear()
+	_place_drag = null
+	_sel_drag = 0
 	if painter:
 		for l in painter.layers.values():
 			if l.get_parent() == _view:
@@ -370,6 +421,10 @@ func _draw_overlay() -> void:
 	var color: Color = TOOL_COLORS[tool]
 	if tool == Tool.FREEFORM:
 		_draw_freeform_overlay(ci, color)
+	if tool == Tool.SELECT or tool == Tool.PLACE:
+		_draw_select_overlay(ci, color)
+	if tool == Tool.PLACE:
+		_draw_place_overlay(ci, color)
 	if tool == Tool.STAMP and get_rect().has_point(_mouse):
 		ci.draw_arc(_mouse, 48.0 * stamp_scale * zoom, 0, TAU, 32, color, 1.5)
 	if _shaping and shape >= GENERATOR_BASE:
@@ -385,7 +440,7 @@ func _draw_overlay() -> void:
 		var a := painter.cell_rect("Terrain", Vector2i(mini(_shape_from.x, _shape_to.x), mini(_shape_from.y, _shape_to.y)))
 		var bb := painter.cell_rect("Terrain", Vector2i(maxi(_shape_from.x, _shape_to.x), maxi(_shape_from.y, _shape_to.y)))
 		ci.draw_rect(Rect2(local_to_screen(a.position), (bb.end - a.position) * zoom), color, false, 1.0)
-	elif get_rect().has_point(_mouse) and tool != Tool.STAMP and tool != Tool.EFFECT and not (tool == Tool.FREEFORM and (shape == MDSTerrainShapes.Shape.BRUSH or freeform_mode == FreeformMode.EDIT)):
+	elif get_rect().has_point(_mouse) and not tool in [Tool.STAMP, Tool.EFFECT, Tool.PLACE, Tool.SELECT] and not (tool == Tool.FREEFORM and (shape == MDSTerrainShapes.Shape.BRUSH or freeform_mode == FreeformMode.EDIT)):
 		if shape == MDSTerrainShapes.Shape.BRUSH:
 			for c in _brush_cells(painter.cell_at("Terrain", screen_to_local(_mouse))):
 				var r := painter.cell_rect("Terrain", c)
@@ -597,6 +652,18 @@ func erase_cells(cells: Array, mode: int) -> void:
 			for st in painter.stamps_near(r.get_center(), r.size.x * 0.75):
 				painter.remove_item(st)
 				hit = true
+			if hit and mode == EraseMode.TOP:
+				continue
+			# Then free tiles: the tile of a piece under the cell's center.
+			for piece in painter.tile_pieces():
+				var pc: Vector2i = piece.local_to_map(piece.transform.affine_inverse() * r.get_center())
+				if piece.get_cell_source_id(pc) != -1:
+					piece.erase_cell(pc)
+					hit = true
+					if piece.get_used_cells().is_empty():
+						painter.remove_item(piece)
+					if mode == EraseMode.TOP:
+						break
 			if hit and mode == EraseMode.TOP:
 				continue
 		match mode:
@@ -823,6 +890,486 @@ func delete_selected() -> void:
 		selected = null
 		painted.emit()
 		status_message.emit("Freeform shape removed.")
+
+# --- Place: tiles off the grid -------------------------------------------------------------------
+
+## [param p] (scene-local) on the nearest corner of the tile grid.
+func snap_point(p: Vector2) -> Vector2:
+	var o: Vector2 = painter.layers["Terrain"].transform.origin
+	var ts := painter.tile_size()
+	return o + ((p - o) / ts).round() * ts
+
+## Size (px) of what the Place tool places.
+func _place_size() -> Vector2:
+	var region: Rect2i = place_fill.get("region", Rect2i(0, 0, 1, 1))
+	return painter.tile_size() * (Vector2.ONE if bool(place_fill.get("random", false)) else Vector2(region.size))
+
+## Where a piece of the Place tool's tiles centred on [param at] (scene-local) goes: turned and
+## mirrored as picked in the palette; with [member snap_to_grid], its corner on the grid (so tiles
+## turned in right angles line up with the grid's).
+func place_transform(at: Vector2) -> Transform2D:
+	var mirror := Transform2D.FLIP_X if bool(place_fill.get("flip", false)) else Transform2D.IDENTITY
+	var xf := Transform2D(0.0, at) * Transform2D(deg_to_rad(float(place_fill.get("rotation", 0.0))), Vector2.ZERO) * mirror * Transform2D(0.0, -_place_size() / 2.0)
+	if snap_to_grid:
+		xf.origin = snap_point(xf.origin)
+	return xf
+
+## The tiles a Place click puts down: cell of the piece -> [source id, atlas coords, 0] (with
+## Random, one tile of the picked ones).
+func place_tiles() -> Dictionary:
+	var out: Dictionary = {}
+	var sid := int(place_fill.get("source", -1))
+	if not painter or sid < 0 or not painter.tile_set.has_source(sid):
+		return out
+	var region: Rect2i = place_fill.get("region", Rect2i())
+	var tiles := painter.tiles_in(sid, region)
+	if tiles.is_empty():
+		return out
+	if bool(place_fill.get("random", false)):
+		if not _place_pick in tiles:
+			_place_pick = tiles[_rng.randi_range(0, tiles.size() - 1)]
+		out[Vector2i.ZERO] = [sid, _place_pick, 0]
+		return out
+	for t in tiles:
+		out[t - region.position] = [sid, t, 0]
+	return out
+
+## Places the tiles picked in the palette as a free tile piece centred on [param at]
+## (scene-local), at [member place_layer]'s depth, and selects it. Returns it (null when no
+## tiles are picked).
+func place_tiles_at(at: Vector2) -> TileMapLayer:
+	var tiles := place_tiles()
+	if tiles.is_empty():
+		status_message.emit("Pick tiles in the tile palette first (drag over them): the Place tool puts them anywhere in the room, at any angle.")
+		return null
+	painter.checkpoint()
+	var piece := painter.add_tile_piece(place_layer, tiles, place_transform(at))
+	_place_pick = Vector2i(-1, -1)
+	set_selection([piece])
+	painted.emit()
+	return piece
+
+func _place_input(mb: InputEventMouseButton) -> void:
+	var p := screen_to_local(mb.position)
+	if not mb.pressed:
+		if is_instance_valid(_place_drag):
+			status_message.emit("%s placed at (%d, %d), turned %d°. The Select tool moves, turns and deletes it; R / Shift+R turn the next tiles." % [_place_drag.name, _place_drag.position.x, _place_drag.position.y, roundi(rad_to_deg(_place_drag.rotation))])
+		_place_drag = null
+		return
+	if mb.shift_pressed:
+		# Shift+click removes the free tiles under the mouse.
+		var hit := painter.item_at(p)
+		if hit and MDSRoomPainter.is_tile_piece(hit):
+			painter.checkpoint()
+			var n := hit.name
+			painter.remove_item(hit)
+			_clean_selection()
+			painted.emit()
+			status_message.emit("%s removed." % n)
+		return
+	var piece := place_tiles_at(p)
+	if piece:
+		_place_drag = piece
+		_place_from = p
+		_place_orig = piece.position
+
+func _place_motion(mm: InputEventMouseMotion) -> void:
+	if not is_instance_valid(_place_drag) or not (mm.button_mask & MOUSE_BUTTON_MASK_LEFT):
+		return
+	# Dragging right after the click moves the new piece (the click's undo step covers it).
+	_place_drag.position = _place_orig + _drag_delta(screen_to_local(mm.position) - _place_from)
+	painter.dirty = true
+
+## A move of [param d] px: whole pixels, or whole tiles with [member snap_to_grid].
+func _drag_delta(d: Vector2) -> Vector2:
+	if snap_to_grid:
+		var ts := painter.tile_size()
+		return (d / ts).round() * ts
+	return d.round()
+
+func _draw_place_overlay(ci: CanvasItem, color: Color) -> void:
+	if not get_rect().has_point(_mouse) or is_instance_valid(_place_drag) or _panning:
+		return
+	var tiles := place_tiles()
+	if tiles.is_empty():
+		return
+	var src := painter.tile_set.get_source(int(place_fill.source)) as TileSetAtlasSource
+	var ts := painter.tile_size()
+	ci.draw_set_transform_matrix(Transform2D(Vector2(zoom, 0), Vector2(0, zoom), pan) * place_transform(screen_to_local(_mouse)))
+	for c: Vector2i in tiles:
+		ci.draw_texture_rect_region(src.texture, Rect2(Vector2(c) * ts, ts), src.get_tile_texture_region(tiles[c][1]), Color(1, 1, 1, 0.7))
+	ci.draw_rect(Rect2(Vector2.ZERO, _place_size()), color, false, 1.5 / zoom)
+	ci.draw_set_transform_matrix(Transform2D.IDENTITY)
+
+# --- Select: picking and moving tiles and items ---------------------------------------------------
+
+## Selects [param nodes] (items) and [param cells] (layer name -> Array of cells), replacing the
+## selection.
+func set_selection(nodes: Array, cells: Dictionary = {}) -> void:
+	selection.clear()
+	for n in nodes:
+		if is_instance_valid(n) and not n in selection:
+			selection.append(n)
+	selected_cells.clear()
+	for layer_name in cells:
+		var d: Dictionary = {}
+		for c in cells[layer_name]:
+			d[c] = true
+		if not d.is_empty():
+			selected_cells[layer_name] = d
+	picked_changed.emit()
+	_overlay.queue_redraw()
+
+## How many items and grid tiles are selected.
+func selection_counts() -> Vector2i:
+	var cells := 0
+	for layer_name in selected_cells:
+		cells += selected_cells[layer_name].size()
+	return Vector2i(selection.size(), cells)
+
+func has_selection() -> bool:
+	_clean_selection()
+	return not selection.is_empty() or not selected_cells.is_empty()
+
+## Drops from the selection what undo or a delete took out of the room.
+func _clean_selection() -> void:
+	if not painter:
+		selection.clear()
+		selected_cells.clear()
+		return
+	var before := selection_counts()
+	selection.assign(selection.filter(func(n: Variant) -> bool: return is_instance_valid(n) and painter.items_root.is_ancestor_of(n)))
+	for layer_name in selected_cells.keys():
+		var l: TileMapLayer = painter.layers[layer_name]
+		for c in selected_cells[layer_name].keys():
+			if l.get_cell_source_id(c) == -1:
+				selected_cells[layer_name].erase(c)
+		if selected_cells[layer_name].is_empty():
+			selected_cells.erase(layer_name)
+	if selection_counts() != before:
+		picked_changed.emit()
+
+func _pickable(node: Node) -> bool:
+	if pick_layer == PickLayer.ALL or pick_layer == PickLayer.ITEMS:
+		return true
+	return MDSRoomPainter.is_tile_piece(node) and MDSRoomPainter.piece_layer(node) in PICK_LAYERS[pick_layer]
+
+## What a click at [param p] (scene-local) picks: {item} or {layer, cell} ({} for nothing): the
+## top-most of the items and the grid tiles of the layers [member pick_layer] picks.
+func pick_at(p: Vector2) -> Dictionary:
+	var best := {}
+	var best_z := 0
+	for node in painter.pickable_items():
+		if _pickable(node) and MDSRoomPainter.item_contains(node, p):
+			var z: int = (node.get_parent() as Node2D).z_index + node.z_index
+			if best.is_empty() or z >= best_z:
+				best = {"item": node}
+				best_z = z
+	for layer_name in PICK_LAYERS[pick_layer]:
+		var l: TileMapLayer = painter.layers[layer_name]
+		var c := painter.cell_at(layer_name, p)
+		if l.get_cell_source_id(c) != -1 and (best.is_empty() or l.z_index > best_z):
+			best = {"layer": layer_name, "cell": c}
+			best_z = l.z_index
+	return best
+
+func _is_picked(pick: Dictionary) -> bool:
+	if pick.has("item"):
+		return pick.item in selection
+	return selected_cells.get(pick.layer, {}).has(pick.cell)
+
+## Adds [param pick] (from [method pick_at]) to the selection, or takes it out.
+func _toggle_pick(pick: Dictionary, on: bool) -> void:
+	if pick.has("item"):
+		if on and not pick.item in selection:
+			selection.append(pick.item)
+		elif not on:
+			selection.erase(pick.item)
+	else:
+		if on:
+			if not selected_cells.has(pick.layer):
+				selected_cells[pick.layer] = {}
+			selected_cells[pick.layer][pick.cell] = true
+		elif selected_cells.has(pick.layer):
+			selected_cells[pick.layer].erase(pick.cell)
+			if selected_cells[pick.layer].is_empty():
+				selected_cells.erase(pick.layer)
+	picked_changed.emit()
+
+## Selects what lies in [param box] (scene-local): items whose middle is in it, and grid tiles
+## whose cell's middle is. With [param add], the selection keeps what it had.
+func select_box(box: Rect2, add := false) -> void:
+	box = box.abs()
+	var nodes: Array = selection.duplicate() if add else []
+	var cells: Dictionary = {}
+	if add:
+		for layer_name in selected_cells:
+			cells[layer_name] = selected_cells[layer_name].keys()
+	for node in painter.pickable_items():
+		if _pickable(node) and not node in nodes and box.has_point(MDSGeometry.bounds(MDSRoomPainter.item_outline(node)).get_center()):
+			nodes.append(node)
+	for layer_name in PICK_LAYERS[pick_layer]:
+		var l: TileMapLayer = painter.layers[layer_name]
+		var lo := painter.cell_at(layer_name, box.position)
+		var hi := painter.cell_at(layer_name, box.end)
+		var list: Array = cells.get(layer_name, [])
+		for y in range(lo.y, hi.y + 1):
+			for x in range(lo.x, hi.x + 1):
+				var c := Vector2i(x, y)
+				if l.get_cell_source_id(c) != -1 and box.has_point(painter.cell_rect(layer_name, c).get_center()) and not c in list:
+					list.append(c)
+		if not list.is_empty():
+			cells[layer_name] = list
+	set_selection(nodes, cells)
+	_report_selection()
+
+func _report_selection() -> void:
+	var n := selection_counts()
+	if n == Vector2i.ZERO:
+		status_message.emit("Nothing selected. Click tiles, free tiles, stamps, pictures or shapes (Shift adds), or drag a box around them.")
+		return
+	var parts: PackedStringArray = []
+	if n.y > 0:
+		parts.append("%d tile(s)" % n.y)
+	if n.x > 0:
+		parts.append("%d item(s)" % n.x)
+	status_message.emit("%s selected: drag to move %s (%s), R / Shift+R turn, the arrows nudge, Delete removes." % [" and ".join(parts), "them" if n.x + n.y > 1 else "it", "by whole tiles" if snap_to_grid else "by pixels"])
+
+## The selection's bounds (scene-local).
+func selection_bounds() -> Rect2:
+	var b := Rect2()
+	var first := true
+	for node in selection:
+		var r := MDSGeometry.bounds(MDSRoomPainter.item_outline(node))
+		b = r if first else b.merge(r)
+		first = false
+	for layer_name in selected_cells:
+		for c in selected_cells[layer_name]:
+			var r := painter.cell_rect(layer_name, c)
+			b = r if first else b.merge(r)
+			first = false
+	return b
+
+## Takes the selected grid tiles off the grid, into free tile pieces (one per layer) that join the
+## selection, so they can move by pixels and turn. Call [method MDSRoomPainter.checkpoint] first.
+func _lift_selected_cells() -> void:
+	for layer_name in selected_cells:
+		var piece := painter.lift_cells(layer_name, selected_cells[layer_name].keys())
+		if piece:
+			selection.append(piece)
+			_lifted.append(piece)
+	selected_cells.clear()
+
+## Puts the tiles lifted for a move or turn back on the grid where they line up with it again.
+## Returns how many of them stay off the grid.
+func _settle_lifted() -> int:
+	var off := 0
+	var cells: Dictionary = {}
+	for piece in _lifted:
+		if not is_instance_valid(piece):
+			continue
+		if painter.is_piece_on_grid(piece):
+			var layer_name := MDSRoomPainter.piece_layer(piece)
+			if not cells.has(layer_name):
+				cells[layer_name] = []
+			cells[layer_name].append_array(painter.merge_piece(piece))
+			selection.erase(piece)
+		else:
+			off += piece.get_used_cells().size()
+	_lifted.clear()
+	for layer_name in cells:
+		if not selected_cells.has(layer_name):
+			selected_cells[layer_name] = {}
+		for c in cells[layer_name]:
+			selected_cells[layer_name][c] = true
+	picked_changed.emit()
+	return off
+
+func _begin_move() -> void:
+	painter.checkpoint()
+	_lift_selected_cells()
+	_sel_orig.clear()
+	for node in selection:
+		_sel_orig[node] = node.position
+	_sel_moved = true
+
+func _move_to(d: Vector2) -> void:
+	var step := _drag_delta(d)
+	for node in selection:
+		if _sel_orig.has(node):
+			node.position = _sel_orig[node] + step
+	painter.dirty = true
+
+func _finish_move() -> void:
+	var d := Vector2.ZERO
+	if not selection.is_empty() and _sel_orig.has(selection[0]):
+		d = selection[0].position - _sel_orig[selection[0]]
+	var off := _settle_lifted()
+	_sel_orig.clear()
+	_sel_moved = false
+	painted.emit()
+	status_message.emit("Moved the selection by (%d, %d) px.%s Ctrl+Z undoes it." % [d.x, d.y, " %d tile(s) left the grid: they are free tiles now (Select > To grid puts them back)." % off if off > 0 else ""])
+
+## Moves the selection by [param d] px (whole tiles with [member snap_to_grid]), as one undo step.
+func move_selection(d: Vector2) -> void:
+	if not has_selection():
+		return
+	_begin_move()
+	_move_to(d)
+	_finish_move()
+
+## Turns the selection [param degrees] clockwise around its middle (with [member snap_to_grid],
+## around the nearest grid corner, so tiles turned in right angles stay on the grid). Grid tiles
+## turned off the grid become free tiles; freeform shapes turn their points.
+func rotate_selection(degrees: float) -> void:
+	if not has_selection():
+		return
+	painter.checkpoint()
+	_lift_selected_cells()
+	var pivot := selection_bounds().get_center()
+	if snap_to_grid:
+		pivot = snap_point(pivot)
+	var xf := Transform2D(0.0, pivot) * Transform2D(deg_to_rad(degrees), Vector2.ZERO) * Transform2D(0.0, -pivot)
+	for node in selection:
+		if node is MDSFreeform:
+			var f := node as MDSFreeform
+			var pts := PackedVector2Array()
+			for q in f.points:
+				pts.append(xf * (q + f.position) - f.position)
+			f.points = pts
+		else:
+			node.transform = xf * node.transform
+	var off := _settle_lifted()
+	painter.dirty = true
+	painted.emit()
+	status_message.emit("Turned the selection %d°.%s Ctrl+Z undoes it." % [roundi(degrees), " %d tile(s) left the grid: they are free tiles now." % off if off > 0 else ""])
+
+## Removes the selected tiles and items.
+func delete_selection() -> void:
+	if not has_selection():
+		return
+	painter.checkpoint()
+	var n := selection_counts()
+	for layer_name in selected_cells:
+		painter.erase(layer_name, selected_cells[layer_name].keys())
+	for node in selection:
+		painter.remove_item(node)
+	set_selection([])
+	painted.emit()
+	status_message.emit("Removed %d tile(s) and %d item(s). Ctrl+Z undoes it." % [n.y, n.x])
+
+## Puts the selected free tiles back on their layer's grid (turned to the nearest right angle).
+## Returns how many tiles went back.
+func merge_selection_to_grid() -> int:
+	_clean_selection()
+	var pieces := selection.filter(func(node: Node2D) -> bool: return MDSRoomPainter.is_tile_piece(node))
+	if pieces.is_empty():
+		status_message.emit("Select free tiles first (tiles placed with Place, or moved off the grid).")
+		return 0
+	painter.checkpoint()
+	var cells: Dictionary = {}
+	for layer_name in selected_cells:
+		cells[layer_name] = selected_cells[layer_name].keys()
+	var n := 0
+	for piece in pieces:
+		var layer_name := MDSRoomPainter.piece_layer(piece)
+		var written := painter.merge_piece(piece)
+		n += written.size()
+		if not cells.has(layer_name):
+			cells[layer_name] = []
+		cells[layer_name].append_array(written)
+	set_selection(selection.filter(func(node: Node2D) -> bool: return not node in pieces), cells)
+	painted.emit()
+	status_message.emit("Put %d free tile(s) back on the grid. Ctrl+Z undoes it." % n)
+	return n
+
+func _select_input(mb: InputEventMouseButton) -> void:
+	var p := screen_to_local(mb.position)
+	if mb.pressed:
+		_clean_selection()
+		_sel_from = p
+		_sel_to = p
+		_sel_moved = false
+		_sel_add = mb.shift_pressed or mb.ctrl_pressed or mb.meta_pressed
+		var pick := pick_at(p)
+		if pick.is_empty():
+			if not _sel_add:
+				set_selection([])
+			_sel_drag = 1
+			return
+		if _sel_add and _is_picked(pick):
+			_toggle_pick(pick, false)
+			_sel_drag = 0
+			_report_selection()
+			return
+		_sel_pick = {}
+		if not _is_picked(pick):
+			if _sel_add:
+				_toggle_pick(pick, true)
+			elif pick.has("item"):
+				set_selection([pick.item])
+			else:
+				set_selection([], {pick.layer: [pick.cell]})
+		elif not _sel_add:
+			_sel_pick = pick
+		_sel_drag = 2
+		_report_selection()
+		return
+	if _sel_drag == 1:
+		select_box(Rect2(_sel_from, _sel_to - _sel_from), _sel_add)
+	elif _sel_drag == 2 and _sel_moved:
+		_finish_move()
+	elif _sel_drag == 2 and not _sel_pick.is_empty() and selection_counts().x + selection_counts().y > 1:
+		# A click (no drag) on one of several selected things selects only it.
+		if _sel_pick.has("item"):
+			set_selection([_sel_pick.item])
+		else:
+			set_selection([], {_sel_pick.layer: [_sel_pick.cell]})
+		_report_selection()
+	_sel_pick = {}
+	_sel_drag = 0
+
+func _select_motion(mm: InputEventMouseMotion) -> void:
+	if _sel_drag == 0 or not (mm.button_mask & MOUSE_BUTTON_MASK_LEFT):
+		return
+	var p := screen_to_local(mm.position)
+	_sel_to = p
+	if _sel_drag == 2:
+		if not _sel_moved:
+			if (p - _sel_from).length() * zoom < 3.0:
+				return
+			_begin_move()
+		_move_to(p - _sel_from)
+
+func _draw_select_overlay(ci: CanvasItem, color: Color) -> void:
+	_clean_selection()
+	for node in selection:
+		var pts := PackedVector2Array()
+		for q in MDSRoomPainter.item_outline(node):
+			pts.append(local_to_screen(q))
+		if pts.size() >= 2:
+			pts.append(pts[0])
+			ci.draw_polyline(pts, Color.BLACK, 3.5, true)
+			ci.draw_polyline(pts, color, 1.5, true)
+	for layer_name in selected_cells:
+		_draw_cells(ci, selected_cells[layer_name].keys(), Color(color, 0.8))
+	if _sel_drag == 1:
+		var r := Rect2(local_to_screen(_sel_from), (_sel_to - _sel_from) * zoom).abs()
+		ci.draw_rect(r, Color(color, 0.08))
+		ci.draw_rect(r, color, false, 1.0)
+	elif _sel_drag == 0 and tool == Tool.SELECT and get_rect().has_point(_mouse) and not _panning:
+		# What a click would pick.
+		var pick := pick_at(screen_to_local(_mouse))
+		if pick.has("item") and not pick.item in selection:
+			var pts := PackedVector2Array()
+			for q in MDSRoomPainter.item_outline(pick.item):
+				pts.append(local_to_screen(q))
+			if pts.size() >= 2:
+				pts.append(pts[0])
+				ci.draw_polyline(pts, Color(color, 0.45), 1.0, true)
+		elif pick.has("cell"):
+			var r := painter.cell_rect(pick.layer, pick.cell)
+			ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(color, 0.45), false, 1.0)
 
 # --- Effects ----------------------------------------------------------------------------------
 
@@ -1175,6 +1722,12 @@ func _gui_input(event: InputEvent) -> void:
 		elif mb.button_index == MOUSE_BUTTON_LEFT and tool == Tool.EFFECT:
 			grab_focus()
 			_effect_input(mb)
+		elif mb.button_index == MOUSE_BUTTON_LEFT and tool == Tool.PLACE:
+			grab_focus()
+			_place_input(mb)
+		elif mb.button_index == MOUSE_BUTTON_LEFT and tool == Tool.SELECT:
+			grab_focus()
+			_select_input(mb)
 		elif mb.button_index == MOUSE_BUTTON_LEFT and tool == Tool.FREEFORM and (shape == MDSTerrainShapes.Shape.BRUSH or freeform_mode == FreeformMode.EDIT):
 			grab_focus()
 			_freeform_input(mb)
@@ -1212,6 +1765,10 @@ func _gui_input(event: InputEvent) -> void:
 			_stamp_motion(mm)
 		elif tool == Tool.EFFECT:
 			_effect_motion(mm)
+		elif tool == Tool.PLACE:
+			_place_motion(mm)
+		elif tool == Tool.SELECT:
+			_select_motion(mm)
 		elif tool == Tool.FREEFORM and not _shaping:
 			_freeform_motion(mm)
 		elif _shaping:
@@ -1231,6 +1788,10 @@ func _gui_input(event: InputEvent) -> void:
 				painted.emit()
 				status_message.emit("Redone." if redo else "Undone.")
 			accept_event()
+			return
+		if (tool == Tool.SELECT or tool == Tool.PLACE) and _selection_key(key):
+			accept_event()
+			_overlay.queue_redraw()
 			return
 		match event.keycode:
 			KEY_ESCAPE:
@@ -1257,6 +1818,33 @@ func _gui_input(event: InputEvent) -> void:
 			KEY_F:
 				fit()
 		_overlay.queue_redraw()
+
+## Keys of the Place and Select tools: R / Shift+R turn (the palette's tiles, or the selection),
+## the arrows nudge the selection, Delete removes it, Esc clears it. Returns whether [param key]
+## was one of them.
+func _selection_key(key: InputEventKey) -> bool:
+	if key.keycode == KEY_R and not key.ctrl_pressed and not key.alt_pressed:
+		var deg := -turn_step if key.shift_pressed else turn_step
+		if tool == Tool.PLACE:
+			turn_requested.emit(deg)
+		else:
+			rotate_selection(deg)
+		return true
+	if tool != Tool.SELECT:
+		return false
+	var nudge := {KEY_LEFT: Vector2.LEFT, KEY_RIGHT: Vector2.RIGHT, KEY_UP: Vector2.UP, KEY_DOWN: Vector2.DOWN}
+	if nudge.has(key.keycode):
+		move_selection(nudge[key.keycode] * (painter.tile_size() if key.shift_pressed or snap_to_grid else Vector2.ONE))
+		return true
+	match key.keycode:
+		KEY_DELETE, KEY_BACKSPACE:
+			delete_selection()
+			return true
+		KEY_ESCAPE:
+			_sel_drag = 0
+			set_selection([])
+			return true
+	return false
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED and _overlay:

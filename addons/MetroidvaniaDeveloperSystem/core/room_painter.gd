@@ -15,17 +15,37 @@ extends RefCounted
 ## props moves objects) record [member scene_edits] instead of touching the scene, so undo
 ## covers them; [method save] applies them. Tiles hidden rather than deleted go to a
 ## disabled "<Layer>Blockout" layer ([method hide_cells]).
+##
+## Tiles can also leave the grid: a free tile piece is a small TileMapLayer of its own in the
+## "Tiles" group, at any position and angle, drawn and colliding like the layer it belongs to
+## (see [method add_tile_piece], [method lift_cells] and [method merge_piece]). Pictures kept as
+## they are drawn ([MDSDrawing]) are in the "Pictures" group.
 
 const LAYER_Z := {"Background": -10, "Terrain": 0, "Decor": 5, "Foreground": 20}
 const LAYER_ORDER: PackedStringArray = ["Background", "Terrain", "Decor", "Foreground"]
-## Groups of freeform shapes, stamps and effects (nodes of that name in the scene) and their
-## z. Effects draw at their own z_index.
+## Groups of freeform shapes, stamps, effects, free tile pieces and pictures (nodes of that name
+## in the scene) and their z. Effects, pieces and pictures draw at their own z_index.
 const ITEM_GROUPS := {
 	"FreeformBack": -8, "StampsBack": -6, "Freeform": 1, "StampsFront": 6,
-	"FreeformFront": 22, "StampsForeground": 24, "Effects": 0,
+	"FreeformFront": 22, "StampsForeground": 24, "Effects": 0, "Tiles": 0, "Pictures": 0,
 }
 ## The group environment effects are kept in. Effects elsewhere in the scene are left alone.
 const EFFECTS_GROUP := "Effects"
+## The group of free tile pieces. Each draws at the z of its layer ([constant LAYER_Z]).
+const TILES_GROUP := "Tiles"
+## The group of pictures ([MDSDrawing]).
+const PICTURES_GROUP := "Pictures"
+## Metadata of a free tile piece: the name of the tile layer it belongs to ("Terrain"...).
+const PIECE_META := &"mds_tiles"
+## z of a picture of each layer: just above that layer's tiles.
+const PICTURE_Z := {"Background": -9, "Terrain": 0, "Decor": 5, "Foreground": 21}
+## Metadata of a picture: the name of the layer whose depth it is drawn at.
+const DRAWING_LAYER_META := &"mds_layer"
+## Metadata of a tile layer: the cells the last Trace drawing painted on it (Replace the last
+## trace erases them).
+const TRACED_CELLS := &"mds_traced_cells"
+## The alternative-tile bits that flip and turn a cell's tile.
+const TRANSFORM_FLAGS := TileSetAtlasSource.TRANSFORM_FLIP_H | TileSetAtlasSource.TRANSFORM_FLIP_V | TileSetAtlasSource.TRANSFORM_TRANSPOSE
 ## Metadata of the stamps Generate cave scattered (New variation replaces them).
 const GENERATED_META := &"mds_generated"
 
@@ -64,7 +84,7 @@ static func open(path: String, default_tile_set: TileSet = null) -> MDSRoomPaint
 	# Metadata and groups with their names from before 3.1 get the new ones (saved with the scene).
 	MDSLegacy.upgrade_nodes(p.root)
 	var found: Dictionary = {}
-	var all_layers: Array = p.root.find_children("*", "TileMapLayer", true, false).filter(func(l: Node) -> bool: return not MDSLegacy.has_meta_key(l, &"mds_blockout"))
+	var all_layers: Array = p.root.find_children("*", "TileMapLayer", true, false).filter(func(l: Node) -> bool: return not MDSLegacy.has_meta_key(l, &"mds_blockout") and not is_tile_piece(l))
 	for layer in all_layers:
 		if layer.name in LAYER_Z and not found.has(String(layer.name)):
 			found[String(layer.name)] = layer
@@ -104,19 +124,34 @@ static func open(path: String, default_tile_set: TileSet = null) -> MDSRoomPaint
 		c.z_index = ITEM_GROUPS[g]
 		p.items_root.add_child(c)
 	for node in p.root.find_children("*", "", true, false):
-		if node.owner != p.root or not (node is MDSFreeform or is_stamp(node) or is_room_effect(node, p.root)):
+		if node.owner != p.root or not is_item(node, p.root):
 			continue
 		var parent_name := String(node.get_parent().name)
 		var group := parent_name if ITEM_GROUPS.has(parent_name) else ("Freeform" if node is MDSFreeform else "StampsFront")
 		if node is MDSEnvironmentEffect:
 			group = EFFECTS_GROUP
+		elif is_tile_piece(node):
+			group = TILES_GROUP
+		elif node is MDSDrawing:
+			group = PICTURES_GROUP
 		var copy: Node2D = node.duplicate()
 		copy.transform = _local_transform(node, p.root)
+		if copy is TileMapLayer and not copy.tile_set:
+			copy.tile_set = p.tile_set
 		p.items_root.get_node(group).add_child(copy)
 	return p
 
 static func is_stamp(node: Node) -> bool:
 	return node is Sprite2D and MDSLegacy.has_meta_key(node, &"mds_stamp")
+
+## A free tile piece: tiles off the grid, at any position and angle (see [method add_tile_piece]).
+static func is_tile_piece(node: Node) -> bool:
+	return node is TileMapLayer and node.has_meta(PIECE_META)
+
+## Something the Room view keeps as an item of the room: a freeform shape, stamp, effect, free
+## tile piece or picture.
+static func is_item(node: Node, scene_root: Node) -> bool:
+	return node is MDSFreeform or is_stamp(node) or is_room_effect(node, scene_root) or is_tile_piece(node) or node is MDSDrawing
 
 ## Whether [param cell] of [param layer] holds a tile its tileset can draw. A painted cell can
 ## point at a tile that is gone: its sheet was removed, or the sheet's tile size was made bigger
@@ -159,12 +194,16 @@ static func is_room_effect(node: Node, scene_root: Node) -> bool:
 	var parent := node.get_parent()
 	return parent != null and String(parent.name) == EFFECTS_GROUP and parent.get_parent() == scene_root
 
-## "freeform", "stamp" or "effect".
+## "freeform", "stamp", "effect", "tiles" (a free tile piece) or "drawing".
 static func item_kind(node: Node) -> String:
 	if node is MDSFreeform:
 		return "freeform"
 	if node is MDSEnvironmentEffect:
 		return "effect"
+	if is_tile_piece(node):
+		return "tiles"
+	if node is MDSDrawing:
+		return "drawing"
 	return "stamp"
 
 static func _local_transform(node: Node, top: Node) -> Transform2D:
@@ -205,8 +244,12 @@ func redo() -> bool:
 
 func _snapshot() -> Dictionary:
 	var out: Dictionary = {}
+	var traced: Dictionary = {}
 	for n in LAYER_ORDER:
 		out[n] = layers[n].tile_map_data
+		if layers[n].has_meta(TRACED_CELLS):
+			traced[n] = (layers[n].get_meta(TRACED_CELLS) as Array).duplicate()
+	out[&"_traced"] = traced
 	var items: Dictionary = {}
 	for g in ITEM_GROUPS:
 		var list: Array = []
@@ -225,6 +268,12 @@ func _restore(snap: Dictionary) -> void:
 	for n in snap:
 		if n is String and layers.has(n):
 			layers[n].tile_map_data = snap[n]
+	for n in LAYER_ORDER:
+		var traced: Dictionary = snap.get(&"_traced", {})
+		if traced.has(n):
+			layers[n].set_meta(TRACED_CELLS, (traced[n] as Array).duplicate())
+		elif layers[n].has_meta(TRACED_CELLS):
+			layers[n].remove_meta(TRACED_CELLS)
 	if snap.has(&"_items"):
 		for g in snap[&"_items"]:
 			var container := items_root.get_node(String(g))
@@ -241,10 +290,17 @@ func _restore(snap: Dictionary) -> void:
 	dirty = true
 
 static func _item_data(node: Node) -> Dictionary:
-	if node is MDSFreeform or node is MDSEnvironmentEffect:
+	if node is MDSFreeform or node is MDSEnvironmentEffect or node is MDSDrawing:
 		var d: Dictionary = node.to_data()
 		d.kind = item_kind(node)
 		return d
+	if is_tile_piece(node):
+		var piece := node as TileMapLayer
+		var meta: Dictionary = {}
+		for k in piece.get_meta_list():
+			meta[k] = piece.get_meta(k)
+		return {"kind": "tiles", "tile_set": piece.tile_set, "cells": piece.tile_map_data, "transform": piece.transform,
+			"z": piece.z_index, "name": String(piece.name), "meta": meta}
 	var s := node as Sprite2D
 	var meta: Dictionary = {}
 	for k in s.get_meta_list():
@@ -258,6 +314,19 @@ static func _item_from(d: Dictionary) -> Node2D:
 		return MDSFreeform.from_data(d)
 	if d.kind == "effect":
 		return MDSEnvironmentEffect.from_data(d)
+	if d.kind == "drawing":
+		return MDSDrawing.from_data(d)
+	if d.kind == "tiles":
+		var piece := TileMapLayer.new()
+		piece.tile_set = d.tile_set
+		piece.tile_map_data = d.cells
+		piece.transform = d.transform
+		piece.z_index = d.z
+		if not str(d.get("name", "")).is_empty():
+			piece.name = d.name
+		for k in d.get("meta", {}):
+			piece.set_meta(k, d.meta[k])
+		return piece
 	var s := Sprite2D.new()
 	s.texture = d.texture
 	s.region_enabled = true
@@ -370,6 +439,211 @@ func clear_items() -> void:
 	for g in ITEM_GROUPS:
 		for c in items(g):
 			remove_item(c)
+
+# --- Free tile pieces, pictures and picking ----------------------------------------------------
+
+## Adds a free tile piece to [param layer_name]'s depth: [param tiles] (cell -> [source id,
+## atlas coords, alternative]) on a grid of its own, placed by [param xform] (any position and
+## angle) in the room. It draws and collides like the layer's tiles. Returns it.
+func add_tile_piece(layer_name: String, tiles: Dictionary, xform := Transform2D.IDENTITY) -> TileMapLayer:
+	var piece := TileMapLayer.new()
+	piece.tile_set = tile_set
+	piece.z_index = LAYER_Z.get(layer_name, 0)
+	piece.transform = xform
+	piece.set_meta(PIECE_META, layer_name)
+	var group := items_root.get_node(TILES_GROUP)
+	var n := group.get_child_count() + 1
+	while group.has_node("%sTiles%d" % [layer_name, n]):
+		n += 1
+	piece.name = "%sTiles%d" % [layer_name, n]
+	for c: Vector2i in tiles:
+		var t: Array = tiles[c]
+		piece.set_cell(c, t[0], t[1], t[2] if t.size() > 2 else 0)
+	group.add_child(piece, true)
+	dirty = true
+	return piece
+
+## Free tile pieces (of [param layer_name], or all of them).
+func tile_pieces(layer_name := "") -> Array:
+	return items(TILES_GROUP).filter(func(p: Node) -> bool: return layer_name.is_empty() or piece_layer(p) == layer_name)
+
+## The tile layer a free tile piece belongs to.
+static func piece_layer(piece: Node) -> String:
+	return str(piece.get_meta(PIECE_META, "Terrain"))
+
+## [source id, atlas coords, alternative] of a cell of [param layer] ([] when it is empty).
+static func cell_tile(layer: TileMapLayer, cell: Vector2i) -> Array:
+	var sid := layer.get_cell_source_id(cell)
+	if sid < 0:
+		return []
+	return [sid, layer.get_cell_atlas_coords(cell), layer.get_cell_alternative_tile(cell)]
+
+## Takes [param cells] of [param layer_name] off the grid into a new free tile piece, in the same
+## place (the tiles keep their look: neighbours are not re-connected). Returns it, or null when
+## none of the cells has a tile.
+func lift_cells(layer_name: String, cells: Array) -> TileMapLayer:
+	var l: TileMapLayer = layers[layer_name]
+	var tiles: Dictionary = {}
+	for c: Vector2i in cells:
+		var t := cell_tile(l, c)
+		if not t.is_empty():
+			tiles[c] = t
+			l.erase_cell(c)
+	if tiles.is_empty():
+		return null
+	return add_tile_piece(layer_name, tiles, l.transform)
+
+## Puts a free tile piece back on its layer's grid: each tile goes to the cell under its center,
+## turned in right angles (the piece's angle is rounded to the nearest one) and mirrored as the
+## piece is. Tiles already there are replaced. The piece is removed. Returns the cells written.
+func merge_piece(piece: TileMapLayer) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var layer_name := piece_layer(piece)
+	var l: TileMapLayer = layers.get(layer_name, layers["Terrain"])
+	var basis := right_angle_basis(piece.transform)
+	for c in piece.get_used_cells():
+		var t := cell_tile(piece, c)
+		var at := cell_at(layer_name, piece.transform * piece.map_to_local(c))
+		# The piece's turn on top of the tile's own.
+		var flags := basis_flags(basis * flags_basis(int(t[2])))
+		l.set_cell(at, t[0], t[1], (int(t[2]) & ~TRANSFORM_FLAGS) | flags)
+		out.append(at)
+	remove_item(piece)
+	dirty = true
+	return out
+
+## Whether a free tile piece lines up with its layer's grid: not turned (or turned in right
+## angles), not scaled, its tiles on the layer's cells.
+func is_piece_on_grid(piece: TileMapLayer) -> bool:
+	var xf := piece.transform
+	var basis := right_angle_basis(xf)
+	if not (xf.x.is_equal_approx(basis.x) and xf.y.is_equal_approx(basis.y)):
+		return false
+	var cells := piece.get_used_cells()
+	if cells.is_empty():
+		return true
+	var l: TileMapLayer = layers.get(piece_layer(piece), layers["Terrain"])
+	var p := piece.transform * piece.map_to_local(cells[0])
+	return p.is_equal_approx(l.transform * l.map_to_local(cell_at(piece_layer(piece), p)))
+
+## [param xform]'s axes turned to the nearest right angle (a mirror stays one), without its
+## position or scale.
+static func right_angle_basis(xform: Transform2D) -> Transform2D:
+	if xform.x.is_zero_approx() or xform.y.is_zero_approx():
+		return Transform2D.IDENTITY
+	var x := Vector2(signf(xform.x.x), 0.0) if absf(xform.x.x) >= absf(xform.x.y) else Vector2(0.0, signf(xform.x.y))
+	# y is x turned a quarter clockwise (on screen), or the other way when mirrored.
+	var y := Vector2(-x.y, x.x) * (1.0 if xform.x.cross(xform.y) >= 0.0 else -1.0)
+	return Transform2D(x, y, Vector2.ZERO)
+
+## How the alternative-tile flags of a cell ([param alt]) turn and flip its tile, around the
+## tile's center (Godot transposes first, then flips).
+static func flags_basis(alt: int) -> Transform2D:
+	var x := Vector2(1, 0)
+	var y := Vector2(0, 1)
+	if alt & TileSetAtlasSource.TRANSFORM_TRANSPOSE:
+		x = Vector2(0, 1)
+		y = Vector2(1, 0)
+	if alt & TileSetAtlasSource.TRANSFORM_FLIP_H:
+		x.x = -x.x
+		y.x = -y.x
+	if alt & TileSetAtlasSource.TRANSFORM_FLIP_V:
+		x.y = -x.y
+		y.y = -y.y
+	return Transform2D(x, y, Vector2.ZERO)
+
+## The alternative-tile flags that turn and flip a tile by [param basis] (right angles and
+## mirrors only; others give 0).
+static func basis_flags(basis: Transform2D) -> int:
+	var b := right_angle_basis(basis)
+	var f_h := TileSetAtlasSource.TRANSFORM_FLIP_H
+	var f_v := TileSetAtlasSource.TRANSFORM_FLIP_V
+	var tr := TileSetAtlasSource.TRANSFORM_TRANSPOSE
+	for flags in [0, f_h, f_v, f_h | f_v, tr, tr | f_h, tr | f_v, tr | f_h | f_v]:
+		var fb := flags_basis(flags)
+		if fb.x.is_equal_approx(b.x) and fb.y.is_equal_approx(b.y):
+			return flags
+	return 0
+
+## Whether [param p] (scene-local) is on [param node], an item Select picks: a freeform shape,
+## stamp, free tile piece (one of its tiles) or picture.
+static func item_contains(node: Node, p: Vector2) -> bool:
+	if node is MDSFreeform:
+		return (node as MDSFreeform).has_point(p)
+	if node is MDSDrawing:
+		return (node as MDSDrawing).has_point(p)
+	if is_tile_piece(node):
+		var piece := node as TileMapLayer
+		return piece.get_cell_source_id(piece.local_to_map(piece.transform.affine_inverse() * p)) != -1
+	if node is Sprite2D:
+		var s := node as Sprite2D
+		return s.get_rect().has_point(s.transform.affine_inverse() * p)
+	return false
+
+## The outline of an item Select picks, scene-local: the freeform shape's outline, or the box of
+## a stamp, piece or picture (turned with it).
+static func item_outline(node: Node) -> PackedVector2Array:
+	if node is MDSFreeform:
+		var f := node as MDSFreeform
+		return Transform2D(0.0, f.position) * f.get_outline()
+	var r := Rect2()
+	if node is MDSDrawing:
+		r = (node as MDSDrawing).get_rect()
+	elif is_tile_piece(node):
+		var piece := node as TileMapLayer
+		var used := piece.get_used_rect()
+		var ts := Vector2(piece.tile_set.tile_size) if piece.tile_set else Vector2(16, 16)
+		r = Rect2(piece.map_to_local(used.position) - ts / 2.0, Vector2(used.size) * ts)
+	elif node is Sprite2D:
+		r = (node as Sprite2D).get_rect()
+	return (node as Node2D).transform * MDSGeometry.rect_polygon(r)
+
+## Every item Select can pick: freeform shapes, stamps, free tile pieces and pictures (not effects).
+func pickable_items() -> Array[Node2D]:
+	var out: Array[Node2D] = []
+	for g in ITEM_GROUPS:
+		if g == EFFECTS_GROUP:
+			continue
+		for node in items(g):
+			out.append(node)
+	return out
+
+## The top-most item Select picks at [param p] (scene-local), or null. Items draw by z, then in
+## tree order.
+func item_at(p: Vector2) -> Node2D:
+	var best: Node2D = null
+	var best_z := 0
+	for node in pickable_items():
+		if not item_contains(node, p):
+			continue
+		var z: int = (node.get_parent() as Node2D).z_index + node.z_index
+		if best == null or z >= best_z:
+			best = node
+			best_z = z
+	return best
+
+## The pictures ([MDSDrawing]).
+func drawings() -> Array:
+	return items(PICTURES_GROUP)
+
+## Adds a picture at [param layer_name]'s depth ([constant PICTURE_Z]). Returns it.
+func add_drawing(texture: Texture2D, region: Rect2, xform: Transform2D, layer_name := "Terrain", keep := PackedColorArray(), cut := PackedColorArray()) -> MDSDrawing:
+	var d := MDSDrawing.new()
+	d.texture = texture
+	d.region = region
+	d.transform = xform
+	d.keep_colors = keep
+	d.cut_colors = cut
+	d.z_index = PICTURE_Z.get(layer_name, 0)
+	d.set_meta(DRAWING_LAYER_META, layer_name)
+	var group := items_root.get_node(PICTURES_GROUP)
+	var n := group.get_child_count() + 1
+	while group.has_node("%sPicture%d" % [layer_name, n]):
+		n += 1
+	d.name = "%sPicture%d" % [layer_name, n]
+	items_root.get_node(PICTURES_GROUP).add_child(d, true)
+	dirty = true
+	return d
 
 # --- Hidden tiles and the scene's other nodes ----------------------------------------------------
 
@@ -631,6 +905,10 @@ func save() -> Error:
 			_created[String(_source_paths[n])] = true
 		target.tile_set = copy.tile_set
 		target.tile_map_data = copy.tile_map_data
+		if copy.has_meta(TRACED_CELLS) and not (copy.get_meta(TRACED_CELLS) as Array).is_empty():
+			target.set_meta(TRACED_CELLS, (copy.get_meta(TRACED_CELLS) as Array).duplicate())
+		elif target.has_meta(TRACED_CELLS):
+			target.remove_meta(TRACED_CELLS)
 	_save_items()
 	_save_blockout()
 	_apply_scene_edits()
@@ -647,7 +925,7 @@ func save() -> Error:
 func _save_items() -> void:
 	var existing: Dictionary = {} # "group/name" -> node
 	for node in root.find_children("*", "", true, false):
-		if is_instance_valid(node) and node.owner == root and (node is MDSFreeform or is_stamp(node) or is_room_effect(node, root)):
+		if is_instance_valid(node) and node.owner == root and is_item(node, root):
 			var parent := node.get_parent()
 			var g := String(parent.name) if ITEM_GROUPS.has(String(parent.name)) and parent.get_parent() == root else ""
 			existing["%s/%s" % [g, node.name]] = node
@@ -693,6 +971,26 @@ func _save_items() -> void:
 static func _apply_item(node: Node2D, d: Dictionary) -> void:
 	if node is MDSEnvironmentEffect:
 		MDSEnvironmentEffect.apply_data(node, d)
+		return
+	if node is MDSDrawing:
+		MDSDrawing.apply_data(node, d)
+		return
+	if is_tile_piece(node):
+		var piece := node as TileMapLayer
+		if piece.tile_set != d.tile_set:
+			piece.tile_set = d.tile_set
+		if piece.tile_map_data != d.cells:
+			piece.tile_map_data = d.cells
+		if piece.transform != d.transform:
+			piece.transform = d.transform
+		if piece.z_index != d.z:
+			piece.z_index = d.z
+		for k in d.meta:
+			if not piece.has_meta(k) or piece.get_meta(k) != d.meta[k]:
+				piece.set_meta(k, d.meta[k])
+		for k in piece.get_meta_list():
+			if not d.meta.has(k):
+				piece.remove_meta(k)
 		return
 	if node is MDSFreeform:
 		var f := node as MDSFreeform
@@ -920,7 +1218,8 @@ func place_kind(layer_name: String, cells: Array, kind: String, rng: RandomNumbe
 ## Paints [param cells] of a layer with a fill:
 ## [code]{type = "terrain", set, terrain}[/code] (autotiled),
 ## [code]{type = "kind", kind}[/code] (random tiles tagged with that mds_kind),
-## [code]{type = "stamp", source, region, random}[/code] (tiles picked in the palette) or
+## [code]{type = "stamp", source, region, random, rotation, flip}[/code] (tiles picked in the
+## palette, turned [code]rotation[/code] degrees: on the grid, to the nearest right angle) or
 ## [code]{type = "color", color}[/code] (a solid color).
 func paint_fill(layer_name: String, cells: Array, fill: Dictionary, rng: RandomNumberGenerator = null) -> void:
 	match str(fill.get("type", "")):
@@ -929,7 +1228,8 @@ func paint_fill(layer_name: String, cells: Array, fill: Dictionary, rng: RandomN
 		"kind":
 			place_kind(layer_name, cells, str(fill.get("kind", "")), rng)
 		"stamp":
-			place_stamp(layer_name, cells, int(fill.get("source", -1)), fill.get("region", Rect2i()), bool(fill.get("random", false)), rng)
+			place_stamp(layer_name, cells, int(fill.get("source", -1)), fill.get("region", Rect2i()), bool(fill.get("random", false)), rng,
+				quarter_turns(float(fill.get("rotation", 0.0))), bool(fill.get("flip", false)))
 		"color":
 			var t := color_tile(fill.get("color", Color.BLACK))
 			for c in cells:
@@ -938,23 +1238,35 @@ func paint_fill(layer_name: String, cells: Array, fill: Dictionary, rng: RandomN
 
 ## Tiles picked in the palette. A multi-tile [param region] repeats as a pattern aligned
 ## to the grid (so large areas tile seamlessly); with [param random], each cell gets a
-## random tile from the region instead.
-func place_stamp(layer_name: String, cells: Array, source_id: int, region: Rect2i, random := false, rng: RandomNumberGenerator = null) -> void:
+## random tile from the region instead. The pattern and its tiles are mirrored with
+## [param mirror], then turned [param turn] quarter turns clockwise.
+func place_stamp(layer_name: String, cells: Array, source_id: int, region: Rect2i, random := false, rng: RandomNumberGenerator = null, turn := 0, mirror := false) -> void:
 	var tiles := tiles_in(source_id, region)
 	if tiles.is_empty():
 		return
 	var src := tile_set.get_source(source_id) as TileSetAtlasSource
 	if not rng:
 		rng = RandomNumberGenerator.new()
+	var basis := Transform2D(posmod(turn, 4) * PI / 2.0, Vector2.ZERO) * (Transform2D.FLIP_X if mirror else Transform2D.IDENTITY)
+	basis = right_angle_basis(basis)
+	var flags := basis_flags(basis)
+	var size := region.size if posmod(turn, 2) == 0 else Vector2i(region.size.y, region.size.x)
 	var l: TileMapLayer = layers[layer_name]
 	for c: Vector2i in cells:
 		if random:
-			l.set_cell(c, source_id, tiles[rng.randi_range(0, tiles.size() - 1)])
-		else:
-			var t := src.get_tile_at_coords(region.position + Vector2i(posmod(c.x, region.size.x), posmod(c.y, region.size.y)))
-			if t != Vector2i(-1, -1):
-				l.set_cell(c, source_id, t)
+			l.set_cell(c, source_id, tiles[rng.randi_range(0, tiles.size() - 1)], flags)
+			continue
+		# The turned pattern's cell, back to where it is in the region.
+		var u := Vector2(posmod(c.x, size.x), posmod(c.y, size.y)) + Vector2(0.5, 0.5) - Vector2(size) / 2.0
+		var at := (basis.basis_xform_inv(u) + Vector2(region.size) / 2.0 - Vector2(0.5, 0.5)).round()
+		var t := src.get_tile_at_coords(region.position + Vector2i(at))
+		if t != Vector2i(-1, -1):
+			l.set_cell(c, source_id, t, flags)
 	dirty = true
+
+## Quarter turns (0..3) nearest to [param degrees].
+static func quarter_turns(degrees: float) -> int:
+	return posmod(roundi(degrees / 90.0), 4)
 
 ## [source_id, atlas_coords, alternative] of a solid [param color] tile: one white tile in
 ## an "MDS colors" source, tinted per color by alternative tiles (created on demand).
@@ -987,6 +1299,8 @@ func color_tile(color: Color) -> Array:
 
 func clear_layer(layer_name: String) -> void:
 	layers[layer_name].clear()
+	if layers[layer_name].has_meta(TRACED_CELLS):
+		layers[layer_name].remove_meta(TRACED_CELLS)
 	dirty = true
 
 # --- Generation ------------------------------------------------------------------------------

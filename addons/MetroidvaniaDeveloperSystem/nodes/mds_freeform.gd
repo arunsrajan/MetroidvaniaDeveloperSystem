@@ -421,7 +421,26 @@ func rebuild() -> void:
 		col.one_way_collision_margin = get_one_way_margin()
 		body.add_child(col)
 		_part(body)
+		if Engine.is_editor_hint() and draws_nothing(st):
+			# An invisible collider (the collision of a picture traced as it is): outlined in the
+			# editor only, so it can be found and edited.
+			var shade := Polygon2D.new()
+			shade.polygon = outline
+			shade.color = Color(0.4, 0.9, 1.0, 0.1)
+			_part(shade)
+			var edge := Line2D.new()
+			edge.points = outline
+			edge.closed = true
+			edge.width = 2.0
+			edge.default_color = Color(0.4, 0.9, 1.0, 0.75) if not is_one_way() else Color(1.0, 0.75, 0.3, 0.75)
+			_part(edge)
 	_report_validity(outline)
+
+## Whether shapes of [param st] draw nothing in the game (no fill, outline, strips or material):
+## collision only.
+static func draws_nothing(st: MDSFreeformStyle) -> bool:
+	return not st.fill_texture and st.fill_color.a <= 0.01 and not st.fill_material and not st.edge_material \
+		and st.outline_width <= 0.0 and st.top_width <= 0.0 and st.bottom_width <= 0.0
 
 ## In the editor, a twisted outline is drawn red and reported once.
 func _report_validity(outline: PackedVector2Array) -> void:

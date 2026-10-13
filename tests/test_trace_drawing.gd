@@ -24,6 +24,9 @@ func _run() -> void:
 	_crop_and_paper()
 	_fast_on_busy_pictures()
 	_painter()
+	_solid_colors()
+	_tiles()
+	_picture()
 	await _room_view()
 
 func _drawing() -> Image:
@@ -242,6 +245,153 @@ func _painter() -> void:
 	check(saved.items("Freeform").size() == count and saved.items("Freeform")[1].has_meta(MDSDrawingTracer.META), "the traced shapes are in the scene, marked")
 	saved.free_instance()
 
+# --- Other ways of drawing it ------------------------------------------------------------------------
+
+## A fresh empty room, with a tileset of its own (so color tiles don't change the project's).
+func _empty_room() -> MDSRoomPainter:
+	var root := Node2D.new()
+	root.name = "TraceRoom"
+	save_scene(root, ROOM)
+	root.free()
+	load_fresh(ROOM)
+	var ts := TileSet.new()
+	ts.tile_size = Vector2i(32, 32)
+	return MDSRoomPainter.open(ROOM, ts)
+
+func _color_index(t: MDSDrawingTracer, c: Color) -> int:
+	for i in t.colors.size():
+		if MDSDrawingTracer._distance(t.colors[i].color, c) < 0.15:
+			return i
+	return -1
+
+## Solid colors: the shapes are filled with each color's own color, or one picked for it.
+func _solid_colors() -> void:
+	var painter := _empty_room()
+	var t := _tracer()
+	t.output = MDSDrawingTracer.Output.COLORS
+	t.colors[_color_index(t, GREEN)].fill_color = Color.RED
+	painter.checkpoint()
+	var r := t.apply(painter)
+	check(r.terrain >= 3 and r.platform == 1 and r.background == 1 and r.foreground == 1, "solid colors make the same shapes (%s)" % r)
+	var rock: Array = painter.items("Freeform").filter(func(f: MDSFreeform) -> bool: return f.is_terrain())
+	var styles: Dictionary = {}
+	for f in rock:
+		styles[f.style] = true
+	check(styles.size() == 1 and (rock[0].style as MDSFreeformStyle).fill_color.is_equal_approx(t.colors[_color_index(t, Color.BLACK)].color) and rock[0].style.outline_width == 0.0 and not rock[0].style.fill_texture, "rock is filled flat with the drawing's black, one style shared by its shapes")
+	var bush: MDSFreeform = painter.items("FreeformBack")[0]
+	check(bush.style.fill_color == Color.RED and not bush.is_collider(), "the bush with the red picked for it, not solid")
+	var ledge: Array = painter.items("Freeform").filter(func(f: MDSFreeform) -> bool: return f.is_platform())
+	check(ledge.size() == 1 and ledge[0].is_one_way() and ledge[0].style.fill_color.is_equal_approx(t.colors[_color_index(t, ORANGE)].color), "the ledge is orange and one-way")
+	painter.free_instance()
+
+## Tiles: the room's grid painted with each color's fill.
+func _tiles() -> void:
+	var painter := _empty_room()
+	var sheet := Image.create(64, 32, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color("#7a6a55"))
+	var src := TileSetAtlasSource.new()
+	src.texture = ImageTexture.create_from_image(sheet)
+	src.texture_region_size = Vector2i(32, 32)
+	var sid := painter.tile_set.add_source(src)
+	src.create_tile(Vector2i(0, 0))
+	src.create_tile(Vector2i(1, 0))
+	var t := _tracer()
+	t.output = MDSDrawingTracer.Output.TILES
+	t.colors[_color_index(t, Color.BLACK)].fill = {"type": "stamp", "source": sid, "region": Rect2i(0, 0, 2, 1)}
+	painter.checkpoint()
+	var r := t.apply(painter)
+	var terrain: TileMapLayer = painter.layers["Terrain"]
+	var at := func(layer: String, p: Vector2) -> int: return painter.layers[layer].get_cell_source_id(painter.cell_at(layer, p))
+	check(r.tiles > 1000 and r.terrain == 0 and painter.items("Freeform").is_empty(), "tiles: the trace paints cells, no shapes (%d tiles)" % r.tiles)
+	check(at.call("Terrain", Vector2(100, 600)) == sid and at.call("Terrain", Vector2(1000, 100)) == sid and at.call("Terrain", Vector2(1200, 500)) == sid, "the rock and the island are the sheet's tiles")
+	check(at.call("Terrain", Vector2(600, 400)) == -1 and at.call("Terrain", Vector2(1800, 900)) == -1, "the cave stays open")
+	check(at.call("Terrain", Vector2(-40, 600)) == sid and at.call("Terrain", Vector2(-100, 600)) == -1, "rock at the edge runs on past the room, as far as the bleed")
+	check(at.call("Terrain", Vector2(650, 715)) >= 0 and at.call("Terrain", Vector2(650, 715)) != sid, "the ledge is on the Terrain layer, in tiles of its own color")
+	check(at.call("Background", Vector2(1800, 500)) >= 0 and at.call("Terrain", Vector2(1800, 500)) == -1, "the bush is on the Background layer")
+	check(at.call("Foreground", Vector2(1600, 875)) >= 0, "the blob is on the Foreground layer")
+	var color_cell := painter.cell_at("Background", Vector2(1800, 500))
+	var bush_tile: TileData = painter.layers["Background"].get_cell_tile_data(color_cell)
+	check(bush_tile and bush_tile.modulate.is_equal_approx(t.colors[_color_index(t, GREEN)].color), "in solid tiles of the bush's color")
+	check((terrain.get_meta(MDSRoomPainter.TRACED_CELLS, []) as Array).size() == r.tiles - painter.layers["Background"].get_meta(MDSRoomPainter.TRACED_CELLS, []).size() - painter.layers["Foreground"].get_meta(MDSRoomPainter.TRACED_CELLS, []).size(), "each layer remembers the cells the trace painted")
+	# A tile of the room's own stays when tracing again; the traced ones are replaced.
+	terrain.set_cell(Vector2i(18, 12), sid, Vector2i(1, 0))
+	painter.checkpoint()
+	var again := t.apply(painter)
+	check(again.removed_tiles == r.tiles and again.tiles == r.tiles, "tracing again replaces the traced tiles (%d removed)" % again.removed_tiles)
+	check(terrain.get_cell_source_id(Vector2i(18, 12)) == sid, "and keeps the room's own")
+	painter.undo()
+	painter.undo()
+	check(terrain.get_used_cells().is_empty() and not terrain.has_meta(MDSRoomPainter.TRACED_CELLS), "undo takes the tiles and their record back out")
+	painter.redo()
+	check(painter.save() == OK, "saved")
+	painter.free_instance()
+	load_fresh(ROOM)
+	var saved := MDSRoomPainter.open(ROOM, TileSet.new())
+	check((saved.layers["Terrain"].get_meta(MDSRoomPainter.TRACED_CELLS, []) as Array).size() > 500, "the scene keeps the record, so a later trace can replace them")
+	saved.free_instance()
+
+## The drawing itself: pictures at three depths, the paper cut out, collision for its terrain.
+func _picture() -> void:
+	var painter := _empty_room()
+	var t := _tracer()
+	t.output = MDSDrawingTracer.Output.PICTURE
+	painter.checkpoint()
+	var r := t.apply(painter)
+	var shapes := t.trace().filter(func(s: Dictionary) -> bool: return s.layer == MDSDrawingTracer.Layer.TERRAIN or s.layer == MDSDrawingTracer.Layer.PLATFORM)
+	check(r.pictures == 3 and r.collision == shapes.size() and r.terrain == 0, "three pictures and a collision shape per rock and ledge shape (%s)" % r)
+	var by_name: Dictionary = {}
+	for d in painter.drawings():
+		by_name[String(d.name)] = d
+	var mid: MDSDrawing = by_name.get("TracedTerrainPicture")
+	var back: MDSDrawing = by_name.get("TracedBackgroundPicture")
+	var front: MDSDrawing = by_name.get("TracedForegroundPicture")
+	check(mid != null and back != null and front != null, "behind the terrain, at its depth and in front (%s)" % [by_name.keys()])
+	if mid and back and front:
+		var has := func(list: PackedColorArray, c: Color) -> bool: return Array(list).any(func(x: Color) -> bool: return MDSDrawingTracer._distance(x, c) < 0.15)
+		check(has.call(mid.keep_colors, Color.BLACK) and has.call(mid.keep_colors, ORANGE) and has.call(mid.cut_colors, Color.WHITE) and has.call(mid.cut_colors, GREEN), "the terrain picture keeps the rock and the ledge, cuts the paper and the bush")
+		check(has.call(back.keep_colors, GREEN) and back.keep_colors.size() == 1 and has.call(front.keep_colors, BLUE), "the background one only the bush, the foreground one only the blob")
+		check(back.z_index < 0 and front.z_index > MDSRoomPainter.LAYER_Z.Foreground and mid.z_index == 0, "each at its depth (%d, %d, %d)" % [back.z_index, mid.z_index, front.z_index])
+		check(mid.texture != null and mid.texture.get_size() == Vector2(240, 120) and mid.get_rect().size == Vector2(240, 120), "the whole drawing, at its own size")
+		check((mid.transform * Vector2.ZERO).is_equal_approx(Vector2.ZERO) and (mid.transform * Vector2(240, 120)).is_equal_approx(Vector2(2400, 1200)), "laid over the room's box")
+		check(mid.has_point(Vector2(1200, 600)) and not mid.has_point(Vector2(2500, 600)) and mid.has_meta(MDSDrawingTracer.META), "picked on its box, marked as traced")
+	var collision: Array = painter.items("Freeform")
+	check(collision.size() == r.collision and collision.all(func(f: MDSFreeform) -> bool: return f.is_collider() and MDSFreeform.draws_nothing(f.get_style()) and not f.get_style().extrude), "the collision shapes collide, draw nothing and are not extruded in 2.5D")
+	check(collision.filter(func(f: MDSFreeform) -> bool: return f.is_platform() and f.is_one_way()).size() == 1, "the ledge's is one-way")
+	check(_inside_shapes(collision, Vector2(100, 600)) and not _inside_shapes(collision, Vector2(600, 400)), "they follow the drawing: the rock collides, the cave doesn't")
+	var check_room := MDSRoomCheck.new()
+	var host := SubViewport.new()
+	add_child(host)
+	check_room.build_from_painter(painter, host)
+	check(check_room._ground.get_child_count() >= 3, "Check room collides with them")
+	check_room.free_proxy()
+	host.queue_free()
+	# Keeping the paper: the terrain picture shows it.
+	t.cut_paper = false
+	t.collision = false
+	painter.checkpoint()
+	var kept := t.apply(painter)
+	var mid2: MDSDrawing = painter.drawings().filter(func(d: MDSDrawing) -> bool: return String(d.name) == "TracedTerrainPicture")[0]
+	check(kept.removed == r.pictures + r.collision and kept.collision == 0 and painter.items("Freeform").is_empty(), "tracing again replaces the pictures and collision; without collision there is none")
+	check(Array(mid2.keep_colors).any(func(x: Color) -> bool: return MDSDrawingTracer._distance(x, Color.WHITE) < 0.15), "kept paper stays in the terrain picture")
+	painter.undo()
+	check(painter.save() == OK, "saved")
+	painter.free_instance()
+	load_fresh(ROOM)
+	var saved := MDSRoomPainter.open(ROOM, TileSet.new())
+	check(saved.drawings().size() == 3 and saved.drawings().all(func(d: Node) -> bool: return d is MDSDrawing and d.has_meta(MDSDrawingTracer.META) and d.texture != null), "the scene has the pictures, marked, with their texture")
+	check(saved.items("Freeform").size() == r.collision, "and the collision shapes")
+	saved.free_instance()
+	var packed := load_fresh(ROOM) as PackedScene
+	var scene := packed.instantiate()
+	check(scene.get_node_or_null("Pictures/TracedTerrainPicture") is MDSDrawing, "in the scene's Pictures group")
+	scene.free()
+
+func _inside_shapes(shapes: Array, p: Vector2) -> bool:
+	for f: MDSFreeform in shapes:
+		if f.has_point(p):
+			return true
+	return false
+
 # --- The Room view ----------------------------------------------------------------------------------
 
 func _room_view() -> void:
@@ -303,6 +453,21 @@ func _room_view() -> void:
 	dialog._on_confirmed()
 	check(traced.call() >= 4 and str(world.get_room_value("Cave", "drawing", "")) == DRAWING, "Trace keeps it and remembers the drawing for the room")
 	check(messages.any(func(m: String) -> bool: return m.begins_with("Traced the drawing into Cave")), "and says what it made (%s)" % [messages.back()])
+	# The other ways of drawing it: each color's last picker follows.
+	dialog.set_output(MDSDrawingTracer.Output.COLORS)
+	check(dialog._rows.get_child_count() == 4 * 5 and dialog._rows.get_child(3) is ColorPickerButton and not dialog._picture_row.visible, "Solid colors: a color picker per color")
+	dialog.set_output(MDSDrawingTracer.Output.TILES)
+	var fill_picker: Node = dialog._rows.get_child(3)
+	check(fill_picker is OptionButton and (fill_picker as OptionButton).get_item_text(0).begins_with("Its color") and not dialog._detail.editable, "Tiles: a tile fill per color (its own color first); Detail is off")
+	dialog.set_output(MDSDrawingTracer.Output.PICTURE)
+	check(dialog._rows.get_child(3) is Label and dialog._picture_row.visible and dialog._collision.button_pressed and dialog._cut_paper.button_pressed, "The drawing itself: collision and cut-out options, nothing to pick per color")
+	dialog.preview()
+	check(view.painter.drawings().size() == 3 and view.painter.items("Freeform").all(func(f: MDSFreeform) -> bool: return MDSFreeform.draws_nothing(f.get_style())), "its preview replaces the shapes with the pictures and their collision")
+	dialog._on_confirmed()
+	check(int(world.get_room_value("Cave", "drawing_output", -1)) == MDSDrawingTracer.Output.PICTURE, "the room remembers how it was traced")
+	check(messages.back().contains("picture(s) of the drawing") and messages.back().contains("collision shape(s)") and messages.back().contains("earlier trace replaced"), "and says so (%s)" % messages.back())
+	dialog.open(view, view._styles)
+	check(dialog.tracer.output == MDSDrawingTracer.Output.PICTURE and dialog._output.get_selected_id() == MDSDrawingTracer.Output.PICTURE, "opened again, it traces the same way")
 	view.close_room(false)
 	view.queue_free()
 	await get_tree().process_frame
