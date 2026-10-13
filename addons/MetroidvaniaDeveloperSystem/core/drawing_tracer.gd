@@ -2,7 +2,14 @@
 class_name MDSDrawingTracer
 extends RefCounted
 ## Trace drawing: turns a picture of a room (a sketch, a paint-over, a level drawing made in
-## any paint program) into freeform shapes drawn with the freeform styles you pick.
+## any paint program) into the room's terrain, background and foreground. [member output] says
+## how it is drawn:
+## - freeform shapes in the freeform styles you pick (the default);
+## - freeform shapes filled with solid colors (the drawing's own colors, or ones you pick);
+## - tiles: each color paints the room's tile grid with a fill (a terrain, tiles of a kind,
+##   palette tiles from a spritesheet, or a solid color);
+## - the drawing itself, kept as it is drawn ([MDSDrawing]), its paper cut out; its terrain and
+##   platforms can get invisible freeform shapes to collide with, like CollisionPolygon2D.
 ##
 ## Each color of the drawing is a layer. Out of the box:
 ## - black, grey and brown: solid terrain;
@@ -26,6 +33,7 @@ extends RefCounted
 ## tracer.load_image("res://drawings/cave_02.png")
 ## tracer.target = Rect2(0, 0, 2304, 1296)
 ## tracer.styles[MDSDrawingTracer.Layer.TERRAIN] = load("res://styles/mossy_rock.freeform.tres")
+## # Or tiles, solid colors, or the drawing itself: tracer.output = MDSDrawingTracer.Output.TILES
 ## painter.checkpoint()
 ## print(tracer.apply(painter))
 ## painter.save()
@@ -33,8 +41,24 @@ extends RefCounted
 
 enum Layer { IGNORE, TERRAIN, PLATFORM, BACKGROUND, FOREGROUND }
 const LAYER_NAMES: PackedStringArray = ["Nothing (paper)", "Terrain (solid)", "Platform (one-way)", "Background", "Foreground"]
+## How the drawing goes into the room:
+## - [code]STYLES[/code]: freeform shapes, in the style picked for each color ("style");
+## - [code]COLORS[/code]: freeform shapes filled with a solid color: each color's
+##   "fill_color", else its own;
+## - [code]TILES[/code]: the room's tile grid, each color painted with its "fill" (see
+##   [method MDSRoomPainter.paint_fill]: a terrain, tiles of a kind, palette tiles or a solid
+##   color), else with tiles of its own color;
+## - [code]PICTURE[/code]: the drawing itself, as it is drawn: a picture ([MDSDrawing]) at each
+##   depth (behind the terrain, at its depth, in front) keeping that layer's colors, the paper cut
+##   out ([member cut_paper]); with [member collision], its terrain and platforms get invisible
+##   freeform shapes to collide with.
+enum Output { STYLES, COLORS, TILES, PICTURE }
+const OUTPUT_NAMES: PackedStringArray = ["Freeform styles", "Solid colors", "Tiles (spritesheets, terrains)", "The drawing itself"]
 ## The freeform group (Room view layer) each layer's shapes go to.
 const LAYER_GROUPS := {Layer.TERRAIN: "Freeform", Layer.PLATFORM: "Freeform", Layer.BACKGROUND: "FreeformBack", Layer.FOREGROUND: "FreeformFront"}
+## The tile layer each layer's tiles go to ([code]TILES[/code]), and the depth of its picture
+## ([code]PICTURE[/code]).
+const LAYER_TILES := {Layer.TERRAIN: "Terrain", Layer.PLATFORM: "Terrain", Layer.BACKGROUND: "Background", Layer.FOREGROUND: "Foreground"}
 ## Colors shown for the layers in previews.
 const LAYER_COLORS := {Layer.IGNORE: Color(0, 0, 0, 0), Layer.TERRAIN: Color("#5d6b78"), Layer.PLATFORM: Color("#e8913a"), Layer.BACKGROUND: Color("#3f9a6a"), Layer.FOREGROUND: Color("#8a63d2")}
 ## Traced shapes carry this metadata, so tracing again can replace them.
@@ -68,13 +92,28 @@ var smooth := true
 var bleed := 64.0
 ## The style of each layer's shapes: Layer -> MDSFreeformStyle (missing: a built-in one).
 var styles: Dictionary = {}
+## How the drawing goes into the room (see [enum Output]).
+var output := Output.STYLES
+## [code]PICTURE[/code]: give the drawing's terrain and platforms invisible freeform shapes to
+## collide with (one-way for platforms).
+var collision := true
+## [code]PICTURE[/code]: make the paper (colors set to Nothing) transparent.
+var cut_paper := true
+## [code]PICTURE[/code]: where a drawing that is not in the project is copied (a PNG), so the
+## room's scene can link to it. Empty: next to the room's scene ([code]<room>_drawing.png[/code]).
+var picture_path := ""
 
 # --- The drawing -------------------------------------------------------------------------------
 
 ## The drawing as traced (scaled to [member resolution]).
 var image: Image
+## The drawing at its own size ([code]PICTURE[/code] shows it).
+var original: Image
+## The file it was loaded from ("" when set with [method set_image]).
+var source_path := ""
 ## Its colors, most used first: [{color, share (0..1), layer}]. Change their layer (and set
-## a "style" of their own, an MDSFreeformStyle) before [method trace] or [method apply].
+## a "style" of their own, an MDSFreeformStyle; a "fill_color"; a tile "fill") before
+## [method trace] or [method apply].
 var colors: Array = []
 var _labels := PackedInt32Array() ## per pixel: index in colors, -1 transparent
 var _content_key := ""
@@ -87,14 +126,17 @@ func load_image(path: String) -> Error:
 	if err != OK:
 		return err
 	set_image(img)
+	source_path = path
 	return OK
 
 ## Uses [param img] as the drawing (it is copied) and finds its colors.
 func set_image(img: Image) -> void:
-	image = img.duplicate() as Image
-	if image.is_compressed():
-		image.decompress()
-	image.convert(Image.FORMAT_RGBA8)
+	source_path = ""
+	original = img.duplicate() as Image
+	if original.is_compressed():
+		original.decompress()
+	original.convert(Image.FORMAT_RGBA8)
+	image = original.duplicate() as Image
 	var longest := maxi(image.get_width(), image.get_height())
 	if longest > resolution:
 		var k := float(resolution) / longest
@@ -627,38 +669,311 @@ func style_for(layer: Layer, color_index := -1) -> MDSFreeformStyle:
 			return rock if rock else builtins[0]
 	return builtins[0]
 
-## Traces the drawing into the room [param painter] edits (call
-## [method MDSRoomPainter.checkpoint] first). With [param replace], shapes an earlier trace made
-## are removed first. Returns {terrain, platform, background, foreground, removed}.
+## A style that fills shapes with [param color] and nothing else ([code]COLORS[/code]), solid
+## for terrain, one-way for platforms.
+static func solid_style(color: Color, layer: Layer) -> MDSFreeformStyle:
+	var st := MDSFreeformStyle.new()
+	st.display_name = "Solid #%s" % color.to_html(false)
+	st.fill_color = color
+	st.outline_width = 0.0
+	st.solid = layer == Layer.TERRAIN or layer == Layer.PLATFORM
+	st.default_layer = "back" if layer == Layer.BACKGROUND else ("front" if layer == Layer.FOREGROUND else "terrain")
+	if layer == Layer.PLATFORM:
+		st.role = MDSFreeformStyle.Role.PLATFORM
+		st.one_way = true
+	return st
+
+## The style of the invisible shapes a picture collides with ([code]PICTURE[/code]): nothing
+## drawn in the game (the editor outlines them), not extruded in 2.5D; one-way for
+## [param platform].
+static func collision_style(platform: bool) -> MDSFreeformStyle:
+	var st := MDSFreeformStyle.new()
+	st.display_name = "Collision only, one-way" if platform else "Collision only"
+	st.fill_color = Color(0, 0, 0, 0)
+	st.outline_width = 0.0
+	st.extrude = false
+	if platform:
+		st.role = MDSFreeformStyle.Role.PLATFORM
+		st.one_way = true
+	return st
+
+## Traces the drawing into the room [param painter] edits, as [member output] says (call
+## [method MDSRoomPainter.checkpoint] first). With [param replace], what an earlier trace made
+## (shapes, pictures, tiles) is removed first. Returns {terrain, platform, background,
+## foreground (shapes), tiles (cells painted), pictures, collision (shapes), removed (shapes and
+## pictures), removed_tiles}.
 func apply(painter: MDSRoomPainter, replace := true) -> Dictionary:
-	var report := {"terrain": 0, "platform": 0, "background": 0, "foreground": 0, "removed": 0}
+	var report := {"terrain": 0, "platform": 0, "background": 0, "foreground": 0, "tiles": 0, "pictures": 0, "collision": 0, "removed": 0, "removed_tiles": 0}
 	if replace:
-		for g in ["Freeform", "FreeformBack", "FreeformFront"]:
-			for item in painter.items(g):
-				if item.has_meta(META):
-					painter.remove_item(item)
-					report.removed += 1
-	var keys := {Layer.TERRAIN: "terrain", Layer.PLATFORM: "platform", Layer.BACKGROUND: "background", Layer.FOREGROUND: "foreground"}
+		var gone := remove_traced(painter)
+		report.removed = gone.items
+		report.removed_tiles = gone.cells
+	match output:
+		Output.TILES:
+			_apply_tiles(painter, report)
+		Output.PICTURE:
+			_apply_picture(painter, report)
+		_:
+			_apply_shapes(painter, report)
+	return report
+
+## How much a trace made (see [method apply]): shapes, tiles and pictures.
+static func made(report: Dictionary) -> int:
+	var n := 0
+	for k in ["terrain", "platform", "background", "foreground", "tiles", "pictures", "collision"]:
+		n += int(report.get(k, 0))
+	return n
+
+## Takes out what earlier traces made in the room: their shapes and pictures, and the tiles they
+## painted. Returns {items, cells}.
+static func remove_traced(painter: MDSRoomPainter) -> Dictionary:
+	var out := {"items": 0, "cells": 0}
+	for g in ["Freeform", "FreeformBack", "FreeformFront", MDSRoomPainter.PICTURES_GROUP]:
+		for item in painter.items(g):
+			if item.has_meta(META):
+				painter.remove_item(item)
+				out.items += 1
+	for layer_name in MDSRoomPainter.LAYER_ORDER:
+		var l: TileMapLayer = painter.layers[layer_name]
+		if not l.has_meta(MDSRoomPainter.TRACED_CELLS):
+			continue
+		var cells: Array = l.get_meta(MDSRoomPainter.TRACED_CELLS)
+		painter.erase(layer_name, cells.filter(func(c: Variant) -> bool: return c is Vector2i))
+		out.cells += cells.size()
+		l.remove_meta(MDSRoomPainter.TRACED_CELLS)
+	return out
+
+const _REPORT_KEYS := {Layer.TERRAIN: "terrain", Layer.PLATFORM: "platform", Layer.BACKGROUND: "background", Layer.FOREGROUND: "foreground"}
+
+## A traced shape ([param s], from [method trace]) as a freeform shape of [param st], set up before
+## it goes into the room so it is built once.
+func _shape(s: Dictionary, st: MDSFreeformStyle, shape_name: String) -> MDSFreeform:
+	var layer: Layer = s.layer
+	var f := MDSFreeform.new()
+	f.points = s.points
+	f.style = st
+	f.solid = layer == Layer.TERRAIN or layer == Layer.PLATFORM
+	f.smooth = s.smooth
+	f.seed_value = randi() % 100000
+	f.name = shape_name
+	match layer:
+		Layer.PLATFORM:
+			f.set_collision_override(MDSFreeformStyle.Role.PLATFORM, true)
+		Layer.TERRAIN:
+			if st.get_role() != MDSFreeformStyle.Role.TERRAIN or st.is_one_way():
+				f.set_collision_override(MDSFreeformStyle.Role.TERRAIN, false)
+	f.set_meta(META, true)
+	if not (s.seams as PackedFloat32Array).is_empty():
+		f.set_meta(&"mds_seams", s.seams)
+	return f
+
+## [code]STYLES[/code] and [code]COLORS[/code]: the shapes, in their styles or solid colors.
+func _apply_shapes(painter: MDSRoomPainter, report: Dictionary) -> void:
+	var flat: Dictionary = {} # color index -> its solid style (one per color, shared by its shapes)
 	for s in trace():
 		var layer: Layer = s.layer
-		var st := style_for(layer, s.color)
-		# Set up before it goes into the room, so it is built once.
-		var f := MDSFreeform.new()
-		f.points = s.points
-		f.style = st
-		f.solid = layer == Layer.TERRAIN or layer == Layer.PLATFORM
-		f.smooth = s.smooth
-		f.seed_value = randi() % 100000
-		f.name = "Traced%s%d" % [str(keys[layer]).capitalize(), report[keys[layer]] + 1]
-		match layer:
-			Layer.PLATFORM:
-				f.set_collision_override(MDSFreeformStyle.Role.PLATFORM, true)
-			Layer.TERRAIN:
-				if st.get_role() != MDSFreeformStyle.Role.TERRAIN or st.is_one_way():
-					f.set_collision_override(MDSFreeformStyle.Role.TERRAIN, false)
-		f.set_meta(META, true)
-		if not (s.seams as PackedFloat32Array).is_empty():
-			f.set_meta(&"mds_seams", s.seams)
-		painter.add_item(f, LAYER_GROUPS[layer])
-		report[keys[layer]] += 1
-	return report
+		var st: MDSFreeformStyle
+		if output == Output.COLORS:
+			if not flat.has(s.color):
+				var c: Dictionary = colors[s.color]
+				flat[s.color] = solid_style(c.get("fill_color", c.color), layer)
+			st = flat[s.color]
+		else:
+			st = style_for(layer, s.color)
+		var key: String = _REPORT_KEYS[layer]
+		painter.add_item(_shape(s, st, "Traced%s%d" % [key.capitalize(), report[key] + 1]), LAYER_GROUPS[layer])
+		report[key] += 1
+
+# --- Tiles ---------------------------------------------------------------------------------------
+
+## The room's tile cells each color covers ([code]TILES[/code]): color index -> cells of
+## [param painter]'s grid. A cell goes to the color most of it is drawn in (paper counts too, so
+## a cell half on the paper goes to whichever covers more of it); cells past the drawing's edge,
+## up to [member bleed] px, continue the colors along it. Patches of a color smaller than
+## [member min_size] across are dropped.
+func cells_by_color(painter: MDSRoomPainter) -> Dictionary:
+	var out: Dictionary = {}
+	if not image or _labels.is_empty():
+		return out
+	var w := image.get_width()
+	var xform := image_to_target()
+	var inv := xform.affine_inverse()
+	var src := source_rect()
+	var drawn := Rect2(xform * Vector2(src.position), Vector2(src.size) * xform.get_scale())
+	var area := drawn.grow(bleed)
+	var ts := painter.tile_size()
+	var lo := painter.cell_at("Terrain", area.position)
+	var hi := painter.cell_at("Terrain", area.end - Vector2(0.01, 0.01))
+	var drawn_color := PackedByteArray()
+	drawn_color.resize(colors.size())
+	for k in colors.size():
+		drawn_color[k] = 1 if colors[k].layer != Layer.IGNORE else 0
+	var votes := PackedInt32Array()
+	votes.resize(colors.size() + 1)
+	var inside := drawn.grow(-0.01)
+	for y in range(lo.y, hi.y + 1):
+		for x in range(lo.x, hi.x + 1):
+			var cell := Vector2i(x, y)
+			var center := painter.cell_rect("Terrain", cell).get_center()
+			votes.fill(0)
+			var total := 0
+			for sy in [-1, 0, 1]:
+				for sx in [-1, 0, 1]:
+					var q: Vector2 = center + Vector2(sx, sy) * ts / 3.0
+					if not drawn.has_point(q):
+						if bleed <= 0.0 or not area.has_point(q):
+							continue
+						q = q.clamp(inside.position, inside.end)
+					var p := inv * q
+					var px := clampi(int(p.x), src.position.x, src.end.x - 1)
+					var py := clampi(int(p.y), src.position.y, src.end.y - 1)
+					var l := _labels[py * w + px]
+					votes[l + 1 if l >= 0 and drawn_color[l] == 1 else 0] += 1
+					total += 1
+			if total == 0:
+				continue
+			var best := 0
+			for k in range(1, votes.size()):
+				if votes[k] > votes[best]:
+					best = k
+			if best > 0:
+				var k := best - 1
+				if not out.has(k):
+					out[k] = []
+				out[k].append(cell)
+	if min_size > 0.0:
+		for k in out.keys():
+			out[k] = _without_specks(out[k], ts)
+			if out[k].is_empty():
+				out.erase(k)
+	return out
+
+## [param cells] without the patches (4-connected) smaller than [member min_size] across.
+func _without_specks(cells: Array, ts: Vector2) -> Array:
+	var left: Dictionary = {}
+	for c in cells:
+		left[c] = true
+	var keep: Array = []
+	while not left.is_empty():
+		var start: Vector2i = left.keys()[0]
+		var patch: Array = [start]
+		left.erase(start)
+		var lo := start
+		var hi := start
+		var i := 0
+		while i < patch.size():
+			var c: Vector2i = patch[i]
+			i += 1
+			lo = Vector2i(mini(lo.x, c.x), mini(lo.y, c.y))
+			hi = Vector2i(maxi(hi.x, c.x), maxi(hi.y, c.y))
+			for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				if left.has(c + d):
+					left.erase(c + d)
+					patch.append(c + d)
+		var across := Vector2(hi - lo + Vector2i.ONE) * ts
+		if maxf(across.x, across.y) >= min_size:
+			keep.append_array(patch)
+	return keep
+
+## [code]TILES[/code]: paints each color's cells with its fill, on its layer's tile layer, and
+## remembers them (so Replace the last trace can erase them).
+func _apply_tiles(painter: MDSRoomPainter, report: Dictionary) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var painted: Dictionary = {} # tile layer -> cells
+	var by_color := cells_by_color(painter)
+	# Background first, foreground last; within a layer, the most used color first.
+	var order: Array = by_color.keys()
+	order.sort_custom(func(a: int, b: int) -> bool:
+		var la: int = [Layer.BACKGROUND, Layer.TERRAIN, Layer.PLATFORM, Layer.FOREGROUND].find(colors[a].layer)
+		var lb: int = [Layer.BACKGROUND, Layer.TERRAIN, Layer.PLATFORM, Layer.FOREGROUND].find(colors[b].layer)
+		return la < lb if la != lb else a < b)
+	for k in order:
+		var c: Dictionary = colors[k]
+		var layer_name: String = LAYER_TILES[c.layer]
+		var fill: Dictionary = c.get("fill", {})
+		if fill.is_empty():
+			fill = {"type": "color", "color": c.color}
+		var cells: Array = by_color[k]
+		painter.paint_fill(layer_name, cells, fill, rng)
+		if not painted.has(layer_name):
+			painted[layer_name] = []
+		painted[layer_name].append_array(cells)
+		report.tiles += cells.size()
+	for layer_name in painted:
+		var l: TileMapLayer = painter.layers[layer_name]
+		var all: Dictionary = {}
+		for cell in l.get_meta(MDSRoomPainter.TRACED_CELLS, []):
+			all[cell] = true
+		for cell in painted[layer_name]:
+			all[cell] = true
+		l.set_meta(MDSRoomPainter.TRACED_CELLS, all.keys())
+	painter.dirty = true
+
+# --- The drawing itself -------------------------------------------------------------------------
+
+## The drawing as a texture a room scene can link to: its file when it is in the project, else
+## a PNG copy at [member picture_path] (or next to the room's scene). Outside the editor the copy
+## is embedded instead.
+func picture_texture(painter: MDSRoomPainter) -> Texture2D:
+	if source_path.begins_with("res://"):
+		var tex := MDSRoomPainter._sheet_texture(source_path)
+		if tex:
+			return tex
+	if not original:
+		return null
+	var path := picture_path
+	if path.is_empty():
+		var base := painter.scene_path.get_basename() if painter and not painter.scene_path.is_empty() else "res://mds_drawings/drawing"
+		path = base + "_drawing.png"
+	if path.begins_with("res://"):
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
+	return MDSRoomPainter._file_texture(original, path)
+
+## [code]PICTURE[/code]: the drawing at each depth that has colors of its own, keeping them and
+## cutting out the rest (and the paper, with [member cut_paper]); then, with [member collision],
+## invisible shapes for its terrain and platforms.
+func _apply_picture(painter: MDSRoomPainter, report: Dictionary) -> void:
+	if not image or colors.is_empty():
+		return
+	var tex := picture_texture(painter)
+	if not tex:
+		report.error = "Could not read the drawing's picture."
+		return
+	# Original pixels per traced pixel.
+	var k := Vector2(original.get_size()) / Vector2(image.get_size()) if original else Vector2.ONE
+	var src := source_rect()
+	var region := Rect2(Vector2(src.position) * k, Vector2(src.size) * k)
+	var xform := image_to_target() * Transform2D(0.0, Vector2.ONE / k, 0.0, Vector2.ZERO) * Transform2D(0.0, region.position)
+	var depths := {"Background": [Layer.BACKGROUND], "Terrain": [Layer.TERRAIN, Layer.PLATFORM], "Foreground": [Layer.FOREGROUND]}
+	for layer_name in depths:
+		var keep := PackedColorArray()
+		var cut := PackedColorArray()
+		var own := 0
+		for c in colors:
+			var mine: bool = c.layer in depths[layer_name]
+			if mine:
+				own += 1
+			if mine or (c.layer == Layer.IGNORE and not cut_paper and layer_name == "Terrain"):
+				keep.append(c.color)
+			else:
+				cut.append(c.color)
+		if own == 0 and not (layer_name == "Terrain" and not cut_paper):
+			continue
+		if keep.size() == colors.size():
+			cut.clear() # nothing to cut: the picture as it is
+		var d := painter.add_drawing(tex, region, xform, layer_name, keep, cut)
+		d.name = "Traced%sPicture" % layer_name
+		d.set_meta(META, true)
+		report.pictures += 1
+	if not collision:
+		return
+	var walls := collision_style(false)
+	var ledges := collision_style(true)
+	for s in trace():
+		if s.layer != Layer.TERRAIN and s.layer != Layer.PLATFORM:
+			continue
+		var f := _shape(s, ledges if s.layer == Layer.PLATFORM else walls, "TracedCollision%d" % (report.collision + 1))
+		f.edge_clumps = false
+		painter.add_item(f, "Freeform")
+		report.collision += 1

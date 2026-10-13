@@ -1,6 +1,6 @@
 # Metroidvania Developer System
 
-[![Tests](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml/badge.svg)](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml) Version 3.2.0 ([changelog](CHANGELOG.md))
+[![Tests](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml/badge.svg)](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml) Version 3.3.0 ([changelog](CHANGELOG.md))
 
 A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, silk threads, will-o'-wisps, void tendrils, cobwebs, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight, glowing bees, spiders, birds and owls watching it...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
 
@@ -258,7 +258,7 @@ The map is one view of a room; the **Room view** is the other. It shows the room
   - **Terrain** paints ground and walls on the `Terrain` layer.
   - **Background** paints behind the room.
   - **Decor** places grass, ferns, flowers, mushrooms, vines, stalactites or hanging moss.
-  - **Erase** removes the top tile under the brush: the decoration, else the terrain, else the background, including palette tiles and solid colors. One stroke peels one layer per cell. The list next to the tools can limit it to **Decor only**, **Terrain only** or **Background only**, or clear **All layers**. Shift+Erase removes background only.
+  - **Erase** removes the top tile under the brush: a stamp or free tiles, else the decoration, else the terrain, else the background, including palette tiles and solid colors. One stroke peels one layer per cell. The list next to the tools can limit it to **Decor only**, **Terrain only** or **Background only**, or clear **All layers**. Shift+Erase removes background only.
   - `[` and `]` change the brush size; the wheel zooms and middle/right drag pans. **Undo**/**Redo** (Ctrl+Z / Ctrl+Y) step through strokes and shapes.
 - **Fill:** the list below the tools (Room painting section) sets what the current brush paints:
   - a **terrain**, autotiled with Godot's terrain system;
@@ -286,12 +286,26 @@ The map is one view of a room; the **Room view** is the other. It shows the room
 - **Tile palette** (the **Tiles** tab on the right, also opened with **Tile palette** in the tool panel) shows the room tileset's spritesheets.
   - **+ Sheet** adds a PNG, WebP or JPG. Set the tile size, margin and separation, and whether the tiles are solid. Sheets drawn at another size than the room grid (16 px art on a 32 px grid, say) are scaled to fit it, and empty cells are skipped.
   - Drag over tiles to pick one or a block. The current brush then paints them as a repeating pattern, or picks random tiles from the block when **Random** is on.
+  - **Turn** turns the picked tiles clockwise, anywhere from 0 to 360 degrees (**-90°** / **+90°** for quarter turns), and **Mirror** flips them left to right. The preview next to it shows them as they will be placed. The **Place** tool puts them in the room at exactly that angle. The brushes paint them on the grid, turned to the nearest right angle: the block's pattern turns with them, and so do their collision shapes.
   - **Make terrain** turns a picked 3x3 box (corners, edges, fill: the usual platformer layout) into an autotiling solid terrain. It also accepts a 4x4 block ordered by connected sides (1 right + 2 bottom + 4 left + 8 top). For a 3x3 box, the pieces it lacks (1-tile columns, ledges, single blocks) reuse the closest tile. The terrain then appears in the fill list, and Generate cave can use it.
   - **Solid on/off** adds or removes full-tile collision.
   - **Tag** gives tiles a kind (`grass`, `flower`, `foliage`, `vine_top`...), so kind fills, Auto-decorate and Generate cave use your art.
   - Colored marks on tiles show which are solid (red), tagged (blue) or part of a terrain (bar).
 
 ![Room painted with shapes, a spritesheet terrain, palette bricks and a color background](docs/room_shapes.png)
+- **Place** puts the tiles picked in the palette anywhere in the room, off the grid, at the palette's angle. Click to place them, and drag right away to move them; **R** / **Shift+R** turn the next ones by the **Turn** step (15° by default). **Shift+click** removes free tiles.
+  - The **Layer** list sets their depth: Background, Terrain, Decor or Foreground. Free tiles draw and collide like that layer's tiles, so solid tiles stay solid at any angle, and Check room collides with them where they are.
+  - **Snap to tiles** puts their corner on the grid; at a right angle they then line up with the grid's tiles.
+  - Free tiles are kept as small `TileMapLayer`s, each with a position and an angle, in the scene's `Tiles` node (`mds_tiles` metadata: their layer). They need nothing from the addon at runtime.
+- **Select** picks things in the room and moves them, as freely as rooms and areas on the map.
+  - Click a tile on the grid, free tiles, a stamp, a picture or a freeform shape to select it. **Shift** or **Ctrl** + click adds it to the selection or takes it out. Drag a box to select everything in it. The **Layer** list limits what is picked: everything, one layer's tiles (on the grid and free), or items only.
+  - Drag the selection to move it **by pixels**. Grid tiles moved off the grid become free tiles. With **Snap to tiles**, it moves **by whole tiles**, and grid tiles stay on the grid.
+  - **R** / **Shift+R** (or the **+** and **-** buttons) turn the selection around its middle. The arrows nudge it a pixel; with Shift (or Snap to tiles), a tile. **Delete** removes it and **Esc** clears it.
+  - Turning grid tiles a quarter turn with Snap to tiles keeps them on the grid, each tile turned. Turning freeform shapes turns their points, so moss still grows on their new tops.
+  - **To grid** puts selected free tiles back on their layer's grid, at the nearest right angle.
+  - Every move, turn and delete is one undo step.
+
+![Palette tiles placed at angles, a ledge selected and moved off the grid, ruins traced as they are drawn](docs/place_and_select.png)
 - **Generate cave** builds a starting room from the room's shape on the map. It places rough cave walls, a floor and ledges jutting from the walls, and keeps openings wherever the room has gates. Then it adds the layers with what you picked for them:
   - **Terrain:** the Terrain fill, autotiled or not. With palette tiles or a solid color it works even when the tileset has no terrains.
   - **Background:** the Background fill, behind the cave only.
@@ -444,9 +458,22 @@ In code: `MDSFreeformDecorator` (with `use_world_room()` and `decorate(painter)`
 
 #### Trace a drawing
 
-Sketch a room in any paint program, then let MDS draw it. **Trace drawing...** (Room view) turns a picture into freeform shapes in the styles you pick. You can also drop an image on the Room view, from the FileSystem dock or straight from your file manager.
+Sketch a room in any paint program, then let MDS draw it. **Trace drawing...** (Room view) turns a picture into the room's terrain, background and foreground. You can also drop an image on the Room view, from the FileSystem dock or straight from your file manager.
 
-- **Colors are layers.** The dialog lists the drawing's colors, each with its share of the picture, a layer and a freeform style. By default:
+- **Draw with** sets how the drawing goes into the room:
+
+  | Draw with | Each color becomes | Picked per color |
+  |---|---|---|
+  | **Freeform styles** | freeform shapes in a style: textured rock, moss, ledges | a freeform style |
+  | **Solid colors** | freeform shapes filled flat with a color | a color (the drawing's own by default) |
+  | **Tiles** | tiles on the room's grid. Terrain and platforms go on the Terrain layer; background and foreground go on theirs. | a tile fill: solid tiles of its own color, a terrain (autotiled), random tiles of a kind, or the tiles picked in the tile palette (a spritesheet) |
+  | **The drawing itself** | the picture, as it is drawn | nothing |
+
+- **The drawing itself** keeps your art. Three pictures go into the room (`MDSDrawing` nodes in the scene's `Pictures` node), each keeping one layer's colors: one behind the terrain, one at its depth, one in front of everything.
+  - **Cut out the paper** makes the paper transparent. A shader does the cut out, so the picture stays as sharp as its file and the scene stores only the colors.
+  - **Collision for its terrain** gives the terrain colors invisible freeform shapes that follow the drawing's outlines, like `CollisionPolygon2D`; platform colors get one-way ones. They draw nothing in the game, and the editor outlines them. Edit them with **Freeform > Edit**.
+  - A drawing from outside the project is copied next to the room's scene (`<room>_drawing.png`), so the scene can link to it.
+- **Colors are layers.** The dialog lists the drawing's colors, each with its share of the picture, a layer, and what it is drawn with. By default:
 
   | Color in the drawing | Becomes |
   |---|---|
@@ -465,7 +492,7 @@ Sketch a room in any paint program, then let MDS draw it. **Trace drawing...** (
 - **Rock at the drawing's edge** runs on past the room's edge (**Run on past edges**, 64 px), out of the camera's sight.
 - **Detail** goes from smooth outlines with few points to following every wiggle. **Smallest shape** drops specks. **Round outlines** off keeps straight edges, for a blockout.
 - **Preview** traces it so you can look; **Cancel** takes it back out. A trace is one step of the Room view's undo.
-- **Replace the last trace** removes the shapes an earlier trace made (they carry `mds_traced` metadata) and keeps everything else, so you can redraw and trace again. The room remembers its drawing (`rooms[id].drawing` in the world file) for next time.
+- **Replace the last trace** removes what an earlier trace made and keeps everything else, so you can redraw and trace again. Shapes and pictures carry `mds_traced` metadata; traced tiles are listed in their layer's `mds_traced_cells` metadata. The room remembers its drawing and how it was drawn (`rooms[id].drawing` and `drawing_output` in the world file) for next time.
 
 The algorithm is `MDSDrawingTracer` in `core/`, so tools and CI can trace any room:
 
@@ -475,8 +502,9 @@ var tracer := MDSDrawingTracer.new()
 tracer.load_image("res://drawings/cave_02.png")
 tracer.target = Rect2(0, 0, 2304, 1296)   # the room's box
 tracer.styles[MDSDrawingTracer.Layer.TERRAIN] = load("res://styles/mossy_rock.freeform.tres")
+# Or: tracer.output = MDSDrawingTracer.Output.TILES (or COLORS, PICTURE)
 painter.checkpoint()
-print(tracer.apply(painter))              # {terrain, platform, background, foreground, removed}
+print(tracer.apply(painter))              # {terrain, platform, background, foreground, tiles, pictures, collision, removed, removed_tiles}
 painter.save()
 ```
 
@@ -1236,7 +1264,7 @@ The plugin:
 
 ```
 addons/MetroidvaniaDeveloperSystem/
-├── plugin.cfg             # name, version (3.2.0), entry script
+├── plugin.cfg             # name, version (3.3.0), entry script
 ├── README.md, LICENSE     # a short guide and the license, shipped with the plugin
 ├── plugin.gd              # EditorPlugin: the MetDevSys main screen tab (or dock), scene-save hook
 ├── dock.gd / dock.tscn    # Mode host: switches between the two panels
@@ -1268,7 +1296,7 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── notch_fill.gd      # MDSNotchFill: Fill outside shape
 │   ├── freeform_decorator.gd # MDSFreeformDecorator: Decorate freeform
 │   ├── shape_generators.gd # MDSShapeGenerators: column, broken arch, garden wall, mound, stalactites
-│   ├── drawing_tracer.gd  # MDSDrawingTracer: Trace drawing (a picture's colors into freeform shapes)
+│   ├── drawing_tracer.gd  # MDSDrawingTracer: Trace drawing (a picture's colors into freeform shapes, solid colors, tiles, or the picture itself)
 │   ├── edge_band.gd       # MDSEdgeBand: band meshes for shader-skinned freeform shapes
 │   └── exporters.gd       # MDSExporters: JSON, Graphviz, Markdown
 ├── nodes/
@@ -1276,6 +1304,7 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── mds_room_camera.gd # MDSRoomCamera: irregular-room camera zones and transitions (Camera2D / Phantom Camera)
 │   ├── mds_camera_director.gd # MDSCameraDirector: framing threats, reveals, punch-ins and focus in fights
 │   ├── mds_freeform.gd    # MDSFreeform: curved freeform terrain (fill, edge strips, clumps, collision)
+│   ├── mds_drawing.gd     # MDSDrawing: a picture kept as it is drawn, some colors cut out (Trace drawing)
 │   ├── mds_freeform_style.gd # MDSFreeformStyle: a freeform shape's look (*.freeform.tres)
 │   ├── mds_depth_25d.gd   # MDSDepth25D: 2.5D (extruded terrain, receding floors, light, shadows)
 │   ├── mds_depth_style.gd # MDSDepthStyle: how MDSDepth25D looks
@@ -1306,6 +1335,7 @@ addons/MetroidvaniaDeveloperSystem/
 │                          # MDSCobwebs, MDSVoidTendrils, MDSIncenseSmoke, MDSForgeSparks
 ├── shaders/
 │   ├── terrain_skin.*     # Example terrain skin shader and its fill and edge materials
+│   ├── drawing_cutout.gdshader # MDSDrawing's cut-out of colors (a drawing's paper, other layers)
 │   └── environment/       # The effects' shaders and mds_env.gdshaderinc (noise, soft edges)
 ├── ui/
 │   ├── map_canvas.gd      # MDSMapCanvas: MetSys map
@@ -1315,7 +1345,7 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── room_view.gd       # MDSRoomView: the Room view (actual view) and its brush controls
 │   ├── side_panel.gd      # MDSSidePanel: the left tool panel (foldable sections)
 │   ├── room_canvas.gd     # MDSRoomCanvas: room painting surface (own SubViewport)
-│   ├── tile_palette.gd    # MDSTilePalette: spritesheet palette (pick, solid, tag, make terrain)
+│   ├── tile_palette.gd    # MDSTilePalette: spritesheet palette (pick, turn 0-360 degrees, mirror, solid, tag, make terrain)
 │   ├── analysis_views.gd  # Progress / Issues / Stats tabs
 │   ├── geometry_checker.gd # MDSGeometryChecker: the room checks, in the background
 │   ├── convert_dialog.gd  # MDSConvertDialog: Convert to freeform options and preview
@@ -1327,6 +1357,10 @@ addons/MetroidvaniaDeveloperSystem/
 ```
 
 The `core/` classes have no editor dependencies, so you can use them from tool scripts or CI. For example, fail a build when `MDSWorldValidator.run()` reports errors.
+
+## Upgrading from 3.2
+
+Nothing to change: settings, world files and scenes load as they are. The Room view gains the Place and Select tools, turning palette tiles and new ways to trace a drawing; rooms that use them get `Tiles` and `Pictures` nodes. See the [changelog](CHANGELOG.md).
 
 ## Upgrading from 3.1
 

@@ -9,7 +9,13 @@ extends HBoxContainer
 ##
 ## The Effects tool places environment effects (rain, dust storms, steam vents, lava,
 ## waterfalls...) by dragging them from its list onto the room, and shows the weather of the
-## room's area over it. Trace drawing turns a picture of the room into freeform shapes.
+## room's area over it. Trace drawing turns a picture of the room into freeform shapes, solid
+## colors or tiles, or keeps the picture itself with collision for its terrain.
+##
+## The Place tool puts the tiles picked in the palette anywhere, at any angle (the palette turns
+## them 0 to 360 degrees), off the grid. The Select tool selects tiles, free tiles, stamps,
+## pictures and freeform shapes (one by one or in a box) and moves them by pixels, or by whole
+## tiles with Snap to tiles, and turns them.
 ##
 ## Its buttons are in [member controls], a narrow column that MetDevSys puts in its left
 ## tool panel, and MetDevSys shows the [member palette] as a tab. Used on its own, the view
@@ -27,7 +33,9 @@ signal area_caves_requested(area: String, rooms: Array[String])
 
 const DEFAULT_TILESET := MDSTilesetFactory.DEFAULT_PATH
 const Shape := MDSTerrainShapes.Shape
-const TOOL_LAYERS: PackedStringArray = ["Terrain", "Background", "Decor", "Erase", "Foreground", "Freeform", "Stamps", "Effects"]
+const TOOL_LAYERS: PackedStringArray = ["Terrain", "Background", "Decor", "Erase", "Foreground", "Freeform", "Stamps", "Effects", "Place", "Select"]
+## The tile layers the Place tool puts tiles at the depth of.
+const PLACE_LAYERS: PackedStringArray = ["Background", "Terrain", "Decor", "Foreground"]
 const FREEFORM_LAYERS: PackedStringArray = ["Terrain (solid)", "Background", "Foreground"]
 const FREEFORM_GROUPS: PackedStringArray = ["Freeform", "FreeformBack", "FreeformFront"]
 const STAMP_LAYERS: PackedStringArray = ["Behind terrain", "In front of terrain", "Foreground"]
@@ -81,6 +89,13 @@ var _area_label: Label
 var _weather_label: Label
 ## Shown while the room has cells pointing at tiles its tileset no longer has.
 var broken_button: Button
+## Place and Select: move by whole tiles instead of pixels.
+var snap_check: CheckBox
+## Place and Select: how far the turn buttons (and R) turn.
+var turn_spin: SpinBox
+var _turn_row: Control
+var _select_row: Control
+var _select_hint: Label
 
 ## The Effects tool's list: dragging an entry onto the room places that effect.
 class EffectList extends ItemList:
@@ -109,12 +124,14 @@ func _init() -> void:
 	# What to paint.
 	var tool_grid := MDSSidePanel.grid(controls, 2)
 	var group := ButtonGroup.new()
-	var names := ["Terrain", "Background", "Decor", "Erase", "Foreground", "Freeform", "Stamps", "Effects"]
-	var tips := ["Paint the Terrain layer (solid ground: autotiled terrain, palette tiles or colors)", "Paint the Background layer (foliage, palette tiles or a solid color)", "Paint the Decor layer (grass, vines, stalactites, palette tiles...)", "Erase the top item under the brush: a stamp, else foreground, decoration, terrain, then background (palette tiles and colors too). Pick one layer or all layers in the list next to it; Shift erases background only. Works with shapes too, to carve curved caves",
+	var names := ["Terrain", "Background", "Decor", "Erase", "Foreground", "Freeform", "Stamps", "Effects", "Place", "Select"]
+	var tips := ["Paint the Terrain layer (solid ground: autotiled terrain, palette tiles or colors)", "Paint the Background layer (foliage, palette tiles or a solid color)", "Paint the Decor layer (grass, vines, stalactites, palette tiles...)", "Erase the top item under the brush: a stamp or free tiles, else foreground, decoration, terrain, then background (palette tiles and colors too). Pick one layer or all layers in the list next to it; Shift erases background only. Works with shapes too, to carve curved caves",
 		"Paint the Foreground layer, drawn in front of everything (dark silhouettes framing the room)",
 		"Freeform terrain: smooth curvy shapes instead of tiles (rounded ledges, bulging moss walls), with textured edges, clumps and exact collision. Draw by clicking points or dragging freehand, or pick a shape and drag its box. Edit mode reshapes them",
 		"Place large clumps freely (moss bubbles, leaves, ferns, hanging moss, background bubbles, foreground silhouettes). Click or drag; Shift removes",
-		"Environment effects: rain, snow, dust storms, lightning, fog, steam vents, lava, waterfalls, water, light shafts, embers, fireflies, leaves, heat haze. Drag one from the list onto the room (or pick one and click), drag to move, drag the corner to resize; the selected effect's settings are in the Inspector. Delete removes it"]
+		"Environment effects: rain, snow, dust storms, lightning, fog, steam vents, lava, waterfalls, water, light shafts, embers, fireflies, leaves, heat haze. Drag one from the list onto the room (or pick one and click), drag to move, drag the corner to resize; the selected effect's settings are in the Inspector. Delete removes it",
+		"Place the tiles picked in the tile palette anywhere in the room, off the grid, at the angle picked there (0 to 360 degrees; R / Shift+R turn them). Click to place, drag right away to move; Shift+click removes free tiles. They draw and collide like the tiles of the layer picked below",
+		"Select tiles, free tiles, stamps, pictures and freeform shapes: click (Shift or Ctrl adds or removes) or drag a box around them, then drag to move them by pixels (Snap to tiles: by whole tiles). Tiles moved off the grid become free tiles. R / Shift+R turn the selection, the arrows nudge it, Delete removes it"]
 	for i in names.size():
 		var b := MDSUi.button(names[i], tips[i])
 		b.toggle_mode = true
@@ -162,6 +179,41 @@ func _init() -> void:
 	size_spin.tooltip_text = "Stamp size (each stamp also varies a little)"
 	size_spin.value_changed.connect(func(v: float) -> void: canvas.stamp_scale = v / 100.0)
 	controls.add_child(MDSSidePanel.fill(size_spin))
+	# Place and Select.
+	turn_spin = SpinBox.new()
+	turn_spin.min_value = 1
+	turn_spin.max_value = 180
+	turn_spin.step = 1
+	turn_spin.value = 15
+	turn_spin.suffix = "°"
+	turn_spin.tooltip_text = "How far the turn buttons and R / Shift+R turn: the palette's tiles under Place, the selection under Select (the palette turns its tiles to any angle, 0 to 360 degrees)"
+	turn_spin.value_changed.connect(func(v: float) -> void: canvas.turn_step = v)
+	var turn_back := MDSUi.button("−", "Turn back (Shift+R)")
+	turn_back.pressed.connect(func() -> void: turn(-turn_spin.value))
+	var turn_on := MDSUi.button("+", "Turn clockwise (R)")
+	turn_on.pressed.connect(func() -> void: turn(turn_spin.value))
+	_turn_row = MDSSidePanel.field(controls, "Turn", turn_spin)
+	_turn_row.add_child(turn_back)
+	_turn_row.add_child(turn_on)
+	snap_check = CheckBox.new()
+	snap_check.text = "Snap to tiles"
+	snap_check.tooltip_text = "Place, move and turn by whole tiles, on the grid. Off: by pixels, anywhere in the room (grid tiles moved off the grid become free tiles; To grid puts free tiles back on it)"
+	snap_check.toggled.connect(func(on: bool) -> void:
+		canvas.snap_to_grid = on
+		canvas._overlay.queue_redraw())
+	controls.add_child(snap_check)
+	var to_grid := MDSUi.button("To grid", "Put the selected free tiles back on their layer's grid, turned to the nearest right angle (Ctrl+Z undoes it)")
+	to_grid.pressed.connect(func() -> void:
+		if painter:
+			canvas.merge_selection_to_grid())
+	var remove := MDSUi.button("Delete", "Remove the selected tiles and items (Delete key; Ctrl+Z undoes it)")
+	remove.pressed.connect(func() -> void:
+		if painter:
+			canvas.delete_selection())
+	_select_row = MDSSidePanel.row(controls, [to_grid, remove])
+	_select_hint = MDSUi.hint("")
+	_select_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls.add_child(_select_hint)
 	_effect_box = VBoxContainer.new()
 	controls.add_child(_effect_box)
 	effect_list = EffectList.new()
@@ -426,6 +478,8 @@ func _init() -> void:
 				effect_list.select(i)
 				break)
 	canvas.image_dropped.connect(func(path: String) -> void: open_trace_dialog(path))
+	canvas.picked_changed.connect(_update_select_hint)
+	canvas.turn_requested.connect(func(degrees: float) -> void: turn(degrees))
 	canvas.before_effect_drop = func() -> void:
 		if canvas.tool != MDSRoomCanvas.Tool.EFFECT:
 			set_tool(MDSRoomCanvas.Tool.EFFECT)
@@ -433,6 +487,7 @@ func _init() -> void:
 	palette = MDSTilePalette.new()
 	palette.status_message.connect(func(t: String) -> void: status_message.emit(t))
 	palette.selection_changed.connect(_on_palette_picked)
+	palette.turn_changed.connect(_on_palette_turned)
 	palette.tileset_changed.connect(func() -> void:
 		_fill_pickers(true)
 		canvas._overlay.queue_redraw())
@@ -544,21 +599,30 @@ func _update_tool_controls() -> void:
 	var freeform := t == MDSRoomCanvas.Tool.FREEFORM
 	var stamps := t == MDSRoomCanvas.Tool.STAMP
 	var effects := t == MDSRoomCanvas.Tool.EFFECT
-	fill_opt.get_parent().visible = not effects
+	var place := t == MDSRoomCanvas.Tool.PLACE
+	var select := t == MDSRoomCanvas.Tool.SELECT
+	# Tools that paint the grid with brushes and shapes.
+	var brushes := not (stamps or effects or place or select)
+	fill_opt.get_parent().visible = not (effects or place or select)
 	_effect_box.visible = effects
-	layer_opt.get_parent().visible = freeform or stamps
+	layer_opt.get_parent().visible = freeform or stamps or place or select
 	mode_opt.get_parent().visible = freeform
 	role_opt.get_parent().visible = freeform
 	repair_row.visible = freeform
 	_update_generator_shapes(freeform)
 	size_spin.visible = stamps
-	brush_spin.visible = not freeform and not stamps and not effects
-	shape_opt.get_parent().visible = not stamps and not effects
-	curve_opt.get_parent().visible = not stamps and not effects
-	rough_spin.visible = not stamps and not effects
-	flip_check.get_parent().visible = not stamps and not effects
+	brush_spin.visible = brushes and not freeform
+	shape_opt.get_parent().visible = brushes
+	curve_opt.get_parent().visible = brushes
+	rough_spin.visible = brushes
+	flip_check.get_parent().visible = brushes
+	_turn_row.visible = place or select
+	snap_check.visible = place or select
+	_select_row.visible = select
+	_select_hint.visible = place or select
 	_filling = true
 	layer_opt.clear()
+	layer_opt.tooltip_text = "Layer of new freeform shapes or stamps"
 	if freeform:
 		for i in FREEFORM_LAYERS.size():
 			layer_opt.add_item(FREEFORM_LAYERS[i], i)
@@ -567,7 +631,18 @@ func _update_tool_controls() -> void:
 		for i in STAMP_LAYERS.size():
 			layer_opt.add_item(STAMP_LAYERS[i], i)
 		layer_opt.select(maxi(0, STAMP_GROUPS.find(canvas.stamp_group)))
+	elif place:
+		for i in PLACE_LAYERS.size():
+			layer_opt.add_item(PLACE_LAYERS[i], i)
+		layer_opt.select(maxi(0, PLACE_LAYERS.find(canvas.place_layer)))
+		layer_opt.tooltip_text = "Depth of the placed tiles: they draw and collide like the tiles of this layer"
+	elif select:
+		for i in MDSRoomCanvas.PICK_LAYER_NAMES.size():
+			layer_opt.add_item(MDSRoomCanvas.PICK_LAYER_NAMES[i], i)
+		layer_opt.select(canvas.pick_layer)
+		layer_opt.tooltip_text = "What clicks and boxes select: everything, the tiles of one layer (on the grid and free), or only items"
 	_filling = false
+	_update_select_hint()
 
 ## The Freeform tool's Shape list also offers the scenery generators (Column, Arch...).
 func _update_generator_shapes(freeform: bool) -> void:
@@ -602,6 +677,29 @@ func _on_layer_selected(idx: int) -> void:
 			painter.dirty = true
 	elif canvas.tool == MDSRoomCanvas.Tool.STAMP:
 		canvas.stamp_group = STAMP_GROUPS[idx]
+	elif canvas.tool == MDSRoomCanvas.Tool.PLACE:
+		canvas.place_layer = PLACE_LAYERS[idx]
+	elif canvas.tool == MDSRoomCanvas.Tool.SELECT:
+		canvas.pick_layer = idx
+		canvas._overlay.queue_redraw()
+
+## Turns by [param degrees]: the palette's tiles under the Place tool, else the selection.
+func turn(degrees: float) -> void:
+	if canvas.tool == MDSRoomCanvas.Tool.PLACE:
+		palette.set_turn(palette.turn_degrees + degrees)
+	elif painter:
+		canvas.rotate_selection(degrees)
+
+## The Place and Select tools' hint: what a click does, what is selected.
+func _update_select_hint() -> void:
+	if not _select_hint:
+		return
+	if canvas.tool == MDSRoomCanvas.Tool.PLACE:
+		var what := "the palette's tiles (%s)" % palette.describe_fill() if not canvas.place_fill.is_empty() else "the tiles picked in the tile palette (pick some there first)"
+		_select_hint.text = "Click to place %s, off the grid; drag right away to move them. R / Shift+R turn the tiles, Shift+click removes free tiles." % what
+	else:
+		var n := canvas.selection_counts()
+		_select_hint.text = "Click or drag a box to select (Shift adds), drag to move, R turns, the arrows nudge, Delete removes. Selected: %d tile(s), %d item(s)." % [n.y, n.x]
 
 func _on_role_selected(idx: int) -> void:
 	canvas.freeform_role = role_opt.get_item_id(idx)
@@ -732,11 +830,17 @@ func report_trace(r: Dictionary, preview: bool) -> void:
 		_changed(r.error)
 		return
 	var parts: PackedStringArray = []
-	var kinds := {"terrain": "terrain shape(s)", "platform": "one-way platform(s)", "background": "background shape(s)", "foreground": "foreground shape(s)"}
+	var kinds := {"terrain": "terrain shape(s)", "platform": "one-way platform(s)", "background": "background shape(s)", "foreground": "foreground shape(s)",
+		"tiles": "tile(s)", "pictures": "picture(s) of the drawing", "collision": "collision shape(s)"}
 	for k in kinds:
 		if int(r.get(k, 0)) > 0:
 			parts.append("%d %s" % [r[k], kinds[k]])
-	var text := "%s %s%s." % ["Preview:" if preview else "Traced the drawing into %s:" % room_id, ", ".join(parts) if not parts.is_empty() else "nothing", ", %d earlier traced shape(s) replaced" % r.removed if int(r.get("removed", 0)) > 0 else ""]
+	var replaced: PackedStringArray = []
+	if int(r.get("removed", 0)) > 0:
+		replaced.append("%d shape(s) and picture(s)" % r.removed)
+	if int(r.get("removed_tiles", 0)) > 0:
+		replaced.append("%d tile(s)" % r.removed_tiles)
+	var text := "%s %s%s." % ["Preview:" if preview else "Traced the drawing into %s:" % room_id, ", ".join(parts) if not parts.is_empty() else "nothing", "; the earlier trace replaced (%s)" % ", ".join(replaced) if not replaced.is_empty() else ""]
 	if not preview:
 		text += " Ctrl+Z undoes it; Check room checks it."
 	_changed(text)
@@ -1030,7 +1134,7 @@ func _fill_pickers(validate: bool) -> void:
 		for t in [MDSRoomCanvas.Tool.TERRAIN, MDSRoomCanvas.Tool.BACKGROUND, MDSRoomCanvas.Tool.DECOR, MDSRoomCanvas.Tool.FOREGROUND]:
 			if not _fill_valid(canvas.fills.get(t, {}), choices):
 				canvas.fills[t] = _default_fill(t, choices)
-	if canvas.tool == MDSRoomCanvas.Tool.EFFECT:
+	if canvas.tool in [MDSRoomCanvas.Tool.EFFECT, MDSRoomCanvas.Tool.PLACE, MDSRoomCanvas.Tool.SELECT]:
 		return
 	_filling = true
 	fill_opt.clear()
@@ -1157,10 +1261,31 @@ func _load_styles() -> void:
 ## Tiles picked in the palette: the current tool paints them (Erase, Freeform and Stamps
 ## switch to Terrain).
 func _on_palette_picked() -> void:
+	canvas.place_fill = palette.get_fill()
 	if not palette.has_selection():
 		return
-	if canvas.tool in [MDSRoomCanvas.Tool.ERASE, MDSRoomCanvas.Tool.FREEFORM, MDSRoomCanvas.Tool.STAMP, MDSRoomCanvas.Tool.EFFECT]:
+	if canvas.tool == MDSRoomCanvas.Tool.PLACE:
+		_update_select_hint()
+		canvas._overlay.queue_redraw()
+		status_message.emit("Place puts the palette's tiles (%s): click in the room." % palette.describe_fill())
+		return
+	if canvas.tool in [MDSRoomCanvas.Tool.ERASE, MDSRoomCanvas.Tool.FREEFORM, MDSRoomCanvas.Tool.STAMP, MDSRoomCanvas.Tool.EFFECT, MDSRoomCanvas.Tool.SELECT]:
 		set_tool(MDSRoomCanvas.Tool.TERRAIN)
 	canvas.fills[canvas.tool] = palette.get_fill()
 	_fill_pickers(false)
 	status_message.emit("%s brush paints the palette tiles (%s)." % [TOOL_LAYERS[canvas.tool], palette.describe_fill()])
+
+## The palette's tiles were turned or mirrored: the Place tool and the brushes painting palette
+## tiles take the new angle (the brushes on the grid, turned to the nearest right angle).
+func _on_palette_turned() -> void:
+	canvas.place_fill = palette.get_fill()
+	for t in canvas.fills:
+		var f: Dictionary = canvas.fills[t]
+		if str(f.get("type", "")) == "stamp":
+			f.rotation = palette.turn_degrees
+			f.flip = palette.mirror
+	canvas._overlay.queue_redraw()
+	_update_select_hint()
+	var grid := MDSRoomPainter.quarter_turns(palette.turn_degrees) * 90
+	var note := "" if is_zero_approx(fposmod(palette.turn_degrees, 90.0)) else " (the brushes paint them on the grid at %d°, the nearest right angle)" % grid
+	status_message.emit("Palette tiles turned %d°%s: Place puts them at that angle%s." % [roundi(palette.turn_degrees), ", mirrored" if palette.mirror else "", note])

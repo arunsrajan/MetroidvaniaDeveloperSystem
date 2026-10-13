@@ -2,6 +2,30 @@
 
 All notable changes to the Metroidvania Developer System. Versions follow [Semantic Versioning](https://semver.org/): a new major version can need changes in your project (see the README's upgrading notes), a minor one only adds.
 
+## 3.3.0 (2026-10-13)
+
+### Added
+
+- **Trace drawing has four ways to draw.** **Draw with** picks one:
+  - freeform styles, as before;
+  - **solid colors**: shapes filled with the drawing's own colors, or ones you pick;
+  - **tiles**: each color paints the room's grid with a terrain, tiles of a kind, palette tiles from a spritesheet, or solid tiles of its color;
+  - **the drawing itself**, kept as it is drawn (`MDSDrawing`). It is split into pictures behind the terrain, at its depth and in front, with its paper cut out by a shader. **Collision for its terrain** gives it invisible freeform shapes that follow the drawing, like `CollisionPolygon2D`; platforms get one-way ones.
+  - Replace the last trace replaces traced tiles and pictures too.
+  - The room remembers how it was traced.
+- **Turning palette tiles** anywhere from 0 to 360 degrees, and mirroring them.
+  - The brushes paint them on the grid at the nearest right angle; the pattern and the tiles' collision turn with them.
+- **Place tool:** puts the palette's tiles anywhere in the room, off the grid, at that angle.
+  - These free tiles are small `TileMapLayer`s in the scene's `Tiles` node. They draw and collide like their layer's tiles, and Check room sees them.
+- **Select tool:** select grid tiles, free tiles, stamps, pictures and freeform shapes. Click them, Shift+click to add, or drag a box.
+  - Drag the selection to move it by pixels, or by whole tiles with **Snap to tiles**. Grid tiles moved off the grid become free tiles; **To grid** puts them back.
+  - **R** / **Shift+R** turn the selection, the arrows nudge it, and **Delete** removes it.
+- `MDSRoomPainter`:
+  - `add_tile_piece()`, `lift_cells()`, `merge_piece()`, `is_piece_on_grid()`;
+  - `item_at()`, `item_outline()`, `add_drawing()`;
+  - `flags_basis()` and `basis_flags()`, for tile flip and transpose flags.
+- Invisible freeform colliders (a style that draws nothing) are outlined in the editor.
+
 ## 3.2.0 (2026-10-12)
 
 ### Added

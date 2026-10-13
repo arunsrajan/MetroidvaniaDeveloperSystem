@@ -6,8 +6,13 @@ extends VBoxContainer
 ## tiles to select one or a block; the brushes paint the selection as a repeating pattern
 ## (or random tiles from it). The selection can also be made solid, tagged as a kind for
 ## Auto-decorate, or turned into an autotiling terrain (3x3 box or 4x4 sides layout).
+##
+## The picked tiles can be turned (0 to 360 degrees) and mirrored: the Place tool puts them
+## in the room at any angle, off the grid; the brushes paint them on the grid, turned to the
+## nearest right angle.
 
 signal selection_changed ## the picked tiles changed (see [method get_fill])
+signal turn_changed ## the picked tiles were turned or mirrored (see [member turn_degrees])
 signal tileset_changed ## terrains, kinds or sheets changed
 signal status_message(text: String)
 
@@ -17,10 +22,17 @@ var painter: MDSRoomPainter
 var source_id := -1
 var selection := Rect2i() ## atlas coords
 var zoom := 1.0
+## How far the picked tiles are turned, clockwise (0 to 360 degrees).
+var turn_degrees := 0.0
+## The picked tiles are mirrored (left to right, before they are turned).
+var mirror := false
 
 var source_opt: OptionButton
 var random_check: CheckBox
+var turn_spin: SpinBox
+var mirror_check: CheckBox
 var info: Label
+var _turn_preview: Control
 var grid: Control
 var scroll: ScrollContainer
 var terrain_name: LineEdit
@@ -83,6 +95,38 @@ func _init() -> void:
 	info = MDSUi.hint("Drag over tiles to pick them for the brushes.")
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(info)
+	# Turning and mirroring the picked tiles.
+	var turn_row := HBoxContainer.new()
+	add_child(turn_row)
+	_turn_preview = Control.new()
+	_turn_preview.custom_minimum_size = Vector2(56, 56) * MDSUi.editor_scale()
+	_turn_preview.tooltip_text = "The picked tiles, turned and mirrored as they are placed"
+	_turn_preview.draw.connect(_draw_turn_preview)
+	turn_row.add_child(_turn_preview)
+	var turn_box := VBoxContainer.new()
+	turn_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	turn_row.add_child(turn_box)
+	turn_spin = SpinBox.new()
+	turn_spin.min_value = 0
+	turn_spin.max_value = 360
+	turn_spin.step = 1
+	turn_spin.suffix = "°"
+	turn_spin.prefix = "Turn"
+	turn_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	turn_spin.tooltip_text = "Turn the picked tiles clockwise, 0 to 360 degrees. The Place tool places them at this angle, anywhere in the room; the brushes paint them on the grid, turned to the nearest right angle (R / Shift+R in the Room view turn them too)"
+	turn_spin.value_changed.connect(func(v: float) -> void: set_turn(v))
+	turn_box.add_child(turn_spin)
+	var turn_buttons := HBoxContainer.new()
+	turn_box.add_child(turn_buttons)
+	for step in [-90, 90]:
+		var b := MDSUi.button("%s90°" % ("−" if step < 0 else "+"), "Turn the picked tiles a quarter turn %s" % ("back" if step < 0 else "clockwise"))
+		b.pressed.connect(func() -> void: set_turn(turn_degrees + step))
+		turn_buttons.add_child(b)
+	mirror_check = CheckBox.new()
+	mirror_check.text = "Mirror"
+	mirror_check.tooltip_text = "Mirror the picked tiles left to right (before they are turned)"
+	mirror_check.toggled.connect(func(on: bool) -> void: set_mirror(on))
+	turn_buttons.add_child(mirror_check)
 	# Selection actions.
 	var solid := MDSUi.button("Solid on/off", "Give the selected tiles full-tile collision (walkable ground), or remove it")
 	solid.pressed.connect(_toggle_solid)
@@ -165,17 +209,63 @@ func has_selection() -> bool:
 func get_fill() -> Dictionary:
 	if not has_selection():
 		return {}
-	return {"type": "stamp", "source": source_id, "region": selection, "random": random_check.button_pressed}
+	return {"type": "stamp", "source": source_id, "region": selection, "random": random_check.button_pressed, "rotation": turn_degrees, "flip": mirror}
 
 func describe_fill() -> String:
-	return "%s %dx%d%s" % [source_opt.get_item_text(source_opt.selected), selection.size.x, selection.size.y, " random" if random_check.button_pressed else ""] if has_selection() else "nothing picked"
+	if not has_selection():
+		return "nothing picked"
+	var turned := " turned %d°" % roundi(turn_degrees) if not is_zero_approx(turn_degrees) else ""
+	return "%s %dx%d%s%s%s" % [source_opt.get_item_text(source_opt.selected), selection.size.x, selection.size.y, " random" if random_check.button_pressed else "", turned, " mirrored" if mirror else ""]
 
 ## Picks tiles by atlas coords (also used by tests).
 func select_region(region: Rect2i) -> void:
 	selection = region
 	grid.queue_redraw()
+	_turn_preview.queue_redraw()
 	_update_info()
 	selection_changed.emit()
+
+## Turns the picked tiles [param degrees] clockwise (kept within 0..360).
+func set_turn(degrees: float) -> void:
+	var d := fposmod(degrees, 360.0)
+	if is_equal_approx(d, 360.0):
+		d = 0.0
+	var changed := not is_equal_approx(d, turn_degrees)
+	turn_degrees = d
+	turn_spin.set_value_no_signal(d)
+	_turn_preview.queue_redraw()
+	if changed:
+		turn_changed.emit()
+
+## Mirrors the picked tiles (or not).
+func set_mirror(on: bool) -> void:
+	var changed := on != mirror
+	mirror = on
+	mirror_check.set_pressed_no_signal(on)
+	_turn_preview.queue_redraw()
+	if changed:
+		turn_changed.emit()
+
+## The picked tiles, turned and mirrored, scaled to fit the preview box.
+func _draw_turn_preview() -> void:
+	var box := Rect2(Vector2.ZERO, _turn_preview.size)
+	_turn_preview.draw_rect(box, Color(0.1, 0.1, 0.12))
+	var src := _source()
+	if not src or not selection.has_area():
+		return
+	var ts := Vector2(src.texture_region_size)
+	var size := Vector2(selection.size) * ts
+	var diag := size.length()
+	var k := minf(box.size.x, box.size.y) * 0.92 / maxf(diag, 1.0)
+	var xf := Transform2D(0.0, box.get_center()) * Transform2D(deg_to_rad(turn_degrees), Vector2(k, k), 0.0, Vector2.ZERO) * (Transform2D.FLIP_X if mirror else Transform2D.IDENTITY) * Transform2D(0.0, -size / 2.0)
+	_turn_preview.draw_set_transform_matrix(xf)
+	for y in selection.size.y:
+		for x in selection.size.x:
+			var at := selection.position + Vector2i(x, y)
+			if src.has_tile(at) and src.get_tile_at_coords(at) == at:
+				_turn_preview.draw_texture_rect_region(src.texture, Rect2(Vector2(x, y) * ts, ts), src.get_tile_texture_region(at))
+	_turn_preview.draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0.85, 0.2, 0.8), false, 1.0 / k)
+	_turn_preview.draw_set_transform_matrix(Transform2D.IDENTITY)
 
 # --- Grid ------------------------------------------------------------------------------------
 
@@ -259,6 +349,7 @@ func _grid_input(event: InputEvent) -> void:
 			elif _drag_from.x >= 0:
 				_drag_from = Vector2i(-1, -1)
 				select_region(selection)
+			_turn_preview.queue_redraw()
 			grid.accept_event()
 		elif mb.pressed and mb.ctrl_pressed and (mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 			set_zoom(zoom * (1.2 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.2))
@@ -294,7 +385,7 @@ func _update_info() -> void:
 	if not selection.has_area():
 		info.text = "Drag over tiles to pick them for the brushes. Red dot: solid, blue dot: tagged kind, bar: terrain."
 	else:
-		info.text = "Picked %dx%d tiles: the Terrain, Background and Decor brushes paint them (choose \"Palette tiles\" in the fill list)." % [selection.size.x, selection.size.y]
+		info.text = "Picked %dx%d tiles: the Terrain, Background and Decor brushes paint them (choose \"Palette tiles\" in the fill list); the Place tool places them anywhere, at any angle." % [selection.size.x, selection.size.y]
 
 # --- Actions -----------------------------------------------------------------------------------
 

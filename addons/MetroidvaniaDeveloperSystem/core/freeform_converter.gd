@@ -279,7 +279,7 @@ static func is_convertible(node: Node) -> bool:
 
 func _read_bodies(node: Node, root: Node, painter: MDSRoomPainter, out: Dictionary) -> void:
 	for c in node.get_children():
-		if c is TileMapLayer or c is MDSFreeform or c is MDSGate or MDSLegacy.has_meta_key(c, &"mds_blockout") or painter.is_scene_node_hidden(c):
+		if c is TileMapLayer or c is MDSFreeform or c is MDSDrawing or c is MDSGate or MDSLegacy.has_meta_key(c, &"mds_blockout") or painter.is_scene_node_hidden(c):
 			continue
 		if c is StaticBody2D and is_convertible(c):
 			var any := false

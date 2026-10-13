@@ -1,11 +1,11 @@
 # Metroidvania Developer System
 
-Version 3.2.0, MIT license (see [LICENSE](LICENSE)).
+Version 3.3.0, MIT license (see [LICENSE](LICENSE)).
 
 A Godot editor plugin for designing and building a metroidvania's world:
 
 - **Map:** draw irregular rooms on a world map, or generate whole areas that split into rooms with doors.
-- **Rooms:** paint each room's terrain, freeform rock and decorations, or trace them from a drawing.
+- **Rooms:** paint each room's terrain, freeform rock and decorations, or trace them from a drawing (as shapes, solid colors, tiles, or the drawing itself with collision). Place tiles anywhere at any angle, and select and move anything by pixels or by tiles.
 - **Atmosphere:** add weather, hazards and scenery in motion (30 shader effects), and parallax, animated or creature backgrounds, for boss rooms too.
 - **Checks:** check rooms with physics, and analyze progression and backtracking.
 - **Play:** run the world with room-to-room transitions and a camera made for irregular rooms.
