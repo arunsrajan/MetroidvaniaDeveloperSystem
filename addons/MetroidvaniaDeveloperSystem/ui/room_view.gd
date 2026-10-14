@@ -375,7 +375,9 @@ func _init() -> void:
 	generation.add_child(deco)
 	var back := MDSUi.button("Fill background", "Fill the room's shape with the Background fill (foliage, palette tiles or a solid color)")
 	back.pressed.connect(fill_background)
-	generation.add_child(back)
+	var clear_back := MDSUi.button("Clear background", "Remove every tile of the Background layer. A room filled from edge to edge takes many, and a hidden layer's tiles are saved in the scene all the same")
+	clear_back.pressed.connect(clear_background)
+	MDSSidePanel.row(generation, [back, clear_back])
 	var convert := MDSUi.button("Convert to freeform...", "Turn the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects. Platforms become one-way ledges. Block a room out with rectangles or tiles, then make it organic")
 	convert.pressed.connect(open_convert_dialog)
 	generation.add_child(convert)
@@ -508,7 +510,7 @@ func open_room(p_world: MDSWorld, id: String) -> String:
 	var tiles := MDSTilesetFactory.get_or_create(tiles_path if not tiles_path.is_empty() else DEFAULT_TILESET)
 	var moved := MDSRoomPainter.externalize_sheets(tiles) if tiles else 0
 	if moved > 0:
-		status_message.emit("Moved %d sheet image(s) embedded in %s out to PNG files next to it, so the tileset loads fast." % [moved, tiles.resource_path.get_file()])
+		status_message.emit("Took %d image(s) embedded in %s out of it (PNG files next to it, or packed), so it saves and loads fast." % [moved, tiles.resource_path.get_file()])
 	painter = MDSRoomPainter.open(path, tiles)
 	if not painter:
 		return "Could not open %s." % path
@@ -522,6 +524,9 @@ func open_room(p_world: MDSWorld, id: String) -> String:
 		status_message.emit("%s's tileset has no terrains: Generate cave paints with the Terrain fill (palette tiles or a solid color), or make a terrain from a 3x3 block in the palette." % id)
 	no_effects_check.set_pressed_no_signal(MDSEnvironment.is_none(str(world.get_room_value(id, "weather", ""))))
 	set_area("", [])
+	var note := painter.size_note()
+	if not note.is_empty():
+		status_message.emit(note)
 	_report_broken_tiles()
 	_fit_later()
 	return ""
@@ -577,7 +582,8 @@ func save() -> Error:
 	var err := painter.save()
 	if err == OK:
 		saved.emit(painter.scene_path)
-		status_message.emit("Saved %s." % painter.scene_path.get_file())
+		var note := painter.size_note()
+		status_message.emit("Saved. " + note if not note.is_empty() else "Saved %s." % painter.scene_path.get_file())
 	elif not MDSWorldSceneTools.last_error.is_empty():
 		status_message.emit(MDSWorldSceneTools.last_error)
 	else:
@@ -1009,6 +1015,13 @@ func fill_background() -> void:
 	painter.clear_layer("Background")
 	painter.paint_fill("Background", painter.room_cells(world, room_id).keys(), canvas.fills[MDSRoomCanvas.Tool.BACKGROUND])
 	_changed("Background filled.")
+
+func clear_background() -> void:
+	if not painter:
+		return
+	painter.checkpoint()
+	painter.clear_layer("Background")
+	_changed("Background cleared.")
 
 func _terrain_for_generation() -> Vector2i:
 	var f: Dictionary = canvas.fills.get(MDSRoomCanvas.Tool.TERRAIN, {})

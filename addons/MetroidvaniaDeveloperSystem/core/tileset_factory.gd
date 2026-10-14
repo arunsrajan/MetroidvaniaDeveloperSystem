@@ -47,7 +47,9 @@ const LEAF_DARK := Color("#0f2f2a")
 const LEAF := Color("#1b4f43")
 const LEAF_LIGHT := Color("#2c7560")
 
-## Creates (or loads) the starter tileset at [param path] (.tres, texture embedded).
+## Creates (or loads) the starter tileset at [param path] (.tres). Its atlas is the PNG next
+## to it, for artists to repaint: linked in the editor, packed into the .tres (compressed,
+## without loss) elsewhere. Never the image itself, which Godot would write out byte by byte.
 static func get_or_create(path := DEFAULT_PATH) -> TileSet:
 	if path == DEFAULT_PATH:
 		path = MDSLegacy.tileset_path(path)
@@ -55,14 +57,19 @@ static func get_or_create(path := DEFAULT_PATH) -> TileSet:
 		var existing := load(path) as TileSet
 		if existing:
 			return existing
-	var ts := build_tileset()
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	var img := build_image()
+	var png := path.get_basename() + ".png"
+	var atlas := MDSRoomPainter._file_texture(img, png)
+	if atlas is PortableCompressedTexture2D:
+		img.save_png(png)
+	var ts := build_tileset(atlas)
 	ResourceSaver.save(ts, path)
-	# Also drop the atlas as a PNG next to it, for artists to repaint.
-	build_image().save_png(path.get_basename() + ".png")
 	return load(path) as TileSet if ResourceLoader.exists(path) else ts
 
-static func build_tileset() -> TileSet:
+## The starter tileset, its atlas [param atlas] ([method build_image] in an [ImageTexture]
+## when null).
+static func build_tileset(atlas: Texture2D = null) -> TileSet:
 	var ts := TileSet.new()
 	ts.tile_size = Vector2i(TILE, TILE)
 	ts.add_physics_layer()
@@ -80,7 +87,7 @@ static func build_tileset() -> TileSet:
 	ts.set_terrain_name(1, 0, "Cave wall")
 	ts.set_terrain_color(1, 0, WALL_LIGHT)
 	var src := TileSetAtlasSource.new()
-	src.texture = ImageTexture.create_from_image(build_image())
+	src.texture = atlas if atlas else ImageTexture.create_from_image(build_image())
 	src.texture_region_size = Vector2i(TILE, TILE)
 	ts.add_source(src, 0)
 	var sides := [TileSet.CELL_NEIGHBOR_RIGHT_SIDE, TileSet.CELL_NEIGHBOR_BOTTOM_SIDE, TileSet.CELL_NEIGHBOR_LEFT_SIDE, TileSet.CELL_NEIGHBOR_TOP_SIDE]

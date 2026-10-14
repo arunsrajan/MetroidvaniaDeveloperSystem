@@ -296,7 +296,7 @@ func _field() -> void:
 	var creatures := 0
 	for i in popup.item_count:
 		var m: Variant = popup.get_item_metadata(i)
-		if m is Array:
+		if m is Array and m[0] == "creature":
 			creatures += 1
 			if m[1] == "bats":
 				bats = i

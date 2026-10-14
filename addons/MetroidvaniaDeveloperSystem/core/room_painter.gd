@@ -72,6 +72,14 @@ var _created: Dictionary = {} ## paths of layers and groups a save added (remove
 
 const COLOR_SOURCE_NAME := "MDS colors"
 const MAX_UNDO := 60
+## Godot's editor warns that a text scene or resource is large on disk when it saves one
+## bigger than this.
+const LARGE_TEXT_FILE := 512 * 1024
+## Bytes a tile takes in a .tscn or .tres: 12 of tile_map_data, written out in base64.
+const TILE_FILE_BYTES := 16
+## Images embedded in a tileset at least this big (pixels) become PNG files next to it (see
+## [method externalize_sheets]); smaller ones are packed into it.
+const SHEET_FILE_PIXELS := 64 * 64
 
 static func open(path: String, default_tile_set: TileSet = null) -> MDSRoomPainter:
 	var packed := load(path) as PackedScene
@@ -919,6 +927,63 @@ func save() -> Error:
 		dirty = false
 	return err
 
+## Why the room's scene file is big, when it is bigger than [constant LARGE_TEXT_FILE] (Godot's
+## editor then warns that it is large on disk as it saves it); "" when it is not. Its tile
+## layers, the biggest first, are the usual reason: each tile takes [constant TILE_FILE_BYTES]
+## bytes, a hidden layer's tiles too. Images embedded in it are the other one.
+func size_note() -> String:
+	var f := FileAccess.open(scene_path, FileAccess.READ)
+	if not f or f.get_length() <= LARGE_TEXT_FILE:
+		return ""
+	var size := f.get_length()
+	var images := _embedded_image_bytes(f.get_as_text())
+	var heavy: Array = [] # [bytes, what, hidden]
+	var free_cells := 0
+	for l in root.find_children("*", "TileMapLayer", true, false):
+		if l.owner != root:
+			continue
+		var cells := (l as TileMapLayer).get_used_cells().size()
+		if l.has_meta(PIECE_META):
+			free_cells += cells
+		elif cells > 0:
+			heavy.append([cells * TILE_FILE_BYTES, "%s %d tiles" % [l.name, cells], _hidden_in_scene(l)])
+	if free_cells > 0:
+		heavy.append([free_cells * TILE_FILE_BYTES, "free tiles %d" % free_cells, false])
+	if images > 0:
+		heavy.append([images, "embedded images", false])
+	heavy.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
+	var parts: PackedStringArray = []
+	var hidden := false
+	for h in heavy.slice(0, 3):
+		parts.append("%s (%d KiB%s)" % [h[1], ceili(h[0] / 1024.0), ", hidden" if h[2] else ""])
+		hidden = hidden or h[2]
+	var advice := "Erase tiles nothing shows, or split a very big room."
+	if hidden:
+		advice = "A hidden layer's tiles are saved all the same: clear the layer if the room doesn't show it (Clear background for the Background)."
+	elif images >= LARGE_TEXT_FILE / 4:
+		advice = "Save embedded images as PNG files and use those."
+	return "%s is %d KiB, so Godot warns that it is large when it saves it. Most of it: %s. %s" % [scene_path.get_file(), ceili(size / 1024.0), ", ".join(parts), advice]
+
+## Whether [param node] or a parent of it (below the root) is hidden in the scene.
+func _hidden_in_scene(node: Node) -> bool:
+	var n := node
+	while n and n != root:
+		if n is CanvasItem and not (n as CanvasItem).visible:
+			return true
+		n = n.get_parent()
+	return false
+
+## Bytes of a .tscn or .tres [param text] that are images embedded in it.
+static func _embedded_image_bytes(text: String) -> int:
+	var total := 0
+	var inside := false
+	for line in text.split("\n"):
+		if line.begins_with("["):
+			inside = line.begins_with("[sub_resource type=\"Image\"") or line.begins_with("[sub_resource type=\"PortableCompressedTexture2D\"")
+		if inside:
+			total += line.length() + 1
+	return total
+
 ## Writes the edited freeform shapes and stamps into the scene. Nodes that are still there
 ## (same group, same name) are updated in place, so an unchanged room saves unchanged; the
 ## others are added or removed.
@@ -1282,7 +1347,7 @@ func color_tile(color: Color) -> Array:
 		src.resource_name = COLOR_SOURCE_NAME
 		var img := Image.create(tile_set.tile_size.x, tile_set.tile_size.y, false, Image.FORMAT_RGBA8)
 		img.fill(Color.WHITE)
-		src.texture = ImageTexture.create_from_image(img)
+		src.texture = _packed_texture(img)
 		src.texture_region_size = tile_set.tile_size
 		src.create_tile(Vector2i.ZERO)
 		sid = tile_set.add_source(src)
@@ -1970,46 +2035,82 @@ static func _file_texture(img: Image, path: String) -> Texture2D:
 
 static func _packed_texture(img: Image) -> Texture2D:
 	var packed := PortableCompressedTexture2D.new()
+	# Outside the editor it would let go of its data once made, and save without it.
+	packed.keep_compressed_buffer = true
 	packed.create_from_image(img, PortableCompressedTexture2D.COMPRESSION_MODE_LOSSLESS)
 	return packed
+
+## Packs again the images packed into [param ts] that let go of their data, so saving it keeps
+## them: outside the editor, one loaded from a file does (it is set to keep its data only
+## after the data is read).
+static func _keep_packed(ts: TileSet) -> void:
+	for i in ts.get_source_count():
+		var src := ts.get_source(ts.get_source_id(i)) as TileSetAtlasSource
+		var tex := src.texture as PortableCompressedTexture2D if src else null
+		if not tex or (not tex.resource_path.is_empty() and not "::" in tex.resource_path):
+			continue
+		if not (tex.get(&"_data") as PackedByteArray).is_empty():
+			continue
+		var img := tex.get_image()
+		if img:
+			tex.keep_compressed_buffer = true
+			tex.create_from_image(img, tex.get_compression_mode())
 
 static func _editor_files() -> Object:
 	if Engine.is_editor_hint() and Engine.has_singleton(&"EditorInterface"):
 		return Engine.get_singleton(&"EditorInterface").get_resource_filesystem()
 	return null
 
-## Moves big images embedded in [param ts] (sheets added by older versions, or from files
-## that were not imported yet) out to PNG files next to it and links them instead. Returns
-## how many were moved; the tileset is saved when any were. Only works in the editor.
+## Takes the images embedded in [param ts] out of it: the starter atlas and the solid colors'
+## tile of older versions, sheets from files that were not imported yet. Godot writes an
+## embedded image out byte by byte, so even a small atlas makes a tileset of hundreds of KiB
+## that is slow to save and load. In the editor, images of [constant SHEET_FILE_PIXELS] or
+## more become PNG files next to the tileset, linked instead; the others, and all of them
+## outside the editor, are packed into it, compressed without loss. The tiles look the same.
+## Returns how many were taken out; the tileset is saved when any were.
 static func externalize_sheets(ts: TileSet) -> int:
 	var base := ts.resource_path
-	if not _editor_files() or base.is_empty() or "::" in base:
+	if base.is_empty() or "::" in base:
 		return 0
 	var moved := 0
 	for i in ts.get_source_count():
 		var sid := ts.get_source_id(i)
 		var src := ts.get_source(sid) as TileSetAtlasSource
-		if not src or not src.texture is ImageTexture or src.texture.get_width() * src.texture.get_height() < 512 * 512:
+		if not src or not src.texture is ImageTexture:
 			continue
 		if not src.texture.resource_path.is_empty() and not "::" in src.texture.resource_path:
 			continue
 		var img: Image = src.texture.get_image()
 		if not img:
 			continue
-		var stem := "%s_%s" % [base.get_basename(), src.resource_name.validate_filename() if not src.resource_name.is_empty() else "sheet%d" % sid]
-		var path := stem + ".png"
-		var n := 2
-		while FileAccess.file_exists(path):
-			path = "%s_%d.png" % [stem, n]
-			n += 1
-		var tex := _file_texture(img, path)
-		if tex is PortableCompressedTexture2D:
-			continue
-		src.texture = tex
+		var tex: Texture2D = null
+		if _editor_files() and img.get_width() * img.get_height() >= SHEET_FILE_PIXELS:
+			tex = _file_texture(img, _sheet_file_path(ts, src, sid, img))
+		src.texture = tex if tex else _packed_texture(img)
 		moved += 1
 	if moved > 0:
+		_keep_packed(ts)
 		ResourceSaver.save(ts, base)
 	return moved
+
+## Where [method externalize_sheets] saves [param src]'s image: the starter atlas's own PNG
+## next to the tileset when it is still that image, else a new file named after the sheet.
+static func _sheet_file_path(ts: TileSet, src: TileSetAtlasSource, sid: int, img: Image) -> String:
+	var base := ts.resource_path
+	var own := base.get_basename() + ".png"
+	if src.resource_name.is_empty() and FileAccess.file_exists(own):
+		var on_disk := Image.new()
+		if on_disk.load_png_from_buffer(FileAccess.get_file_as_bytes(own)) == OK:
+			on_disk.convert(img.get_format())
+			if on_disk.get_size() == img.get_size() and on_disk.get_data() == img.get_data():
+				return own
+	var stem := "%s_%s" % [base.get_basename(), src.resource_name.validate_filename() if not src.resource_name.is_empty() else "sheet%d" % sid]
+	var path := stem + ".png"
+	var n := 2
+	while FileAccess.file_exists(path):
+		path = "%s_%d.png" % [stem, n]
+		n += 1
+	return path
 
 ## Removes a sheet from the tileset (tiles painted from it disappear).
 func remove_sheet(source_id: int) -> void:
@@ -2137,6 +2238,8 @@ func make_terrain(source_id: int, region: Rect2i, terrain_name: String, color: C
 ## Saves the tileset when it is its own resource file (a tileset embedded in the scene is
 ## saved with the scene).
 func save_tile_set() -> Error:
+	# Saved here, or with the scene when it is embedded in it.
+	_keep_packed(tile_set)
 	if not tile_set_dirty:
 		return OK
 	var p := tile_set.resource_path

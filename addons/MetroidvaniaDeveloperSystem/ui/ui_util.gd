@@ -269,7 +269,7 @@ static func background_field(grid: GridContainer, text: String, value: String, p
 	edit.text = value
 	edit.placeholder_text = placeholder
 	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	edit.tooltip_text = "Animated background, soft and out of focus, drawn by a shader: a style (bokeh, aurora, nebula, blood_moon...), with settings if you like (aurora(blur=0.8, speed=0.5)); creatures (bees, spiders, songbirds, bats, jellyfish, owls...); a style and creatures (blood_moon, bats); or a .tscn holding an MDSAnimatedBackground or MDSCreatures. none: no background"
+	edit.tooltip_text = "Animated background, soft and out of focus, drawn by a shader: a style (bokeh, aurora, nebula, blood_moon...), with settings if you like (aurora(blur=0.8, speed=0.5)); creatures (bees, spiders, songbirds, bats, jellyfish, owls...); giant machinery (clockwork, giant_wheels, clock_faces... for castles; turbines, reactor_cores, specimen_tanks... for alien stations); a style and creatures or machinery (blood_moon, bats; storm_clouds, castle_spires); or a .tscn holding an MDSAnimatedBackground, MDSCreatures or MDSMachineryBackground. none: no background"
 	row.add_child(edit)
 	var menu := menu_button("+", "Pick an animated background style")
 	var popup := menu.get_popup()
@@ -289,6 +289,15 @@ static func background_field(grid: GridContainer, text: String, value: String, p
 		popup.add_icon_item(creature_icon(id), MDSCreatures.CREATURE_NAMES[i])
 		popup.set_item_metadata(popup.item_count - 1, ["creature", id])
 		popup.set_item_tooltip(popup.item_count - 1, MDSCreatures.CREATURE_INFO[i] + ". Added to a style already in the field, they fly in front of it")
+	for gothic in [true, false]:
+		popup.add_separator("Gothic machinery (Castlevania-style castles)" if gothic else "Sci-fi machinery (Metroid-style stations)")
+		for i in MDSMachineryBackground.MACHINE_IDS.size():
+			if (i < MDSMachineryBackground.GOTHIC_COUNT) != gothic:
+				continue
+			var id := MDSMachineryBackground.MACHINE_IDS[i]
+			popup.add_icon_item(machine_icon(id), MDSMachineryBackground.MACHINE_NAMES[i])
+			popup.set_item_metadata(popup.item_count - 1, ["machine", id])
+			popup.set_item_tooltip(popup.item_count - 1, MDSMachineryBackground.MACHINE_INFO[i] + ". Added to a style already in the field, it shows in front of it")
 	popup.add_separator()
 	popup.add_item("None (no background here)")
 	popup.set_item_metadata(popup.item_count - 1, "none")
@@ -297,7 +306,7 @@ static func background_field(grid: GridContainer, text: String, value: String, p
 	popup.index_pressed.connect(func(i: int) -> void:
 		var m: Variant = popup.get_item_metadata(i)
 		if m is Array:
-			# A creature: on its own, or after the style already there.
+			# A creature or a machine: on its own, or after the style already there.
 			var current := edit.text.strip_edges()
 			var keep: PackedStringArray = []
 			for t in MDSEnvironment.split_list(current):
@@ -331,6 +340,30 @@ static func creature_icon(id: String, size := 16) -> Texture2D:
 				c = c.lerp(look.glow_color, k * k)
 				if uv.distance_to(d) < 0.07:
 					c = (look.body_color as Color).lerp(look.glow_color, 0.4)
+			c.a = 1.0
+			img.set_pixel(x, y, c)
+	var tex := ImageTexture.create_from_image(img)
+	_type_icons[key] = tex
+	return tex
+
+## A small picture of a machinery background: its haze, a dark cogwheel, its light.
+static func machine_icon(id: String, size := 16) -> Texture2D:
+	var key := "machine:" + id
+	if _type_icons.has(key):
+		return _type_icons[key]
+	var look: Dictionary = MDSMachineryBackground.LOOKS.get(id, MDSMachineryBackground.LOOKS.clockwork)
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	for y in size:
+		for x in size:
+			var uv := Vector2((x + 0.5) / size, (y + 0.5) / size)
+			var c: Color = (look.back_top as Color).lerp(look.back_bottom, uv.y)
+			var p := uv - Vector2(0.45, 0.55)
+			var r := p.length()
+			var teeth := 0.3 + 0.05 * signf(sin(atan2(p.y, p.x) * 8.0))
+			if r < teeth and r > 0.1:
+				c = (look.metal_color as Color).lerp(look.accent_color, 0.35)
+			var k := clampf(1.0 - uv.distance_to(Vector2(0.78, 0.24)) / 0.22, 0.0, 1.0)
+			c = c.lerp(look.light_color, k * k * 0.9)
 			c.a = 1.0
 			img.set_pixel(x, y, c)
 	var tex := ImageTexture.create_from_image(img)
