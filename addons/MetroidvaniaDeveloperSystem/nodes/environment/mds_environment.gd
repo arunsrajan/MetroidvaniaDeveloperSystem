@@ -63,6 +63,7 @@ const EFFECTS := {
 	"incense_smoke": ["Incense smoke", "mds_incense_smoke.gd", false, "Ribbons of smoke curling up from a censer, golden ash glinting in them (the Citadel's choral chambers)"],
 	"forge_sparks": ["Forge sparks", "mds_forge_sparks.gd", false, "Sparks spraying from a forge or a grinding wheel, arcing down and bouncing off the floor, in a stream or bursts; can burn (the Deep Docks)"],
 	"creatures": ["Creatures", "mds_creatures.gd", false, "A background of glowing creatures, one kind at a time (bees, spiders, small birds, bats, jellyfish, owls... 20 kinds), soft and out of focus, each carrying a light over its habitat. They stir as the player moves about and never touch the fight: made for boss rooms"],
+	"machinery": ["Machinery background", "mds_machinery_background.gd", false, "Giant machinery far behind the room, soft and out of focus, one kind at a time, moving by time alone: 20 gothic castle machines for Castlevania-style castles (giant wheels, clockwork, clock faces, pendulums, bells, chandeliers, rose windows...) and 20 alien station machines for Metroid-style worlds (turbines, reactor cores, gyro rings, pistons, specimen tanks, warp portals...). Pick the machine in the Inspector"],
 	"animated_background": ["Animated background", "mds_animated_background.gd", false, "A soft, out-of-focus background in motion, drawn by a shader: bokeh lights, an aurora, a nebula, molten blobs, deep water, storm clouds, a starfield... 20 styles, some made for boss rooms (void pulse, blood moon, arcane vortex, infection, holy light). Pick the style in the Inspector; drop an image on it to show the image blurred"],
 	"parallax": ["Parallax background", "mds_parallax_background.gd", false, "Layers behind the room moving slower the further back they are: sky, mountains, forest, city, ruins, cave rock, dunes, clouds, fog, stars or your own pictures. Drop an image on it to add a layer"],
 }
@@ -339,6 +340,9 @@ static func background_for_room(world: MDSWorld, id: String) -> String:
 ## - creature ids ([constant MDSCreatures.CREATURE_IDS]): [code]bats[/code] becomes
 ##   [code]creatures(creature=bats)[/code]. Next to a style ([code]blood_moon, bats[/code]) the
 ##   creatures draw no habitat of their own ([code]backdrop=0[/code]), so the style shows behind them;
+## - machine ids ([constant MDSMachineryBackground.MACHINE_IDS]): [code]clockwork[/code] becomes
+##   [code]machinery(machine=clockwork)[/code]; next to a style ([code]storm_clouds,
+##   castle_spires[/code]) it draws no backdrop of its own either;
 ## - scenes and other specs, as they are.
 static func background_spec(value: String) -> String:
 	var v := value.strip_edges()
@@ -361,6 +365,10 @@ static func background_spec(value: String) -> String:
 				if with_style and not args.contains("backdrop"):
 					args = "backdrop=0" + (", " + args if not args.is_empty() else "")
 				out.append("creatures(creature=%s%s)" % [id, ", " + args if not args.is_empty() else ""])
+			"machine":
+				if with_style and not args.contains("backdrop"):
+					args = "backdrop=0" + (", " + args if not args.is_empty() else "")
+				out.append("machinery(machine=%s%s)" % [id, ", " + args if not args.is_empty() else ""])
 			_:
 				out.append(t.strip_edges())
 	return ", ".join(out)
@@ -376,7 +384,7 @@ static func _head_args(token: String) -> PackedStringArray:
 		args = t.substr(open + 1, t.length() - open - 2).strip_edges()
 	return PackedStringArray([head.strip_edges().to_lower().replace(" ", "_"), args])
 
-## "style", "creature" or "" (anything else) for a background token.
+## "style", "creature", "machine" or "" (anything else) for a background token.
 static func _background_kind(token: String) -> String:
 	var t := token.strip_edges()
 	if t.begins_with("res://") or t.begins_with("uid://"):
@@ -386,6 +394,8 @@ static func _background_kind(token: String) -> String:
 		return "style"
 	if MDSCreatures.CREATURE_IDS.has(id):
 		return "creature"
+	if MDSMachineryBackground.MACHINE_IDS.has(id):
+		return "machine"
 	return ""
 
 ## Gives the effects under [param node] that take an area's color ([MDSCreatures]) the color
@@ -414,7 +424,7 @@ static func check_background(value: String) -> String:
 	for t in split_list(v):
 		var s := t.strip_edges()
 		if _background_kind(s).is_empty() and not s.begins_with("res://") and not s.begins_with("uid://") and not EFFECTS.has(_head_args(s)[0]):
-			return "'%s' is not an animated background style (%s) or a creature (%s)" % [s, ", ".join(MDSAnimatedBackground.STYLE_IDS), ", ".join(MDSCreatures.CREATURE_IDS)]
+			return "'%s' is not an animated background style (%s), a creature (%s) or a machine (%s)" % [s, ", ".join(MDSAnimatedBackground.STYLE_IDS), ", ".join(MDSCreatures.CREATURE_IDS), ", ".join(MDSMachineryBackground.MACHINE_IDS)]
 	return check(background_spec(v))
 
 ## The weather of [param spec] as a node to add to a room, its effects covering

@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml/badge.svg)](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml) Version 3.3.0 ([changelog](CHANGELOG.md))
 
-A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, silk threads, will-o'-wisps, void tendrils, cobwebs, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight, glowing bees, spiders, birds and owls watching it...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
+A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, silk threads, will-o'-wisps, void tendrils, cobwebs, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight, glowing bees, spiders, birds and owls watching it, giant clockwork and castle spires, alien reactor cores and specimen tanks turning far behind...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
 
 Every class and node of the plugin starts with `MDS` (`MDSWorldGame`, `MDSGate`, `MDSFreeform`...), and so do its metadata, groups, files and settings (`mds_stamp`, `*.mdsworld.json`, `metroidvania_developer_system/...`). Before 3.0 the classes started with `IDP`, from the plugin's first name, Interactive Dev Panel, and before 3.1 the data did: see [Upgrading from 3.0](#upgrading-from-30-idp-data-to-mds) and [Upgrading from 2.x](#upgrading-from-2x-idp-to-mds). Projects made with the old names still load.
 
@@ -317,10 +317,11 @@ The map is one view of a room; the **Room view** is the other. It shows the room
   Untick any of them under the buttons. **New variation** rerolls it and **Auto-decorate** redoes only the decorations. Everything stays inside the room's shape, and irregular rooms get rock in their notches.
 - **A whole area:** with an area selected on the map (or a room of one open), the Room view shows the area's rooms in the order a player meets them: **<** and **>** go through them. **Caves for the area** generates a cave in every room with these fills and options. Rooms without a scene get one, and every room joins its gates both ways, so the whole area can be crossed and backtracked. **Leave rooms already painted alone** keeps the painted ones. The Areas tab (**Generate caves...**) and the map's right-click menu do it too. In code: `MDSWorldSceneTools.generate_area_caves(world, ids, path_for, fills)`.
 - **Save** writes the tiles into the room scene's `Background`, `Terrain` and `Decor` TileMapLayers (creating the missing ones) and touches nothing else in the scene. A scene open in an editor tab is reloaded. The map's silhouette updates from the terrain, so the two views stay in sync. Leaving the Room view saves automatically.
-- **Tiles:** with no tileset, MDS generates a starter pixel-art "mossy cave" set at `res://mds_tiles/mds_cave_tileset.tres`. It has moss-topped rock with collision and autotiling, a cave wall, teal foliage and decorations, and a PNG copy sits next to it for repainting.
+- **Tiles:** with no tileset, MDS generates a starter pixel-art "mossy cave" set at `res://mds_tiles/mds_cave_tileset.tres`. It has moss-topped rock with collision and autotiling, a cave wall, teal foliage and decorations. Its atlas is the PNG next to it, `mds_cave_tileset.png`: repaint that and the tiles change.
   - Rooms that already have a TileSet keep it. Its terrains appear in the fill list, and tiles with an `mds_kind` custom data string (`grass`, `vine_top`, `stalactite_small`, `foliage`...) are used by the kind fills and Auto-decorate.
   - Sheets, terrains, tags and colors added from the palette are saved into that TileSet: its `.tres` file, or the scene when the TileSet is embedded in it.
   - Solid colors are one white tile tinted by alternative tiles.
+  - **No images inside tilesets.** Godot writes an image embedded in a `.tres` out byte by byte: the starter atlas alone made 850 KiB of text. Sheets are linked PNG files and small images are packed (compressed without loss). A tileset made by an older version is mended when a room opens with it: its tiles stay the same and its file shrinks (916 KiB to 70 KiB for a starter tileset with a sheet added).
   - **Broken tiles:** when a sheet is removed, or its tile size is made bigger so fewer tiles fit, the tiles painted with the lost tiles draw nothing, and Godot logs "The TileSetAtlasSource atlas has no tile at ..." each time it loads the tileset. The Issues tab lists the rooms that have them, and **Remove broken tiles** (Room view, shown when the room has some) erases them and rewrites the tileset so it loads cleanly. Sheets scaled to the room grid are saved as `<sheet>_<tile size>_to_<grid>.png`, so adding a sheet again with another tile size never overwrites one a tileset already uses.
   - Change the default in **Scenes > World settings > Room tileset** (stored as `settings.room_tileset`), for example to the [Mossgrove asset pack](asset_packs/mossgrove/README.md)'s TileSet.
 
@@ -510,7 +511,7 @@ painter.save()
 
 #### Environment effects
 
-Thirty effects bring rooms to life: weather, hazards, scenery in motion, and parallax, animated and creature backgrounds. Ten of them are made after Hollow Knight: Silksong's places (see [Silksong-style effects](#silksong-style-effects)). The same list has a **bench** to save the game at (see [Benches, saving and the map](#benches-saving-and-the-map)). Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
+Thirty-one effects bring rooms to life: weather, hazards, scenery in motion, and parallax, animated, creature and machinery backgrounds. Ten of them are made after Hollow Knight: Silksong's places (see [Silksong-style effects](#silksong-style-effects)). The same list has a **bench** to save the game at (see [Benches, saving and the map](#benches-saving-and-the-map)). Each one is a node that draws a rectangle with a shader from `shaders/environment/`, animated in the editor too.
 
 | Effect | Node | What it does |
 |---|---|---|
@@ -544,6 +545,7 @@ Thirty effects bring rooms to life: weather, hazards, scenery in motion, and par
 | Forge sparks | `MDSForgeSparks` | Sparks spraying from `source` in a fan (`angle`, `spread`), arcing down and bouncing off the bottom edge, white-hot cooling to red. A steady stream or `bursts`; with `damage` they burn (the Deep Docks) |
 | Parallax background | `MDSParallaxBackground` | Layers behind the room, the far ones moving slower: sky, mountains, hills, forest, city, ruins, cave rock, dunes, clouds, fog, stars, or your own pictures (see [Parallax backgrounds](#parallax-backgrounds)) |
 | Creatures | `MDSCreatures` | A background of glowing creatures for boss rooms, one kind at a time: bees, spiders, small birds, bats, jellyfish, owls... 20 kinds. Each carries a light over its habitat, and they stir as the player moves about (see [Creature backgrounds](#creature-backgrounds)) |
+| Machinery background | `MDSMachineryBackground` | Giant machinery far behind the room, one kind at a time, fixed in the world and moving by time alone. There are 20 gothic machines for Castlevania-style castles (giant wheels, clockwork, clock faces, pendulums, bells...) and 20 sci-fi ones for Metroid-style stations (turbines, reactor cores, gyro rings, specimen tanks, warp portals...). See [Machinery backgrounds](#machinery-backgrounds) |
 | Animated background | `MDSAnimatedBackground` | A soft, out-of-focus background in motion, drawn by a shader: 20 styles, from bokeh lights, an aurora and a nebula to a blood moon and an arcane vortex for boss rooms, or your own picture blurred (see [Animated backgrounds](#animated-backgrounds)) |
 
 Three ways to use them:
@@ -676,6 +678,13 @@ Room scenes are saved by instancing them and packing them again, and two things 
 - **keeps the scene's UID**, also from tools and CI, where Godot's UID cache can be out of date.
 
 The Room view also updates the shapes and stamps that are still there in place instead of re-creating them, so saving an unchanged room leaves its file unchanged.
+
+**Big scene files.** When Godot's editor saves a text scene or resource over 512 KiB, it warns that it is "large on disk, likely because it has embedded binary data". In a room scene that is nearly always tiles:
+
+- **Each tile takes 16 bytes of the scene, a hidden layer's too.** A tall room of 90 by 315 tiles filled from edge to edge (**Fill background**) holds 28,000 tiles: 443 KiB.
+- **The Room view says what is in a big room** when it opens or saves it: its layers, the biggest first, the hidden ones marked (`MDSRoomPainter.size_note()`).
+- **Clear background** (beside **Fill background**) empties the Background layer. Erase or clear what the room doesn't show, or split a very big room.
+- **Erased tiles leave the file.** A tile layer outside the scene tree keeps erased cells as empty entries until it updates, and older versions saved them, so a room kept every tile it ever had. `repack_safely()` drops them now; save the room once to shrink it.
 
 ### Editing
 
@@ -1072,6 +1081,79 @@ Set them where you set an animated background: **Areas tab > Boss room bg**, **W
 
 A value can be a creature (`bats`), a creature with settings (`owls(count=3)`), or a style and a creature (`blood_moon, bats`). With a style, they draw no habitat of their own, so the style shows behind them. In code: `MDSEnvironment.build_background("void_pulse, spiders", rect)`.
 
+#### Machinery backgrounds
+
+An **`MDSMachineryBackground`** puts giant machinery far behind the room, soft and out of focus. Each background has one kind of machine, several of them at different depths:
+- **Gothic:** twenty kinds for Castlevania-style castles: giant wheels, clockwork, clock faces, pendulums, bells...
+- **Sci-fi:** twenty kinds for Metroid-style stations: turbines, reactor cores, gyro rings, pistons, specimen tanks...
+
+They turn, swing, pump, flicker and glow **by time alone**, and they are **fixed in the world**. Each machine has its own place in the room, so the camera pans over them as over the room's own scenery. Nothing the player, any character or the camera does moves them: they don't follow the screen. Each is drawn by a shader: `machinery_gothic.gdshader` or `machinery_scifi.gdshader`, sharing `machinery.gdshaderinc`.
+
+![Gothic machinery backgrounds](docs/machinery_gothic.png)
+
+| Machine | What moves | Where they are |
+|---|---|---|
+| `giant_wheels` | Huge spoked wheels with paddles round their rims, turning slowly | spread about |
+| `clockwork` | Toothed cogwheels with windows cut in them, turning both ways: a clock tower's works | spread about |
+| `clock_faces` | Clock faces lit from behind, their hands going round | one big one in front |
+| `pendulums` | Pendulums swinging from above, with a bob or a blade | hanging from the top |
+| `bells` | Great bells swinging in their yokes on long ropes, their clappers swinging after them | hanging low |
+| `chandeliers` | Chandeliers swaying on their chains, their candles flickering | hanging low |
+| `rose_windows` | Stone tracery, the stained glass glowing and shimmering in two colors | one big one in front |
+| `hanging_chains` | Chains swaying from above, hooks at their ends | hanging from the top |
+| `candelabra` | Candelabra on the floor, their candles flickering | standing on the bottom |
+| `winches` | Spoked wheels turning drums, chains winding up | spread about |
+| `spiked_rollers` | Spiked rollers turning on their beams | spread about |
+| `hourglasses` | Hourglasses running out, then turned over | spread about |
+| `organ_pipes` | Organ pipes, sound pulsing up them | standing on the bottom |
+| `banners` | Banners waving from their rods, tattered at the bottom, a crest on each | hanging from the top |
+| `astrolabes` | Nested rings turning about a glowing core | one big one in front |
+| `torches` | Wall torches, their flames flickering | spread about |
+| `windmills` | Windmills on their towers, latticed sails turning, a lit window | standing on the bottom |
+| `swinging_axes` | Great axe blades swinging from above | hanging from the top |
+| `saw_blades` | Saw blades spinning fast, sliding along their slots | spread about |
+| `castle_spires` | Towers and pointed roofs, lit windows flickering, a flag flying | standing on the bottom |
+
+![Sci-fi machinery backgrounds](docs/machinery_scifi.png)
+
+| Machine | What moves | Where they are |
+|---|---|---|
+| `turbines` | Turbines spinning in their housings, hubs glowing | spread about |
+| `reactor_cores` | Cores pulsing inside counter-turning shield rings, energy arcing off them | one big one in front |
+| `gyro_rings` | Rings turning about each other round a glowing orb, light running along them | one big one in front |
+| `pistons` | Hydraulic pistons pumping, venting at the bottom of their stroke | standing on the bottom |
+| `energy_conduits` | Pipes, flat or upright, pulses of energy racing along them | spread about |
+| `radar_dishes` | Dishes turning on their masts, feed lights blinking | standing on the bottom |
+| `holograms` | Worlds turning above their projectors, scanlines rolling | standing on the bottom |
+| `ringed_planets` | Ringed planets through the station's windows, bands drifting, moons going round | one big one in front |
+| `robot_arms` | Arms reaching and turning, claws opening and closing | standing on the bottom |
+| `drills` | Giant drills boring down, spirals turning, tips glowing hot | hanging from the top |
+| `tesla_coils` | Coils, lightning crackling off their crowns | standing on the bottom |
+| `exhaust_fans` | Fans spinning behind their grilles, lit from behind | spread about |
+| `bio_pods` | Organic pods breathing, their nuclei pulsing with light | spread about |
+| `specimen_tanks` | Glowing fluid, bubbles rising, a creature floating in each | standing on the bottom |
+| `data_streams` | Panels, columns of glowing blocks streaming down them | side by side |
+| `laser_sweeps` | Emitters sweeping their laser beams back and forth | hanging from the top |
+| `warp_portals` | Rings of runes round swirling vortices | one big one in front |
+| `crystal_pylons` | Crystals floating and turning over their pedestals | standing on the bottom |
+| `press_hammers` | Hammers rising slowly, then slamming down in a flash | standing on the bottom |
+| `cargo_lifts` | Cages riding up and down their rails, lamps blinking | side by side |
+
+- **All over the room:** the room is cut into screen-sized cells (about 1152 x 648 px). Each cell gets `count` machines of its own (32 at most in all), so every screen of a big room has its machinery, and the standing ones stand on the room's floor.
+- **Layout:** picking a machine gives the background its colors, its number of machines and its layout. Hanging ones hang from the top of the view, bells and chandeliers lower down on ropes running up out of sight. Standing ones stand on its bottom. Clocks, rose windows, reactors and portals have one big one in front, the others smaller and to the sides. The rest are spread about.
+- **Depth:** bigger machines are nearer. The far ones fade into the haze (`haze`), and the nearest and farthest are the most out of focus (`blur`).
+- **The same every time:** a machine, `count` and `seed_value` always give the same layout. Cogwheels, wheels and turbines turn both ways; clocks always go forward.
+- **Settings:**
+  - `machine`, `count` (a cell, up to 12), `speed`;
+  - colors: `back_top` and `back_bottom` (the backdrop and its haze), `metal_color`, `light_color` (flames, windows, energy) and `accent_color` (bronze, cloth, crystal, a second light);
+  - `blur`, `haze`, `brightness`, `vignette`, `grain`;
+  - `backdrop` (off: only the machines, over another background).
+- **Cost:** it is about 2 to 4 ms a frame at 1920 x 1080 on an integrated GPU. Each machine is only drawn inside its own box.
+
+Set them where you set an animated background: the **Animated bg** fields of an area or a room, **Areas tab > Boss room bg** and **World settings**. The **+** menu lists them under *Gothic machinery* and *Sci-fi machinery*. They are also in the Room view's Effects list (**Machinery background**), to place one in a room.
+
+A value can be a machine (`clockwork`), a machine with settings (`turbines(count=8, speed=1.5)`), or a style and a machine (`storm_clouds, castle_spires`, `nebula, ringed_planets`). With a style, the machinery draws no backdrop of its own, so the style shows behind it. In code: `MDSEnvironment.build_background("frozen_night, windmills", rect)`, or `MDSMachineryBackground.new()` and `use_machine("clock_faces")`.
+
 #### Area titles and music
 
 Areas in the world file have presentation fields, set in the **Areas tab**: `title`, `subtitle`, `music` (a stream path), `music_volume_db` and `boss_music`.
@@ -1373,13 +1455,14 @@ addons/MetroidvaniaDeveloperSystem/
 │       ├── mds_creatures.gd # MDSCreatures: creature backgrounds for boss rooms, 20 kinds, lit by them
 │       └── mds_*.gd       # MDSDustStorm, MDSRain, MDSLightning, MDSSnowfall, MDSFog, MDSEmbers,
 │                          # MDSFireflies, MDSFallingLeaves, MDSLightShafts, MDSHeatHaze,
-│                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSHotWaterfall, MDSLavaFall, MDSRockfall, MDSWater, MDSBench,
+│                          # MDSSteamVent, MDSLava, MDSWaterfall, MDSHotWaterfall, MDSLavaFall, MDSRockfall, MDSWater, MDSBench, MDSMachineryBackground,
 │                          # MDSSilkThreads, MDSWisps, MDSGnatSwarm, MDSDrips, MDSHangingMoss, MDSSwayingGrass,
 │                          # MDSCobwebs, MDSVoidTendrils, MDSIncenseSmoke, MDSForgeSparks
 ├── shaders/
 │   ├── terrain_skin.*     # Example terrain skin shader and its fill and edge materials
 │   ├── drawing_cutout.gdshader # MDSDrawing's cut-out of colors (a drawing's paper, other layers)
-│   └── environment/       # The effects' shaders and mds_env.gdshaderinc (noise, soft edges)
+│   └── environment/       # The effects' shaders and mds_env.gdshaderinc (noise, soft edges); machinery_gothic / machinery_scifi
+│                          # and machinery*.gdshaderinc draw the machinery backgrounds
 ├── ui/
 │   ├── map_canvas.gd      # MDSMapCanvas: MetSys map
 │   ├── world_canvas.gd    # MDSWorldCanvas: free-form world editor
@@ -1410,6 +1493,8 @@ The `core/` classes have no editor dependencies, so you can use them from tool s
 - A game that saved its own way keeps working: a save it loads first wins. To keep the old behaviour, clear both paths.
 - `MDSWorldMapView` draws the benches found; turn off `show_save_points` to hide them.
 - Waterfalls, hot water falls and lava falls now fall straight: there are no ragged sides, bulges or curving streaks any more.
+- Tilesets made by older versions are rewritten when a room opens with them: the images embedded in them are packed, or moved to PNG files next to them in the editor (the starter atlas links to its `mds_cave_tileset.png`). Their tiles look the same.
+- Room scenes saved by older versions may hold erased tiles as empty entries: saving the room in the Room view drops them.
 
 ## Upgrading from 3.2
 

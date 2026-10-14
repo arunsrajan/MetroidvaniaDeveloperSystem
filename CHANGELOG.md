@@ -6,6 +6,12 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 ### Added
 
+- **Machinery backgrounds** (`MDSMachineryBackground`): giant machinery far behind the room, soft and out of focus, one kind at a time, fixed in the world and moving by time alone: neither the player nor the camera moves them. They are laid out over the room in screen-sized cells.
+  - **Gothic (20)**, for Castlevania-style castles: giant wheels, clockwork, clock faces, pendulums, bells, chandeliers, rose windows, hanging chains, candelabra, winches, spiked rollers, hourglasses, organ pipes, banners, astrolabes, torches, windmills, swinging axes, saw blades and castle spires.
+  - **Sci-fi (20)**, for Metroid-style stations: turbines, reactor cores, gyro rings, pistons, energy conduits, radar dishes, holograms, ringed planets, robot arms, drills, tesla coils, exhaust fans, bio pods, specimen tanks, data streams, laser sweeps, warp portals, crystal pylons, press hammers and cargo lifts.
+  - Each machine has its look and layout: hanging, standing, spread about, or one big one in front.
+  - Background fields take `clockwork`, `turbines(count=8)` or `storm_clouds, castle_spires`; the **+** menu lists them.
+
 - **Benches** (`MDSBench`): save points to rest on, after Silksong's benches.
   - An iron bench with a cushion and a lantern that flickers and lights it, motes drifting up, all drawn by a shader.
   - **Up** at it sits the player down: held still, healed, the game saved. The bench glows, threads of light rise and a ring of light spreads out.
@@ -17,11 +23,21 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - new signals: `game_saved` and `game_loaded`.
 - **The map remembers:** the exploration file keeps the benches found too, and a restarted game's map shows every room explored, also after the last save.
 - **Minimap:** `MDSWorldMapView.follow_player`, with `view_span`. The map also marks benches, the last one rested on brighter. Created game scenes get a minimap and save files named after the world.
+- **Big room scenes explained:** a room's scene over 512 KiB (Godot's editor then warns that it is "large on disk") makes the Room view say what is in it, when it opens or saves it. It lists the layers, the biggest first, and marks the hidden ones, whose tiles are saved all the same (`MDSRoomPainter.size_note()`).
+- **Clear background** in the Room view, beside Fill background.
 
 ### Changed
 
 - Waterfalls, hot water falls and lava falls fall straight. Their sides are straight and their streaks run in straight lanes; the lava's crust rides down in straight strands. There are no ragged sides, bulges or curves any more.
 - `MDSWorldGame.save_file` (`user://mds_save.json`), `exploration_file` (`user://mds_exploration.json`) and `load_on_start` are on by default. Clear the paths to turn them off.
+
+### Fixed
+
+- **Tilesets no longer embed images.** Godot writes an image embedded in a `.tres` out byte by byte, so the starter tileset was 850 KiB of text.
+  - The starter tileset's atlas is now the PNG next to it (linked in the editor, packed without loss elsewhere), and the solid colors' tile is packed.
+  - A tileset made by an older version is mended when a room opens with it: images of 64x64 or more become PNG files next to it, smaller ones are packed. Its tiles stay the same; a starter tileset with a sheet added went from 916 KiB to 70 KiB.
+  - A packed image in a tileset loaded outside the editor (tests, tool scripts) lets go of its data. It is packed again before the tileset is saved, so it is never saved empty.
+- **Erased tiles are no longer saved.** A tile layer outside the scene tree keeps erased cells, and the cells its data replaced, as empty entries until it updates. Room scenes saved by MDS kept every tile they ever had, and never shrank. `MDSWorldSceneTools.repack_safely()` drops them (`drop_erased_cells()`).
 
 ## 3.3.0 (2026-10-13)
 

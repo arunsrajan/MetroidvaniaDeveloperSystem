@@ -6,7 +6,7 @@ A Godot editor plugin for designing and building a metroidvania's world:
 
 - **Map:** draw irregular rooms on a world map, or generate whole areas that split into rooms with doors.
 - **Rooms:** paint each room's terrain, freeform rock and decorations, or trace them from a drawing (as shapes, solid colors, tiles, or the drawing itself with collision). Place tiles anywhere at any angle, and select and move anything by pixels or by tiles.
-- **Atmosphere:** add weather, hazards and scenery in motion (30 shader effects), and parallax, animated or creature backgrounds, for boss rooms too.
+- **Atmosphere:** add weather, hazards and scenery in motion (shader effects), and parallax, animated, creature or machinery backgrounds (40 gothic and sci-fi machines, for Castlevania- and Metroid-style worlds), for boss rooms too.
 - **Checks:** check rooms with physics, and analyze progression and backtracking.
 - **Play:** run the world with room-to-room transitions and a camera made for irregular rooms. Rest on animated benches (`MDSBench`) to save; a restarted game continues there, with its minimap showing everything explored.
 
@@ -32,7 +32,7 @@ A **MetDevSys** tab appears next to 2D / 3D / Script. Without MetSys, it starts 
 4. Open a room with **Room view** to paint it, place effects or generate a cave.
 5. **Scenes > Create game scene...** makes a runnable game scene (`MDSWorldGame`). **Play from here** starts it in the room under the mouse.
 
-Every class and node starts with `MDS`. Add Child Node and search "MDS" to see them: `MDSWorldGame`, `MDSGate`, `MDSRoomCamera`, `MDSFreeform`, the effects (`MDSRain`, `MDSDustStorm`, `MDSCreatures`...) and more.
+Every class and node starts with `MDS`. Add Child Node and search "MDS" to see them: `MDSWorldGame`, `MDSGate`, `MDSRoomCamera`, `MDSFreeform`, the effects (`MDSRain`, `MDSDustStorm`, `MDSCreatures`, `MDSMachineryBackground`...) and more.
 
 ## Documentation
 

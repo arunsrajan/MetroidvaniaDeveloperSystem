@@ -340,7 +340,8 @@ static var last_error := ""
 ## - a node whose script did not load (a compile error, or an autoload it needs missing)
 ##   would be saved with [code]script = null[/code]: the scene is not saved, and
 ##   [member last_error] names the node;
-## - the UID stays the same.
+## - the UID stays the same;
+## - erased tiles are not saved (see [method drop_erased_cells]).
 ## Every place MDS writes a room scene goes through here.
 static func repack_safely(root: Node, packed: PackedScene, path: String) -> Error:
 	last_error = ""
@@ -351,6 +352,7 @@ static func repack_safely(root: Node, packed: PackedScene, path: String) -> Erro
 			last_error = "%s was not saved: %s lost %s script (it failed to load or compile, for example because an autoload it uses is missing). Fix the script, then reopen the scene." % [path.get_file(), ", ".join(lost), "its" if lost.size() == 1 else "their"]
 			push_error("Metroidvania Developer System: " + last_error)
 			return ERR_SCRIPT_FAILED
+	drop_erased_cells(root)
 	var out := PackedScene.new()
 	var err := out.pack(root)
 	if err == OK:
@@ -358,6 +360,17 @@ static func repack_safely(root: Node, packed: PackedScene, path: String) -> Erro
 	if err != OK:
 		last_error = "Could not save %s (error %d)." % [path.get_file(), err]
 	return err
+
+## Takes the tiles erased from [param root]'s tile layers out of their data. A TileMapLayer
+## keeps an erased cell (and every cell its tile_map_data replaced) as an empty entry until
+## its next update, which a layer outside the tree only gets when asked; saved like that, the
+## scene would keep every tile it ever had.
+static func drop_erased_cells(root: Node) -> void:
+	var all := root.find_children("*", "TileMapLayer", true, false)
+	all.append(root)
+	for l in all:
+		if l is TileMapLayer:
+			(l as TileMapLayer).update_internals()
 
 ## Marks every instanced scene that [param packed] sets properties inside as having
 ## editable children, so packing [param root] again keeps those properties.
