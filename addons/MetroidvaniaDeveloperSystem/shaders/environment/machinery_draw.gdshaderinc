@@ -8,8 +8,8 @@ void vertex() {
 }
 
 void fragment() {
-	// In the room, fixed in the world: the camera moving changes nothing here.
-	vec2 local = px + rect_origin;
+	// In the room, fixed in the world (or, far away, moved by `offset` with the camera).
+	vec2 local = px + rect_origin - offset;
 	vec2 uv = (local - layout_rect.xy) / max(layout_rect.zw, vec2(1.0));
 	vec2 p = local / max(unit, 1.0);
 	float t = TIME * speed + seed * 7.0;

@@ -150,10 +150,18 @@ const FRONT_VIEW: Array[int] = [Creature.BATS, Creature.CRABS, Creature.JELLYFIS
 @export_range(0.0, 2.0) var proximity_glow := 0.6
 ## Kept stirred up by the game (0..1), whatever the player does: a boss's second phase.
 @export_range(0.0, 1.0) var excitement := 0.0
-## How much it moves with the camera: 0 stays on the screen (far away), 1 moves with the room.
+## Following the camera, how much they move with the room as it moves: 0 stays on the screen
+## (far away), 1 moves with the room.
 @export var scroll_scale := Vector2(0.04, 0.02)
-## Cover the whole view and follow the camera (in the game). Off: only its rectangle.
-@export var follow_camera := true
+## On: they live on the screen, wherever the camera goes (moving with the room as
+## [member scroll_scale] says), and in the game cover the whole view. Off: they live in the
+## effect's rectangle, fixed in the world: the camera moves nothing.
+@export var follow_camera := true:
+	set(v):
+		if v != follow_camera:
+			follow_camera = v
+			# Somewhere else to live: they start anew there.
+			_spawned = false
 
 ## Colors, habitat, numbers and pace of each kind: id -> {property: value}.
 const LOOKS := {
@@ -270,7 +278,8 @@ func startle(at := Vector2.INF, strength := 1.0) -> void:
 		_scatter = to_view(at)
 		_scatter_left = clampf(strength, 0.0, 1.0)
 
-## Where the creatures are on the view (its middle at (0, 0), its height 1), for tests and tools.
+## Where the creatures are, in their units (see [method frame_rect]: its middle at (0, 0), its
+## height 1, or a screen's), for tests and tools.
 func creature_positions() -> PackedVector2Array:
 	return _p.duplicate()
 
@@ -311,12 +320,22 @@ func view_rect() -> Rect2:
 	var b := inv * seen.end
 	return Rect2(a, b - a).abs()
 
-## Where the global point [param at] is on the view, in the creatures' units.
+## Where the creatures live (this node's coordinates): following the camera, what it sees, so
+## they stay on the screen; not following ([member follow_camera] off), the effect's rectangle,
+## fixed in the world.
+func frame_rect() -> Rect2:
+	return view_rect() if follow_camera else get_effect_rect()
+
+## Their unit (px): the height of what they live in, at most a screen's
+## ([method MDSEnvironmentEffect.screen_height]) in a rectangle taller than that.
+func frame_unit() -> float:
+	var f := frame_rect()
+	return maxf(f.size.y if follow_camera else minf(f.size.y, screen_height()), 1.0)
+
+## Where the global point [param at] is among the creatures, in their units.
 func to_view(at: Vector2) -> Vector2:
-	var view := view_rect()
 	var local := global_transform.affine_inverse() * at if is_inside_tree() else at
-	var uv := (local - view.position) / Vector2(maxf(view.size.x, 1.0), maxf(view.size.y, 1.0))
-	return (uv - Vector2(0.5, 0.5)) * Vector2(view.size.x / maxf(view.size.y, 1.0), 1.0) + _drift
+	return (local - frame_rect().get_center()) / frame_unit() + _drift
 
 # --- Running ------------------------------------------------------------------------------------
 
@@ -332,9 +351,14 @@ func _tick(delta: float) -> void:
 	_mat.set_shader_parameter("rect_origin", cover.position)
 	_mat.set_shader_parameter("rect_size", cover.size)
 	_mat.set_shader_parameter("edge_fade", 0.0 if following else 24.0)
-	_mat.set_shader_parameter("view_rect", Vector4(view.position.x, view.position.y, view.size.x, view.size.y))
-	_half = Vector2(view.size.x / maxf(view.size.y, 1.0) * 0.5, 0.5)
-	_drift = (view.get_center() - get_effect_rect().get_center()) * scroll_scale / 648.0
+	var frame := frame_rect()
+	var unit := frame_unit()
+	_mat.set_shader_parameter("view_rect", Vector4(frame.position.x, frame.position.y, frame.size.x, frame.size.y))
+	_mat.set_shader_parameter("unit", unit)
+	_half = frame.size / unit * 0.5
+	# In their units, so at scroll_scale 1 they are fixed in the world whatever the view's size.
+	# Not following, the frame is their rectangle: no drift, the camera moves nothing.
+	_drift = (frame.get_center() - get_effect_rect().get_center()) * scroll_scale / unit
 	_mat.set_shader_parameter("drift", _drift)
 	if not _spawned or _p.size() != count:
 		_spawn()
@@ -394,7 +418,7 @@ func _spawn() -> void:
 	_mode.resize(n)
 	for i in n:
 		_dep[i] = _rng.randf_range(0.0, 0.85)
-		_p[i] = Vector2(_rng.randf_range(-_half.x, _half.x) * 0.9, _rng.randf_range(-0.42, 0.42))
+		_p[i] = Vector2(_rng.randf_range(-_half.x, _half.x) * 0.9, _rng.randf_range(-_half.y, _half.y) * 0.84)
 		_v[i] = Vector2.from_angle(_rng.randf() * TAU) * 0.05
 		_ph[i] = _rng.randf() * TAU
 		_ang[i] = _rng.randf() * TAU

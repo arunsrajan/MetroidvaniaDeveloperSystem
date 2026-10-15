@@ -37,8 +37,13 @@ const PRESET_NAMES: PackedStringArray = ["Custom", "Dusk mountains", "Misty fore
 			if l and not l.changed.is_connected(_changed):
 				l.changed.connect(_changed)
 		_queue_rebuild()
-## Cover the whole view and scroll with the camera (in the game). Off: only its rectangle.
-@export var follow_camera := true
+## On: its layers scroll with the camera, each by its [member MDSParallaxLayer.scroll_scale],
+## and in the game it covers the whole view. Off: it is a picture on its rectangle, fixed in
+## the world: the camera moves nothing.
+@export var follow_camera := true:
+	set(v):
+		follow_camera = v
+		_changed()
 
 var _layer_mats: Array[ShaderMaterial] = []
 var _layer_quads: Array[Polygon2D] = []
@@ -125,7 +130,9 @@ func _tick(_delta: float) -> void:
 	if _layer_quads.is_empty():
 		return
 	var view := view_rect()
-	var cam := view.get_center()
+	# Not following, the layers lie still on the rectangle, as with the camera at its middle.
+	var frame := view if follow_camera else get_effect_rect()
+	var cam := frame.get_center()
 	# In the game the layers cover the view, wherever the camera goes; in the editor only the
 	# rectangle (they would cover the whole 2D view otherwise).
 	var cover := view.grow(4.0) if follow_camera and not Engine.is_editor_hint() else get_effect_rect()
@@ -137,7 +144,7 @@ func _tick(_delta: float) -> void:
 		var m := _layer_mats[i]
 		m.set_shader_parameter("rect_origin", cover.position)
 		m.set_shader_parameter("rect_size", cover.size)
-		m.set_shader_parameter("view_rect", Vector4(view.position.x, view.position.y, view.size.x, view.size.y))
+		m.set_shader_parameter("view_rect", Vector4(frame.position.x, frame.position.y, frame.size.x, frame.size.y))
 		if layers[i]:
 			m.set_shader_parameter("offset", layer_offset(layers[i], cam))
 

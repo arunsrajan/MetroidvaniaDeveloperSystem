@@ -6,7 +6,7 @@ extends MDSEnvironmentEffect
 ## of machine at a time ([member machine]), several of them at different depths, turning,
 ## swinging, pumping and glowing. They move by time alone, and they are fixed in the world: each
 ## stands at its own place in the room, so the camera pans over them as over the room. Nothing
-## the player, anyone else or the camera does moves them.
+## the player or anyone else does moves them.
 ##
 ## Forty kinds, drawn by two shaders:
 ## - gothic castle machinery, for Castlevania-style castles ([constant GOTHIC_IDS],
@@ -21,6 +21,11 @@ extends MDSEnvironmentEffect
 ##   and cargo lifts.
 ## Picking a machine gives the background its colors, numbers and layout (hanging from above,
 ## standing along the bottom, spread about, or one big one in front); change them after.
+##
+## By default it stays fixed in the world: [member scroll_scale] 1, so the camera pans over it as
+## over the room. Less makes it far away, moving slower than the room (0 stays on the screen),
+## and [member follow_camera] makes it cover the whole view in the game, wherever the camera
+## goes (in the editor and the Room view it covers its rectangle, and scrolls as you pan).
 ##
 ## It covers its rectangle, in the game as in the editor and the Room view: given to a room (the
 ## "Animated bg" fields of an area, a room, the world or the boss rooms), the whole room. The
@@ -243,6 +248,21 @@ const LOOK_KEYS: PackedStringArray = ["back_top", "back_bottom", "metal_color", 
 	set(v):
 		backdrop = v
 		_changed()
+@export_group("Camera")
+## How much it moves with the room as the camera moves: 1 (the default) is fixed in the world,
+## the camera panning over it as over the room; less is farther away, moving slower; 0 stays
+## on the screen.
+@export var scroll_scale := Vector2.ONE:
+	set(v):
+		scroll_scale = v
+		_changed()
+## On: it moves with the camera as [member scroll_scale] says, and in the game covers the whole
+## view, wherever the camera goes. Off (the default): it covers its rectangle, fixed in the
+## world: the camera moves nothing.
+@export var follow_camera := false:
+	set(v):
+		follow_camera = v
+		_changed()
 var _mat: ShaderMaterial
 var _quad: Polygon2D
 var _laid_out := false
@@ -452,16 +472,37 @@ func _send_layout() -> void:
 
 # --- Running ------------------------------------------------------------------------------------
 
+## What the camera sees, in this node's coordinates (its rectangle when there is no viewport).
+func view_rect() -> Rect2:
+	var vp := get_viewport()
+	if not vp or not is_inside_tree():
+		return get_effect_rect()
+	var inv := get_global_transform_with_canvas().affine_inverse()
+	var seen := vp.get_visible_rect()
+	var a := inv * seen.position
+	var b := inv * seen.end
+	return Rect2(a, b - a).abs()
+
+## How far the machines are moved for the camera at [param cam] (local, px): the share of the
+## camera's way from the layout's middle that they stay behind (none at [member scroll_scale] 1).
+func camera_offset(cam: Vector2) -> Vector2:
+	return (cam - layout_rect().get_center()) * (Vector2.ONE - scroll_scale)
+
 func _tick(_delta: float) -> void:
 	if not _mat or not _quad:
 		return
-	# Its own rectangle, fixed in the world: the camera moving changes nothing here.
-	var cover := get_effect_rect()
+	var view := view_rect()
+	var following := follow_camera and not Engine.is_editor_hint()
+	# Its own rectangle, or (following the camera, in the game) the whole view.
+	var cover := view.grow(4.0) if following else get_effect_rect()
 	var poly := PackedVector2Array([cover.position, Vector2(cover.end.x, cover.position.y), cover.end, Vector2(cover.position.x, cover.end.y)])
 	if _quad.polygon != poly:
 		_quad.polygon = poly
 		_mat.set_shader_parameter("rect_origin", cover.position)
 		_mat.set_shader_parameter("rect_size", cover.size)
-		_mat.set_shader_parameter("edge_fade", 24.0)
-	if not _laid_out or _laid_for != cover:
+		_mat.set_shader_parameter("edge_fade", 0.0 if following else 24.0)
+	if not _laid_out or _laid_for != get_effect_rect():
 		_send_layout()
+	# Fixed in the world (not following, or at scroll_scale 1), this stays zero whatever the
+	# camera does.
+	_mat.set_shader_parameter("offset", camera_offset(view.get_center()) if follow_camera else Vector2.ZERO)

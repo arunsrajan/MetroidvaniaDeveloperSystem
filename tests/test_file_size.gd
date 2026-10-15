@@ -10,7 +10,9 @@ extends "res://tests/test_case.gd"
 ## - erased tiles leave the scene's file when MDS saves it (a layer outside the tree keeps
 ##   them as empty entries until it updates);
 ## - a room whose scene is big says what makes it big: its layers, biggest first, the hidden
-##   ones marked; Clear background empties the Background and the scene is small again.
+##   ones marked; Clear background empties the Background and the scene is small again;
+## - the Room view shows it in sight, with Clear hidden tiles when hidden layers make it big:
+##   it clears them and saves, and Ctrl+Z brings them back.
 
 const DIR := TMP + "/file_size"
 
@@ -20,6 +22,7 @@ func _run() -> void:
 	_old_tileset()
 	_erased()
 	_size_note()
+	await _room_view()
 
 func _starter() -> void:
 	var path := DIR + "/starter.tres"
@@ -141,7 +144,7 @@ func _size_note() -> void:
 	var note := painter.size_note()
 	check(note.begins_with("big_room.tscn is %d KiB" % ceili(FileAccess.get_file_as_bytes(path).size() / 1024.0)), "a big room says how big it is: %s" % note)
 	check("Background 36000 tiles (563 KiB, hidden)" in note and "Terrain 1600 tiles" in note and note.find("Background") < note.find("Terrain"), "and what makes it big, biggest first, the hidden layer marked")
-	check("Clear background" in note, "a hidden layer's tiles are saved too: it says to clear them")
+	check("Clear hidden tiles" in note, "a hidden layer's tiles are saved too: it says to clear them")
 	painter.checkpoint()
 	painter.clear_layer("Background")
 	check(painter.save() == OK, "clearing the background saves")
@@ -159,6 +162,47 @@ func _saved_cells(path: String, layer: String) -> int:
 	var start := data + "tile_map_data = PackedByteArray(\"".length()
 	var raw := Marshalls.base64_to_raw(text.substr(start, text.find("\"", start) - start))
 	return (raw.size() - 2) / 12
+
+func _room_view() -> void:
+	var ts := MDSTilesetFactory.get_or_create(DIR + "/starter.tres")
+	var path := DIR + "/hidden_room.tscn"
+	var root := Node2D.new()
+	root.name = "HiddenRoom"
+	var back := TileMapLayer.new()
+	back.name = "Background"
+	back.tile_set = ts
+	back.visible = false
+	root.add_child(back)
+	var terrain := TileMapLayer.new()
+	terrain.name = "Terrain"
+	terrain.tile_set = ts
+	root.add_child(terrain)
+	for y in 400:
+		for x in 90:
+			back.set_cell(Vector2i(x, y), 0, Vector2i(0, 2))
+	for x in 90:
+		terrain.set_cell(Vector2i(x, 399), 0, Vector2i(0, 0))
+	save_scene(root, path)
+	root.free()
+	load_fresh(path)
+	var world := MDSWorld.new()
+	world.path = DIR + "/hidden.mdsworld.json"
+	world.add_room("Tall", Rect2(0, 0, 2880, 12800))
+	world.set_room_scene("Tall", path)
+	var view := MDSRoomView.new()
+	view.size = Vector2(1200, 800)
+	add_child(view)
+	await get_tree().process_frame
+	check(view.open_room(world, "Tall").is_empty(), "the Room view opens the tall room")
+	check(view.size_box.visible and view.size_label.text.contains("Background 36000 tiles"), "it shows in sight that the scene is big, and why (%s)" % view.size_label.text)
+	check(view.clear_hidden_button.visible and view.clear_hidden_button.text == "Clear 36000 hidden tiles (Background)", "with a button to clear the hidden tiles (%s)" % view.clear_hidden_button.text)
+	check(view.clear_hidden_tiles() == 36000, "it clears them")
+	check(_kib(path) < 64 and not view.size_box.visible, "and saves: the scene is small (%d KiB) and the warning gone" % _kib(path))
+	check(view.painter.layers["Terrain"].get_used_cells().size() == 90, "the tiles that show stay")
+	check(view.painter.undo() and view.painter.layers["Background"].get_used_cells().size() == 36000, "Ctrl+Z brings them back")
+	view.close_room(false)
+	view.queue_free()
+	await get_tree().process_frame
 
 func _same(a: Image, b: Image) -> bool:
 	if not a or not b:

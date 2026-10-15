@@ -293,7 +293,7 @@ The map is one view of a room; the **Room view** is the other. It shows the room
   - Colored marks on tiles show which are solid (red), tagged (blue) or part of a terrain (bar).
 
 ![Room painted with shapes, a spritesheet terrain, palette bricks and a color background](docs/room_shapes.png)
-- **Place** puts the tiles picked in the palette anywhere in the room, off the grid, at the palette's angle. Click to place them, and drag right away to move them; **R** / **Shift+R** turn the next ones by the **Turn** step (15° by default). **Shift+click** removes free tiles.
+- **Place** puts the tiles picked in the palette anywhere in the room, off the grid, at the palette's angle. Click to place them, and drag right away to move them; **R** / **Shift+R** turn the next ones by the **Turn** step (15° by default). **Shift+click** removes free tiles. The tiles placed stay selected: drag their handles to resize them.
   - The **Layer** list sets their depth: Background, Terrain, Decor or Foreground. Free tiles draw and collide like that layer's tiles, so solid tiles stay solid at any angle, and Check room collides with them where they are.
   - **Snap to tiles** puts their corner on the grid; at a right angle they then line up with the grid's tiles.
   - Free tiles are kept as small `TileMapLayer`s, each with a position and an angle, in the scene's `Tiles` node (`mds_tiles` metadata: their layer). They need nothing from the addon at runtime.
@@ -303,7 +303,12 @@ The map is one view of a room; the **Room view** is the other. It shows the room
   - **R** / **Shift+R** (or the **+** and **-** buttons) turn the selection around its middle. The arrows nudge it a pixel; with Shift (or Snap to tiles), a tile. **Delete** removes it and **Esc** clears it.
   - Turning grid tiles a quarter turn with Snap to tiles keeps them on the grid, each tile turned. Turning freeform shapes turns their points, so moss still grows on their new tops.
   - **To grid** puts selected free tiles back on their layer's grid, at the nearest right angle.
-  - Every move, turn and delete is one undo step.
+  - Every move, turn, resize and delete is one undo step.
+- **Resizing:** what is selected has eight handles, on its corners and the middles of its sides: left, top, right, bottom, and the four corners. So do what the Place and Stamps tools placed last, the Freeform tool's shape and the selected effect.
+  - Drag a handle to resize: its sides follow the mouse and the opposite ones stay. **Shift** on a corner keeps the shape. With **Snap to tiles**, the sides go to the tile grid. The cursor shows which way a handle resizes.
+  - Stamps, pictures and free tiles scale. Freeform shapes scale their points, so their edges stay sharp and their moss grows on their new tops. Grid tiles become free tiles, scaled.
+  - Effects get a new area. One that stands on its position, like a steam vent, keeps its feet where they are when its top is dragged.
+  - In code: `MDSRoomCanvas.resize_selection(box)` and `resize_effect(effect, area)`.
 
 ![Palette tiles placed at angles, a ledge selected and moved off the grid, ruins traced as they are drawn](docs/place_and_select.png)
 - **Generate cave** builds a starting room from the room's shape on the map. It places rough cave walls, a floor and ledges jutting from the walls, and keeps openings wherever the room has gates. Then it adds the layers with what you picked for them:
@@ -338,7 +343,8 @@ Tiles are great for straight platforms, but organic caves need smooth curves, ro
     - or pick a **Shape** (Irregular, curved sides...) and drag its box: the shape becomes a smooth freeform.
   - **Edit** mode:
     - drag a point to reshape; Alt+click removes one, and double-clicking an edge adds one;
-    - drag inside a shape to move it; Delete removes it.
+    - drag inside a shape to move it; Delete removes it;
+    - drag the handles on its sides and corners to resize it (see **Resizing** below).
   - **Style** (the fill list) sets the look: a repeating fill texture, textured strips along edges that face up (moss, grass, crystals) and down (dark rock with dripping roots), an outline, and clumps scattered along the edges.
   - **Layer:**
     - **Terrain (solid)** gets exact curved collision and shows on the map;
@@ -346,6 +352,7 @@ Tiles are great for straight platforms, but organic caves need smooth curves, ro
   - Styles are `*.freeform.tres` files (`MDSFreeformStyle`), found anywhere in the project. Three plain color styles are built in.
 - **Stamps** places large sprites anywhere, off the grid: moss bubbles, leaf clusters, ferns, hanging moss, background bubbles, foreground silhouettes.
   - Click or drag to place; each stamp gets a little random size, flip and tilt. Shift removes stamps.
+  - The stamp placed last is selected: drag its handles to resize it.
   - Pick the category in the fill list, a **Size**, and a layer: behind the terrain, in front of it, or foreground.
   - Stamp sets are `*.stamps.tres` files (`MDSStampSet`).
 - **Foreground** paints a tile layer drawn in front of everything, typically dark silhouettes framing the screen.
@@ -553,7 +560,7 @@ Three ways to use them:
 - **Like any node:** Add Child Node, search "MDS", and set it up in the Inspector. `size` is the area it covers.
 - **Drag and drop in the Room view:** pick the **Effects** tool and drag an effect from its list onto the room.
   - Or pick one and click: it is placed and selected, and dragging right away moves it. The list then goes back to **No effect**, so clicks select and drag effects again, the new one too. To place another, pick it again; **Ctrl+click** keeps it picked to place several. Esc drops the pick.
-  - Click an effect to select it; its settings open in the Inspector. Drag it to move it, drag its corner to resize it; Delete removes it. Most effects cover the whole room, so they stack: click the selected one again (without dragging) to select the next one under the mouse. Shift+click selects even while an effect is picked.
+  - Click an effect to select it; its settings open in the Inspector. Drag it to move it, and drag the handles on its sides and corners to resize it (Shift on a corner keeps its shape); Delete removes it. Most effects cover the whole room, so they stack: click the selected one again (without dragging) to select the next one under the mouse. Shift+click selects even while an effect is picked.
   - **Remove all** takes every placed effect out. **No effects here** turns the area's weather off in this room (its weather: `none`).
   - Effects are saved under the room scene's `Effects` node and are part of the Room view's undo. Effects elsewhere in the scene are left alone.
 - **As an area's weather** (see [Area weather](#area-weather)).
@@ -682,9 +689,21 @@ The Room view also updates the shapes and stamps that are still there in place i
 **Big scene files.** When Godot's editor saves a text scene or resource over 512 KiB, it warns that it is "large on disk, likely because it has embedded binary data". In a room scene that is nearly always tiles:
 
 - **Each tile takes 16 bytes of the scene, a hidden layer's too.** A tall room of 90 by 315 tiles filled from edge to edge (**Fill background**) holds 28,000 tiles: 443 KiB.
-- **The Room view says what is in a big room** when it opens or saves it: its layers, the biggest first, the hidden ones marked (`MDSRoomPainter.size_note()`).
+- **The Room view says what is in a big room** when it opens or saves it, in orange above **Generate cave**: its layers, the biggest first, the hidden ones marked (`MDSRoomPainter.size_note()`).
+- **Clear hidden tiles** shows there when hidden layers make the scene big: a layer with its eye shut in the Scene dock, or Visible off in the Inspector. Its tiles never show, but every one is saved. The button removes them and saves; Ctrl+Z brings them back. A tall room whose hidden Background was filled with a solid color (28,000 tiles) went from 541 KiB to 98 KiB.
 - **Clear background** (beside **Fill background**) empties the Background layer. Erase or clear what the room doesn't show, or split a very big room.
 - **Erased tiles leave the file.** A tile layer outside the scene tree keeps erased cells as empty entries until it updates, and older versions saved them, so a room kept every tile it ever had. `repack_safely()` drops them now; save the room once to shrink it.
+
+#### Changes made in the editor
+
+What you change in the room's scene in Godot's editor shows in the Room view a moment later: nodes moved in the 2D editor, tiles painted with the TileMap editor, an effect's settings changed in the Inspector, nodes added or deleted.
+- **It works from the scene open in the editor**, changes not saved yet included. Opening a room whose scene is open in an editor tab paints that scene, not the file.
+- **The Room view's own changes stay.** Changes not saved yet in the Room view are merged with the editor's, tile by tile and item by item (stamps, shapes, pictures, free tiles and effects, by name). Where both changed the same tile or item, the editor's change wins.
+- **Undo** in the Room view undoes its own changes, not the editor's.
+- **Saving** takes in the editor's changes first, so it never writes over them. The editor's tab then reloads the scene, as before.
+- The view, the tool and the selection stay as they were.
+- **The Inspector is left alone.** The Room view's stamps, shapes and effects are changed in place, never remade. An effect shown in the Inspector stays there, its sections (Look, Light, Behavior...) as they were. A node of the scene you are editing in the Inspector stays there too. Clicking the selected effect in the Room view shows it in the Inspector again.
+- It follows the editor's undo history, so a change made by a script that keeps no undo step shows when the room is opened again. In code: `MDSRoomView.sync_from_scene(root)` and `MDSRoomPainter.rebase_onto()`.
 
 ### Editing
 
@@ -974,7 +993,7 @@ An **`MDSParallaxBackground`** draws layers behind the room, each moving at its 
   - look: `roughness`, `fill_below`, `haze`, `alpha` and `autoscroll` (drifting clouds);
   - movement: `scroll_scale`. 0 stays on the screen, like the sky; 1 moves with the room. It is usually smaller vertically.
 - **Pictures:** drop an image from the FileSystem dock on a parallax background in the Room view (**Effects** tool), or call `add_picture(texture)`. It becomes the nearest layer, its bottom edge on the horizon, repeated sideways.
-- **In the game** it covers the whole view and follows the camera (`follow_camera`). In the editor it covers its rectangle; pan the Room view to see the layers move. It draws at `z_index` -100, behind the room's tiles.
+- **In the game** it covers the whole view and follows the camera (`follow_camera`), its layers scrolling by their `scroll_scale`. In the editor it covers its rectangle; pan the Room view to see the layers move. With `follow_camera` off it is a picture on its rectangle, fixed in the world: the camera moves nothing. It draws at `z_index` -100, behind the room's tiles.
 
 Use one three ways:
 
@@ -1017,7 +1036,8 @@ The other kind of background: an **`MDSAnimatedBackground`** fills the distance 
 - **Look:** `blur` (0 sharp, 1 very soft: lights become wide discs, clouds lose their fine detail), `speed`, `feature_scale`, `density` (how many lights, motes or stars), `brightness`, `vignette` and `grain` (it also hides banding in the soft gradients).
 - **For boss rooms:** `pulse` makes it throb like a heartbeat, `pulse_rate` beats a second. The boss styles throb already.
 - **Your picture:** style `picture` shows `picture` blurred by `blur`, tinted by `color_c` and hazed by `color_d` (its alpha is how much). Drop an image from the FileSystem dock on an animated background in the Room view (**Effects** tool) to do it in one go.
-- **In the game** it covers the whole view and follows the camera (`follow_camera`), moving a little with it (`scroll_scale`: 0 stays on the screen). Its features keep their size on the screen whatever the camera's zoom. In the editor it covers its rectangle.
+- **In the game** it covers the whole view and follows the camera (`follow_camera`), moving a little with it (`scroll_scale`: 0 stays on the screen, 1 is fixed in the world, whatever the view's size and the camera's zoom). Its features keep their size on the screen whatever the camera's zoom. In the editor it covers its rectangle.
+- **`follow_camera` off:** it lies on its rectangle, fixed in the world, and the camera moves nothing in it (`scroll_scale` then does nothing). Its features are sized in screens of the game's height (`display/window/size/viewport_height`).
 - **With a parallax background:** both can be behind a room. The animated one is the farthest (`z_index` -110), and the parallax layers are drawn over it (-100). A parallax with a sky layer hides it, so take the sky out of the parallax (`CUSTOM` preset) to see silhouettes against an aurora, say.
 
 Set one for:
@@ -1076,6 +1096,7 @@ Settings:
 - **Look:** `glow_color` and `body_color`.
 - **Habitat:** `habitat` and its colors `back_color_a` and `back_color_b`; `backdrop` (0 draws only the creatures, over another background).
 - **Light and focus:** `light_radius`, `light_strength`, `ambient` and `blur`.
+- **The camera:** with `follow_camera` on (the default) they live on the screen, wherever the camera goes, moving with the room as `scroll_scale` says, and in the game they cover the whole view. Off, they live in the effect's rectangle, spread all over it and fixed in the world: the camera moves nothing, whatever `scroll_scale` says. Their size is then in screens of the game's height, so a tall boss room doesn't make them bigger.
 
 Set them where you set an animated background: **Areas tab > Boss room bg**, **World settings > Boss rooms bg**, or **Animated bg** for an area or a room. The **+** menu lists them under *Creatures (boss rooms)*.
 
@@ -1087,7 +1108,7 @@ An **`MDSMachineryBackground`** puts giant machinery far behind the room, soft a
 - **Gothic:** twenty kinds for Castlevania-style castles: giant wheels, clockwork, clock faces, pendulums, bells...
 - **Sci-fi:** twenty kinds for Metroid-style stations: turbines, reactor cores, gyro rings, pistons, specimen tanks...
 
-They turn, swing, pump, flicker and glow **by time alone**, and they are **fixed in the world**. Each machine has its own place in the room, so the camera pans over them as over the room's own scenery. Nothing the player, any character or the camera does moves them: they don't follow the screen. Each is drawn by a shader: `machinery_gothic.gdshader` or `machinery_scifi.gdshader`, sharing `machinery.gdshaderinc`.
+They turn, swing, pump, flicker and glow **by time alone**, and they are **fixed in the world**. Each machine has its own place in the room, so the camera pans over them as over the room's own scenery. Nothing the player or any character does moves them, and by default the camera doesn't either: they don't follow the screen. Each is drawn by a shader: `machinery_gothic.gdshader` or `machinery_scifi.gdshader`, sharing `machinery.gdshaderinc`.
 
 ![Gothic machinery backgrounds](docs/machinery_gothic.png)
 
@@ -1147,7 +1168,8 @@ They turn, swing, pump, flicker and glow **by time alone**, and they are **fixed
   - `machine`, `count` (a cell, up to 12), `speed`;
   - colors: `back_top` and `back_bottom` (the backdrop and its haze), `metal_color`, `light_color` (flames, windows, energy) and `accent_color` (bronze, cloth, crystal, a second light);
   - `blur`, `haze`, `brightness`, `vignette`, `grain`;
-  - `backdrop` (off: only the machines, over another background).
+  - `backdrop` (off: only the machines, over another background);
+  - the camera: `scroll_scale` is how much they move with the room as the camera moves. 1, the default, keeps them fixed in the world; less puts them far away, moving slower than the room; 0 keeps them on the screen. `follow_camera` makes the background cover the whole view in the game, wherever the camera goes, and `scroll_scale` moves it then. It is off by default: the background covers its rectangle, fixed in the world, whatever `scroll_scale` says. These work as on animated backgrounds, creatures and parallax backgrounds.
 - **Cost:** it is about 2 to 4 ms a frame at 1920 x 1080 on an integrated GPU. Each machine is only drawn inside its own box.
 
 Set them where you set an animated background: the **Animated bg** fields of an area or a room, **Areas tab > Boss room bg** and **World settings**. The **+** menu lists them under *Gothic machinery* and *Sci-fi machinery*. They are also in the Room view's Effects list (**Machinery background**), to place one in a room.
@@ -1495,6 +1517,9 @@ The `core/` classes have no editor dependencies, so you can use them from tool s
 - Waterfalls, hot water falls and lava falls now fall straight: there are no ragged sides, bulges or curving streaks any more.
 - Tilesets made by older versions are rewritten when a room opens with them: the images embedded in them are packed, or moved to PNG files next to them in the editor (the starter atlas links to its `mds_cave_tileset.png`). Their tiles look the same.
 - Room scenes saved by older versions may hold erased tiles as empty entries: saving the room in the Room view drops them.
+- Animated backgrounds and creatures now drift with the camera at the pace `scroll_scale` says, whatever the view's size and zoom. In a view that isn't 648 px high, or with a zoomed camera, they move a little differently than before: at the right pace.
+- `follow_camera` off now means fixed in the world on every background: animated backgrounds, creatures, parallax backgrounds and machinery. Before, it only kept them to their rectangle; inside it, they went on moving with the camera. Leave it on for a background that should follow the camera.
+- A selected effect in the Room view resizes from eight handles. Its bottom-right corner no longer grows a steam vent both ways; drag a side for that side alone.
 
 ## Upgrading from 3.2
 

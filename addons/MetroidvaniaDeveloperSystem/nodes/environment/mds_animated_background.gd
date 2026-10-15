@@ -123,14 +123,19 @@ const BOSS_STYLES: PackedStringArray = ["void_pulse", "blood_moon", "arcane_vort
 	set(v):
 		grain = v
 		_changed()
-## How much it moves with the camera: 0 stays on the screen (infinitely far), 1 moves with the
-## room.
+## Following the camera, how much it moves with the room as it moves: 0 stays on the screen
+## (infinitely far), 1 moves with the room.
 @export var scroll_scale := Vector2(0.04, 0.02):
 	set(v):
 		scroll_scale = v
 		_changed()
-## Cover the whole view and follow the camera (in the game). Off: only its rectangle.
-@export var follow_camera := true
+## On: it lies on the screen, wherever the camera goes (moving with the room as
+## [member scroll_scale] says), and in the game covers the whole view. Off: it lies on its
+## rectangle, fixed in the world: the camera moves nothing.
+@export var follow_camera := true:
+	set(v):
+		follow_camera = v
+		_changed()
 @export_group("Picture")
 ## Style PICTURE: the image shown, blurred by [member blur].
 @export var picture: Texture2D:
@@ -254,10 +259,22 @@ func view_rect() -> Rect2:
 	var b := inv * seen.end
 	return Rect2(a, b - a).abs()
 
-## How far the background moved with the camera at [param cam] (local), in view heights: its
-## share ([member scroll_scale]) of the camera's way from the rectangle's middle.
-func drift_for(cam: Vector2) -> Vector2:
-	return (cam - get_effect_rect().get_center()) * scroll_scale / 648.0
+## How far the background moved with the camera at [param cam] (local), in view heights (the
+## view [param view_height] px high): its share ([member scroll_scale]) of the camera's way
+## from the rectangle's middle. At 1 it is fixed in the world, whatever the view's size.
+func drift_for(cam: Vector2, view_height := 648.0) -> Vector2:
+	return (cam - get_effect_rect().get_center()) * scroll_scale / maxf(view_height, 1.0)
+
+## What it lies on (this node's coordinates): following the camera, what it sees; not following
+## ([member follow_camera] off), its rectangle, fixed in the world.
+func frame_rect() -> Rect2:
+	return view_rect() if follow_camera else get_effect_rect()
+
+## Its unit (px): the height of what it lies on, at most a screen's
+## ([method MDSEnvironmentEffect.screen_height]) on a rectangle taller than that.
+func frame_unit() -> float:
+	var f := frame_rect()
+	return maxf(f.size.y if follow_camera else minf(f.size.y, screen_height()), 1.0)
 
 func _tick(_delta: float) -> void:
 	if not _quad:
@@ -272,5 +289,8 @@ func _tick(_delta: float) -> void:
 	_mat.set_shader_parameter("rect_origin", cover.position)
 	_mat.set_shader_parameter("rect_size", cover.size)
 	_mat.set_shader_parameter("edge_fade", 0.0 if following else 24.0)
-	_mat.set_shader_parameter("view_rect", Vector4(view.position.x, view.position.y, view.size.x, view.size.y))
-	_mat.set_shader_parameter("drift", drift_for(view.get_center()))
+	var frame := frame_rect()
+	_mat.set_shader_parameter("view_rect", Vector4(frame.position.x, frame.position.y, frame.size.x, frame.size.y))
+	_mat.set_shader_parameter("unit", frame_unit())
+	# Not following, the frame is its rectangle: no drift, the camera moves nothing.
+	_mat.set_shader_parameter("drift", drift_for(frame.get_center(), frame_unit()))

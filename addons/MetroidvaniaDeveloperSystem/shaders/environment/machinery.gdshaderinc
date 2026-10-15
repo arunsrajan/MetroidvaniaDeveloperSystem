@@ -15,7 +15,8 @@
 //
 // Machines are fixed in the world: laid out on the rectangle (in the node's own coordinates,
 // divided by `unit`, a screen-sized cell's height in px), so the camera pans over them as over
-// the room and nothing but time moves them. inst_a holds each one's place (x, y), size (its
+// the room and nothing but time moves them. Far away (scroll_scale under 1), `offset` moves them
+// with the camera: the share of its way they stay behind. inst_a holds each one's place (x, y), size (its
 // radius) and depth (0 near, 1 far); inst_b its phase, pace (negative: turning the other way),
 // variety and mirror (1 or -1). The far ones are drawn first, fading into the haze; all are out
 // of focus, the nearest and farthest the most.
@@ -55,6 +56,8 @@ uniform bool backdrop = true;
 uniform float unit = 648.0;
 /// What the machines are laid out on (local px): the room, its backdrop's gradient running down it.
 uniform vec4 layout_rect = vec4(0.0, 0.0, 1152.0, 648.0);
+/// How far they are moved with the camera (px): zero when fixed in the world.
+uniform vec2 offset = vec2(0.0);
 
 vec2 rot(vec2 p, float a) {
 	float c = cos(a);

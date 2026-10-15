@@ -111,6 +111,11 @@ func get_effect_rect() -> Rect2:
 func get_body_rect() -> Rect2:
 	return get_effect_rect()
 
+## The height of the game's screen (px): its viewport's height in the project settings. A
+## background fixed in the world (not following the camera) is laid out in screens of it.
+static func screen_height() -> float:
+	return maxf(float(ProjectSettings.get_setting("display/window/size/viewport_height", 648)), 1.0)
+
 ## Moves and sizes the effect to cover [param rect] (in its parent's coordinates).
 func fit_to(rect: Rect2) -> void:
 	size = rect.size
@@ -421,6 +426,9 @@ func to_data() -> Dictionary:
 static func from_data(d: Dictionary) -> MDSEnvironmentEffect:
 	var e: MDSEnvironmentEffect = (d.script as Script).new()
 	apply_data(e, d)
+	# Its name kept, so an undone effect is still the scene's one.
+	if not str(d.get("name", "")).is_empty():
+		e.name = d.name
 	return e
 
 ## Gives [param e] the settings of [param d], leaving equal values alone (so a scene saved

@@ -25,6 +25,21 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 - **Minimap:** `MDSWorldMapView.follow_player`, with `view_span`. The map also marks benches, the last one rested on brighter. Created game scenes get a minimap and save files named after the world.
 - **Big room scenes explained:** a room's scene over 512 KiB (Godot's editor then warns that it is "large on disk") makes the Room view say what is in it, when it opens or saves it. It lists the layers, the biggest first, and marks the hidden ones, whose tiles are saved all the same (`MDSRoomPainter.size_note()`).
 - **Clear background** in the Room view, beside Fill background.
+- **Big scenes are shown in sight:** a room's scene over 512 KiB makes the Room view show why, in orange above Generate cave.
+  - With hidden layers to blame, **Clear hidden tiles** shows there too: it removes the tiles of the tile layers hidden in the scene (they never show) and saves. Ctrl+Z brings them back.
+  - In code: `MDSRoomPainter.hidden_tiles()` and `MDSRoomView.clear_hidden_tiles()`.
+- **Resize handles** in the Room view: eight of them, on the corners and the middles of the sides (left, top, right, bottom and the four corners).
+  - They are on what the Select tool selected, on what the Place and Stamps tools placed last, on the Freeform tool's shape and on the selected effect (which had only a corner).
+  - Dragging one moves its sides and the opposite ones stay. Shift on a corner keeps the shape; Snap to tiles puts the sides on the grid. The cursor shows which way a handle resizes.
+  - Stamps, pictures and free tiles scale, freeform shapes scale their points, and grid tiles become scaled free tiles. A steam vent keeps its feet put.
+  - In code: `MDSRoomCanvas.resize_selection()` and `resize_effect()`.
+- **The Room view follows the editor:** changes made to the room's scene in Godot's editor show in the Room view a moment later. That covers nodes moved in the 2D editor, tiles painted there, settings changed in the Inspector, and nodes added or deleted.
+  - It works from the scene open in the editor, changes not saved yet included.
+  - The Room view's own changes not saved yet stay, merged tile by tile and item by item. Where both changed the same one, the editor's wins. Undo still undoes only the Room view's own changes.
+  - Saving takes in the editor's changes first.
+  - The Room view's items are changed in place and never leave the tree. The Inspector keeps what it shows, its sections unfolded as they were, and a change in the editor never takes it over. A click on the selected effect shows it in the Inspector again.
+  - In code: `MDSRoomView.sync_from_scene()`, `MDSRoomPainter.open_packed()`, `rebase_onto()` and `merge_states()`.
+- **Machinery backgrounds follow the camera when asked:** `scroll_scale` (1 by default: fixed in the world; less is farther away; 0 stays on the screen) and `follow_camera` (cover the whole view in the game; off by default), as on the other backgrounds.
 
 ### Changed
 
@@ -37,6 +52,15 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - The starter tileset's atlas is now the PNG next to it (linked in the editor, packed without loss elsewhere), and the solid colors' tile is packed.
   - A tileset made by an older version is mended when a room opens with it: images of 64x64 or more become PNG files next to it, smaller ones are packed. Its tiles stay the same; a starter tileset with a sheet added went from 916 KiB to 70 KiB.
   - A packed image in a tileset loaded outside the editor (tests, tool scripts) lets go of its data. It is packed again before the tileset is saved, so it is never saved empty.
+- **`follow_camera` off stops following the camera.** Unticked, creatures still moved with the camera, and so did animated backgrounds and parallax layers: it only kept them to their rectangle.
+  - Off, every background now lies on its rectangle, fixed in the world: the camera moves nothing, whatever `scroll_scale` says. That covers animated backgrounds, creatures, parallax backgrounds and machinery.
+  - Creatures not following the camera live all over their rectangle, and their size is in screens of the game's height (`MDSEnvironmentEffect.screen_height()`).
+  - Vignettes darken the screen's corners, wherever the camera is.
+- **Animated backgrounds and creatures move at the right pace with the camera.**
+  - Their drift was measured in 648 px units, so it was only right in a view 648 px high at zoom 1. With another window size, a stretched view or a zoomed camera, they slid against the room.
+  - Their drift is now measured in the view's height, so at `scroll_scale` 1 they are fixed in the world and at 0.5 they move half as fast as the room, whatever the view.
+  - A test renders all four kinds of background and measures it.
+- **Stamps and effects keep their names through undo.** Undone, they came back nameless, and were saved as new nodes named `_Sprite2D_…`.
 - **Erased tiles are no longer saved.** A tile layer outside the scene tree keeps erased cells, and the cells its data replaced, as empty entries until it updates. Room scenes saved by MDS kept every tile they ever had, and never shrank. `MDSWorldSceneTools.repack_safely()` drops them (`drop_erased_cells()`).
 
 ## 3.3.0 (2026-10-13)

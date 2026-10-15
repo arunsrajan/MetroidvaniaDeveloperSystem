@@ -5,8 +5,9 @@ shader_type canvas_item;
 // them (`cpos`, `cstate`); here each one is drawn soft, out of focus, glowing, and carries a light
 // that lights its habitat behind it (`habitat`) as it moves.
 //
-// Laid out like the animated backgrounds: `p` has the view's middle at (0, 0) and its height 1,
-// plus `drift`, the little it moves with the camera.
+// Laid out like the animated backgrounds: `p` has the middle of `view_rect` (what they live in:
+// the view, or their rectangle when not following the camera) at (0, 0), `unit` px to 1, plus
+// `drift`, the little it moves with the camera.
 
 render_mode blend_premul_alpha;
 
@@ -64,6 +65,8 @@ uniform float ambient : hint_range(0.0, 1.0) = 0.3;
 uniform float backdrop : hint_range(0.0, 1.0) = 1.0;
 uniform vec2 drift = vec2(0.0);
 uniform vec4 view_rect = vec4(0.0, 0.0, 1152.0, 648.0);
+/// Pixels to one of their units: the view's height, or a screen's.
+uniform float unit = 648.0;
 
 void vertex() {
 	px = VERTEX - rect_origin;
@@ -508,10 +511,8 @@ float reach() {
 
 void fragment() {
 	vec2 local = px + rect_origin;
-	vec2 uv = (local - view_rect.xy) / max(view_rect.zw, vec2(1.0));
-	float aspect = view_rect.z / max(view_rect.w, 1.0);
-	vec2 p = (uv - 0.5) * vec2(aspect, 1.0) + drift;
-	float px_size = 1.0 / max(view_rect.w, 1.0);
+	vec2 p = (local - view_rect.xy - view_rect.zw * 0.5) / max(unit, 1.0) + drift;
+	float px_size = 1.0 / max(unit, 1.0);
 	vec3 gcol = glow_color.rgb;
 	float rch = reach();
 	// One pass over them: their light on the habitat, and their bodies and halos in a layer of
