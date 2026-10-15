@@ -84,6 +84,11 @@ static var instance: MDSWorldGame
 ## at least this upward speed (px/s), so it clears the hole and can land beside it instead
 ## of falling straight back. 0 = off.
 @export var up_exit_speed := 650.0
+## Coming up through a gate in the floor of the next room, the player is set down at the rim
+## of the hole, on the nearest floor beside it (within reach of [member up_exit_speed]'s hop),
+## as Hollow Knight does: else, with nothing pushing it sideways, it would fall straight back
+## through the hole. Rooms with no floor beside the hole keep the player over it.
+@export var land_beside_holes := true
 ## Room scenes may contain a player of their own, to test them on their own (F6). It is
 ## removed when the room is loaded into the game, which has the real player.
 @export var remove_room_players := true
@@ -176,6 +181,9 @@ var _load_requested := false
 var _pending_save: Dictionary = {}
 var _exit: Dictionary = {} ## the gate being left: {gate, pos, room, to_room, to_gate}
 var _arrived_frame := -100
+## A gate the player went into while gates were ignored (just arrived): taken once they are
+## not, if the player is still in it or went through it, instead of falling out of the room.
+var _pending_gate: Dictionary = {}
 var _cinema: CanvasLayer
 
 func _enter_tree() -> void:
@@ -261,6 +269,13 @@ func _physics_process(_delta: float) -> void:
 		return
 	if map_view:
 		map_view.set_player(current_room, player.global_position - world.get_origin(current_room))
+	if not _pending_gate.is_empty() and _gates_open():
+		var t := _pending_gate
+		_pending_gate = {}
+		var g := MDSGate.find_gate(room_node, t.get("from_gate", "")) if room_node else null
+		if g and (g.overlaps_body(player) or went_through(g, player.global_position)):
+			_on_gate_entered(t)
+			return
 	if seamless_rooms and not world.room_contains(current_room, player.global_position):
 		var next := world.room_at(player.global_position, world.get_room_layer(current_room))
 		if not next.is_empty() and next != current_room:
@@ -340,6 +355,7 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 	visited_rooms[id] = true
 	var found_save_point := _record_save_points(room_node, id)
 	_dress_room(room_node, id)
+	_pending_gate = {}
 	if player:
 		# Back in the physics space first: a body moved while it is out of it keeps its old
 		# position there, and would land in the entry gate it came through.
@@ -347,6 +363,9 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 		player.global_position = _spawn_position(id, entry_gate, world_position)
 		if "velocity" in player:
 			player.velocity = _arrival_velocity(id, entry_gate, carried)
+		var entry := MDSGate.find_gate(room_node, entry_gate) if not entry_gate.is_empty() else null
+		if land_beside_holes and entry and entry.get_side() == "bot" and entry.mode == MDSGate.Mode.TOUCH and not entry.link:
+			await _land_beside_hole(entry, player_mode)
 	_warn_missing_gate_nodes(id, path)
 	if room_camera:
 		await room_camera.enter_room(id, style, previous_center)
@@ -677,11 +696,94 @@ func _record_save_points(room: Node, id: String) -> bool:
 			map_view.mark_save_point(id, Vector2(p[0], p[1]))
 	return true
 
+## Whether gates lead anywhere now: not while a room changes, nor just after arriving.
+func _gates_open() -> bool:
+	return not changing_room and Time.get_ticks_msec() >= _cooldown_until and Engine.get_physics_frames() - _arrived_frame >= 3
+
+## Whether [param at] (global) is past gate [param g]: out of the room through its doorway.
+static func went_through(g: MDSGate, at: Vector2) -> bool:
+	var half := g.get_opening_size() * 0.5 + Vector2(48, 48)
+	var d := at - g.global_position
+	match g.get_side():
+		"bot":
+			return d.y > 0.0 and absf(d.x) <= half.x
+		"top":
+			return d.y < 0.0 and absf(d.x) <= half.x
+		"left":
+			return d.x < 0.0 and absf(d.y) <= half.y
+		"right":
+			return d.x > 0.0 and absf(d.y) <= half.y
+	return false
+
+## Where a player coming up through bottom gate [param g] stands: on the nearest floor beside
+## its hole, at the rim, with room to stand and within reach of the hop out of it (global; INF:
+## none). Needs the room's collision in the physics space.
+func ledge_beside(g: MDSGate) -> Vector2:
+	var space := g.get_world_2d().direct_space_state
+	var body := _player_extent()
+	var hole := g.get_opening_size().x * 0.5
+	var mouth := g.global_position.y
+	var gravity := maxf(float(ProjectSettings.get_setting("physics/2d/default_gravity", 980.0)), 1.0)
+	var reach := clampf(up_exit_speed * up_exit_speed / (2.0 * gravity), 96.0, 384.0)
+	var exclude: Array[RID] = []
+	if player is CollisionObject2D:
+		exclude.append((player as CollisionObject2D).get_rid())
+	var mask: int = (player as CollisionObject2D).collision_mask if player is CollisionObject2D else 1
+	var best := Vector2.INF
+	for dir: float in [-1.0, 1.0]:
+		for k in 24:
+			var x := g.global_position.x + dir * (hole + body.x + 2.0 + k * 8.0)
+			var from := Vector2(x, mouth - reach - body.y * 2.0)
+			var probe := PhysicsPointQueryParameters2D.new()
+			probe.position = from
+			probe.collision_mask = mask
+			probe.exclude = exclude
+			if not space.intersect_point(probe, 1).is_empty():
+				continue
+			var ray := PhysicsRayQueryParameters2D.create(from, Vector2(x, mouth + 4.0), mask, exclude)
+			var hit := space.intersect_ray(ray)
+			if hit.is_empty() or (hit.normal as Vector2).y > -0.6 or (hit.position as Vector2).y > mouth:
+				continue
+			var foot: Vector2 = hit.position
+			var up := PhysicsRayQueryParameters2D.create(foot + Vector2(0, -1), foot + Vector2(0, -body.y * 2.0 - 4.0), mask, exclude)
+			if not space.intersect_ray(up).is_empty():
+				continue
+			var stand := Vector2(x, foot.y - body.y - 1.0)
+			if best == Vector2.INF or absf(x - g.global_position.x) < absf(best.x - g.global_position.x):
+				best = stand
+			break
+	return best
+
+## Half the player's size (px, global): its collision shape's, else a 32 x 64 body's.
+func _player_extent() -> Vector2:
+	for c in player.get_children():
+		if c is CollisionShape2D and (c as CollisionShape2D).shape:
+			var r := (c as CollisionShape2D).shape.get_rect()
+			var k := ((c as CollisionShape2D).global_transform.get_scale()).abs()
+			return Vector2(r.size.x * k.x, r.size.y * k.y) * 0.5 + Vector2(absf(c.position.x), 0.0) * k.x
+	return Vector2(16, 32)
+
+## Sets the player, come up through [param g], down at the rim of its hole (see
+## [method ledge_beside]), once the room's collision is in the physics space. It keeps its hop.
+func _land_beside_hole(g: MDSGate, player_mode: int) -> void:
+	player.process_mode = Node.PROCESS_MODE_DISABLED
+	# The room's tiles build their collision at the end of the frame; the next step has it.
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var at := ledge_beside(g) if is_instance_valid(g) and is_instance_valid(player) else Vector2.INF
+	# Back in the physics space before it moves (see load_room).
+	player.process_mode = player_mode
+	if at != Vector2.INF:
+		player.global_position = at
+
 func _on_gate_entered(t: Dictionary) -> void:
 	# A teleported CharacterBody2D moves to its new place during the next physics step,
 	# passing the gate it came through: arrivals ignore gates for a few physics frames, even
-	# with no cooldown.
-	if changing_room or Time.get_ticks_msec() < _cooldown_until or Engine.get_physics_frames() - _arrived_frame < 3:
+	# with no cooldown. One gone into meanwhile is taken after, if the player is still in it or
+	# went through it (else it would fall out of the room).
+	if not _gates_open():
+		if not changing_room and current_room == t.get("from_room", current_room):
+			_pending_gate = t
 		return
 	if enforce_requirements:
 		var missing: PackedStringArray = []

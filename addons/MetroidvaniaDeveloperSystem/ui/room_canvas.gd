@@ -479,8 +479,13 @@ func _draw_overlay() -> void:
 		while y <= b.end.y:
 			ci.draw_line(local_to_screen(Vector2(b.position.x, y)), local_to_screen(Vector2(b.end.x, y)), Color(1, 1, 1, 0.06))
 			y += painter.tile_size().y
-	# Gates.
+	# Gates: the gate nodes' collision boxes (where the player goes through), and the map's gates.
 	var font := get_theme_default_font()
+	var boxes := painter.gate_boxes()
+	for g in boxes:
+		var r: Rect2 = boxes[g]
+		ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(1, 0.9, 0.3, 0.14))
+		ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(1, 0.9, 0.3, 0.8), false, 1.5)
 	for g in world.get_gates(room_id):
 		var p := local_to_screen(world.get_gate_local_pos(room_id, g))
 		ci.draw_rect(Rect2(p - Vector2(6, 6), Vector2(12, 12)), Color(1, 0.9, 0.3))

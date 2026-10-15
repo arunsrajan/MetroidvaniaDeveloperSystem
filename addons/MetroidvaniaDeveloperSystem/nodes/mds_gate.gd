@@ -98,6 +98,14 @@ func get_side() -> String:
 		return world.get_gate_side(get_room_id(), get_gate_name())
 	return MDSWorld.side_from_name(get_gate_name())
 
+## The size of the doorway (global px, along the room's edge and across it as the gate's
+## side has them): its collision box, else the size MDS gives gate nodes.
+func get_opening_size() -> Vector2:
+	for c in get_children():
+		if c is CollisionShape2D and (c as CollisionShape2D).shape:
+			return (c as CollisionShape2D).shape.get_rect().size * (c as CollisionShape2D).global_transform.get_scale().abs()
+	return Vector2(48, 128) if get_side() in ["left", "right"] else Vector2(128, 48)
+
 ## Global position to place a player who arrives through this gate. Doors put the player
 ## on the spot.
 func get_spawn_position() -> Vector2:
