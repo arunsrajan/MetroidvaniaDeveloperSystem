@@ -69,6 +69,7 @@ var scene_edits: Dictionary = {}
 var _scene_originals: Dictionary = {} ## path -> {visible, process_mode, position, blockout}
 var _detached: Dictionary = {} ## path -> [node, parent path, index]: removed by a save
 var _created: Dictionary = {} ## paths of layers and groups a save added (removed again when empty)
+var _base: Dictionary = {} ## the room as its scene had it last (see [method base_state])
 
 const COLOR_SOURCE_NAME := "MDS colors"
 const MAX_UNDO := 60
@@ -85,10 +86,19 @@ static func open(path: String, default_tile_set: TileSet = null) -> MDSRoomPaint
 	var packed := load(path) as PackedScene
 	if not packed:
 		return null
+	return open_packed(packed, path, default_tile_set)
+
+## Opens the room scene [param path] as [param packed] has it: the scene open in the editor, with
+## the changes made there and not saved yet, packed (see [method rebase_onto]).
+static func open_packed(packed: PackedScene, path: String, default_tile_set: TileSet = null) -> MDSRoomPainter:
 	var p := MDSRoomPainter.new()
 	p.scene_path = path
 	p.packed_scene = packed
 	p.root = packed.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
+	if not p.root:
+		return null
+	# Tiles erased before it was saved and kept as empty entries are no tiles.
+	MDSWorldSceneTools.drop_erased_cells(p.root)
 	# Metadata and groups with their names from before 3.1 get the new ones (saved with the scene).
 	MDSLegacy.upgrade_nodes(p.root)
 	var found: Dictionary = {}
@@ -147,6 +157,7 @@ static func open(path: String, default_tile_set: TileSet = null) -> MDSRoomPaint
 		if copy is TileMapLayer and not copy.tile_set:
 			copy.tile_set = p.tile_set
 		p.items_root.get_node(group).add_child(copy)
+	p._base = p._snapshot()
 	return p
 
 static func is_stamp(node: Node) -> bool:
@@ -315,7 +326,7 @@ static func _item_data(node: Node) -> Dictionary:
 		if k != &"mds_stamp":
 			meta[k] = s.get_meta(k)
 	return {"kind": "stamp", "texture": s.texture, "region": s.region_rect, "offset": s.offset,
-		"transform": s.transform, "index": MDSLegacy.get_meta_key(s, &"mds_stamp", 0), "meta": meta}
+		"transform": s.transform, "index": MDSLegacy.get_meta_key(s, &"mds_stamp", 0), "meta": meta, "name": String(s.name)}
 
 static func _item_from(d: Dictionary) -> Node2D:
 	if d.kind == "freeform":
@@ -342,6 +353,9 @@ static func _item_from(d: Dictionary) -> Node2D:
 	s.centered = false
 	s.offset = d.offset
 	s.transform = d.transform
+	# Its name kept, so an undone stamp is still the scene's (not re-made as "@Sprite2D@...").
+	if not str(d.get("name", "")).is_empty():
+		s.name = d.name
 	s.set_meta(&"mds_stamp", d.index)
 	for k in d.get("meta", {}):
 		s.set_meta(k, d.meta[k])
@@ -925,7 +939,241 @@ func save() -> Error:
 	var err := MDSWorldSceneTools.repack_safely(root, packed_scene, scene_path)
 	if err == OK:
 		dirty = false
+		_base = _snapshot()
 	return err
+
+# --- Changes made elsewhere ----------------------------------------------------------------------
+
+## The room as its scene had it when this painter opened, saved or took in the scene last (a
+## [method _snapshot]): what the changes on either side are measured from.
+func base_state() -> Dictionary:
+	return _base
+
+## Whether two states ([method _snapshot]s) hold the same tiles, hidden tiles and items. The Room
+## view's own changes to the scene's other nodes are left out.
+static func same_state(a: Dictionary, b: Dictionary) -> bool:
+	for n in LAYER_ORDER:
+		if not _same_cells(a.get(n, PackedByteArray()), b.get(n, PackedByteArray())):
+			return false
+	var ha: Dictionary = a.get(&"_blockout", {})
+	var hb: Dictionary = b.get(&"_blockout", {})
+	for n in ha.keys() + hb.keys():
+		if not _same_cells(ha.get(n, PackedByteArray()), hb.get(n, PackedByteArray())):
+			return false
+	return a.get(&"_items", {}) == b.get(&"_items", {}) and a.get(&"_traced", {}) == b.get(&"_traced", {})
+
+## The scene's other nodes, which the Room view shows around the tiles and items it edits (an
+## enemy, a spawn point, a gate...): their paths, classes, scripts, places and visibility. Two
+## the same: none of them moved, came or went.
+static func scene_fingerprint(scene_root: Node) -> Array:
+	var out: Array = []
+	for n in scene_root.find_children("*", "", true, false):
+		if n.owner != scene_root or n is TileMapLayer or is_item(n, scene_root):
+			continue
+		var d: Array = [String(scene_root.get_path_to(n)), n.get_class(), n.get_script()]
+		if n is Node2D:
+			d.append_array([(n as Node2D).transform, (n as Node2D).visible])
+		elif n is Control:
+			d.append_array([(n as Control).position, (n as Control).size, (n as Control).visible])
+		out.append(d)
+	return out
+
+## Goes on from [param theirs]: the same room, opened from its scene as it is now, changed
+## elsewhere (in the 2D editor). The changes made here and not saved yet are kept, merged with
+## the scene's tile by tile and item by item (by name); where both changed the same tile or
+## item, the scene's change wins. Undo and redo steps get the scene's changes too. Returns
+## [param theirs], holding it all; free this painter after.
+func rebase_onto(theirs: MDSRoomPainter) -> MDSRoomPainter:
+	var th := theirs._snapshot()
+	var mine := _snapshot()
+	theirs._restore(merge_states(_base, mine, th))
+	for step in _undo:
+		theirs._undo.append(merge_states(_base, step, th))
+	for step in _redo:
+		theirs._redo.append(merge_states(_base, step, th))
+	theirs._scene_originals = _scene_originals
+	theirs._detached = _detached
+	theirs._created.merge(_created)
+	theirs.tile_set_dirty = tile_set_dirty
+	theirs._base = th
+	theirs.dirty = dirty and not same_state(theirs._snapshot(), th)
+	return theirs
+
+## Goes on with the items of [param old] (the painter this one goes on from, see
+## [method rebase_onto]): its [member items_root] and the item nodes in it become this one's,
+## changed in place to this one's settings; this one's items with no node there join them, and
+## the nodes this one has no item for go. The same objects go on and never leave the tree, so
+## what holds them stays valid: the Inspector showing an effect (it lets go of a node taken out
+## of the tree, even for a moment), the Room view's selection. Only what changed changes. Call
+## it before freeing [param old].
+func keep_items_of(old: MDSRoomPainter) -> void:
+	var kept := old.items_root
+	for g in ITEM_GROUPS:
+		var src := items_root.get_node(g)
+		var dst := kept.get_node(g)
+		var before: Dictionary = {}
+		for o in dst.get_children():
+			before[String(o.name)] = o
+		var order: Array[Node] = []
+		var gone: Dictionary = before.duplicate()
+		for n: Node2D in src.get_children():
+			var o: Node2D = before.get(String(n.name))
+			if is_instance_valid(o) and item_kind(o) == item_kind(n) and o.get_script() == n.get_script():
+				_apply_item(o, _item_data(n))
+				gone.erase(String(n.name))
+				order.append(o)
+			else:
+				order.append(n)
+		# The nodes no item is left for go first, so the new ones keep their names.
+		for o: Node in gone.values():
+			dst.remove_child(o)
+			o.queue_free()
+		for n in order:
+			if n.get_parent() == src:
+				src.remove_child(n)
+				dst.add_child(n)
+		for i in order.size():
+			if order[i].get_index() != i:
+				dst.move_child(order[i], i)
+	# The two swap: the old painter frees what is left of this one's.
+	old.items_root = items_root
+	items_root = kept
+
+## Three states ([method _snapshot]s) merged: what [param mine] changed from [param base] put on
+## [param theirs], except where [param theirs] changed the same tile or item.
+static func merge_states(base: Dictionary, mine: Dictionary, theirs: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	var traced: Dictionary = {}
+	var bt: Dictionary = base.get(&"_traced", {})
+	var mt: Dictionary = mine.get(&"_traced", {})
+	var tt: Dictionary = theirs.get(&"_traced", {})
+	for n in LAYER_ORDER:
+		var b: PackedByteArray = base.get(n, PackedByteArray())
+		var m: PackedByteArray = mine.get(n, PackedByteArray())
+		out[n] = merge_cells(b, m, theirs.get(n, PackedByteArray()))
+		# The traced cells go with the tiles of the side that changed them.
+		var from: Dictionary = mt if not _same_cells(m, b) else tt
+		if from.has(n):
+			traced[n] = from[n]
+	out[&"_traced"] = traced
+	var hidden: Dictionary = {}
+	var hb: Dictionary = base.get(&"_blockout", {})
+	var hm: Dictionary = mine.get(&"_blockout", {})
+	var ht: Dictionary = theirs.get(&"_blockout", {})
+	for n in hb.keys() + hm.keys() + ht.keys():
+		if not hidden.has(n):
+			hidden[n] = merge_cells(hb.get(n, PackedByteArray()), hm.get(n, PackedByteArray()), ht.get(n, PackedByteArray()))
+	out[&"_blockout"] = hidden
+	var items: Dictionary = {}
+	var ib: Dictionary = base.get(&"_items", {})
+	var im: Dictionary = mine.get(&"_items", {})
+	var it: Dictionary = theirs.get(&"_items", {})
+	for g in ITEM_GROUPS:
+		items[g] = merge_items(ib.get(g, []), im.get(g, []), it.get(g, []))
+	out[&"_items"] = items
+	# The scene knows nothing of the Room view's changes to its other nodes: they stay.
+	out[&"_scene"] = mine.get(&"_scene", {}).duplicate(true)
+	return out
+
+## Three versions of a layer's tile_map_data merged, tile by tile: [param mine]'s changes from
+## [param base] put on [param theirs], but for the tiles [param theirs] changed too.
+static func merge_cells(base: PackedByteArray, mine: PackedByteArray, theirs: PackedByteArray) -> PackedByteArray:
+	if mine == base or mine == theirs:
+		return theirs
+	if theirs == base:
+		return mine
+	var bc := cells_of(base)
+	var mc := cells_of(mine)
+	var tc := cells_of(theirs)
+	if mc == bc:
+		return theirs
+	if tc == bc:
+		return mine
+	var out := tc.duplicate()
+	for c in mc.keys() + bc.keys():
+		if mc.get(c) != bc.get(c) and tc.get(c) == bc.get(c):
+			if mc.has(c):
+				out[c] = mc[c]
+			else:
+				out.erase(c)
+	return data_of(out, theirs if theirs.size() >= 2 else mine)
+
+## The tiles of tile_map_data [param data]: cell -> Vector4i(source id, atlas x, atlas y,
+## alternative). Erased cells (kept as empty entries until the layer updates) are left out.
+static func cells_of(data: PackedByteArray) -> Dictionary:
+	var out: Dictionary = {}
+	for i in maxi(0, (data.size() - 2) / 12):
+		var at := 2 + i * 12
+		var sid := data.decode_s16(at + 4)
+		if sid != -1:
+			out[Vector2i(data.decode_s16(at), data.decode_s16(at + 2))] = Vector4i(sid, data.decode_u16(at + 6), data.decode_u16(at + 8), data.decode_u16(at + 10))
+	return out
+
+## tile_map_data for [param cells] (as [method cells_of] gives them), in the format of
+## [param like].
+static func data_of(cells: Dictionary, like: PackedByteArray) -> PackedByteArray:
+	var out := PackedByteArray()
+	if cells.is_empty():
+		return out
+	out.resize(2 + cells.size() * 12)
+	out.encode_u16(0, like.decode_u16(0) if like.size() >= 2 else 0)
+	var at := 2
+	for c: Vector2i in cells:
+		var v: Vector4i = cells[c]
+		out.encode_s16(at, c.x)
+		out.encode_s16(at + 2, c.y)
+		out.encode_s16(at + 4, v.x)
+		out.encode_u16(at + 6, v.y)
+		out.encode_u16(at + 8, v.z)
+		out.encode_u16(at + 10, v.w)
+		at += 12
+	return out
+
+static func _same_cells(a: PackedByteArray, b: PackedByteArray) -> bool:
+	return a == b or cells_of(a) == cells_of(b)
+
+## Three versions of an item group ([method _item_data]s) merged, item by item, by name: those
+## [param mine] changed, added or removed (from [param base]) and [param theirs] left alone, as
+## [param mine] has them; all the others as [param theirs] has them. In [param theirs]' order,
+## the ones added here after.
+static func merge_items(base: Array, mine: Array, theirs: Array) -> Array:
+	var bn := _items_by_name(base)
+	var mn := _items_by_name(mine)
+	var tn := _items_by_name(theirs)
+	var out: Array = []
+	for d in theirs:
+		var n := str(d.get("name", ""))
+		var unchanged_there: bool = bn.has(n) and d == bn[n]
+		if unchanged_there and mn.has(n):
+			out.append(mn[n])
+		elif unchanged_there:
+			continue # removed here
+		else:
+			out.append(d)
+	var taken: Dictionary = {}
+	for d in out:
+		taken[str(d.get("name", ""))] = true
+	for d in mine:
+		var n := str(d.get("name", ""))
+		if bn.has(n) or (tn.has(n) and tn[n] == d):
+			continue # it was in the scene (kept or removed above), or both added it
+		var added: Dictionary = d
+		if taken.has(n):
+			# Added on both sides with the same name: this one gets another.
+			added = d.duplicate()
+			var k := 2
+			while taken.has("%s%d" % [n, k]):
+				k += 1
+			added.name = "%s%d" % [n, k]
+		taken[str(added.get("name", ""))] = true
+		out.append(added)
+	return out
+
+static func _items_by_name(list: Array) -> Dictionary:
+	var out: Dictionary = {}
+	for d in list:
+		out[str(d.get("name", ""))] = d
+	return out
 
 ## Why the room's scene file is big, when it is bigger than [constant LARGE_TEXT_FILE] (Godot's
 ## editor then warns that it is large on disk as it saves it); "" when it is not. Its tile
@@ -959,10 +1207,21 @@ func size_note() -> String:
 		hidden = hidden or h[2]
 	var advice := "Erase tiles nothing shows, or split a very big room."
 	if hidden:
-		advice = "A hidden layer's tiles are saved all the same: clear the layer if the room doesn't show it (Clear background for the Background)."
+		advice = "A hidden layer's tiles never show but are saved all the same: Clear hidden tiles (Room view) removes them."
 	elif images >= LARGE_TEXT_FILE / 4:
 		advice = "Save embedded images as PNG files and use those."
 	return "%s is %d KiB, so Godot warns that it is large when it saves it. Most of it: %s. %s" % [scene_path.get_file(), ceili(size / 1024.0), ", ".join(parts), advice]
+
+## The tile layers that hold tiles yet are hidden in the scene (a Background hidden in the
+## Inspector, say): their tiles never show, and every one of them is saved. Layer name -> tiles.
+func hidden_tiles() -> Dictionary:
+	var out: Dictionary = {}
+	for n in LAYER_ORDER:
+		var src: Node = root.get_node_or_null(_source_paths[n]) if _source_paths.has(n) else null
+		var cells := (layers[n] as TileMapLayer).get_used_cells().size()
+		if src and cells > 0 and _hidden_in_scene(src):
+			out[n] = cells
+	return out
 
 ## Whether [param node] or a parent of it (below the root) is hidden in the scene.
 func _hidden_in_scene(node: Node) -> bool:

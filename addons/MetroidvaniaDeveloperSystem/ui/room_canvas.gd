@@ -16,8 +16,9 @@ extends Control
 ## dragging inside moves the shape and Delete removes it.
 ## Stamps tool: click or drag to place clumps, Shift to remove them.
 ## Effects tool: drag an effect from the palette onto the room (or pick one and click), click
-## one to select it (it shows in the Inspector), drag it to move it, drag its corner to
-## resize it, Delete removes it. An image file dropped on the view opens Trace drawing.
+## one to select it (it shows in the Inspector), drag it to move it, drag the handles on its
+## sides and corners to resize it (Shift keeps its shape), Delete removes it. An image file
+## dropped on the view opens Trace drawing.
 ## Place tool: click to place the tiles picked in the tile palette anywhere, at the angle and
 ## mirror picked there (R / Shift+R turn them), off the grid: a free tile piece (see
 ## [method MDSRoomPainter.add_tile_piece]) that draws and collides like its layer's tiles.
@@ -27,6 +28,11 @@ extends Control
 ## pixels ([member snap_to_grid]: by whole tiles). Tiles moved off the grid become free tiles;
 ## moved by whole tiles, they stay on the grid. R / Shift+R turn the selection, the arrows
 ## nudge it a pixel (Shift: a tile), Delete removes it, Esc clears it.
+## Resizing: what the Select tool selected, what the Place and Stamps tools placed last and the
+## Freeform tool's shape have handles on their sides and corners (as effects do). Dragging one
+## resizes it, the opposite side staying (Shift: a corner keeps the shape; [member snap_to_grid]:
+## the sides go to the tile grid). Stamps, pictures and free tiles scale; freeform shapes scale
+## their points; grid tiles become free tiles.
 
 signal painted
 signal status_message(text: String)
@@ -62,6 +68,16 @@ const TOOL_COLORS: Array[Color] = [Color(0.5, 1, 0.4), Color(0.3, 0.8, 1), Color
 const IMAGE_EXTENSIONS: PackedStringArray = ["png", "jpg", "jpeg", "webp", "bmp", "tga", "svg"]
 ## Drag data of an effect from the palette: {"type": DRAG_EFFECT, "effect": id}.
 const DRAG_EFFECT := "mds_effect"
+## The eight resize handles of a box, as fractions of it: its corners and the middles of its
+## sides, clockwise from the top-left (as on the map).
+const HANDLES: Array[Vector2] = [Vector2(0, 0), Vector2(0.5, 0), Vector2(1, 0), Vector2(1, 0.5), Vector2(1, 1), Vector2(0.5, 1), Vector2(0, 1), Vector2(0, 0.5)]
+## The mouse cursor over each handle.
+const HANDLE_CURSORS: Array[int] = [Control.CURSOR_FDIAGSIZE, Control.CURSOR_VSIZE, Control.CURSOR_BDIAGSIZE, Control.CURSOR_HSIZE, Control.CURSOR_FDIAGSIZE, Control.CURSOR_VSIZE, Control.CURSOR_BDIAGSIZE, Control.CURSOR_HSIZE]
+## How near (screen px) the mouse must be to grab a handle.
+const HANDLE_GRAB := 7.0
+## How far (screen px) the handles of a selection stand out from its outline (clear of a shape's
+## points).
+const HANDLE_GAP := 6.0
 enum FreeformMode { DRAW, EDIT }
 
 var painter: MDSRoomPainter
@@ -107,7 +123,10 @@ var selected_effect: MDSEnvironmentEffect:
 		# A selection that undo took out (and freed) is replaced too.
 		if v != selected_effect or not is_instance_valid(selected_effect):
 			selected_effect = v
-			effect_selected.emit(v)
+			if not _quiet_select:
+				effect_selected.emit(v)
+## Selecting again what was selected (the room opened anew): the Inspector is left as it is.
+var _quiet_select := false
 ## Show the room's weather (its own, else its area's) over the view, as in the game.
 var weather_preview := true
 ## Called before an effect dropped from the palette is placed (the Room view switches to the
@@ -131,6 +150,8 @@ var _effect_orig := Rect2()
 var _effect_moved := false ## the press has moved or resized the effect
 var _effect_checkpointed := false ## the press already took an undo step
 var _effect_cycle := false ## a click without dragging picks the next effect under it
+var _effect_handle := -1 ## the handle a resize drags (see [constant HANDLES])
+var _effect_rect0 := Rect2() ## the effect's area when the press started (its own coordinates)
 ## Last Check room result: {issues, surfaces} (see MDSRoomCheck), drawn over the room until
 ## the next edit.
 var check_result: Dictionary = {}
@@ -160,6 +181,11 @@ var _sel_add := false
 var _sel_moved := false
 var _sel_pick: Dictionary = {} ## what the press picked when it was selected already
 var _sel_orig: Dictionary = {} ## node -> position when the move started
+var _scale_handle := -1 ## the handle a resize drags (Select, Place, Stamps, Freeform), -1: none
+var _scale_from := Vector2.ZERO
+var _scale_box := Rect2() ## what is resized: its bounds when the resize started (scene-local)
+var _scale_orig: Dictionary = {} ## node -> its transform then (a freeform shape: its points)
+var _scale_started := false
 var _lifted: Array[TileMapLayer] = [] ## grid tiles taken off the grid for this move
 var _place_drag: TileMapLayer ## the piece just placed, following the mouse until release
 var _place_from := Vector2.ZERO
@@ -220,13 +246,15 @@ func _init() -> void:
 	_overlay.draw.connect(_draw_overlay)
 	add_child(_overlay, false, Node.INTERNAL_MODE_BACK)
 
-## Shows [param p_painter]'s room: the whole scene for context, its tile layers editable.
-func open(p_world: MDSWorld, id: String, p_painter: MDSRoomPainter) -> void:
+## Shows [param p_painter]'s room: the whole scene for context (as the painter opened it: from
+## its file, or from the editor), its tile layers editable. With [param keep_view] the view
+## stays where it is (the same room opened anew), else it fits the room.
+func open(p_world: MDSWorld, id: String, p_painter: MDSRoomPainter, keep_view := false) -> void:
 	close()
 	world = p_world
 	room_id = id
 	painter = p_painter
-	var packed := load(painter.scene_path) as PackedScene
+	var packed := painter.packed_scene if painter.packed_scene else load(painter.scene_path) as PackedScene
 	if packed:
 		_display_scene = packed.instantiate(PackedScene.GEN_EDIT_STATE_DISABLED)
 		_display_scene.set_meta(&"fake_map", true)
@@ -238,14 +266,57 @@ func open(p_world: MDSWorld, id: String, p_painter: MDSRoomPainter) -> void:
 		_view.add_child(_display_scene)
 	for n in MDSRoomPainter.LAYER_ORDER:
 		_view.add_child(painter.layers[n])
-	_view.add_child(painter.items_root)
+	# The same room opened anew may go on with the items it showed: they stay in the tree, drawn
+	# over the layers.
+	if painter.items_root.get_parent() != _view:
+		_view.add_child(painter.items_root)
+	_view.move_child(painter.items_root, -1)
 	selected = null
 	selected_effect = null
 	set_selection([])
 	_draft.clear()
 	set_depth_preview(depth_preview)
 	refresh_weather()
-	fit()
+	if keep_view:
+		_apply_view()
+	else:
+		fit()
+
+## What is selected, by name: to select it again in the room opened anew (see [method select_names]).
+func selection_names() -> Dictionary:
+	return {"items": selection.filter(func(n: Node) -> bool: return is_instance_valid(n)).map(_item_key),
+		"cells": selected_cells.duplicate(true),
+		"effect": _item_key(selected_effect) if _is_room_effect(selected_effect) else "",
+		"shape": _item_key(selected) if is_instance_valid(selected) and selected.get_parent() else ""}
+
+## Selects again what [method selection_names] named, as far as the room still has it. With
+## [param quiet] the Inspector is left alone (it may show something else the user is editing).
+func select_names(names: Dictionary, quiet := false) -> void:
+	var by: Dictionary = {}
+	for g in MDSRoomPainter.ITEM_GROUPS:
+		for n in painter.items(g):
+			by[_item_key(n)] = n
+	var nodes: Array = []
+	for k in names.get("items", []):
+		if by.has(k):
+			nodes.append(by[k])
+	var cells: Dictionary = {}
+	for layer_name in names.get("cells", {}):
+		if painter.layers.has(layer_name):
+			cells[layer_name] = (names.cells[layer_name] as Dictionary).keys().filter(func(c: Vector2i) -> bool: return painter.layers[layer_name].get_cell_source_id(c) != -1)
+	set_selection(nodes, cells)
+	_quiet_select = quiet
+	selected_effect = by.get(names.get("effect", ""))
+	_quiet_select = false
+	selected = by.get(names.get("shape", "")) as MDSFreeform
+
+static func _item_key(n: Node) -> String:
+	return "%s/%s" % [n.get_parent().name, n.name]
+
+## Whether a stroke, drag or shape is under way (the room is not to be opened anew then).
+func is_busy() -> bool:
+	return (_painting or _shaping or _sel_drag != 0 or _effect_drag != 0 or _scale_handle >= 0 or _drag_vertex >= 0
+		or _drag_move != Vector2.INF or is_instance_valid(_place_drag) or not _draft.is_empty() or _last_stamp != Vector2.INF)
 
 func close() -> void:
 	if is_instance_valid(_depth):
@@ -421,7 +492,7 @@ func _draw_overlay() -> void:
 	var color: Color = TOOL_COLORS[tool]
 	if tool == Tool.FREEFORM:
 		_draw_freeform_overlay(ci, color)
-	if tool == Tool.SELECT or tool == Tool.PLACE:
+	if tool == Tool.SELECT or tool == Tool.PLACE or tool == Tool.STAMP:
 		_draw_select_overlay(ci, color)
 	if tool == Tool.PLACE:
 		_draw_place_overlay(ci, color)
@@ -537,6 +608,9 @@ func _draw_freeform_overlay(ci: CanvasItem, color: Color) -> void:
 				var sp := local_to_screen(q + selected.position)
 				ci.draw_rect(Rect2(sp - Vector2(4, 4), Vector2(8, 8)), Color.BLACK)
 				ci.draw_rect(Rect2(sp - Vector2(3, 3), Vector2(6, 6)), color)
+		var hb := _resize_screen_box()
+		if hb.has_area():
+			_draw_handles(ci, hb, color)
 
 func _brush_cells(center: Vector2i) -> Array:
 	var out: Array = []
@@ -780,6 +854,8 @@ func _finish_draft() -> void:
 func _freeform_input(mb: InputEventMouseButton) -> void:
 	var p := screen_to_local(mb.position)
 	var grab := 10.0 / zoom
+	if _resize_input(mb):
+		return
 	if freeform_mode == FreeformMode.DRAW:
 		if mb.pressed:
 			if mb.double_click and _draft.size() >= 3:
@@ -836,6 +912,9 @@ func _freeform_input(mb: InputEventMouseButton) -> void:
 
 func _freeform_motion(mm: InputEventMouseMotion) -> void:
 	var p := screen_to_local(mm.position)
+	if _scale_handle >= 0:
+		_resize_motion(mm)
+		return
 	if freeform_mode == FreeformMode.DRAW:
 		if _draft_press != Vector2.INF and (mm.button_mask & MOUSE_BUTTON_MASK_LEFT):
 			if mm.position.distance_to(_draft_press) > 6.0:
@@ -951,6 +1030,8 @@ func place_tiles_at(at: Vector2) -> TileMapLayer:
 
 func _place_input(mb: InputEventMouseButton) -> void:
 	var p := screen_to_local(mb.position)
+	if not mb.shift_pressed and _resize_input(mb):
+		return
 	if not mb.pressed:
 		if is_instance_valid(_place_drag):
 			status_message.emit("%s placed at (%d, %d), turned %d°. The Select tool moves, turns and deletes it; R / Shift+R turn the next tiles." % [_place_drag.name, _place_drag.position.x, _place_drag.position.y, roundi(rad_to_deg(_place_drag.rotation))])
@@ -974,6 +1055,9 @@ func _place_input(mb: InputEventMouseButton) -> void:
 		_place_orig = piece.position
 
 func _place_motion(mm: InputEventMouseMotion) -> void:
+	if _scale_handle >= 0:
+		_resize_motion(mm)
+		return
 	if not is_instance_valid(_place_drag) or not (mm.button_mask & MOUSE_BUTTON_MASK_LEFT):
 		return
 	# Dragging right after the click moves the new piece (the click's undo step covers it).
@@ -1133,7 +1217,7 @@ func _report_selection() -> void:
 		parts.append("%d tile(s)" % n.y)
 	if n.x > 0:
 		parts.append("%d item(s)" % n.x)
-	status_message.emit("%s selected: drag to move %s (%s), R / Shift+R turn, the arrows nudge, Delete removes." % [" and ".join(parts), "them" if n.x + n.y > 1 else "it", "by whole tiles" if snap_to_grid else "by pixels"])
+	status_message.emit("%s selected: drag to move %s (%s), drag the handles on the sides and corners to resize, R / Shift+R turn, the arrows nudge, Delete removes." % [" and ".join(parts), "them" if n.x + n.y > 1 else "it", "by whole tiles" if snap_to_grid else "by pixels"])
 
 ## The selection's bounds (scene-local).
 func selection_bounds() -> Rect2:
@@ -1285,6 +1369,8 @@ func merge_selection_to_grid() -> int:
 
 func _select_input(mb: InputEventMouseButton) -> void:
 	var p := screen_to_local(mb.position)
+	if _resize_input(mb):
+		return
 	if mb.pressed:
 		_clean_selection()
 		_sel_from = p
@@ -1330,6 +1416,9 @@ func _select_input(mb: InputEventMouseButton) -> void:
 	_sel_drag = 0
 
 func _select_motion(mm: InputEventMouseMotion) -> void:
+	if _scale_handle >= 0:
+		_resize_motion(mm)
+		return
 	if _sel_drag == 0 or not (mm.button_mask & MOUSE_BUTTON_MASK_LEFT):
 		return
 	var p := screen_to_local(mm.position)
@@ -1370,6 +1459,199 @@ func _draw_select_overlay(ci: CanvasItem, color: Color) -> void:
 		elif pick.has("cell"):
 			var r := painter.cell_rect(pick.layer, pick.cell)
 			ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(color, 0.45), false, 1.0)
+	if _sel_drag != 1 and not is_instance_valid(_place_drag):
+		var hb := _resize_screen_box()
+		if hb.has_area():
+			_draw_handles(ci, hb, color)
+
+# --- Resize handles ---------------------------------------------------------------------------
+
+## Where handle [param h] (see [constant HANDLES]) of [param box] is.
+static func handle_point(box: Rect2, h: int) -> Vector2:
+	return box.position + box.size * HANDLES[h]
+
+## The handle of [param box] (screen) under [param at]: the nearest within [constant HANDLE_GRAB]
+## px, or -1.
+static func handle_at(box: Rect2, at: Vector2) -> int:
+	var best := -1
+	var best_d := HANDLE_GRAB
+	for h in HANDLES.size():
+		var d := handle_point(box, h).distance_to(at)
+		if d <= best_d:
+			best = h
+			best_d = d
+	return best
+
+## [param box] with handle [param h] dragged by [param d]: the sides it holds follow, the others
+## stay, never nearer each other than [param least]. With [param keep_shape] a corner keeps the
+## box's proportions, the opposite corner staying where it is.
+static func resized_box(box: Rect2, h: int, d: Vector2, keep_shape := false, least := Vector2(4, 4)) -> Rect2:
+	var f := HANDLES[h]
+	var lo := box.position
+	var hi := box.end
+	if f.x == 0.0:
+		lo.x = minf(lo.x + d.x, hi.x - least.x)
+	elif f.x == 1.0:
+		hi.x = maxf(hi.x + d.x, lo.x + least.x)
+	if f.y == 0.0:
+		lo.y = minf(lo.y + d.y, hi.y - least.y)
+	elif f.y == 1.0:
+		hi.y = maxf(hi.y + d.y, lo.y + least.y)
+	var r := Rect2(lo, hi - lo)
+	if keep_shape and f.x != 0.5 and f.y != 0.5 and box.has_area():
+		var size := box.size * maxf(r.size.x / box.size.x, r.size.y / box.size.y)
+		var anchor := box.position + box.size * (Vector2.ONE - f)
+		r = Rect2(anchor - size * (Vector2.ONE - f), size)
+	return r
+
+## [param box] with the sides handle [param h] moves on the tile grid (at least a tile apart).
+func _snapped_box(box: Rect2, h: int) -> Rect2:
+	var f := HANDLES[h]
+	var ts := painter.tile_size()
+	var lo := box.position
+	var hi := box.end
+	if f.x == 0.0:
+		lo.x = minf(snap_point(lo).x, hi.x - ts.x)
+	elif f.x == 1.0:
+		hi.x = maxf(snap_point(hi).x, lo.x + ts.x)
+	if f.y == 0.0:
+		lo.y = minf(snap_point(lo).y, hi.y - ts.y)
+	elif f.y == 1.0:
+		hi.y = maxf(snap_point(hi).y, lo.y + ts.y)
+	return Rect2(lo, hi - lo)
+
+func _draw_handles(ci: CanvasItem, box: Rect2, color: Color) -> void:
+	for h in HANDLES.size():
+		var at := handle_point(box, h)
+		ci.draw_rect(Rect2(at - Vector2(5, 5), Vector2(10, 10)), Color.BLACK)
+		ci.draw_rect(Rect2(at - Vector2(4, 4), Vector2(8, 8)), color)
+
+## What the current tool's handles resize: the Freeform tool's shape (not while one is being
+## drawn), else the selection (Select's, or what Place and Stamps placed last).
+func _resize_targets() -> Array[Node2D]:
+	var out: Array[Node2D] = []
+	if tool == Tool.FREEFORM:
+		if is_instance_valid(selected) and selected.is_inside_tree() and _draft.is_empty():
+			out.append(selected)
+	elif tool in [Tool.SELECT, Tool.PLACE, Tool.STAMP]:
+		_clean_selection()
+		out.assign(selection)
+	return out
+
+## The bounds of what the handles resize (scene-local; no area: nothing).
+func _resize_box() -> Rect2:
+	if tool == Tool.FREEFORM:
+		var t := _resize_targets()
+		return MDSGeometry.bounds(MDSRoomPainter.item_outline(t[0])) if not t.is_empty() else Rect2()
+	if tool in [Tool.SELECT, Tool.PLACE, Tool.STAMP] and has_selection():
+		return selection_bounds()
+	return Rect2()
+
+## Where the handles are: around [method _resize_box] on screen, standing out a little.
+func _resize_screen_box() -> Rect2:
+	var b := _resize_box()
+	if not b.has_area():
+		return Rect2()
+	return Rect2(local_to_screen(b.position), b.size * zoom).grow(HANDLE_GAP)
+
+## A press on a handle starts a resize, its release ends it. Returns whether [param mb] was one.
+func _resize_input(mb: InputEventMouseButton) -> bool:
+	if not mb.pressed:
+		if _scale_handle < 0:
+			return false
+		_finish_resize()
+		return true
+	var box := _resize_screen_box()
+	var h := handle_at(box, mb.position) if box.has_area() else -1
+	if h < 0:
+		return false
+	_scale_handle = h
+	_scale_from = screen_to_local(mb.position)
+	_scale_box = _resize_box()
+	_scale_started = false
+	return true
+
+func _resize_motion(mm: InputEventMouseMotion) -> void:
+	if not (mm.button_mask & MOUSE_BUTTON_MASK_LEFT):
+		return
+	var p := screen_to_local(mm.position)
+	if not _scale_started:
+		if (p - _scale_from).length() * zoom < 3.0:
+			return
+		painter.checkpoint()
+		if tool != Tool.FREEFORM:
+			_lift_selected_cells()
+		_hold_for_resize(_resize_targets())
+		_scale_started = true
+	var to := resized_box(_scale_box, _scale_handle, p - _scale_from, mm.shift_pressed)
+	if snap_to_grid:
+		to = _snapped_box(to, _scale_handle)
+	_scale_items(_scale_box, to)
+
+func _finish_resize() -> void:
+	var started := _scale_started
+	_scale_handle = -1
+	_scale_started = false
+	if not started:
+		return
+	var off := _settle_lifted() if tool != Tool.FREEFORM else 0
+	_scale_orig.clear()
+	painted.emit()
+	var b := _resize_box()
+	status_message.emit("Resized to %d x %d px.%s Ctrl+Z undoes it." % [b.size.x, b.size.y, " %d tile(s) left the grid: they are free tiles now (Select > To grid puts them back)." % off if off > 0 else ""])
+
+## Remembers how [param nodes] are before a resize.
+func _hold_for_resize(nodes: Array) -> void:
+	_scale_orig.clear()
+	for node in nodes:
+		_scale_orig[node] = (node as MDSFreeform).points.duplicate() if node is MDSFreeform else (node as Node2D).transform
+
+## Scales what [method _hold_for_resize] held from the box [param from] to [param to] (both
+## scene-local), from how it was then.
+func _scale_items(from: Rect2, to: Rect2) -> void:
+	var k := to.size / Vector2(maxf(from.size.x, 0.001), maxf(from.size.y, 0.001))
+	var xf := Transform2D(Vector2(k.x, 0.0), Vector2(0.0, k.y), to.position - from.position * k)
+	for node in _scale_orig:
+		if not is_instance_valid(node):
+			continue
+		if node is MDSFreeform:
+			var f := node as MDSFreeform
+			var pts := PackedVector2Array()
+			for q: Vector2 in _scale_orig[node]:
+				pts.append(xf * (q + f.position) - f.position)
+			f.points = pts
+		else:
+			(node as Node2D).transform = xf * (_scale_orig[node] as Transform2D)
+	painter.dirty = true
+
+## Resizes the selection (Select's items and tiles) to fill [param box] (scene-local), as one
+## undo step, as dragging its handles does: stamps, pictures and free tiles scale, freeform
+## shapes scale their points, grid tiles become free tiles unless they still fit the grid.
+func resize_selection(box: Rect2) -> void:
+	if not has_selection() or not box.has_area():
+		return
+	var from := selection_bounds()
+	painter.checkpoint()
+	_lift_selected_cells()
+	_hold_for_resize(selection)
+	_scale_items(from, box)
+	_settle_lifted()
+	_scale_orig.clear()
+	painted.emit()
+
+## The cursor over a handle shows the way it resizes.
+func _update_cursor(at: Vector2) -> void:
+	var h := -1
+	if _effect_drag == 2:
+		h = _effect_handle
+	elif _scale_handle >= 0:
+		h = _scale_handle
+	elif tool == Tool.EFFECT and _is_room_effect(selected_effect):
+		h = handle_at(_effect_screen_rect(selected_effect), at)
+	else:
+		var box := _resize_screen_box()
+		h = handle_at(box, at) if box.has_area() else -1
+	mouse_default_cursor_shape = HANDLE_CURSORS[h] as CursorShape if h >= 0 else CURSOR_ARROW
 
 # --- Effects ----------------------------------------------------------------------------------
 
@@ -1389,7 +1671,7 @@ func place_effect(id: String, p: Vector2) -> MDSEnvironmentEffect:
 	selected_effect = e
 	painted.emit()
 	_overlay.queue_redraw()
-	status_message.emit("%s added. Drag it to move it, drag its corner to resize it; its settings are in the Inspector. Delete removes it. To place another, pick it again (or Ctrl+click to keep it picked)." % MDSEnvironment.display_name(id))
+	status_message.emit("%s added. Drag it to move it, drag the handles on its sides and corners to resize it (Shift keeps its shape); its settings are in the Inspector. Delete removes it. To place another, pick it again (or Ctrl+click to keep it picked)." % MDSEnvironment.display_name(id))
 	return e
 
 func delete_selected_effect() -> void:
@@ -1417,8 +1699,25 @@ func _begin_effect_drag(kind: int, p: Vector2, checkpointed: bool) -> void:
 	_effect_drag = kind
 	_effect_from = p
 	_effect_orig = Rect2(selected_effect.position, selected_effect.size)
+	_effect_rect0 = selected_effect.get_effect_rect()
 	_effect_moved = false
 	_effect_checkpointed = checkpointed
+
+## Sizes and moves [param e] so its area is [param rect]: in its own coordinates, as it was at
+## [param origin].
+static func _fit_effect(e: MDSEnvironmentEffect, rect: Rect2, origin: Vector2) -> void:
+	e.size = rect.size.round()
+	var now := e.get_effect_rect()
+	e.position = (origin + e.transform.basis_xform(rect.position - now.position)).round()
+
+## Resizes [param e] so its area is [param rect] (scene-local), as one undo step, as dragging
+## its handles does.
+func resize_effect(e: MDSEnvironmentEffect, rect: Rect2) -> void:
+	painter.checkpoint()
+	var inv := e.transform.affine_inverse()
+	_fit_effect(e, Rect2(inv * rect.position, inv.basis_xform(rect.size)).abs(), e.position)
+	painter.dirty = true
+	painted.emit()
 
 func _effect_input(mb: InputEventMouseButton) -> void:
 	var p := screen_to_local(mb.position)
@@ -1436,8 +1735,10 @@ func _effect_input(mb: InputEventMouseButton) -> void:
 		_effect_drag = 0
 		_effect_cycle = false
 		return
-	if _is_room_effect(selected_effect) and _effect_screen_rect(selected_effect).end.distance_to(mb.position) <= 10.0:
+	var h := handle_at(_effect_screen_rect(selected_effect), mb.position) if _is_room_effect(selected_effect) else -1
+	if h >= 0:
 		_begin_effect_drag(2, p, false)
+		_effect_handle = h
 		return
 	# An effect picked in the list: a click places it (dragging right away moves it), then clicks
 	# select and drag again, the new one too. Ctrl+click keeps the effect picked, to place several;
@@ -1456,9 +1757,12 @@ func _effect_input(mb: InputEventMouseButton) -> void:
 		return
 	# The selected effect keeps the mouse when it is under it (to drag it); else the top-most.
 	_effect_cycle = _is_room_effect(selected_effect) and hits.has(selected_effect)
-	if not _effect_cycle:
+	if _effect_cycle:
+		# Shown in the Inspector again, if it shows something else now.
+		effect_selected.emit(selected_effect)
+	else:
 		selected_effect = hits[0]
-		status_message.emit("%s selected (its settings are in the Inspector): drag to move it, drag its corner to resize it, Delete removes it.%s" % [selected_effect.name, " Click it again for the next of the %d effects here." % hits.size() if hits.size() > 1 else ""])
+		status_message.emit("%s selected (its settings are in the Inspector): drag to move it, drag the handles on its sides and corners to resize it, Delete removes it.%s" % [selected_effect.name, " Click it again for the next of the %d effects here." % hits.size() if hits.size() > 1 else ""])
 	_begin_effect_drag(1, p, false)
 
 func _effect_motion(mm: InputEventMouseMotion) -> void:
@@ -1475,11 +1779,9 @@ func _effect_motion(mm: InputEventMouseMotion) -> void:
 	if _effect_drag == 1:
 		selected_effect.position = (_effect_orig.position + d).round()
 	else:
-		# The corner follows the mouse; an effect standing on its position (a vent) grows
-		# out from it both ways.
-		var along := selected_effect.transform.basis_xform_inv(d)
-		var grow := along if selected_effect.get_effect_rect().position == Vector2.ZERO else Vector2(along.x * 2.0, -along.y)
-		selected_effect.size = (_effect_orig.size + grow).max(Vector2(16, 16)).round()
+		# The handle's sides follow the mouse, the others stay (Shift: a corner keeps the shape).
+		var along := selected_effect.transform.affine_inverse().basis_xform(d)
+		_fit_effect(selected_effect, resized_box(_effect_rect0, _effect_handle, along, mm.shift_pressed, Vector2(16, 16)), _effect_orig.position)
 	painter.dirty = true
 
 func _draw_effects(ci: CanvasItem, font: Font) -> void:
@@ -1495,7 +1797,7 @@ func _draw_effects(ci: CanvasItem, font: Font) -> void:
 			ci.draw_string_outline(font, r.position + Vector2(4, 14), String(e.name), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color.BLACK)
 			ci.draw_string(font, r.position + Vector2(4, 14), String(e.name), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, c)
 		if sel:
-			ci.draw_rect(Rect2(r.end - Vector2(5, 5), Vector2(10, 10)), Color(0.55, 0.85, 1.0))
+			_draw_handles(ci, r, Color(0.55, 0.85, 1.0))
 	if active and get_rect().has_point(_mouse) and not effect_id.is_empty() and _effect_drag == 0:
 		var icon := MDSEnvironment.icon(effect_id)
 		if icon:
@@ -1675,10 +1977,14 @@ func place_stamp(p: Vector2) -> Sprite2D:
 		return null
 	var k := stamp_scale * _rng.randf_range(0.8, 1.2)
 	var s := painter.add_stamp(stamp_set, picks[_rng.randi_range(0, picks.size() - 1)], p, Vector2(k * (-1.0 if _rng.randf() < 0.5 else 1.0), k), _rng.randf_range(-0.12, 0.12), stamp_group)
+	# Selected, so its handles resize it.
+	set_selection([s])
 	painted.emit()
 	return s
 
 func _stamp_input(mb: InputEventMouseButton) -> void:
+	if not mb.shift_pressed and _resize_input(mb):
+		return
 	if not mb.pressed:
 		_last_stamp = Vector2.INF
 		return
@@ -1693,6 +1999,9 @@ func _stamp_input(mb: InputEventMouseButton) -> void:
 		place_stamp(p)
 
 func _stamp_motion(mm: InputEventMouseMotion) -> void:
+	if _scale_handle >= 0:
+		_resize_motion(mm)
+		return
 	if _last_stamp == Vector2.INF or not (mm.button_mask & MOUSE_BUTTON_MASK_LEFT):
 		return
 	var p := screen_to_local(mm.position)
@@ -1758,6 +2067,7 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion:
 		var mm := event as InputEventMouseMotion
 		_mouse = mm.position
+		_update_cursor(mm.position)
 		if _panning:
 			pan = _pan_orig + (mm.position - _pan_start)
 			_apply_view()

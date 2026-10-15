@@ -58,6 +58,8 @@ uniform float grain : hint_range(0.0, 1.0) = 0.3;
 uniform vec2 drift = vec2(0.0);
 /// The view (local px): the background is laid out on it.
 uniform vec4 view_rect = vec4(0.0, 0.0, 1152.0, 648.0);
+/// Pixels to one unit of the pattern: the view's height, or a screen's.
+uniform float unit = 648.0;
 uniform sampler2D picture : source_color, filter_linear_mipmap, repeat_disable;
 uniform bool has_picture = false;
 uniform vec2 picture_size = vec2(1.0);
@@ -571,8 +573,7 @@ vec3 st_picture(vec2 p, vec2 uv, float t, float soft) {
 void fragment() {
 	vec2 local = px + rect_origin;
 	vec2 uv = (local - view_rect.xy) / max(view_rect.zw, vec2(1.0));
-	float aspect = view_rect.z / max(view_rect.w, 1.0);
-	vec2 p = ((uv - 0.5) * vec2(aspect, 1.0) + drift) / max(feature_scale, 0.05);
+	vec2 p = ((local - view_rect.xy - view_rect.zw * 0.5) / max(unit, 1.0) + drift) / max(feature_scale, 0.05);
 	float t = TIME * speed + seed * 13.0;
 	float soft = mix(0.12, 1.0, blur);
 	vec3 col;
@@ -603,7 +604,8 @@ void fragment() {
 	float beat = exp(-ph * 9.0) + 0.6 * exp(-max(ph - 0.24, 0.0) * 9.0) * step(0.24, ph);
 	col *= brightness * (1.0 + pulse * beat * 0.45);
 	col += color_c.rgb * pulse * beat * 0.06;
-	float vig = smoothstep(0.35, 1.0, length((uv - 0.5) * vec2(1.0, 0.9)) * 1.45);
+	// The screen's corners darken, wherever the camera is.
+	float vig = smoothstep(0.35, 1.0, length((SCREEN_UV - 0.5) * vec2(1.0, 0.9)) * 1.45);
 	col *= 1.0 - vignette * vig;
 	col += (env_hash(FRAGCOORD.xy + floor(TIME * 24.0) * vec2(17.0, 31.0)) - 0.5) * (0.004 + grain * 0.045);
 	COLOR = vec4(max(col, vec3(0.0)), intensity * env_edge(px));

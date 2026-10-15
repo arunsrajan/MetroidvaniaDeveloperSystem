@@ -47,6 +47,10 @@ var painter: MDSRoomPainter
 var world: MDSWorld
 var room_id := ""
 var tool_buttons: Array[Button] = []
+## The room's scene open in the editor (its root's instance id) and its undo history's version,
+## when the Room view last took them in (see [method sync_from_editor]).
+var _editor_seen: Array = []
+var _sync_timer: Timer
 var fill_opt: OptionButton
 var color_button: ColorPickerButton
 var brush_spin: SpinBox
@@ -89,6 +93,11 @@ var _area_label: Label
 var _weather_label: Label
 ## Shown while the room has cells pointing at tiles its tileset no longer has.
 var broken_button: Button
+## Shown when the room's scene is big enough for Godot to warn about it: what makes it big, and
+## Clear hidden tiles when hidden layers do.
+var size_box: VBoxContainer
+var size_label: Label
+var clear_hidden_button: Button
 ## Place and Select: move by whole tiles instead of pixels.
 var snap_check: CheckBox
 ## Place and Select: how far the turn buttons (and R) turn.
@@ -222,7 +231,7 @@ func _init() -> void:
 	effect_list.tooltip_text = "Drag an effect onto the room, or pick one and click in the room: it is placed, and clicks then select, move and resize effects again (the new one too). Ctrl+click keeps it picked, to place several. Click a selected effect again for the next one under it"
 	effect_list.add_item("No effect (select and move)")
 	effect_list.set_item_metadata(0, "")
-	effect_list.set_item_tooltip(0, "Place nothing: click an effect in the room to select it, drag it to move it, drag its corner to resize it")
+	effect_list.set_item_tooltip(0, "Place nothing: click an effect in the room to select it, drag it to move it, drag the handles on its sides and corners to resize it")
 	for id in MDSEnvironment.EFFECTS:
 		effect_list.add_item(MDSEnvironment.display_name(id), MDSEnvironment.icon(id))
 		effect_list.set_item_metadata(effect_list.item_count - 1, id)
@@ -247,7 +256,7 @@ func _init() -> void:
 	no_effects_check.tooltip_text = "No weather or effects from the room's area (or the world) in this room: its weather is set to none (Inspect tab). Effects placed in the room itself stay"
 	no_effects_check.toggled.connect(set_no_effects)
 	MDSSidePanel.row(_effect_box, [clear_effects, no_effects_check])
-	_effect_box.add_child(MDSUi.hint("Drag onto the room. Click one in the room to edit it in the Inspector; drag its corner to resize it. Drop an image on a parallax background to add it as a layer, or on an animated background to show it blurred."))
+	_effect_box.add_child(MDSUi.hint("Drag onto the room. Click one in the room to edit it in the Inspector; drag its handles to resize it. Drop an image on a parallax background to add it as a layer, or on an animated background to show it blurred."))
 	var weather_check := CheckBox.new()
 	weather_check.text = "Show the area's weather"
 	weather_check.button_pressed = true
@@ -333,6 +342,16 @@ func _init() -> void:
 	broken_button.visible = false
 	broken_button.pressed.connect(remove_broken_tiles)
 	generation.add_child(broken_button)
+	size_box = VBoxContainer.new()
+	size_box.visible = false
+	generation.add_child(size_box)
+	size_label = MDSUi.hint("")
+	size_label.modulate.a = 1.0
+	size_label.add_theme_color_override(&"font_color", Color(1.0, 0.75, 0.4))
+	size_box.add_child(size_label)
+	clear_hidden_button = MDSUi.button("Clear hidden tiles", "Remove the tiles of the tile layers hidden in the scene (their eye shut in the Scene dock, or Visible off in the Inspector): they never show, but every one of them is saved in the scene. Then save. Ctrl+Z undoes it")
+	clear_hidden_button.pressed.connect(clear_hidden_tiles)
+	size_box.add_child(clear_hidden_button)
 	var actions := MDSSidePanel.grid(controls, 2)
 	_area_box = VBoxContainer.new()
 	_area_box.visible = false
@@ -511,7 +530,10 @@ func open_room(p_world: MDSWorld, id: String) -> String:
 	var moved := MDSRoomPainter.externalize_sheets(tiles) if tiles else 0
 	if moved > 0:
 		status_message.emit("Took %d image(s) embedded in %s out of it (PNG files next to it, or packed), so it saves and loads fast." % [moved, tiles.resource_path.get_file()])
-	painter = MDSRoomPainter.open(path, tiles)
+	# Open in the editor, the scene there (with the changes not saved yet) is the one painted.
+	var live := live_scene_root(path)
+	painter = _open_from(live, path, tiles) if live else MDSRoomPainter.open(path, tiles)
+	_editor_seen = _history_mark(live) if live else []
 	if not painter:
 		return "Could not open %s." % path
 	canvas.open(world, id, painter)
@@ -527,12 +549,26 @@ func open_room(p_world: MDSWorld, id: String) -> String:
 	var note := painter.size_note()
 	if not note.is_empty():
 		status_message.emit(note)
+	_report_size()
 	_report_broken_tiles()
 	_fit_later()
 	return ""
 
 func _ready() -> void:
 	_adopt_controls.call_deferred()
+	# Changes made to the room's scene in the editor (the 2D editor, the Inspector) show here.
+	if not _sync_timer:
+		_sync_timer = Timer.new()
+		_sync_timer.one_shot = true
+		_sync_timer.wait_time = 0.3
+		_sync_timer.timeout.connect(sync_from_editor)
+		add_child(_sync_timer, false, Node.INTERNAL_MODE_BACK)
+		canvas.mouse_entered.connect(sync_from_editor)
+	if Engine.is_editor_hint() and Engine.has_singleton(&"EditorInterface"):
+		var ur: Object = Engine.get_singleton(&"EditorInterface").get_editor_undo_redo()
+		if ur and not ur.history_changed.is_connected(_on_editor_history):
+			ur.history_changed.connect(_on_editor_history)
+			ur.version_changed.connect(_on_editor_history)
 	# Effects are edited in the Inspector: changes there are changes to the room.
 	if Engine.is_editor_hint() and Engine.has_singleton(&"EditorInterface"):
 		var inspector: Object = Engine.get_singleton(&"EditorInterface").get_inspector()
@@ -579,17 +615,111 @@ func close_room(auto_save := true) -> void:
 func save() -> Error:
 	if not painter:
 		return ERR_UNCONFIGURED
+	# What changed in the editor first, so saving never writes over it.
+	sync_from_editor()
 	var err := painter.save()
 	if err == OK:
 		saved.emit(painter.scene_path)
+		# The editor reloaded it: that is no change to take in.
+		var live := live_scene_root(painter.scene_path)
+		_editor_seen = _history_mark(live) if live else []
 		var note := painter.size_note()
 		status_message.emit("Saved. " + note if not note.is_empty() else "Saved %s." % painter.scene_path.get_file())
+		_report_size()
 	elif not MDSWorldSceneTools.last_error.is_empty():
 		status_message.emit(MDSWorldSceneTools.last_error)
 	else:
 		status_message.emit("Could not save %s (error %d)." % [painter.scene_path, err])
 	canvas._overlay.queue_redraw()
 	return err
+
+# --- Changes made in the editor -------------------------------------------------------------
+
+## The root of the scene [param path] as it is open in the editor (with its changes not saved
+## yet), or null when it is not open (or there is no editor).
+static func live_scene_root(path: String) -> Node:
+	if path.is_empty() or not Engine.is_editor_hint() or not Engine.has_singleton(&"EditorInterface"):
+		return null
+	var ei: Object = Engine.get_singleton(&"EditorInterface")
+	var edited: Node = ei.get_edited_scene_root()
+	if edited and edited.scene_file_path == path:
+		return edited
+	for r: Node in ei.get_open_scene_roots():
+		if is_instance_valid(r) and r.scene_file_path == path:
+			return r
+	return null
+
+## [param live]'s root and the version of its undo history: it changes with every change made to
+## the scene in the editor. A scene in a tab not being edited changes not (its root asks the
+## editor for the history of everything else).
+static func _history_mark(live: Node) -> Array:
+	if not is_instance_valid(live) or not Engine.has_singleton(&"EditorInterface"):
+		return []
+	if live != Engine.get_singleton(&"EditorInterface").get_edited_scene_root():
+		return [live.get_instance_id(), -1]
+	var ur: Object = Engine.get_singleton(&"EditorInterface").get_editor_undo_redo()
+	var history: UndoRedo = ur.get_history_undo_redo(ur.get_object_history_id(live))
+	return [live.get_instance_id(), history.get_version() if history else -1]
+
+## A painter for the scene as [param live] has it, packed.
+static func _open_from(live: Node, path: String, tiles: TileSet) -> MDSRoomPainter:
+	var packed := PackedScene.new()
+	if packed.pack(live) != OK:
+		return MDSRoomPainter.open(path, tiles)
+	return MDSRoomPainter.open_packed(packed, path, tiles)
+
+func _on_editor_history() -> void:
+	if painter and _sync_timer and is_inside_tree():
+		_sync_timer.start()
+
+## Takes in the changes made to the room's scene in the editor since the Room view last did (it
+## does after every change there, a moment later, and before saving): see
+## [method sync_from_scene]. Returns whether there were any.
+func sync_from_editor() -> bool:
+	if not painter:
+		return false
+	var live := live_scene_root(painter.scene_path)
+	if not live:
+		return false
+	var mark := _history_mark(live)
+	if mark == _editor_seen:
+		return false
+	if canvas.is_busy():
+		# Mid-stroke: once it is done.
+		_sync_timer.start()
+		return false
+	_editor_seen = mark
+	return sync_from_scene(live)
+
+## Goes on from the room's scene as [param live] has it (the scene open in the editor, changed
+## there): what changed there shows here, and the Room view's own changes not saved yet stay,
+## merged with them tile by tile and item by item (where both changed the same one, the
+## scene's change wins; see [method MDSRoomPainter.rebase_onto]). The view, the tool and the
+## selection stay. Returns whether the scene had changed.
+func sync_from_scene(live: Node) -> bool:
+	if not painter or not is_instance_valid(live):
+		return false
+	var theirs := _open_from(live, painter.scene_path, painter.tile_set)
+	if not theirs:
+		return false
+	if MDSRoomPainter.same_state(theirs.base_state(), painter.base_state()) and MDSRoomPainter.scene_fingerprint(theirs.root) == MDSRoomPainter.scene_fingerprint(painter.root):
+		theirs.free_instance()
+		return false
+	var keep := canvas.selection_names()
+	var had := painter.dirty
+	var old := painter
+	painter = old.rebase_onto(theirs)
+	# The same items go on, changed in place: the Inspector keeps showing what it shows (with
+	# its sections as they were), and is not taken from what the user edits there.
+	painter.keep_items_of(old)
+	canvas.open(world, room_id, painter, true)
+	old.free_instance()
+	palette.set_painter(painter)
+	canvas.select_names(keep, true)
+	_report_broken_tiles()
+	_report_size()
+	_changed("%s changed in the editor: the Room view shows it now%s." % [painter.scene_path.get_file(), ", with its own changes not saved yet" if had else ""])
+	return true
 
 func set_tool(t: int) -> void:
 	canvas.tool = t
@@ -702,10 +832,10 @@ func _update_select_hint() -> void:
 		return
 	if canvas.tool == MDSRoomCanvas.Tool.PLACE:
 		var what := "the palette's tiles (%s)" % palette.describe_fill() if not canvas.place_fill.is_empty() else "the tiles picked in the tile palette (pick some there first)"
-		_select_hint.text = "Click to place %s, off the grid; drag right away to move them. R / Shift+R turn the tiles, Shift+click removes free tiles." % what
+		_select_hint.text = "Click to place %s, off the grid; drag right away to move them, drag their handles to resize them. R / Shift+R turn the tiles, Shift+click removes free tiles." % what
 	else:
 		var n := canvas.selection_counts()
-		_select_hint.text = "Click or drag a box to select (Shift adds), drag to move, R turns, the arrows nudge, Delete removes. Selected: %d tile(s), %d item(s)." % [n.y, n.x]
+		_select_hint.text = "Click or drag a box to select (Shift adds), drag to move, drag the handles to resize (Shift keeps the shape), R turns, the arrows nudge, Delete removes. Selected: %d tile(s), %d item(s)." % [n.y, n.x]
 
 func _on_role_selected(idx: int) -> void:
 	canvas.freeform_role = role_opt.get_item_id(idx)
@@ -1054,6 +1184,41 @@ func _report_broken_tiles() -> void:
 			var a: Vector2i = painter.layers[layer_name].get_cell_atlas_coords(c)
 			at.append("(%d, %d)" % [a.x, a.y])
 	status_message.emit("%s has tiles that point at tiles its tileset no longer has (%s; atlas %s): they draw nothing and have no collision. Their sheet was removed, or its tile size made bigger so fewer tiles fit. Remove broken tiles erases them." % [room_id, ", ".join(parts), ", ".join(at)])
+
+## Shows [member size_box] when the room's scene is big enough for Godot's editor to warn that
+## it is large on disk ([method MDSRoomPainter.size_note]), with Clear hidden tiles when hidden
+## layers hold tiles.
+func _report_size() -> void:
+	var note := painter.size_note() if painter else ""
+	size_box.visible = not note.is_empty()
+	if note.is_empty():
+		return
+	size_label.text = "Big scene: " + note
+	var n := 0
+	var hidden := painter.hidden_tiles()
+	for layer_name in hidden:
+		n += int(hidden[layer_name])
+	clear_hidden_button.visible = n > 0
+	clear_hidden_button.text = "Clear %d hidden tiles (%s)" % [n, ", ".join(PackedStringArray(hidden.keys()))]
+
+## Removes the tiles of the tile layers hidden in the scene (see
+## [method MDSRoomPainter.hidden_tiles]), then saves, so the scene is small again. Returns how
+## many tiles went. Ctrl+Z undoes it.
+func clear_hidden_tiles() -> int:
+	if not painter:
+		return 0
+	var hidden := painter.hidden_tiles()
+	if hidden.is_empty():
+		return 0
+	painter.checkpoint()
+	var n := 0
+	for layer_name in hidden:
+		painter.clear_layer(layer_name)
+		n += int(hidden[layer_name])
+	if save() == OK:
+		var kib := ceili(FileAccess.get_file_as_bytes(painter.scene_path).size() / 1024.0)
+		status_message.emit("Cleared %d tiles that never showed (hidden: %s) and saved: %s is %d KiB now. Ctrl+Z undoes it." % [n, ", ".join(PackedStringArray(hidden.keys())), painter.scene_path.get_file(), kib])
+	return n
 
 ## Erases the painted tiles that point at tiles the tileset no longer has (undoable).
 func remove_broken_tiles() -> int:

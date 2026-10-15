@@ -100,15 +100,16 @@ func _time_only() -> void:
 	await get_tree().process_frame
 	mat = m.get_materials()[0]
 	check(mat.shader.resource_path.ends_with("machinery_gothic.gdshader") and int(mat.get_shader_parameter("kind")) == 0, "a gothic one by the gothic shader")
-	check(mat.shader.get_shader_uniform_list().all(func(u: Dictionary) -> bool: return not str(u.name) in ["drift", "view_rect"]), "the shader knows nothing of the view or the camera")
-	# A camera and a player moving over it change nothing: the machines are fixed in the world.
+	check(mat.shader.get_shader_uniform_list().all(func(u: Dictionary) -> bool: return not str(u.name) in ["drift", "view_rect"]), "the shader knows nothing of the view")
+	# A camera and a player moving over it change nothing: the machines are fixed in the world
+	# (scroll_scale 1, by default: their camera offset stays zero; see test_follow_camera).
 	var cam := Camera2D.new()
 	host.add_child(cam)
 	cam.make_current()
 	var player := CharacterBody2D.new()
 	player.add_to_group(&"player")
 	host.add_child(player)
-	var keys := ["inst_a", "inst_b", "count", "unit", "layout_rect", "rect_origin", "rect_size"]
+	var keys := ["inst_a", "inst_b", "count", "unit", "layout_rect", "rect_origin", "rect_size", "offset"]
 	var snapshot := func() -> Array: return keys.map(func(k: String) -> Variant: return mat.get_shader_parameter(k))
 	var before: Array = snapshot.call()
 	var places := m.machine_places()
