@@ -1083,7 +1083,16 @@ func generate(new_variation: bool) -> void:
 	for k in ["background", "decor", "foreground", "stamps"]:
 		if fills.has(k):
 			made.append(k)
-	_changed("Generated a cave from %s's shape on the map (%s; %d gate(s) joined both ways). Paint over it, then Save." % [room_id, ", ".join(made), world.get_gates(room_id).size()])
+	# Its gate nodes moved onto the new openings, their collision across them.
+	var nodes := painter.gate_nodes()
+	var missing: PackedStringArray = []
+	for g in painter.gate_openings:
+		if not nodes.has(g):
+			missing.append(g)
+	var gates := "%d gate(s) joined both ways, their gate nodes on the new openings" % world.get_gates(room_id).size()
+	if not missing.is_empty():
+		gates += "; no gate node for %s yet (Inspect > Write to scene adds it)" % ", ".join(missing)
+	_changed("Generated a cave from %s's shape on the map (%s; %s). Paint over it, then Save." % [room_id, ", ".join(made), gates])
 
 ## What Generate cave makes, from the fills picked for each layer and the options (see
 ## [method MDSRoomPainter.generate_cave]).

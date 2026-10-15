@@ -70,6 +70,9 @@ var _scene_originals: Dictionary = {} ## path -> {visible, process_mode, positio
 var _detached: Dictionary = {} ## path -> [node, parent path, index]: removed by a save
 var _created: Dictionary = {} ## paths of layers and groups a save added (removed again when empty)
 var _base: Dictionary = {} ## the room as its scene had it last (see [method base_state])
+## The doorways the last Generate cave carved: gate name -> its box (scene-local), on the room's
+## edge across the opening, where the gate nodes were put (see [method fit_gate_nodes]).
+var gate_openings: Dictionary = {}
 
 const COLOR_SOURCE_NAME := "MDS colors"
 const MAX_UNDO := 60
@@ -704,6 +707,9 @@ func _remember(node: Node) -> String:
 	if not _scene_originals.has(p):
 		_scene_originals[p] = {"visible": node.visible if node is CanvasItem else true, "process_mode": node.process_mode,
 			"position": node.position if node is Node2D else Vector2.ZERO, "blockout": MDSLegacy.has_meta_key(node, &"mds_blockout")}
+		var box := _gate_box_shape(node)
+		if box:
+			_scene_originals[p].gate_size = (box.shape as RectangleShape2D).size
 	if not scene_edits.has(p):
 		scene_edits[p] = {}
 	return p
@@ -754,6 +760,72 @@ func is_scene_node_hidden(node: Node) -> bool:
 func scene_originals() -> Dictionary:
 	return _scene_originals
 
+## The scene's gate nodes: gate name -> node (MDSGates, nodes in the mds_gate group, nodes named
+## like a gate).
+func gate_nodes() -> Dictionary:
+	var out: Dictionary = {}
+	MDSWorldSceneTools._collect_gate_nodes(root, root, out)
+	return out
+
+## [param node]'s collision box (its first CollisionShape2D with a rectangle), or null.
+static func _gate_box_shape(node: Node) -> CollisionShape2D:
+	if not node is Area2D:
+		return null
+	for c in node.get_children():
+		if c is CollisionShape2D and (c as CollisionShape2D).shape is RectangleShape2D:
+			return c
+	return null
+
+static func _set_gate_size(node: Node, size: Vector2) -> void:
+	var box := _gate_box_shape(node)
+	if box and (box.shape as RectangleShape2D).size != size:
+		(box.shape as RectangleShape2D).size = size
+
+## Moves gate node [param node] and sizes its collision box so the box is [param box]
+## (scene-local), as an edit of the scene: undo takes it back, saving writes it.
+func fit_gate_node(node: Node2D, box: Rect2) -> void:
+	var p := _remember(node)
+	var shape := _gate_box_shape(node)
+	var parent := _local_transform(node.get_parent(), root)
+	var k := node.scale.abs()
+	var offset := node.transform.basis_xform(shape.position) if shape else Vector2.ZERO
+	scene_edits[p].position = (parent.affine_inverse() * box.get_center() - offset).round()
+	if shape:
+		scene_edits[p].gate_size = (box.size / Vector2(maxf(k.x, 0.001), maxf(k.y, 0.001))).round()
+	dirty = true
+
+## Puts the scene's gate nodes on the doorways [param openings] (gate name -> box, scene-local),
+## the ones Generate cave carved ([member gate_openings]): each node at its opening's middle on
+## the room's edge, its collision box across the opening. Returns how many it moved.
+func fit_gate_nodes(openings: Dictionary) -> int:
+	var nodes := gate_nodes()
+	var n := 0
+	for g in openings:
+		if nodes.has(g) and nodes[g] is Node2D and nodes[g].owner == root:
+			fit_gate_node(nodes[g], openings[g])
+			n += 1
+	return n
+
+## The gate nodes' collision boxes as they are now (Room view edits included): gate name -> box
+## (scene-local). For showing them.
+func gate_boxes() -> Dictionary:
+	var out: Dictionary = {}
+	var nodes := gate_nodes()
+	for g in nodes:
+		var node: Node2D = nodes[g]
+		var shape := _gate_box_shape(node)
+		if not shape:
+			continue
+		var path := _scene_path_of(node)
+		var e: Dictionary = scene_edits.get(path, {})
+		# A save applied the edits to the node: undone since, it is as it was before them.
+		var o: Dictionary = _scene_originals.get(path, {})
+		var size: Vector2 = e.get("gate_size", o.get("gate_size", (shape.shape as RectangleShape2D).size))
+		var xf := _local_transform(node.get_parent(), root) * Transform2D(node.rotation, node.scale, node.skew, e.get("position", o.get("position", node.position)))
+		var k := xf.get_scale().abs()
+		out[g] = Rect2(xf * shape.position - size * k * 0.5, size * k)
+	return out
+
 ## Applies [member scene_edits] to the scene, after putting back what earlier saves changed.
 func _apply_scene_edits() -> void:
 	for p in _detached.keys():
@@ -778,6 +850,8 @@ func _apply_scene_edits() -> void:
 			n.position = o.position
 		if not o.blockout and MDSLegacy.has_meta_key(n, &"mds_blockout"):
 			MDSLegacy.remove_meta_key(n, &"mds_blockout")
+		if o.has("gate_size"):
+			_set_gate_size(n, o.gate_size)
 	for p in scene_edits:
 		var n := root.get_node_or_null(NodePath(p))
 		if not n:
@@ -785,6 +859,8 @@ func _apply_scene_edits() -> void:
 		var e: Dictionary = scene_edits[p]
 		if e.has("position") and n is Node2D:
 			n.position = e.position
+		if e.has("gate_size"):
+			_set_gate_size(n, e.gate_size)
 		if e.get("removed", false):
 			_detached[p] = [n, root.get_path_to(n.get_parent()), n.get_index()]
 			n.get_parent().remove_child(n)
@@ -1681,10 +1757,21 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 	# Openings for gates.
 	var open: Dictionary = {}
 	var ts := tile_size()
+	gate_openings.clear()
 	for g in world.get_gates(id):
 		var gp := world.get_gate_local_pos(id, g)
 		var gc := cell_at("Terrain", gp + {"left": Vector2(ts.x, 0), "right": Vector2(-ts.x, 0), "top": Vector2(0, ts.y), "bot": Vector2(0, -ts.y)}.get(world.get_gate_side(id, g), Vector2.ZERO) * 0.5)
 		var side := world.get_gate_side(id, g)
+		# The doorway: its mouth (the opening's cells at the edge), and the gate's box across it.
+		var mouth := Rect2()
+		for a in range(-2, 2):
+			var m: Vector2i = gc + (Vector2i(0, a) if side == "left" or side == "right" else Vector2i(a, 0))
+			mouth = cell_rect("Terrain", m) if a == -2 else mouth.merge(cell_rect("Terrain", m))
+		match side:
+			"left", "right":
+				gate_openings[g] = Rect2(Vector2(gp.x - MDSWorldSceneTools.GATE_SIZE_ACROSS * 0.5, mouth.position.y), Vector2(MDSWorldSceneTools.GATE_SIZE_ACROSS, mouth.size.y))
+			"top", "bot":
+				gate_openings[g] = Rect2(Vector2(mouth.position.x, gp.y - MDSWorldSceneTools.GATE_SIZE_ACROSS * 0.5), Vector2(mouth.size.x, MDSWorldSceneTools.GATE_SIZE_ACROSS))
 		for a in range(-2, 2):
 			for depth in 7:
 				var c: Vector2i
@@ -1784,6 +1871,8 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 					solid[c] = true
 	if bool(fills.get("paths", true)):
 		connect_gates(world, id, inside, solid, open)
+	# The gate nodes go where their doorways now are, their collision across them.
+	fit_gate_nodes(gate_openings)
 	var terrain_fill: Dictionary = fills.get("terrain", {})
 	clear_layer("Terrain")
 	if terrain_fill.is_empty() or str(terrain_fill.get("type", "")) == "terrain":

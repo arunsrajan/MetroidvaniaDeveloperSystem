@@ -320,6 +320,11 @@ The map is one view of a room; the **Room view** is the other. It shows the room
   - **Paths:** every gate reaches every other one *and back*: walking, jumping and falling, checked with `MDSRoomPainter.climb_reach()`. Where the cave doesn't allow it, a path is carved through the room's own cells: tunnels as tall as the player, and shafts with ledges on alternate sides to climb. A floor goes under a tunnel only where a drop is too deep to climb out of. Jump height and player size come from **World settings > Player**.
 
   Untick any of them under the buttons. **New variation** rerolls it and **Auto-decorate** redoes only the decorations. Everything stays inside the room's shape, and irregular rooms get rock in their notches.
+- **Gates follow the cave.** Generate cave and New variation move the room's gate nodes onto the doorways they carve. Each `MDSGate` goes to its opening's middle on the room's edge, its collision box across the opening: 128 px along it and 48 across, clear of rock. A side gate's box stands on the ground kept under it.
+  - The Room view draws the gate nodes' boxes in yellow.
+  - The move is part of the generation's undo step, and saving writes it.
+  - A map gate with no gate node is named in the status line: **Inspect > Write to scene** adds it.
+  - In code: `MDSRoomPainter.gate_openings`, `fit_gate_nodes()` and `gate_boxes()`.
 - **A whole area:** with an area selected on the map (or a room of one open), the Room view shows the area's rooms in the order a player meets them: **<** and **>** go through them. **Caves for the area** generates a cave in every room with these fills and options. Rooms without a scene get one, and every room joins its gates both ways, so the whole area can be crossed and backtracked. **Leave rooms already painted alone** keeps the painted ones. The Areas tab (**Generate caves...**) and the map's right-click menu do it too. In code: `MDSWorldSceneTools.generate_area_caves(world, ids, path_for, fills)`.
 - **Save** writes the tiles into the room scene's `Background`, `Terrain` and `Decor` TileMapLayers (creating the missing ones) and touches nothing else in the scene. A scene open in an editor tab is reloaded. The map's silhouette updates from the terrain, so the two views stay in sync. Leaving the Room view saves automatically.
 - **Tiles:** with no tileset, MDS generates a starter pixel-art "mossy cave" set at `res://mds_tiles/mds_cave_tileset.tres`. It has moss-topped rock with collision and autotiling, a cave wall, teal foliage and decorations. Its atlas is the PNG next to it, `mds_cave_tileset.png`: repaint that and the tiles change.
@@ -758,9 +763,10 @@ Game (MDSWorldGame)     world_file, starting_room, starting_gate, player, camera
 It handles:
 
 - **Rooms:** one room scene loaded at a time, placed at its world position, so world coordinates match the map in every room. It starts in `starting_room` (or the world's start room) at `starting_gate`, the room's save point, or its middle. There's an optional fade between rooms.
-- **Transitions:** every `MDSGate` in a loaded room is wired up automatically. Entering one loads the target room and spawns the player just inside the entry gate. A short cooldown stops players bouncing straight back.
+- **Transitions:** every `MDSGate` in a loaded room is wired up automatically. Entering one loads the target room and spawns the player just inside the entry gate. A short cooldown stops players bouncing straight back. A gate entered during the cooldown is taken once it ends, if the player is still in it or went through it, so the player never falls out of the room.
 - **Momentum and vertical gates:** the player is held still during the transition and keeps its velocity (`keep_momentum`), so a run or a jump carries into the next room.
-  - Coming up through a hole into the floor of the room above (its `bot` gate), the player gets at least `up_exit_speed` (650 px/s) upward. It clears the hole and can land beside it instead of falling straight back.
+  - Coming up through a hole into the floor of the room above (its `bot` gate), the player gets at least `up_exit_speed` (650 px/s) upward.
+  - It is also set down at the rim of the hole, on the nearest floor beside it within reach of that hop (`land_beside_holes`, on by default), as in Hollow Knight. Otherwise, with nothing pushing it sideways, it would fall straight back through the hole into the room below. A room with no floor beside the hole keeps the player over it. In code: `MDSWorldGame.ledge_beside(gate)`.
   - Dropping in through a ceiling gate (`top`) never pushes the player upward.
   - Floor and ceiling gates need a gap in the terrain: the player has to reach the gate's area at the room's edge.
 - **Missing gate nodes:** a gate connected on the map with no `MDSGate` node in its scene prints a warning naming the room and gate.

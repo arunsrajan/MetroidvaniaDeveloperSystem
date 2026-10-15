@@ -248,7 +248,8 @@ func _process(_delta: float) -> void:
 		camera.global_position = target.global_position + follow_offset
 
 func _physics_process(_delta: float) -> void:
-	if not game or not target or room_id.is_empty() or _busy or confine != Confine.ROOM_SHAPE or zones.size() < 2:
+	# Not while the game changes rooms: these are the old room's zones.
+	if not game or not target or room_id.is_empty() or _busy or game.changing_room or confine != Confine.ROOM_SHAPE or zones.size() < 2:
 		return
 	var p := target.global_position
 	if zone.grow(zone_hysteresis).has_point(p):
@@ -275,6 +276,14 @@ func screen_center() -> Vector2:
 func enter_room(id: String, style: int, previous_center: Vector2) -> void:
 	if is_instance_valid(director):
 		director.cancel()
+	# A glide between the old room's zones still under way would go on setting its limits (and
+	# zoom) over the new room's: the camera would stay on the old room, now gone, and show nothing.
+	if _limit_tween:
+		_limit_tween.kill()
+		_limit_tween = null
+	if _zoom_tween:
+		_zoom_tween.kill()
+		_zoom_tween = null
 	style = get_room_transition(style)
 	room_id = id
 	var rects := game.world.get_world_rects(id)
