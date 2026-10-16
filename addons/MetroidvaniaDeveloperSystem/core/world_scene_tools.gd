@@ -171,6 +171,257 @@ static func generate_area_caves(world: MDSWorld, ids: Array[String], path_for: C
 			generated.append(id)
 	return {"made": made, "generated": generated, "skipped": skipped, "failed": failed}
 
+## After rooms were merged into [param id] (see [method MDSWorld.merge_rooms]): its scene's map
+## guides (MapBounds) follow its new rectangles, the gate nodes of [param drop_gates] (gates it
+## had between the merged rooms) go, and its gates from the other rooms get nodes, where the map
+## has them. Does nothing for a room without a scene. Returns OK, or the save's error (see
+## [member last_error]).
+static func prepare_merged_scene(world: MDSWorld, id: String, drop_gates: PackedStringArray = PackedStringArray()) -> Error:
+	last_error = ""
+	var path := world.get_scene_path(id)
+	if path.is_empty():
+		return OK
+	var packed := load_fresh(path)
+	if not packed:
+		last_error = "could not open %s" % path
+		return ERR_CANT_OPEN
+	var root := packed.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE)
+	remove_gate_nodes(root, drop_gates)
+	rebuild_map_bounds(world, id, root)
+	apply_gate_nodes(world, id, root, true)
+	var err := repack_safely(root, packed, path)
+	root.free()
+	return err
+
+## Takes the gate nodes named [param names] (the scene's own, not ones inside an instanced
+## scene) out of the scene instance [param root]. Returns how many went.
+static func remove_gate_nodes(root: Node, names: PackedStringArray) -> int:
+	if names.is_empty():
+		return 0
+	var existing: Dictionary = {}
+	_collect_gate_nodes(root, root, existing)
+	var n := 0
+	for gate_name in names:
+		var node: Node = existing.get(gate_name)
+		if node and is_instance_valid(node) and node.owner == root:
+			node.get_parent().remove_child(node)
+			node.free()
+			n += 1
+	return n
+
+## Makes the scene's map guides (the MapBounds node's rectangles, made with the scene) follow
+## room [param id]'s rectangles. Scenes without them are left alone.
+static func rebuild_map_bounds(world: MDSWorld, id: String, root: Node) -> void:
+	var bounds := root.get_node_or_null(^"MapBounds")
+	if not bounds:
+		return
+	for c in bounds.get_children():
+		if c is ReferenceRect:
+			bounds.remove_child(c)
+			c.free()
+	var rects := world.get_local_rects(id)
+	for i in rects.size():
+		var guide := ReferenceRect.new()
+		guide.name = "Rect%d" % (i + 1)
+		guide.editor_only = true
+		guide.border_color = Color(0.3, 0.9, 1.0)
+		guide.border_width = 4.0
+		guide.position = rects[i].position - (bounds as Node2D).position if bounds is Node2D else rects[i].position
+		guide.size = rects[i].size
+		guide.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bounds.add_child(guide)
+		guide.owner = root
+
+## A scene loaded again from its file (not the copy cached from before a tool re-saved it).
+static func load_fresh(path: String) -> PackedScene:
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	return ResourceLoader.load(path, "PackedScene", ResourceLoader.CACHE_MODE_REPLACE) as PackedScene
+
+## Brings what was painted and placed in the scenes of rooms merged into [param id] into its
+## scene, where each was on the map ([param sources]: [method MDSWorld.merge_rooms]'s
+## "sources", {id, origin, scene_path, rects (world)}): their tiles (only those inside their own
+## room, the walls where they meet re-connected), their freeform shapes, stamps, effects, tile
+## pieces and pictures, and the rest of their nodes (enemies, pickups, instanced scenes...).
+## Their gate nodes and map guides are not brought (see [method prepare_merged_scene]). Tiles
+## of another tileset or tile size, or off the merged room's grid, come as free tile pieces
+## where they were. The room needs a scene ([param tiles]: the tileset for one without).
+## Returns {error, tiles, pieces, items, nodes: counts brought; skipped: room ids without a
+## scene}.
+static func combine_room_scenes(world: MDSWorld, id: String, sources: Array, tiles: TileSet = null) -> Dictionary:
+	last_error = ""
+	var out := {"error": OK, "tiles": 0, "pieces": 0, "items": 0, "nodes": 0, "skipped": []}
+	var path := world.get_scene_path(id)
+	var packed := load_fresh(path)
+	var target: MDSRoomPainter = MDSRoomPainter.open_packed(packed, path, tiles) if packed else null
+	if not target:
+		last_error = "room %s has no scene to bring the others into" % id
+		out.error = ERR_CANT_OPEN
+		return out
+	var origin := world.get_origin(id)
+	var seams: Dictionary = {} # layer name -> cells to re-connect
+	for src: Dictionary in sources:
+		var src_path := str(src.get("scene_path", ""))
+		var src_packed := load_fresh(src_path) if src_path != path else null
+		var p: MDSRoomPainter = MDSRoomPainter.open_packed(src_packed, src_path, tiles) if src_packed else null
+		if not p:
+			out.skipped.append(str(src.get("id", "")))
+			continue
+		var src_origin: Vector2 = src.get("origin", Vector2.ZERO)
+		var off := src_origin - origin
+		var own: Array[Rect2] = []
+		for r: Rect2 in src.get("rects", []):
+			own.append(Rect2(r.position - src_origin, r.size))
+		_combine_tiles(target, p, off, own, seams, out)
+		_combine_items(target, p, off, out)
+		_combine_nodes(target, p, off, out)
+		p.free_instance()
+	# The walls where the rooms meet are drawn as one again.
+	for n: String in seams:
+		var l: TileMapLayer = target.layers[n]
+		var by_terrain: Dictionary = {}
+		for c: Vector2i in seams[n]:
+			var td := MDSRoomPainter.cell_tile_data(l, c)
+			if td and td.terrain_set >= 0 and td.terrain >= 0:
+				var key := Vector2i(td.terrain_set, td.terrain)
+				if not by_terrain.has(key):
+					by_terrain[key] = []
+				by_terrain[key].append(c)
+		for key: Vector2i in by_terrain:
+			var cells: Array[Vector2i] = []
+			cells.assign(by_terrain[key])
+			l.set_cells_terrain_connect(cells, key.x, key.y)
+	target.dirty = true
+	out.error = target.save()
+	target.free_instance()
+	return out
+
+## Copies [param p]'s tiles inside [param own] (its room, scene-local) into [param target],
+## [param off] further.
+static func _combine_tiles(target: MDSRoomPainter, p: MDSRoomPainter, off: Vector2, own: Array[Rect2], seams: Dictionary, out: Dictionary) -> void:
+	var inside := func(at: Vector2) -> bool:
+		for r in own:
+			if r.has_point(at):
+				return true
+		return own.is_empty()
+	for n in MDSRoomPainter.LAYER_ORDER:
+		var src: TileMapLayer = p.layers[n]
+		var dst: TileMapLayer = target.layers[n]
+		var cells: Array[Vector2i] = []
+		for c in src.get_used_cells():
+			if inside.call(src.transform * src.map_to_local(c)):
+				cells.append(c)
+		if cells.is_empty():
+			continue
+		var at := src.transform * src.map_to_local(cells[0]) + off
+		var same_grid: bool = p.tile_size() == target.tile_size() and _same_tile_set(src.tile_set, dst.tile_set) \
+			and target.cell_rect(n, target.cell_at(n, at)).get_center().distance_to(at) < 0.5 \
+			and src.transform.get_rotation() == dst.transform.get_rotation() and src.transform.get_scale() == dst.transform.get_scale()
+		if same_grid:
+			var seam: Dictionary = seams.get(n, {})
+			for c in cells:
+				var local := src.transform * src.map_to_local(c)
+				var d := target.cell_at(n, local + off)
+				dst.set_cell(d, src.get_cell_source_id(c), src.get_cell_atlas_coords(c), src.get_cell_alternative_tile(c))
+				out.tiles += 1
+				# On its room's edge: re-connected with what is beyond.
+				var edge := false
+				for k in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+					if not inside.call(src.transform * src.map_to_local(c + k)):
+						edge = true
+						break
+				if edge:
+					for dy in range(-1, 2):
+						for dx in range(-1, 2):
+							seam[d + Vector2i(dx, dy)] = true
+			seams[n] = seam
+		else:
+			var piece := TileMapLayer.new()
+			piece.name = "%s%s" % [n, "Piece"]
+			piece.tile_set = src.tile_set
+			for c in cells:
+				piece.set_cell(c, src.get_cell_source_id(c), src.get_cell_atlas_coords(c), src.get_cell_alternative_tile(c))
+			piece.transform = Transform2D(0.0, off) * src.transform
+			piece.z_index = MDSRoomPainter.LAYER_Z[n]
+			piece.set_meta(MDSRoomPainter.PIECE_META, n)
+			target.add_item(piece, MDSRoomPainter.TILES_GROUP)
+			out.pieces += 1
+	# Hidden tiles too, where they line up.
+	for n: String in p.blockout:
+		var src: TileMapLayer = p.blockout[n]
+		if src.get_used_cells().is_empty() or not _same_tile_set(src.tile_set, target.layers[n].tile_set) or p.tile_size() != target.tile_size():
+			continue
+		var dst := target.blockout_layer(n)
+		for c in src.get_used_cells():
+			var local := src.transform * src.map_to_local(c)
+			if inside.call(local):
+				dst.set_cell(target.cell_at(n, local + off), src.get_cell_source_id(c), src.get_cell_atlas_coords(c), src.get_cell_alternative_tile(c))
+
+static func _same_tile_set(a: TileSet, b: TileSet) -> bool:
+	if a == b:
+		return true
+	return a != null and b != null and not a.resource_path.is_empty() and a.resource_path == b.resource_path
+
+## Copies [param p]'s items (freeform shapes, stamps, effects, tile pieces, pictures) into
+## [param target], [param off] further. Outside-shape fills are left: they are made again for
+## the merged room's shape.
+static func _combine_items(target: MDSRoomPainter, p: MDSRoomPainter, off: Vector2, out: Dictionary) -> void:
+	for g in MDSRoomPainter.ITEM_GROUPS:
+		for node: Node in p.items(g):
+			if node.has_meta(MDSNotchFill.META):
+				continue
+			var d := MDSRoomPainter._item_data(node)
+			if d.has("position"):
+				d.position = (d.position as Vector2) + off
+			elif d.has("transform"):
+				d.transform = Transform2D(0.0, off) * (d.transform as Transform2D)
+			target.add_item(MDSRoomPainter._item_from(d), g)
+			out.items += 1
+
+## Copies the rest of [param p]'s scene (what isn't tiles, items, gates or map guides) into
+## [param target]'s, [param off] further.
+static func _combine_nodes(target: MDSRoomPainter, p: MDSRoomPainter, off: Vector2, out: Dictionary) -> void:
+	var painted: Array[Node] = []
+	for key: String in p._source_paths:
+		var node := p.root.get_node_or_null(p._source_paths[key])
+		if node:
+			painted.append(node)
+	for child in p.root.get_children():
+		if child.owner != p.root or MDSRoomPainter.is_item(child, p.root) or MDSRoomPainter.ITEM_GROUPS.has(String(child.name)):
+			continue
+		if String(child.name) in ["MapBounds", "Gates"] or child is MDSGate or child.has_meta(MDSNotchFill.META):
+			continue
+		var gates: Dictionary = {}
+		_collect_gate_nodes(child, child, gates)
+		if child is Node2D and MDSSceneScanner._gate_name_re.search(String(child.name).to_lower()):
+			continue
+		var holds_painted := false
+		for node in painted:
+			if node == child or child.is_ancestor_of(node):
+				holds_painted = true
+				break
+		if holds_painted:
+			continue
+		var copy := child.duplicate()
+		if copy is Node2D:
+			(copy as Node2D).position += off
+		elif copy is Control:
+			(copy as Control).position += off
+		# Scene-unique names (%Name) the merged scene has already stay plain names.
+		for n: Node in [copy] + copy.find_children("*", "", true, false):
+			if n.unique_name_in_owner and target.root.get_node_or_null(NodePath("%" + String(n.name))):
+				n.unique_name_in_owner = false
+		for gate_name: String in gates:
+			var g: Node = copy.get_node_or_null(child.get_path_to(gates[gate_name]))
+			if g and g != copy:
+				g.get_parent().remove_child(g)
+				g.free()
+		target.root.add_child(copy, true)
+		copy.owner = target.root
+		if copy.scene_file_path.is_empty():
+			MDSRoomPainter._own(copy, target.root)
+		out.nodes += 1
+
 ## The rooms of [param area] on [param layer] in the order a player meets them: from its
 ## top-left room through its doors, then any it doesn't reach.
 static func area_room_order(world: MDSWorld, area: String, layer: int) -> Array[String]:

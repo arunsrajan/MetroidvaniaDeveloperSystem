@@ -1720,6 +1720,9 @@ func clear_layer(layer_name: String) -> void:
 ## - "paths" (default true): every gate reaches every other one and back, walking, jumping and
 ##   falling (see [method climb_reach]); where the cave doesn't allow it, tunnels and shafts
 ##   with ledges to climb are carved, so a player can always go back the way they came.
+## - "parts" (default true): a merged room (see [method MDSWorld.merge_rooms]) keeps walls where
+##   its old rooms met, with openings where their doors were, each old room reached through
+##   them, instead of one big open cave.
 func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 0, terrain := 0, background: Dictionary = {}, fills: Dictionary = {}) -> void:
 	var rock: Dictionary = fills.get("terrain", {})
 	if not has_terrains() and (rock.is_empty() or str(rock.get("type", "")) == "terrain"):
@@ -1732,6 +1735,8 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 		inside = box
 	if inside.is_empty():
 		return
+	# A merged room: walls where its old rooms met (see MDSWorld.merge_rooms).
+	var part_of := part_cells(world, id, inside) if bool(fills.get("parts", true)) else {}
 	# The whole box of its rectangles is filled: rock wherever the cave doesn't reach.
 	var lo := Vector2i(1 << 30, 1 << 30)
 	var hi := Vector2i(-(1 << 30), -(1 << 30))
@@ -1742,8 +1747,10 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 	var dist: Dictionary = {}
 	var queue: Array = []
 	for c in inside:
+		var part: int = part_of.get(c, -1)
 		for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
-			if not inside.has(c + d):
+			var other: int = part_of.get(c + d, -1)
+			if not inside.has(c + d) or (part >= 0 and other >= 0 and other != part):
 				dist[c] = 1
 				queue.append(c)
 				break
@@ -1787,6 +1794,29 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 					_:
 						c = gc + Vector2i(a, depth - 3)
 				open[c] = true
+	# A merged room's old doors: openings through the walls between its parts, ground across
+	# side ones, and a place on each side that paths reach.
+	var part_ends: Array = []
+	var part_ground: Dictionary = {}
+	if not part_of.is_empty():
+		for d: Dictionary in world.get_part_doors(id):
+			var dc := cell_at("Terrain", d.pos)
+			var across: bool = d.side == "left" or d.side == "right"
+			if not across and d.side != "top" and d.side != "bot":
+				continue
+			for a in range(-2, 2):
+				for depth in range(-6, 7):
+					var c: Vector2i = dc + (Vector2i(depth, a) if across else Vector2i(a, depth))
+					if inside.has(c):
+						open[c] = true
+			if across:
+				for depth in range(-6, 7):
+					if inside.has(dc + Vector2i(depth, 2)):
+						part_ground[dc + Vector2i(depth, 2)] = true
+			for k in [-8, 8]:
+				var e: Vector2i = dc + (Vector2i(k, 1) if across else Vector2i(0, k))
+				if inside.has(e):
+					part_ends.append({"cell": e, "side": "part", "mouth": dc})
 	# Initial rock: outline band thick, thinning inwards with noise.
 	var solid: Dictionary = {}
 	var chance := {1: 1.0, 2: 0.8, 3: 0.42, 4: 0.18, 5: 0.06}
@@ -1813,15 +1843,16 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 			elif count <= 2:
 				next.erase(c)
 		solid = next
-	# A walkable floor: the two lowest inside cells of every column.
+	# A walkable floor: the two lowest inside cells of every column (of each old room of a
+	# merged one).
 	for x in range(lo.x, hi.x + 1):
-		var bottom := -(1 << 30)
+		var bottom: Dictionary = {}
 		for y in range(lo.y, hi.y + 1):
 			if inside.has(Vector2i(x, y)):
-				bottom = y
-		if bottom > -(1 << 30):
-			solid[Vector2i(x, bottom)] = true
-			solid[Vector2i(x, bottom - 1)] = true
+				bottom[part_of.get(Vector2i(x, y), -1)] = y
+		for y: int in bottom.values():
+			solid[Vector2i(x, y)] = true
+			solid[Vector2i(x, y - 1)] = true
 	# Ledges jutting out of the side walls, like jungle cave platforms, with room above.
 	var ledges := maxi(1, inside.size() / 240)
 	var keys: Array = inside.keys()
@@ -1860,6 +1891,8 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 		ledges -= 1
 	for c in open:
 		solid.erase(c)
+	for c in part_ground:
+		solid[c] = true
 	# Keep the ground under side gates so players can walk in.
 	for g in world.get_gates(id):
 		var side := world.get_gate_side(id, g)
@@ -1870,7 +1903,7 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 				if inside.has(c):
 					solid[c] = true
 	if bool(fills.get("paths", true)):
-		connect_gates(world, id, inside, solid, open)
+		connect_gates(world, id, inside, solid, open, part_ends)
 	# The gate nodes go where their doorways now are, their collision across them.
 	fit_gate_nodes(gate_openings)
 	var terrain_fill: Dictionary = fills.get("terrain", {})
@@ -1976,7 +2009,9 @@ func _generate_stamps(inside: Dictionary, solid: Dictionary, stamps: Dictionary,
 ## cells that must stay open). Where the cave doesn't allow it, a path is carved from the first
 ## gate through the room's own cells (off its edges, in long straight runs): tunnels as tall as
 ## the player, floored over drops too deep to climb out of, and shafts with ledges to climb.
-func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dictionary, keep: Dictionary = {}) -> void:
+## [param extra_ends] are more places to join ({cell, side, mouth}, like [method gate_end]'s),
+## such as the doors between a merged room's parts.
+func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dictionary, keep: Dictionary = {}, extra_ends: Array = []) -> void:
 	var ts := tile_size()
 	var player := MDSRoomCheck.PLAYER_DEFAULTS.duplicate()
 	player.merge(world.get_setting("player", {}), true)
@@ -1989,6 +2024,7 @@ func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dicti
 		var e := gate_end(world, id, g, inside)
 		if not e.is_empty():
 			ends.append(e)
+	ends.append_array(extra_ends)
 	if ends.size() < 2:
 		return
 	var clearance := _clearance(inside)
@@ -1997,10 +2033,18 @@ func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dicti
 	# A carving can cut another way off (a tunnel's floor across a chamber): checked again.
 	for attempt in 3:
 		var all_ok := true
+		# What the first end reaches, worked out again only after a carving.
+		var reached: Dictionary = {}
 		for i in range(1, ends.size()):
-			if _both_ways(inside, solid, ends[0], ends[i], reach):
+			if reached.is_empty():
+				var open_cells := _open_cells(inside, solid)
+				var land := land_map(open_cells)
+				reached = {"open": open_cells, "land": land, "from": climb_reach(open_cells, ends[0].cell, reach, 3, land)}
+			var from_i := climb_reach(reached.open, ends[i].cell, reach, 3, reached.land)
+			if _arrives(reached.from, ends[i], reached.open, reached.land, reach) and _arrives(from_i, ends[0], reached.open, reached.land, reach):
 				continue
 			all_ok = false
+			reached = {}
 			var path := _inner_path(inside, clearance, ends[0].cell, ends[i].cell, rng, attempt)
 			var k := 0
 			while k < path.size() - 1:
@@ -2083,6 +2127,25 @@ static func _inner_path(inside: Dictionary, clearance: Dictionary, a: Vector2i, 
 	while k != null:
 		out.push_front(Vector2i(k.x, k.y))
 		k = prev.get(k)
+	return out
+
+## A merged room's cells by the old room each is in (see [method MDSWorld.get_room_parts]):
+## cell -> part index, for the cells of [param inside]. Empty when the room isn't merged.
+func part_cells(world: MDSWorld, id: String, inside: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	var parts := world.get_room_parts(id)
+	if parts.size() < 2:
+		return out
+	var ts := tile_size()
+	for i in parts.size():
+		for r: Rect2 in parts[i]:
+			var c0 := Vector2i((r.position / ts - Vector2(0.5, 0.5)).ceil())
+			var c1 := Vector2i((r.end / ts - Vector2(0.5, 0.5)).ceil()) - Vector2i.ONE
+			for y in range(c0.y, c1.y + 1):
+				for x in range(c0.x, c1.x + 1):
+					var c := cell_at("Terrain", (Vector2(x, y) + Vector2(0.5, 0.5)) * ts)
+					if inside.has(c) and not out.has(c):
+						out[c] = i
 	return out
 
 ## Where gate [param gate_name] of room [param id] leads into the room: {cell (where the player

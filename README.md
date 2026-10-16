@@ -248,9 +248,58 @@ MDSAreaTools.link_touching(world, r.rooms, 0)     # doors to the areas it touche
 gen.fill(world, painted_cells, 0, "The Ashen Depths")   # cells you painted become rooms too
 ```
 
+### Importing a map image
+
+**World > Import map image...** turns a picture of a map into rooms on the map: a PNG exported from MDS or MetSys, a map made in another tool or drawn in a paint program, a screenshot of a game's map. You can also drop the picture on the map (from the FileSystem dock, or from outside Godot), or right-click empty space > **Import map image here...**.
+
+- **The grid** is found from where the rooms' edges are, across and down on their own, since cells are often wider than tall. The picture's cells become paint cells. When several sizes fit as well, the one shaped like the world's paint cell wins. You can also set the cell size and where a cell starts by hand. A PNG that MDS exported has a sidecar file (`<picture>.mdsmap.json`) that gives the grid exactly, and **Place: Where they were** puts its rooms back on the same paint cells.
+- **Areas:** room colors become areas, grouped by hue and saturation, so the shades one map style draws a room in are one area. Name them in the dialog; an existing area's name puts the rooms in it.
+- **Rooms:** cells of one area with no wall line between them are one room. A wall line is ink (dark lines) or any line unlike both rooms' colors, the lines MDS's map styles draw. Other choices are one room per color region, or one per cell.
+- **Doors:** a gap in a wall, or a gate marker on it (the squares MDS draws), is a door: a pair of connected gates. Rooms no door reaches get a door to a room they touch.
+- **Paint cells per cell** makes each cell of the picture several paint cells. A MetSys map's cell is a whole screen: 4 x 4 by default.
+- The preview shows the grid, the rooms in their area colors and the doors. Cells other rooms already have are left out, and one undo takes the import back.
+
+```gdscript
+var imp := MDSMapImageImporter.new()
+imp.load_image("res://maps/castle.png")   # reads <picture>.mdsmap.json too, if there is one
+var found := imp.analyze()                 # {cell_size, grid_offset, cells, areas, rooms, doors, warnings}
+world.checkpoint()
+var made := imp.apply(world, 0)            # right of the rooms on layer 0
+print(made.rooms.size(), " rooms, ", made.doors, " doors")
+```
+
+### Merging rooms
+
+Several rooms of the map can become one. Select them first: Ctrl+click rooms, or Ctrl+drag a box on empty space. Then right-click one of them > **Merge the N rooms into one...**. For a whole area, right-click one of its rooms > **Merge area X's rooms into one...**.
+
+- **Keep** picks the room that stays. It keeps its id, its scene and its settings; names, notes and abilities it lacks come from the others.
+- The others' rectangles and curved outlines join it, and so do their gates to the rest of the map. A gate whose name is taken is renamed, side plus number. Gates, links (their gate ends too), the start room and objectives that named the merged rooms now name it.
+- The gates between the merged rooms go. Where they were, the merged room keeps doors between its parts (`part_doors`), and it keeps its old rooms as `parts`.
+- **Bring what is painted in their scenes into its scene** copies the other rooms' content into the kept scene, where it was on the map. That covers tiles (only those inside their own room, with the walls where they meet drawn as one again), freeform shapes, stamps, effects, pictures and other nodes (enemies, pickups, instanced scenes). Tiles of another tileset, or off the grid, come as free tile pieces. Gate nodes and map guides are made anew. Their old scenes stay on disk, no longer used.
+- **Generate a cave for the merged room** builds it from its shape on the map, with the Room view's fills and Generate options. **Walls where the old rooms met** keeps a wall between its parts, with openings at their old doors and each part reached through them. Off, it is one open cave. **Variation** gives another cave.
+- **Open it in the Room view** goes on there. Generate cave and New variation work on it too; the **Merged walls** option is the same choice.
+- Ctrl+Z on the map takes the merge back. Scene files changed by the options stay as they are.
+
+```gdscript
+world.checkpoint()
+var r := world.merge_rooms(["Hall_01", "Hall_02", "Hall_03"], "Hall_01")
+# r: {id, removed, renamed: {"Hall_02/left1": "left2"}, dropped, sources}
+MDSWorldSceneTools.combine_room_scenes(world, r.id, r.sources, tiles)   # their scenes' content
+MDSWorldSceneTools.prepare_merged_scene(world, r.id, ["right1"])         # gate nodes, map guides
+painter.generate_cave(world, r.id, 7, 0, 0, {}, {"parts": true})         # walls between its parts
+```
+
 ### Room view: painting the room itself
 
 The map is one view of a room; the **Room view** is the other. It shows the room at its real size and lets you paint what's inside it. Open it with **Room view** in the tool panel's View section, **Paint room** in the Inspector, or right-click > **Paint room (actual view)**. A room that has no scene yet gets one first.
+
+**Several rooms together:** with an area selected, or several rooms selected on the map (Ctrl+click, Ctrl+drag a box), **Room view** shows them all where they are on the map. You can also right-click > **Edit area X in the Room view** or **Edit the N rooms in the Room view**. One room is edited, and the others show around it, dimmed, with their names.
+
+- A click in another room edits that one, and the press goes on there: a brush stroke paints in it at once.
+- Each room keeps its changes and its own undo while you edit another. Painting stops where another room starts.
+- **Save** saves every room changed. **<** and **>** go to the previous and next room.
+- **Generate all** makes a cave in every room shown, joined at their doors. **New variation for all** makes other caves. Ctrl+Z undoes them room by room.
+- Changes made in the editor to any of their scenes show too. In code: `MDSRoomView.open_rooms()`, `activate_room()` and `generate_all()`.
 
 ![Map view and Room view](docs/map_and_room_view.png)
 
@@ -724,9 +773,12 @@ What you change in the room's scene in Godot's editor shows in the Room view a m
 | `Delete` | Delete the selected gate, else the selected room |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo (100 steps) |
 | `Ctrl+D` | Duplicate the room |
-| Arrows | Nudge the room one grid step |
+| Arrows | Nudge the room one grid step (the rooms selected together: one paint cell) |
+| `Ctrl`+click / `Ctrl`+drag on empty space | Add a room to the selection or take it out / select the rooms in a box |
+| `Ctrl+A` / `Esc` | Select every room of the layer / let them go |
+| Drag one of the rooms selected together | Move them all (they stop against other rooms; doors where they touch) |
 | Wheel, middle/right drag, drag on empty space | Zoom, pan |
-| Right-click | Open/create/assign scene, play from here, fit to scene, add gate, set start, route, link, duplicate, delete, pins |
+| Right-click | Open/create/assign scene, play from here, fit to scene, add gate, set start, route, link, duplicate, delete, pins; the rooms selected together or the room's area: edit them in the Room view, merge them; empty space: import a map image |
 
 Everything saves automatically to the world file. It reloads if the file changes on disk (after a `git pull`, for example).
 
@@ -1351,7 +1403,7 @@ During such a run `MDSRuntime.active_request` holds the request (handy for skipp
 **Export** writes to `res://mds_exports/`:
 
 - **JSON:** map data and annotations (or the world), plus progression and the scan database
-- **PNG:** the whole current layer at high resolution
+- **PNG:** the whole current layer at high resolution, with a sidecar `<png>.mdsmap.json` that says where its grid is, so **Import map image** reads it back exactly
 - **Graphviz `.dot`:** the room graph clustered by area, with gated doors labeled and one-way doors as arrows (`dot -Tsvg map.dot -o map.svg`)
 - **Markdown design document:** summary, progression, bosses, rooms by area, open issues
 
@@ -1431,7 +1483,8 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── annotations.gd     # MDSAnnotations: MapData.mds.json
 │   ├── legacy.gd          # MDSLegacy: reads the names from before 3.1 (idp_ metadata, .idpworld.json...)
 │   ├── world.gd           # MDSWorld: .mdsworld.json (rooms, gates, areas, undo, runtime lookups)
-│   ├── world_scene_tools.gd # MDSWorldSceneTools: place/create scenes, sync gates, fit rooms
+│   ├── world_scene_tools.gd # MDSWorldSceneTools: place/create scenes, sync gates, fit rooms, combine merged rooms' scenes
+│   ├── map_image_importer.gd # MDSMapImageImporter: a picture of a map to rooms, areas and doors
 │   ├── area_generator.gd  # MDSAreaGenerator: area outlines (curves, slants, blocks) split into rooms with doors
 │   ├── area_tools.gd      # MDSAreaTools: areas as one piece (cells, outline, sliding, auto doors)
 │   ├── room_painter.gd    # MDSRoomPainter: paints a room scene's tile layers, generates caves, spritesheets
@@ -1506,6 +1559,8 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── decorate_dialog.gd # MDSDecorateDialog: Decorate options
 │   ├── trace_dialog.gd    # MDSTraceDialog: Trace drawing options and preview
 │   ├── area_generate_dialog.gd # MDSAreaGenerateDialog: Generate area options and preview
+│   ├── map_import_dialog.gd # MDSMapImportDialog: Import map image options and preview
+│   ├── merge_rooms_dialog.gd # MDSMergeRoomsDialog: Merge rooms options
 │   └── ui_util.gd         # MDSUi: shared controls, dialogs that fit the screen
 └── assets/                # Node icons (environment/: the effects')
 ```

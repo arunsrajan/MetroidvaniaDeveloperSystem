@@ -30,6 +30,8 @@ signal palette_requested
 signal room_requested(room_id: String)
 ## Generate caves in all the rooms of [param area] ([param rooms]) was pressed.
 signal area_caves_requested(area: String, rooms: Array[String])
+## Rooms shown together (see [method open_rooms]): [param room_id] is the one edited now.
+signal room_activated(room_id: String)
 
 const DEFAULT_TILESET := MDSTilesetFactory.DEFAULT_PATH
 const Shape := MDSTerrainShapes.Shape
@@ -85,7 +87,17 @@ var effect_list: ItemList
 var _effect_box: VBoxContainer
 var no_effects_check: CheckBox
 ## What Generate cave makes besides terrain: background, decor, foreground, stamps, paths.
-var generate_options := {"background": true, "decor": true, "foreground": true, "stamps": true, "paths": true}
+var generate_options := {"background": true, "decor": true, "foreground": true, "stamps": true, "paths": true, "parts": true}
+## Rooms shown together (see [method open_rooms]), [member room_id] the one edited. Empty: one.
+var _session: Array[String] = []
+## Their painters opened so far: id -> MDSRoomPainter ([member painter] among them). Each keeps
+## its changes and its undo history while another is edited.
+var _painters: Dictionary = {}
+var _session_label := ""
+## Scene path -> [method _history_mark] of the rooms shown together not edited now.
+var _editor_marks: Dictionary = {}
+var _session_row: Control
+var _area_caves_button: Button
 var _area := ""
 var _area_rooms: Array[String] = []
 var _area_box: VBoxContainer
@@ -366,7 +378,13 @@ func _init() -> void:
 	area_caves.pressed.connect(func() -> void:
 		if not _area.is_empty():
 			area_caves_requested.emit(_area, _area_rooms))
+	_area_caves_button = area_caves
 	MDSSidePanel.row(_area_box, [prev, next, area_caves])
+	var gen_all := MDSUi.button("Generate all", "Generate a cave in every room shown, with the fills and options here, each joined to its neighbours at their doors. Ctrl+Z undoes it room by room (in the room edited); Save writes them all")
+	gen_all.pressed.connect(func() -> void: generate_all(false))
+	var vary_all := MDSUi.button("New variation for all", "Generate the caves of every room shown again, with another random layout")
+	vary_all.pressed.connect(func() -> void: generate_all(true))
+	_session_row = MDSSidePanel.row(_area_box, [gen_all, vary_all])
 	var gen := MDSUi.button("Generate cave", "Replace the tiles with a cave built from the room's shape on the map: walls, floor, ledges, openings at its gates, paths between them, then background, decorations, foreground and stamps. Uses the fills picked for each layer (and the stamps picked for the Stamps tool), as the options below say")
 	gen.pressed.connect(func() -> void: generate(false))
 	generate_button = gen
@@ -376,7 +394,7 @@ func _init() -> void:
 	generation.add_child(again)
 	var options := HFlowContainer.new()
 	generation.add_child(options)
-	for o in [["background", "Background", "Paint the Background fill behind the cave"], ["decor", "Decor", "Decorations on floors and under ceilings; most floor ones of the Decor fill"], ["foreground", "Foreground", "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"], ["stamps", "Stamps", "Stamps of the set and category picked for the Stamps tool along the floors"], ["paths", "Paths", "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"]]:
+	for o in [["background", "Background", "Paint the Background fill behind the cave"], ["decor", "Decor", "Decorations on floors and under ceilings; most floor ones of the Decor fill"], ["foreground", "Foreground", "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"], ["stamps", "Stamps", "Stamps of the set and category picked for the Stamps tool along the floors"], ["paths", "Paths", "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"], ["parts", "Merged walls", "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"]]:
 		var c := CheckBox.new()
 		c.text = o[1]
 		c.tooltip_text = o[2]
@@ -461,7 +479,10 @@ func _init() -> void:
 	revert.pressed.connect(func() -> void:
 		if painter:
 			painter.dirty = false
-			open_room(world, room_id))
+			if _session.size() >= 2:
+				_revert_active()
+			else:
+				open_room(world, room_id))
 	actions.add_child(MDSSidePanel.fill(revert))
 	var edit := MDSUi.button("Edit in 2D", "Open the room scene in Godot's editor (saves first)")
 	edit.pressed.connect(func() -> void:
@@ -501,6 +522,7 @@ func _init() -> void:
 	canvas.image_dropped.connect(func(path: String) -> void: open_trace_dialog(path))
 	canvas.picked_changed.connect(_update_select_hint)
 	canvas.turn_requested.connect(func(degrees: float) -> void: turn(degrees))
+	canvas.room_pressed.connect(func(id: String) -> void: activate_room(id))
 	canvas.before_effect_drop = func() -> void:
 		if canvas.tool != MDSRoomCanvas.Tool.EFFECT:
 			set_tool(MDSRoomCanvas.Tool.EFFECT)
@@ -517,7 +539,7 @@ func _init() -> void:
 
 ## Opens the room for painting. Returns an error message, or "" on success.
 func open_room(p_world: MDSWorld, id: String) -> String:
-	if painter and painter.dirty:
+	if has_unsaved():
 		save()
 	close_room(false)
 	world = p_world
@@ -525,11 +547,7 @@ func open_room(p_world: MDSWorld, id: String) -> String:
 	var path := world.get_scene_path(id)
 	if path.is_empty():
 		return "%s has no scene." % id
-	var tiles_path := str(world.get_setting("room_tileset", ""))
-	var tiles := MDSTilesetFactory.get_or_create(tiles_path if not tiles_path.is_empty() else DEFAULT_TILESET)
-	var moved := MDSRoomPainter.externalize_sheets(tiles) if tiles else 0
-	if moved > 0:
-		status_message.emit("Took %d image(s) embedded in %s out of it (PNG files next to it, or packed), so it saves and loads fast." % [moved, tiles.resource_path.get_file()])
+	var tiles := _room_tiles()
 	# Open in the editor, the scene there (with the changes not saved yet) is the one painted.
 	var live := live_scene_root(path)
 	painter = _open_from(live, path, tiles) if live else MDSRoomPainter.open(path, tiles)
@@ -553,6 +571,189 @@ func open_room(p_world: MDSWorld, id: String) -> String:
 	_report_broken_tiles()
 	_fit_later()
 	return ""
+
+## The tileset room scenes without one paint with (the world's "room_tileset").
+func _room_tiles() -> TileSet:
+	var tiles_path := str(world.get_setting("room_tileset", "")) if world else ""
+	var tiles := MDSTilesetFactory.get_or_create(tiles_path if not tiles_path.is_empty() else DEFAULT_TILESET)
+	var moved := MDSRoomPainter.externalize_sheets(tiles) if tiles else 0
+	if moved > 0:
+		status_message.emit("Took %d image(s) embedded in %s out of it (PNG files next to it, or packed), so it saves and loads fast." % [moved, tiles.resource_path.get_file()])
+	return tiles
+
+## Opens rooms [param ids] together, where they are on the map (an area, the rooms selected on
+## the map): [param active] (the first by default) is edited, the others show around it,
+## dimmed. A press in one of them edits that one (see [method activate_room]); each keeps its
+## changes and undo history meanwhile, and Save saves them all. [param label] names them in the
+## bar ("Area Caves", "3 rooms"). Rooms without a scene are left out. Returns an error message,
+## or "" on success.
+func open_rooms(p_world: MDSWorld, ids: Array, active := "", label := "") -> String:
+	var list: Array[String] = []
+	for v in ids:
+		var id := str(v)
+		if p_world.has_room(id) and not list.has(id) and not p_world.get_scene_path(id).is_empty():
+			list.append(id)
+	if list.is_empty():
+		return "None of these rooms has a scene."
+	if active.is_empty() or not list.has(active):
+		active = list[0]
+	var err := open_room(p_world, active)
+	if not err.is_empty() or list.size() < 2:
+		return err
+	_session.assign(list)
+	_session_label = label if not label.is_empty() else "%d rooms" % list.size()
+	_painters[active] = painter
+	canvas.session = _session
+	canvas.session_painters = _painters
+	canvas.refresh_context()
+	_update_session_bar()
+	canvas._overlay.queue_redraw()
+	return ""
+
+## Whether several rooms are shown together (see [method open_rooms]).
+func is_session() -> bool:
+	return _session.size() >= 2
+
+## The rooms shown together (none: one room).
+func session_rooms() -> Array[String]:
+	return _session.duplicate()
+
+## Edits room [param id] of the rooms shown together (see [method open_rooms]); the one edited so
+## far stays open, with its changes and its undo history, shown around it. The view stays where
+## it is. Returns whether [param id] is the one edited now.
+func activate_room(id: String) -> bool:
+	if not _session.has(id) or not world or not world.has_room(id) or not painter:
+		return false
+	if id == room_id:
+		return true
+	if canvas.is_busy():
+		return false
+	var fresh := not _painters.has(id)
+	var p := _session_painter(id)
+	if not p:
+		return false
+	_editor_marks[painter.scene_path] = _editor_seen
+	# The same place on the map stays where it is on screen.
+	canvas.pan += (world.get_origin(id) - world.get_origin(room_id)) * canvas.zoom
+	painter = p
+	room_id = id
+	_editor_seen = _editor_marks.get(p.scene_path, [])
+	canvas.check_result = {}
+	canvas.open(world, id, painter, true)
+	palette.set_painter(painter)
+	_load_styles()
+	_fill_pickers(true)
+	if fresh:
+		_refresh_outside_fill()
+	_update_weather_label()
+	no_effects_check.set_pressed_no_signal(MDSEnvironment.is_none(str(world.get_room_value(id, "weather", ""))))
+	_update_session_bar()
+	_report_size()
+	_report_broken_tiles()
+	sync_from_editor()
+	room_activated.emit(id)
+	status_message.emit("Editing %s (%s). Its neighbours keep their changes; Save writes them all." % [id, _session_label])
+	return true
+
+## The painter of room [param id] of the rooms shown together, opened now if it wasn't.
+func _session_painter(id: String) -> MDSRoomPainter:
+	if _painters.has(id):
+		return _painters[id]
+	var path := world.get_scene_path(id)
+	if path.is_empty():
+		status_message.emit("%s has no scene." % id)
+		return null
+	var live := live_scene_root(path)
+	var p := _open_from(live, path, _room_tiles()) if live else MDSRoomPainter.open(path, _room_tiles())
+	if not p:
+		status_message.emit("Could not open %s." % path)
+		return null
+	_editor_marks[path] = _history_mark(live) if live else []
+	_painters[id] = p
+	return p
+
+## The bar of the rooms shown together: which one is edited, and buttons for all of them.
+func _update_session_bar() -> void:
+	var on := _session.size() >= 2
+	_session_row.visible = on
+	_area_caves_button.visible = not on
+	if not on:
+		return
+	_area_box.visible = true
+	var unsaved := 0
+	for p: MDSRoomPainter in _painters.values():
+		if p.dirty:
+			unsaved += 1
+	_area_label.text = "%s: room %d of %d (%s)%s. Click another one to edit it." % [_session_label, _session.find(room_id) + 1, _session.size(), room_id, ", %d unsaved" % unsaved if unsaved > 0 else ""]
+
+## Generate cave in every room shown together (see [method open_rooms]), with the fills and
+## options here, or New variation of them all ([param new_variation]). Each room can be undone
+## on its own (Ctrl+Z in it); Save writes them. Returns the number of rooms generated.
+func generate_all(new_variation: bool) -> int:
+	if _session.size() < 2:
+		generate(new_variation)
+		return 1 if painter else 0
+	if canvas.is_busy():
+		return 0
+	if new_variation:
+		_variation += 1
+	var fills := generation_fills()
+	var done := 0
+	var failed: PackedStringArray = []
+	for id in _session:
+		var p := _session_painter(id)
+		if not p:
+			failed.append(id)
+			continue
+		var room_fills := fills.duplicate()
+		var rock: Dictionary = room_fills.get("terrain", {})
+		var terrain := Vector2i.ZERO
+		if rock.is_empty() or str(rock.get("type", "")) == "terrain":
+			if not p.has_terrains():
+				failed.append(id)
+				continue
+			if rock.is_empty() or int(rock.get("set", 0)) >= p.tile_set.get_terrain_sets_count():
+				var first: Array = p.get_terrains()[0]
+				rock = {"type": "terrain", "set": first[0], "terrain": first[1]}
+				room_fills.terrain = rock
+			terrain = Vector2i(int(rock.get("set", 0)), int(rock.get("terrain", 0)))
+		p.checkpoint()
+		p.generate_cave(world, id, hash(id) + _variation * 7919, terrain.x, terrain.y, {}, room_fills)
+		done += 1
+	canvas.refresh_context()
+	_update_session_bar()
+	var text := "Generated caves in %d of %d rooms, joined at their doors. Ctrl+Z undoes it in the room edited; Save writes them all." % [done, _session.size()]
+	if not failed.is_empty():
+		text += " Not in %s (no terrains in its tileset: pick palette tiles or a color as the Terrain fill)." % ", ".join(failed)
+	_changed(text)
+	return done
+
+## Revert for the room edited among the rooms shown together: it is opened anew from its scene,
+## the others keep their changes.
+func _revert_active() -> void:
+	var path := painter.scene_path
+	var live := live_scene_root(path)
+	var fresh := _open_from(live, path, _room_tiles()) if live else MDSRoomPainter.open(path, _room_tiles())
+	if not fresh:
+		return
+	var old := painter
+	painter = fresh
+	_painters[room_id] = fresh
+	canvas.open(world, room_id, painter, true)
+	old.free_instance()
+	palette.set_painter(painter)
+	_editor_seen = _history_mark(live) if live else []
+	_update_session_bar()
+	_changed("Reverted %s." % room_id)
+
+## Whether a room shown has changes not saved.
+func has_unsaved() -> bool:
+	if painter and painter.dirty:
+		return true
+	for p: MDSRoomPainter in _painters.values():
+		if p.dirty:
+			return true
+	return false
 
 func _ready() -> void:
 	_adopt_controls.call_deferred()
@@ -598,15 +799,28 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
 		if painter and is_instance_valid(painter.root):
 			painter.root.free()
+		for p: MDSRoomPainter in _painters.values():
+			if p != painter and is_instance_valid(p.root):
+				p.root.free()
 		if is_instance_valid(controls) and not controls.get_parent():
 			controls.free()
 		if is_instance_valid(palette) and not palette.get_parent():
 			palette.free()
 
 func close_room(auto_save := true) -> void:
-	if painter and painter.dirty and auto_save:
+	if auto_save and has_unsaved():
 		save()
 	canvas.close()
+	# The other rooms shown with it.
+	_session.clear()
+	canvas.refresh_context()
+	for p: MDSRoomPainter in _painters.values():
+		if p != painter:
+			p.free_instance()
+	_painters.clear()
+	_editor_marks.clear()
+	if _session_row:
+		_update_session_bar()
 	if painter:
 		painter.free_instance()
 	painter = null
@@ -626,6 +840,27 @@ func save() -> Error:
 		var note := painter.size_note()
 		status_message.emit("Saved. " + note if not note.is_empty() else "Saved %s." % painter.scene_path.get_file())
 		_report_size()
+	# The other rooms shown with it that changed.
+	var others := 0
+	for id: String in _painters:
+		var p: MDSRoomPainter = _painters[id]
+		if p == painter or not p.dirty:
+			continue
+		var e := p.save()
+		if e == OK:
+			others += 1
+			saved.emit(p.scene_path)
+			var their_live := live_scene_root(p.scene_path)
+			_editor_marks[p.scene_path] = _history_mark(their_live) if their_live else []
+		else:
+			if err == OK:
+				err = e
+			status_message.emit("Could not save %s: %s" % [p.scene_path.get_file(), MDSWorldSceneTools.last_error if not MDSWorldSceneTools.last_error.is_empty() else "error %d" % e])
+	if others > 0 and err == OK:
+		status_message.emit("Saved %s and %d other room(s) shown." % [painter.scene_path.get_file(), others])
+	if _session_row and _session.size() >= 2:
+		_update_session_bar()
+		canvas.refresh_context()
 	elif not MDSWorldSceneTools.last_error.is_empty():
 		status_message.emit(MDSWorldSceneTools.last_error)
 	else:
@@ -678,18 +913,46 @@ func _on_editor_history() -> void:
 func sync_from_editor() -> bool:
 	if not painter:
 		return false
+	var others := false
+	for id: String in _painters.keys():
+		if id != room_id:
+			others = _sync_other(id) or others
 	var live := live_scene_root(painter.scene_path)
 	if not live:
-		return false
+		return others
 	var mark := _history_mark(live)
 	if mark == _editor_seen:
-		return false
+		return others
 	if canvas.is_busy():
 		# Mid-stroke: once it is done.
 		_sync_timer.start()
-		return false
+		return others
 	_editor_seen = mark
-	return sync_from_scene(live)
+	return sync_from_scene(live) or others
+
+## Takes in what changed in the editor in the scene of room [param id], one of the rooms shown
+## together not edited now (see [method sync_from_scene]). Returns whether it had changed.
+func _sync_other(id: String) -> bool:
+	var p: MDSRoomPainter = _painters[id]
+	var live := live_scene_root(p.scene_path)
+	if not live:
+		return false
+	var mark := _history_mark(live)
+	if mark == _editor_marks.get(p.scene_path, []):
+		return false
+	_editor_marks[p.scene_path] = mark
+	var theirs := _open_from(live, p.scene_path, p.tile_set)
+	if not theirs:
+		return false
+	if MDSRoomPainter.same_state(theirs.base_state(), p.base_state()) and MDSRoomPainter.scene_fingerprint(theirs.root) == MDSRoomPainter.scene_fingerprint(p.root):
+		theirs.free_instance()
+		return false
+	canvas.release_painter(id)
+	var rebased := p.rebase_onto(theirs)
+	_painters[id] = rebased
+	p.free_instance()
+	canvas.refresh_context()
+	return true
 
 ## Goes on from the room's scene as [param live] has it (the scene open in the editor, changed
 ## there): what changed there shows here, and the Room view's own changes not saved yet stay,
@@ -709,6 +972,8 @@ func sync_from_scene(live: Node) -> bool:
 	var had := painter.dirty
 	var old := painter
 	painter = old.rebase_onto(theirs)
+	if _painters.has(room_id):
+		_painters[room_id] = painter
 	# The same items go on, changed in place: the Inspector keeps showing what it shows (with
 	# its sections as they were), and is not taken from what the user edits there.
 	painter.keep_items_of(old)
@@ -1097,7 +1362,7 @@ func generate(new_variation: bool) -> void:
 ## What Generate cave makes, from the fills picked for each layer and the options (see
 ## [method MDSRoomPainter.generate_cave]).
 func generation_fills() -> Dictionary:
-	var fills := {"terrain": canvas.fills.get(MDSRoomCanvas.Tool.TERRAIN, {}), "paths": bool(generate_options.get("paths", true))}
+	var fills := {"terrain": canvas.fills.get(MDSRoomCanvas.Tool.TERRAIN, {}), "paths": bool(generate_options.get("paths", true)), "parts": bool(generate_options.get("parts", true))}
 	if fills.terrain.is_empty() or (str(fills.terrain.get("type", "")) == "terrain" and painter and painter.has_terrains()):
 		var t := _terrain_for_generation() if painter else Vector2i.ZERO
 		fills.terrain = {"type": "terrain", "set": t.x, "terrain": t.y}
@@ -1113,11 +1378,19 @@ func generation_fills() -> Dictionary:
 func set_area(area: String, rooms: Array[String]) -> void:
 	_area = area
 	_area_rooms = rooms
+	if _session.size() >= 2:
+		_update_session_bar()
+		return
 	_area_box.visible = not area.is_empty() and not rooms.is_empty()
 	var i := rooms.find(room_id)
 	_area_label.text = "Area %s: room %d of %d (%s)" % [area, i + 1, rooms.size(), room_id] if i >= 0 else "Area %s: %d rooms" % [area, rooms.size()]
 
 func _area_step(d: int) -> void:
+	# Rooms shown together: the next one is edited, in the middle of the view.
+	if _session.size() >= 2:
+		if activate_room(_session[posmod(_session.find(room_id) + d, _session.size())]):
+			canvas.fit(false)
+		return
 	if _area_rooms.is_empty():
 		return
 	var i := _area_rooms.find(room_id)
