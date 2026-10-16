@@ -15,11 +15,11 @@ const SECTION_DISPLAY := "Map display"
 const SECTION_MARKERS := "Markers"
 const SECTION_ROOM := "Room painting"
 
-enum WorldItem { NEW = 1000, OPEN, IMPORT_METSYS, RELOAD }
+enum WorldItem { NEW = 1000, OPEN, IMPORT_METSYS, RELOAD, IMPORT_IMAGE }
 enum ViewItem { LABELS, AREA_LABELS, TERRAIN, PREVIEWS, GATES, MARKERS, PINS, ISSUES, GRID, LEGEND }
 enum ExportItem { JSON, PNG, DOT, MARKDOWN }
 enum ScenesItem { RESCAN, ADD_SCENES, AUTO_CONNECT, SETTINGS, GAME_SCENE, AUTO_DOORS }
-enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, SET_START, ROUTE, LINK, DUPLICATE, DELETE, ADD_ROOM, ADD_PIN, REMOVE_PIN, ADD_GATE, COPY_ID, PAINT_ROOM, GENERATE_AREA, SELECT_AREA, AREA_CAVES }
+enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, SET_START, ROUTE, LINK, DUPLICATE, DELETE, ADD_ROOM, ADD_PIN, REMOVE_PIN, ADD_GATE, COPY_ID, PAINT_ROOM, GENERATE_AREA, SELECT_AREA, AREA_CAVES, EDIT_ROOMS, MERGE_ROOMS, EDIT_AREA, MERGE_AREA, IMPORT_IMAGE }
 
 # Data
 var world_path := ""
@@ -74,6 +74,8 @@ var rename_dialog: ConfirmationDialog
 var rename_edit: LineEdit
 var _rename_area := ""
 var caves_dialog: ConfirmationDialog
+var merge_dialog: MDSMergeRoomsDialog
+var import_dialog: MDSMapImportDialog
 var _caves_text: Label
 var _caves_skip: CheckBox
 var _caves_area := ""
@@ -326,6 +328,7 @@ func _build_ui() -> void:
 	canvas.hovered_changed.connect(_on_canvas_hover)
 	canvas.pin_requested.connect(_request_pin)
 	canvas.scenes_dropped.connect(_on_scenes_dropped)
+	canvas.image_dropped.connect(func(path: String, at: Vector2) -> void: open_import_dialog(path, at))
 	canvas.status_message.connect(_set_status)
 	canvas.tool_changed.connect(func(t: int) -> void: tool_buttons[t].button_pressed = true)
 	canvas.area_selected.connect(_on_canvas_area_selected)
@@ -652,6 +655,143 @@ func _build_area_dialogs() -> void:
 	MDSUi.scroll_content(caves_dialog, caves_box)
 	caves_dialog.confirmed.connect(generate_area_caves_now)
 	add_child(caves_dialog)
+	merge_dialog = MDSMergeRoomsDialog.new()
+	merge_dialog.merge_requested.connect(merge_rooms_now)
+	add_child(merge_dialog)
+	import_dialog = MDSMapImportDialog.new()
+	import_dialog.imported.connect(func(r: Dictionary) -> void:
+		var rooms: Array = r.get("rooms", [])
+		if rooms.is_empty():
+			_set_status("Nothing imported: every cell of the picture is taken on the map.")
+			return
+		var ids: Array[String] = []
+		ids.assign(rooms)
+		canvas.select_rooms(ids)
+		canvas.redraw()
+		_set_status("Imported %d room(s), %d area(s), %d door(s)%s. Ctrl+Z takes it back; right-click the rooms to edit them in the Room view or merge them." % [rooms.size(), r.areas.size(), r.doors,
+			", %d cell(s) left out (rooms there already)" % r.skipped_cells if int(r.skipped_cells) > 0 else ""]))
+	add_child(import_dialog)
+
+## Opens Import map image (a picture of a map becomes rooms), with the picture [param path] if
+## given ([param at]: where it was dropped on the map).
+func open_import_dialog(path := "", at := Vector2.INF) -> void:
+	if not world:
+		_set_status("Open or make a world first, then import a map image into it.")
+		return
+	import_dialog.open(world, canvas.layer, path, at)
+
+## Asks about merging rooms [param ids] into one ([param keep] first in the list to keep).
+func ask_merge_rooms(ids: Array[String], keep := "", label := "") -> void:
+	if not world:
+		return
+	var error := world.merge_error(ids)
+	if not error.is_empty():
+		_set_status(error)
+		return
+	merge_dialog.open(world, ids, keep, label)
+
+## Merges rooms [param ids] into [param keep] (see [method MDSWorld.merge_rooms]), then, as
+## [param options] say ({content, generate, walls, variation, open}): brings their scenes'
+## content into its scene, generates its cave, opens it in the Room view.
+func merge_rooms_now(ids: Array[String], keep: String, options: Dictionary) -> void:
+	var error := world.merge_error(ids, keep)
+	if not error.is_empty():
+		_set_status(error)
+		return
+	# The Room view shows rooms whose scenes change: saved, then shown again after.
+	if room_view.visible:
+		show_map_view()
+	world.checkpoint()
+	var r := world.merge_rooms(ids, keep)
+	if r.has("error"):
+		_set_status(str(r.error))
+		return
+	var id: String = r.id
+	var tiles_path := str(world.get_setting("room_tileset", ""))
+	var tiles := MDSTilesetFactory.get_or_create(tiles_path if not tiles_path.is_empty() else MDSRoomView.DEFAULT_TILESET)
+	var notes: PackedStringArray = []
+	var with_scenes: Array = r.sources.filter(func(src: Dictionary) -> bool: return not str(src.scene_path).is_empty())
+	var path := world.get_scene_path(id)
+	if bool(options.get("content", true)) and not with_scenes.is_empty():
+		if path.is_empty():
+			path = _default_scene_path(id)
+			if MDSWorldSceneTools.create_scene_for_room(world, id, path) != OK:
+				path = ""
+		if not path.is_empty():
+			var got := MDSWorldSceneTools.combine_room_scenes(world, id, r.sources, tiles)
+			if got.error == OK:
+				notes.append("%d tile(s), %d item(s), %d node(s) brought into its scene%s" % [got.tiles, got.items, got.nodes, ", %d free tile piece(s) (another tileset or grid)" % got.pieces if got.pieces > 0 else ""])
+			else:
+				notes.append("their scenes could not be brought in: %s" % MDSWorldSceneTools.last_error)
+	if not path.is_empty():
+		var drop: PackedStringArray = []
+		for d: String in r.dropped:
+			if d.begins_with(id + "/"):
+				drop.append(d.substr(id.length() + 1))
+		if MDSWorldSceneTools.prepare_merged_scene(world, id, drop) != OK:
+			notes.append("its scene's gate nodes could not be updated: %s" % MDSWorldSceneTools.last_error)
+	if bool(options.get("generate", false)):
+		var fills: Dictionary = room_view.generation_fills()
+		fills.parts = bool(options.get("walls", true))
+		var g := MDSWorldSceneTools.generate_area_caves(world, [id], _default_scene_path, fills, tiles, false, int(options.get("variation", 0)))
+		if not g.generated.is_empty():
+			notes.append("a cave generated (variation %d)" % int(options.get("variation", 0)))
+		for f: String in g.failed:
+			notes.append("no cave: %s" % g.failed[f])
+	path = world.get_scene_path(id)
+	if not path.is_empty():
+		EditorInterface.get_resource_filesystem().update_file(path)
+		if path in EditorInterface.get_open_scenes():
+			EditorInterface.reload_scene_from_path(path)
+	canvas.select_rooms([id])
+	var renamed: PackedStringArray = []
+	for k: String in r.renamed:
+		renamed.append("%s -> %s" % [k, r.renamed[k]])
+	var text := "Merged %d rooms into %s%s%s. Ctrl+Z on the map takes it back." % [ids.size(), id,
+		" (gates renamed: %s)" % ", ".join(renamed) if not renamed.is_empty() else "",
+		"; " + "; ".join(notes) if not notes.is_empty() else ""]
+	if bool(options.get("open", true)):
+		show_room_view(id)
+	_set_status(text)
+	if not path.is_empty():
+		await _scan_paths([path])
+
+## Shows rooms [param ids] together in the Room view (an area, the rooms selected on the map),
+## where they are on the map: [param active] is edited, a click on another edits that one, and
+## Save saves them all. Rooms without a scene get one.
+func show_rooms_view(ids: Array[String], active := "", label := "") -> void:
+	if not world:
+		return
+	var list: Array[String] = []
+	for id in ids:
+		if world.has_room(id) and world.get_room_layer(id) == world.get_room_layer(ids[0]):
+			list.append(id)
+	if list.size() < 2:
+		show_room_view(list[0] if not list.is_empty() else active)
+		return
+	var made := 0
+	var checkpointed := false
+	for id in list:
+		if not world.get_scene_path(id).is_empty():
+			continue
+		if not checkpointed:
+			world.checkpoint()
+			checkpointed = true
+		var path := _default_scene_path(id)
+		if MDSWorldSceneTools.create_scene_for_room(world, id, path) == OK:
+			EditorInterface.get_resource_filesystem().update_file(path)
+			made += 1
+	var error := room_view.open_rooms(world, list, active, label)
+	if not error.is_empty():
+		_set_status(error)
+		map_view_button.set_pressed_no_signal(true)
+		return
+	canvas.visible = false
+	room_view.visible = true
+	room_view_button.set_pressed_no_signal(true)
+	_show_room_sections(true)
+	_set_status("Room view: %s, %d rooms where they are on the map. Edit %s; click another room to edit it (each keeps its changes and undo); Save saves them all%s." % [label if not label.is_empty() else "%d rooms" % list.size(), list.size(), room_view.room_id,
+		"; %d new scene(s)" % made if made > 0 else ""])
 
 ## Opens the Generate area dialog for [param box] (paint cells) on the current layer.
 func open_generate_dialog(box: Rect2i) -> void:
@@ -738,6 +878,7 @@ func _refresh_world_list() -> void:
 	world_picker.add_item("New world...", WorldItem.NEW)
 	world_picker.add_item("Open world...", WorldItem.OPEN)
 	world_picker.add_item("Import from MetSys map...", WorldItem.IMPORT_METSYS)
+	world_picker.add_item("Import map image...", WorldItem.IMPORT_IMAGE)
 	world_picker.add_item("Reload", WorldItem.RELOAD)
 	_select_world_in_picker()
 
@@ -771,6 +912,8 @@ func _on_world_picked(idx: int) -> void:
 			_open_file_dialog("import_metsys", EditorFileDialog.FILE_MODE_OPEN_FILE, ["*.txt ; MetSys map data"], _metsys_map_path())
 		WorldItem.RELOAD:
 			load_world(world_path)
+		WorldItem.IMPORT_IMAGE:
+			open_import_dialog()
 		_:
 			load_world(world_picker.get_item_metadata(idx))
 
@@ -1212,12 +1355,20 @@ func show_room_view(id: String) -> void:
 		room_view.set_area(area, MDSWorldSceneTools.area_room_order(world, area, world.get_room_layer(id)))
 	_set_status("Room view: %s. Paint terrain, or press Generate cave to start from the room's shape on the map%s." % [id, " (Caves for the area does every room of %s)" % area if not area.is_empty() else ""])
 
-## The Room view button: the selected room, or the first room of the selected area.
+## The Room view button: the rooms selected together, or the selected room, or the selected
+## area's rooms (shown together).
 func _open_room_view() -> void:
+	var picked := canvas.get_selected_rooms()
+	if picked.size() >= 2:
+		show_rooms_view(picked, canvas.selected_room, "%d rooms" % picked.size())
+		return
 	var id := canvas.selected_room
 	if not world.has_room(id) and not canvas.selected_area.is_empty():
 		var group := canvas.selected_area
 		var order: Array[String] = MDSWorldSceneTools.area_room_order(world, group, canvas.layer) if not group.begins_with("#") else MDSAreaTools.group_rooms(world, group, canvas.layer)
+		if order.size() >= 2:
+			show_rooms_view(order, order[0], "Area " + group)
+			return
 		if not order.is_empty():
 			id = order[0]
 	show_room_view(id)
@@ -1242,7 +1393,8 @@ func generate_area_caves_now() -> void:
 	if not world or _caves_rooms.is_empty():
 		return
 	var shown := room_view.room_id if room_view.visible else ""
-	if room_view.painter and room_view.painter.dirty:
+	var shown_together: Array[String] = room_view.session_rooms() if room_view.visible else []
+	if room_view.has_unsaved():
 		room_view.save()
 	# The Room view's fills and Generate options (its defaults when no room was opened there).
 	var fills: Dictionary = room_view.generation_fills()
@@ -1259,7 +1411,9 @@ func generate_area_caves_now() -> void:
 	for path in changed:
 		EditorInterface.get_resource_filesystem().update_file(path)
 	var reopen := shown if world.has_room(shown) else _caves_rooms[0]
-	if room_view.visible or not shown.is_empty():
+	if shown_together.size() >= 2:
+		show_rooms_view(shown_together, reopen)
+	elif room_view.visible or not shown.is_empty():
 		show_room_view(reopen)
 	await _scan_paths(changed)
 	var text := "%s: caves generated in %d room(s)" % [_caves_area, r.generated.size()]
@@ -2147,16 +2301,24 @@ func _on_canvas_context(room_id: String, world_pos: Vector2, local_pos: Vector2)
 		if world.has_room(canvas.selected_room) and canvas.selected_room != room_id:
 			context_menu.add_item("Route from selected room to here", ContextItem.ROUTE)
 			context_menu.add_item("Link selected room to this room", ContextItem.LINK)
+		var picked := canvas.get_selected_rooms()
+		if picked.size() >= 2 and picked.has(room_id):
+			context_menu.add_separator()
+			context_menu.add_item("Edit the %d rooms in the Room view" % picked.size(), ContextItem.EDIT_ROOMS)
+			context_menu.add_item("Merge the %d rooms into one..." % picked.size(), ContextItem.MERGE_ROOMS)
 		if not world.get_room_area(room_id).is_empty():
 			context_menu.add_item("Select area %s" % world.get_room_area(room_id), ContextItem.SELECT_AREA)
+			context_menu.add_item("Edit area %s in the Room view" % world.get_room_area(room_id), ContextItem.EDIT_AREA)
+			context_menu.add_item("Merge area %s's rooms into one..." % world.get_room_area(room_id), ContextItem.MERGE_AREA)
 			context_menu.add_item("Generate caves for area %s..." % world.get_room_area(room_id), ContextItem.AREA_CAVES)
 		context_menu.add_item("Duplicate room", ContextItem.DUPLICATE)
-		context_menu.add_item("Delete room", ContextItem.DELETE)
+		context_menu.add_item("Delete the %d rooms" % picked.size() if picked.size() >= 2 and picked.has(room_id) else "Delete room", ContextItem.DELETE)
 		context_menu.add_separator()
 		context_menu.add_item("Copy room id", ContextItem.COPY_ID)
 	else:
 		context_menu.add_item("New room here", ContextItem.ADD_ROOM)
 		context_menu.add_item("Generate area here...", ContextItem.GENERATE_AREA)
+		context_menu.add_item("Import map image here...", ContextItem.IMPORT_IMAGE)
 	context_menu.add_item("Add pin here...", ContextItem.ADD_PIN)
 	if _nearest_pin(world_pos) >= 0:
 		context_menu.add_item("Remove nearest pin", ContextItem.REMOVE_PIN)
@@ -2201,9 +2363,18 @@ func _on_context_menu(item: int) -> void:
 			world.checkpoint()
 			canvas.selected_room = world.duplicate_room(id)
 		ContextItem.DELETE:
-			canvas.selected_room = id
-			canvas.selected_gate = ""
-			canvas.delete_selection()
+			var picked := canvas.get_selected_rooms()
+			if picked.size() >= 2 and picked.has(id):
+				world.checkpoint()
+				for r in picked:
+					world.remove_room(r)
+				canvas.select_rooms([])
+				_set_status("Deleted %d rooms. Ctrl+Z to undo." % picked.size())
+			else:
+				canvas.clear_room_selection()
+				canvas.selected_room = id
+				canvas.selected_gate = ""
+				canvas.delete_selection()
 		ContextItem.COPY_ID:
 			DisplayServer.clipboard_set(id)
 		ContextItem.ADD_ROOM:
@@ -2217,6 +2388,20 @@ func _on_context_menu(item: int) -> void:
 			open_generate_dialog(Rect2i(world.world_to_cell(_context_pos) - size / 2, size))
 		ContextItem.AREA_CAVES:
 			ask_area_caves(world.get_room_area(id))
+		ContextItem.EDIT_ROOMS:
+			var picked := canvas.get_selected_rooms()
+			show_rooms_view(picked, id, "%d rooms" % picked.size())
+		ContextItem.MERGE_ROOMS:
+			var picked := canvas.get_selected_rooms()
+			ask_merge_rooms(picked, id, "%d rooms" % picked.size())
+		ContextItem.EDIT_AREA:
+			var area := world.get_room_area(id)
+			show_rooms_view(MDSWorldSceneTools.area_room_order(world, area, world.get_room_layer(id)), id, "Area " + area)
+		ContextItem.MERGE_AREA:
+			var area := world.get_room_area(id)
+			ask_merge_rooms(MDSAreaTools.group_rooms(world, area, world.get_room_layer(id)), id, "area " + area)
+		ContextItem.IMPORT_IMAGE:
+			open_import_dialog("", _context_pos)
 		ContextItem.SELECT_AREA:
 			canvas.set_tool(MDSWorldCanvas.Tool.AREA)
 			canvas.select_area(world.get_room_area(id))
@@ -2515,6 +2700,10 @@ func _export_png(p: String) -> void:
 	await RenderingServer.frame_post_draw
 	var img := _export_viewport.get_texture().get_image()
 	var err := img.save_png(p) if img else ERR_CANT_CREATE
+	if err == OK:
+		# Where its grid is, so Import map image puts its rooms back exactly.
+		var cell := world.get_paint_cell()
+		MDSMapImageImporter.write_sidecar(p, cell * clone.zoom, clone.pan, cell, canvas.layer)
 	_export_viewport.queue_free()
 	_export_viewport = null
 	if err == OK:

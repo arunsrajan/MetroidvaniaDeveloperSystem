@@ -6,6 +6,26 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 ### Added
 
+- **Several rooms in the Room view:** an area, or the rooms selected on the map, show together where they are on the map. One is edited and the others show around it, dimmed.
+  - A click in another one edits it, and the press goes on there. Each keeps its changes and its own undo meanwhile, and painting stops where another room starts.
+  - **Save** saves them all, **<** and **>** go from one to the next, and **Generate all** / **New variation for all** make caves in every one, joined at their doors.
+  - Changes made in the editor to any of their scenes show too.
+  - In code: `MDSRoomView.open_rooms()`, `activate_room()`, `generate_all()`.
+- **Several rooms selected on the map:** Ctrl+click adds a room or takes it out, Ctrl+drag on empty space selects a box of them, Ctrl+A selects all of the layer's and Esc none.
+  - Dragging one moves them all: they stop against other rooms and get doors where they touch. The arrows nudge them and Delete deletes them, each with one undo.
+  - Right-click: **Edit the N rooms in the Room view**, **Merge the N rooms into one...**; for the room's area, **Edit area X in the Room view** and **Merge area X's rooms into one...**.
+  - In code: `MDSWorldCanvas.get_selected_rooms()`, `select_rooms()`, signal `selection_changed`.
+- **Merge rooms:** rooms of the map become one (`MDSWorld.merge_rooms()`).
+  - The kept room keeps its id, scene and settings; the others' rectangles, curved outlines and outer gates join it, renamed where a name is taken.
+  - Gates, links, the start room and objectives that named them name it. The gates between them go, kept as doors between its parts.
+  - Options: bring their scenes' tiles, items and nodes into its scene where they were (`MDSWorldSceneTools.combine_room_scenes()`, `prepare_merged_scene()`); generate its cave, with walls where the old rooms met and openings at their doors, and a variation of it; open it in the Room view.
+  - Generate cave keeps those walls in merged rooms (the **Merged walls** option; `fills.parts`), and paths reach each old room through its doors.
+- **Import map image** (World menu, a picture dropped on the map, or right-click on empty space): a picture of a map becomes rooms, areas and doors. That can be an MDS or MetSys export, another tool's map, a drawing or a screenshot (`MDSMapImageImporter`, `MDSMapImportDialog`).
+  - The grid is found by itself, across and down on their own, or set by hand. Colors become areas, and wall lines part rooms.
+  - Gaps in walls and gate markers become connected gates, and rooms no door reaches get one.
+  - A preview shows what it found, and one undo takes it back.
+- **Map image exports have a sidecar** (`<png>.mdsmap.json`) that says where the grid is, so Import map image puts the rooms back exactly where they were.
+
 - **Machinery backgrounds** (`MDSMachineryBackground`): giant machinery far behind the room, soft and out of focus, one kind at a time, fixed in the world and moving by time alone: neither the player nor the camera moves them. They are laid out over the room in screen-sized cells.
   - **Gothic (20)**, for Castlevania-style castles: giant wheels, clockwork, clock faces, pendulums, bells, chandeliers, rose windows, hanging chains, candelabra, winches, spiked rollers, hourglasses, organ pipes, banners, astrolabes, torches, windmills, swinging axes, saw blades and castle spires.
   - **Sci-fi (20)**, for Metroid-style stations: turbines, reactor cores, gyro rings, pistons, energy conduits, radar dishes, holograms, ringed planets, robot arms, drills, tesla coils, exhaust fans, bio pods, specimen tanks, data streams, laser sweeps, warp portals, crystal pylons, press hammers and cargo lifts.
@@ -48,6 +68,7 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 ### Fixed
 
+- **Links follow their gates.** Renaming or removing a gate left a link's gate end (`a_gate`, `b_gate`) naming the old gate.
 - **Tilesets no longer embed images.** Godot writes an image embedded in a `.tres` out byte by byte, so the starter tileset was 850 KiB of text.
   - The starter tileset's atlas is now the PNG next to it (linked in the editor, packed without loss elsewhere), and the solid colors' tile is packed.
   - A tileset made by an older version is mended when a room opens with it: images of 64x64 or more become PNG files next to it, smaller ones are packed. Its tiles stay the same; a starter tileset with a sheet added went from 916 KiB to 70 KiB.

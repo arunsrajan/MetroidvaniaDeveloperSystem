@@ -15,6 +15,9 @@ extends Control
 ## Wheel zooms, middle/right drag or left drag on empty space pans, double-click opens the
 ## scene, Shift+click routes, Delete removes, Ctrl+Z / Ctrl+Y undo/redo, Ctrl+D
 ## duplicates, arrows nudge by one grid step.
+## Several rooms: Ctrl+click adds a room to the selection (or takes it out), Ctrl+drag on empty
+## space selects the rooms in a box. Drag one of them to move them all; the Room view, Merge
+## and Delete act on all of them. Map images (PNG...) dropped here are imported as rooms.
 
 signal room_selected(room_id: String)
 signal room_activated(room_id: String)
@@ -25,6 +28,10 @@ signal view_changed
 signal route_requested(from_id: String, to_id: String)
 signal pin_requested(world_pos: Vector2)
 signal scenes_dropped(files: PackedStringArray, world_pos: Vector2)
+## A map image (PNG, JPG...) was dropped on the map, to import as rooms.
+signal image_dropped(path: String, world_pos: Vector2)
+## The rooms selected together changed (Ctrl+click, Ctrl+drag a box): see [method get_selected_rooms].
+signal selection_changed(ids: Array[String])
 signal tool_changed(new_tool: int)
 signal status_message(text: String)
 signal brush_size_changed(size: int)
@@ -38,7 +45,7 @@ signal generate_requested(box: Rect2i)
 enum Tool { SELECT, ROOM, RECT, GATE, PIN, PAINT, ERASE, AREA, GENERATE, AREA_PAINT }
 const TOOL_NAMES: PackedStringArray = ["Select (V)", "Draw room (R)", "Extend room (E)", "Gate (G)", "Pin (P)", "Paint (B)", "Erase (X)", "Area (A)", "Generate area (N)", "Paint area (M)"]
 const TOOL_HINTS: PackedStringArray = [
-	"Click to select, drag to move, drag handles to resize, drag from a gate to another gate to connect. A whole area: click or drag its name, or Alt+drag any of its rooms (once selected, drag any of its rooms; click one to pick just that room). Alt+drag a name moves only the name. Drop .tscn files here to place scenes.",
+	"Click to select, drag to move, drag handles to resize, drag from a gate to another gate to connect. Several rooms: Ctrl+click adds one (or takes it out), Ctrl+drag on empty space selects a box of them; drag one to move them all. A whole area: click or drag its name, or Alt+drag any of its rooms (once selected, drag any of its rooms; click one to pick just that room). Alt+drag a name moves only the name. Drop .tscn files here to place scenes, or a map image to import it.",
 	"Drag to draw a new room.",
 	"Drag to add a rectangle to the selected room (irregular shapes).",
 	"Click a room edge to add a gate. Drag from a gate to another gate to connect.",
@@ -49,7 +56,7 @@ const TOOL_HINTS: PackedStringArray = [
 	"Drag a box: an area is generated in it (rectangle or square, irregular, freeform or hybrid, with curved and slanted sides), split into rooms with doors between them.",
 	"Paint an area: the stroke becomes rooms with doors between them. Start inside an area to grow it, on empty space for a new area. [ ] change the brush size.",
 ]
-enum Drag { NONE, PAN, MOVE_ROOM, RESIZE, RUBBER, CONNECT, MOVE_GATE, MOVE_LABEL, PAINT, MOVE_AREA, STROKE }
+enum Drag { NONE, PAN, MOVE_ROOM, RESIZE, RUBBER, CONNECT, MOVE_GATE, MOVE_LABEL, PAINT, MOVE_AREA, STROKE, BOX_SELECT }
 
 const COLOR_BACKGROUND := Color(0.14, 0.12, 0.12)
 const COLOR_GRID := Color(1, 1, 1, 0.04)
@@ -124,6 +131,11 @@ var _stroke: Dictionary = {}
 var _stroke_area := ""
 ## Select tool: the room pressed in the selected area; a click without a drag selects it.
 var _area_drill := ""
+## Rooms selected together (Ctrl+click, Ctrl+drag a box): id -> true, in the order picked, the
+## primary [member selected_room] among them. Empty when one room or none is selected.
+var selected_rooms: Dictionary = {}
+## What a group move moves: "" an area ([member selected_area]), else the selected rooms.
+var _moving_group := ""
 
 func _init() -> void:
 	clip_contents = true
@@ -152,6 +164,7 @@ func set_data(p_world: MDSWorld, p_analysis: MDSAnalysis, p_scene_db: Dictionary
 		selected_gate = ""
 	if not world or MDSAreaTools.group_rooms(world, selected_area, layer).is_empty():
 		selected_area = ""
+	_prune_selection()
 	_update_previews()
 	redraw()
 
@@ -159,8 +172,97 @@ func set_layer(p_layer: int) -> void:
 	if layer != p_layer:
 		layer = p_layer
 		hovered_room = ""
+		if not selected_rooms.is_empty():
+			selected_rooms.clear()
+			selection_changed.emit(get_selected_rooms())
 		_update_previews()
 		redraw()
+
+## The rooms selected: the ones selected together (Ctrl+click, Ctrl+drag), else the selected
+## room, else none.
+func get_selected_rooms() -> Array[String]:
+	var out: Array[String] = []
+	if not world:
+		return out
+	if selected_rooms.size() >= 2:
+		for id: String in selected_rooms:
+			if world.has_room(id) and world.get_room_layer(id) == layer:
+				out.append(id)
+		return out
+	if world.has_room(selected_room):
+		out.append(selected_room)
+	return out
+
+## Selects [param ids] together ([param primary] the one the Inspector shows: the first by
+## default). One room or none selects it alone.
+func select_rooms(ids: Array, primary := "") -> void:
+	selected_rooms.clear()
+	for id in ids:
+		if world and world.has_room(str(id)) and world.get_room_layer(str(id)) == layer:
+			selected_rooms[str(id)] = true
+	var keys: Array = selected_rooms.keys()
+	if primary.is_empty() or not selected_rooms.has(primary):
+		primary = str(keys[0]) if not keys.is_empty() else ""
+	if selected_rooms.size() < 2:
+		selected_rooms.clear()
+	if not selected_area.is_empty():
+		selected_area = ""
+		area_selected.emit("")
+	selected_room = primary
+	selected_gate = ""
+	room_selected.emit(primary)
+	selection_changed.emit(get_selected_rooms())
+	redraw()
+
+## Takes the rooms selected together out of the selection (the primary room stays selected).
+func clear_room_selection() -> void:
+	if selected_rooms.is_empty():
+		return
+	selected_rooms.clear()
+	selection_changed.emit(get_selected_rooms())
+	redraw()
+
+## Drops rooms gone (undo, delete) or on another layer from the selection.
+func _prune_selection() -> void:
+	if selected_rooms.is_empty():
+		return
+	var before := selected_rooms.size()
+	for id: String in selected_rooms.keys():
+		if not world or not world.has_room(id) or world.get_room_layer(id) != layer:
+			selected_rooms.erase(id)
+	if selected_rooms.size() < 2:
+		selected_rooms.clear()
+	if selected_rooms.size() != before:
+		selection_changed.emit(get_selected_rooms())
+
+## Ctrl+click on [param room]: into the selection, or out of it.
+func _toggle_room(room: String) -> void:
+	if selected_rooms.is_empty():
+		# Start from what is selected: a room, or an area's rooms.
+		if not selected_area.is_empty():
+			for id in MDSAreaTools.group_rooms(world, selected_area, layer):
+				selected_rooms[id] = true
+		elif world.has_room(selected_room):
+			selected_rooms[selected_room] = true
+	if selected_rooms.has(room):
+		selected_rooms.erase(room)
+		if selected_room == room:
+			var keys: Array = selected_rooms.keys()
+			selected_room = str(keys.back()) if not keys.is_empty() else ""
+	else:
+		selected_rooms[room] = true
+		selected_room = room
+	if selected_rooms.size() < 2:
+		selected_rooms.clear()
+	if not selected_area.is_empty():
+		selected_area = ""
+		area_selected.emit("")
+	selected_gate = ""
+	room_selected.emit(selected_room)
+	selection_changed.emit(get_selected_rooms())
+	var n := get_selected_rooms().size()
+	status_message.emit("%d rooms selected: drag one to move them all; right-click for the Room view or Merge. Ctrl+click adds or takes out a room." % n if n >= 2 else "%s selected." % selected_room)
+	redraw()
 
 func set_tool(p_tool: int) -> void:
 	tool = p_tool
@@ -550,6 +652,8 @@ func _draw_overlay() -> void:
 		_draw_issue_badges(ci, ids)
 	if show.pins:
 		_draw_pins(ci)
+	if selected_rooms.size() >= 2:
+		_draw_rooms_selection(ci)
 	if world.has_room(selected_room) and world.get_room_layer(selected_room) == layer:
 		_draw_selection(ci)
 	if not selected_area.is_empty():
@@ -826,6 +930,27 @@ func _draw_area_selection(ci: CanvasItem) -> void:
 	ci.draw_string_outline(font, b.position + Vector2(0, -8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(0, 0, 0, 0.85))
 	ci.draw_string(font, b.position + Vector2(0, -8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, COLOR_SELECT)
 
+## The rooms selected together: each one's outline, and how many.
+func _draw_rooms_selection(ci: CanvasItem) -> void:
+	var ids := get_selected_rooms()
+	if ids.size() < 2:
+		return
+	for id in ids:
+		if world.has_room_shape(id):
+			for poly in MDSMapStyle.room_polygons(world, id):
+				var pts := _poly_on_screen(poly, true)
+				ci.draw_polyline(pts, Color(COLOR_SELECT, 0.3), 6.0)
+				ci.draw_polyline(pts, COLOR_SELECT, 1.5)
+		else:
+			for r in world.get_world_rects(id):
+				ci.draw_rect(world_rect_to_screen(r).grow(_border_px() + 1.0), Color(COLOR_SELECT, 0.3), false, 6.0)
+				ci.draw_rect(world_rect_to_screen(r).grow(_border_px() + 1.0), COLOR_SELECT, false, 1.5)
+	var b := world_rect_to_screen(MDSAreaTools.bounds_of(world, ids))
+	var text := "%d rooms selected" % ids.size()
+	var font := get_theme_default_font()
+	ci.draw_string_outline(font, b.position + Vector2(0, -8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color(0, 0, 0, 0.85))
+	ci.draw_string(font, b.position + Vector2(0, -8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, COLOR_SELECT)
+
 func _poly_on_screen(poly: PackedVector2Array, closed := false) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	for p in poly:
@@ -886,6 +1011,10 @@ func _draw_drag_feedback(ci: CanvasItem) -> void:
 		Drag.CONNECT:
 			if _drag_moved:
 				ci.draw_line(world_to_screen(world.get_gate_world_pos(_drag_room, _drag_gate)), _mouse, COLOR_SELECT, 2.0)
+		Drag.BOX_SELECT:
+			var r := Rect2(_drag_start, _mouse - _drag_start).abs()
+			ci.draw_rect(r, Color(COLOR_SELECT, 0.1))
+			ci.draw_rect(r, COLOR_SELECT, false, 1.5)
 
 func _draw_title(ci: CanvasItem) -> void:
 	var font := get_theme_default_font()
@@ -1158,14 +1287,28 @@ func _on_left_press(mb: InputEventMouseButton) -> void:
 		_begin_area_move(mb)
 		status_message.emit("%s selected: drag to move the whole area (it stops against its neighbours and connects to them). Click one of its rooms to pick just that room." % label)
 		return
+	var ctrl := mb.ctrl_pressed or mb.meta_pressed
 	if room.is_empty():
+		if ctrl:
+			# Ctrl+drag on empty space: the rooms in a box join the selection.
+			_begin_drag(Drag.BOX_SELECT, mb)
+			return
 		selected_room = ""
 		selected_gate = ""
 		room_selected.emit("")
+		clear_room_selection()
 		if not selected_area.is_empty():
 			select_area("")
 		_begin_drag(Drag.PAN, mb)
 		redraw()
+		return
+	if ctrl:
+		_toggle_room(room)
+		return
+	# A room of the rooms selected together: they all move (a click without a drag picks it alone).
+	if selected_rooms.size() >= 2 and selected_rooms.has(room):
+		_begin_group_move(mb, get_selected_rooms(), "selection")
+		_area_drill = room
 		return
 	if mb.shift_pressed and not selected_room.is_empty() and selected_room != room:
 		route_requested.emit(selected_room, room)
@@ -1181,6 +1324,7 @@ func _on_left_press(mb: InputEventMouseButton) -> void:
 	if not selected_area.is_empty():
 		selected_area = ""
 		area_selected.emit("")
+	clear_room_selection()
 	selected_room = room
 	selected_gate = ""
 	room_selected.emit(room)
@@ -1202,13 +1346,25 @@ func _on_left_release(mb: InputEventMouseButton) -> void:
 			if _drag_moved and _area_delta != Vector2i.ZERO:
 				_settle_area(_area_ids)
 			elif not _drag_moved and world.has_room(_area_drill):
-				# A click on a room of the selected area: just that room.
+				# A click on a room of the selected area (or of the rooms selected together): just that room.
 				selected_area = ""
 				area_selected.emit("")
+				clear_room_selection()
 				selected_room = _area_drill
 				selected_gate = ""
 				room_selected.emit(_area_drill)
 			_area_drill = ""
+			_moving_group = ""
+		Drag.BOX_SELECT:
+			if _drag_moved:
+				var box := Rect2(screen_to_world(_drag_start), (mb.position - _drag_start) / zoom).abs()
+				var ids: Array = get_selected_rooms()
+				for id in world.get_room_ids():
+					if world.get_room_layer(id) == layer and not ids.has(id) and world.get_room_bounds(id).intersects(box):
+						ids.append(id)
+				select_rooms(ids, selected_room)
+				var n := get_selected_rooms().size()
+				status_message.emit("%d rooms selected: drag one to move them all; right-click for the Room view or Merge." % n if n >= 2 else ("%s selected." % selected_room if not selected_room.is_empty() else "No rooms in the box."))
 		Drag.STROKE:
 			_finish_stroke()
 		Drag.RUBBER when tool == Tool.GENERATE:
@@ -1344,7 +1500,7 @@ func _apply_drag(pos: Vector2) -> void:
 				for id in _area_ids:
 					_sync_preview_position(id)
 			if got != want:
-				status_message.emit("%s stops against its neighbour. Let go to connect them." % MDSAreaTools.group_name(selected_area))
+				status_message.emit("%s stops against its neighbour. Let go to connect them." % _group_title())
 	redraw()
 
 func _on_key(key: InputEventKey) -> void:
@@ -1377,6 +1533,12 @@ func _on_key(key: InputEventKey) -> void:
 			set_tool(Tool.PAINT)
 		KEY_X:
 			set_tool(Tool.ERASE)
+		KEY_A when ctrl:
+			var all: Array = []
+			for id in world.get_room_ids():
+				if world.get_room_layer(id) == layer:
+					all.append(id)
+			select_rooms(all, selected_room)
 		KEY_A when not ctrl:
 			set_tool(Tool.AREA)
 		KEY_N when not ctrl:
@@ -1392,6 +1554,8 @@ func _on_key(key: InputEventKey) -> void:
 		KEY_ESCAPE:
 			if tool != Tool.SELECT:
 				set_tool(Tool.SELECT)
+			elif not selected_rooms.is_empty():
+				clear_room_selection()
 			else:
 				route.clear()
 				highlight_rooms.clear()
@@ -1399,7 +1563,10 @@ func _on_key(key: InputEventKey) -> void:
 		KEY_DELETE, KEY_BACKSPACE:
 			delete_selection()
 		KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN:
-			if not selected_area.is_empty() and (tool == Tool.AREA or not world.has_room(selected_room)):
+			if selected_rooms.size() >= 2 and tool == Tool.SELECT:
+				var d: Vector2i = {KEY_LEFT: Vector2i.LEFT, KEY_RIGHT: Vector2i.RIGHT, KEY_UP: Vector2i.UP, KEY_DOWN: Vector2i.DOWN}[key.keycode]
+				_nudge_group(get_selected_rooms(), d, "")
+			elif not selected_area.is_empty() and (tool == Tool.AREA or not world.has_room(selected_room)):
 				var d: Vector2i = {KEY_LEFT: Vector2i.LEFT, KEY_RIGHT: Vector2i.RIGHT, KEY_UP: Vector2i.UP, KEY_DOWN: Vector2i.DOWN}[key.keycode]
 				nudge_area(d)
 			elif world.has_room(selected_room):
@@ -1426,6 +1593,18 @@ func _redo() -> void:
 ## Deletes the selected gate, else the selected room; the selected area's rooms when an area
 ## is selected (Area tool, or its name clicked).
 func delete_selection() -> void:
+	if selected_rooms.size() >= 2 and tool == Tool.SELECT and selected_gate.is_empty():
+		var picked := get_selected_rooms()
+		world.checkpoint()
+		for id in picked:
+			world.remove_room(id)
+		selected_rooms.clear()
+		selected_room = ""
+		room_selected.emit("")
+		selection_changed.emit(get_selected_rooms())
+		status_message.emit("Deleted %d rooms. Ctrl+Z to undo." % picked.size())
+		redraw()
+		return
 	if not selected_area.is_empty() and (tool == Tool.AREA or not world.has_room(selected_room)):
 		var ids := MDSAreaTools.group_rooms(world, selected_area, layer)
 		if ids.is_empty():
@@ -1460,49 +1639,69 @@ func select_area(group: String) -> void:
 	if not group.is_empty():
 		selected_room = ""
 		selected_gate = ""
+		clear_room_selection()
 	area_selected.emit(group)
 	redraw()
 
 func _begin_area_move(mb: InputEventMouseButton) -> void:
+	_begin_group_move(mb, MDSAreaTools.group_rooms(world, selected_area, layer), "")
+
+## Starts moving [param ids] together: an area ([param group] ""), or the rooms selected
+## together ("selection"). They move in paint cells and stop against the others.
+func _begin_group_move(mb: InputEventMouseButton, ids: Array[String], group: String) -> void:
 	_begin_drag(Drag.MOVE_AREA, mb)
 	_area_drill = ""
-	_area_ids = MDSAreaTools.group_rooms(world, selected_area, layer)
+	_moving_group = group
+	_area_ids = ids
 	_area_origins.clear()
 	for id in _area_ids:
 		_area_origins[id] = world.get_origin(id)
 	_area_labels.clear()
-	if not selected_area.begins_with("#"):
+	if group.is_empty() and not selected_area.begins_with("#"):
 		_area_labels[selected_area] = world.get_area_label_pos(selected_area)
 	_area_own = MDSAreaTools.cells_of(world, _area_ids)
 	_area_taken = MDSAreaTools.occupied(world, layer, _area_ids)
 	_area_delta = Vector2i.ZERO
 
+## What is being moved, for messages: the area's name, or the number of rooms selected.
+func _group_title() -> String:
+	if _moving_group == "selection":
+		return "The %d rooms" % _area_ids.size()
+	return MDSAreaTools.group_name(selected_area)
+
 ## Moves the selected area [param d] cells unless that lands it on another, then connects it
 ## to what it touches.
 func nudge_area(d: Vector2i) -> void:
-	var ids := MDSAreaTools.group_rooms(world, selected_area, layer)
+	_nudge_group(MDSAreaTools.group_rooms(world, selected_area, layer), d, selected_area)
+
+## Moves [param ids] [param d] cells unless that lands them on other rooms, then connects them
+## to what they touch ([param area]: the area moved, whose name label moves along).
+func _nudge_group(ids: Array[String], d: Vector2i, area: String) -> void:
 	if ids.is_empty():
 		return
+	_moving_group = "" if not area.is_empty() else "selection"
+	_area_ids = ids
 	if not MDSAreaTools.fits(MDSAreaTools.cells_of(world, ids), d, MDSAreaTools.occupied(world, layer, ids)):
-		status_message.emit("%s is against its neighbour there." % MDSAreaTools.group_name(selected_area))
+		status_message.emit("%s is against its neighbour there." % _group_title())
 		return
 	world.checkpoint()
 	var origins: Dictionary = {}
 	for id in ids:
 		origins[id] = world.get_origin(id)
 	var labels: Dictionary = {}
-	if not selected_area.begins_with("#"):
-		labels[selected_area] = world.get_area_label_pos(selected_area)
+	if not area.is_empty() and not area.begins_with("#"):
+		labels[area] = world.get_area_label_pos(area)
 	MDSAreaTools.place(world, ids, origins, Vector2(d) * world.get_paint_cell(), labels)
 	for id in ids:
 		_sync_preview_position(id)
 	_settle_area(ids)
+	_moving_group = ""
 
 ## After an area moved: doors to the areas it left go, doors to the ones it touches now come.
 func _settle_area(ids: Array[String]) -> void:
 	var gone := MDSAreaTools.unlink_apart(world, ids)
 	var made := MDSAreaTools.link_touching(world, ids, layer)
-	var text := "Moved %s." % MDSAreaTools.group_name(selected_area)
+	var text := "Moved %s." % _group_title()
 	if not made.is_empty():
 		var parts: PackedStringArray = []
 		for m in made:
@@ -1556,14 +1755,24 @@ func _notification(what: int) -> void:
 				_overlay.queue_redraw()
 		NOTIFICATION_RESIZED:
 			redraw()
+		NOTIFICATION_ENTER_TREE:
+			if not get_window().files_dropped.is_connected(_on_files_dropped):
+				get_window().files_dropped.connect(_on_files_dropped)
+		NOTIFICATION_EXIT_TREE:
+			var w := get_window()
+			if w and w.files_dropped.is_connected(_on_files_dropped):
+				w.files_dropped.disconnect(_on_files_dropped)
 
 # --- Drag and drop from the FileSystem dock --------------------------------------------------
+
+static func _is_image(path: String) -> bool:
+	return path.get_extension().to_lower() in MDSRoomCanvas.IMAGE_EXTENSIONS
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if not world or not data is Dictionary or data.get("type", "") != "files":
 		return false
 	for f in data.get("files", []):
-		if str(f).ends_with(".tscn") or str(f).ends_with(".scn"):
+		if str(f).ends_with(".tscn") or str(f).ends_with(".scn") or _is_image(str(f)):
 			return true
 	return false
 
@@ -1572,7 +1781,20 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 	for f in data.get("files", []):
 		if str(f).ends_with(".tscn") or str(f).ends_with(".scn"):
 			files.append(f)
-	scenes_dropped.emit(files, screen_to_world(at_position))
+		elif _is_image(str(f)):
+			image_dropped.emit(str(f), screen_to_world(at_position))
+			return
+	if not files.is_empty():
+		scenes_dropped.emit(files, screen_to_world(at_position))
+
+## A map image dragged in from outside Godot, dropped on the map.
+func _on_files_dropped(files: PackedStringArray) -> void:
+	if not world or not is_visible_in_tree() or not get_global_rect().has_point(get_global_mouse_position()):
+		return
+	for f in files:
+		if _is_image(f):
+			image_dropped.emit(f, screen_to_world(get_local_mouse_position()))
+			return
 
 func _get_tooltip(at_position: Vector2) -> String:
 	if not world:

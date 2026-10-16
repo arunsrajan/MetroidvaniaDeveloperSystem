@@ -325,6 +325,254 @@ func duplicate_room(id: String) -> String:
 	_touch()
 	return new_id
 
+## Merges rooms [param ids] (two or more, of one layer) into one: [param keep_id] (the first by
+## default) keeps its key, origin, scene and values; the others' rectangles, outlines and gates
+## to the rest of the map join it, and every gate, link, start room and objective that named
+## them names it. Gates between the merged rooms go: where they were, the merged room keeps a
+## door between its parts ("part_doors"), and its old rooms are kept as "parts" (scene-local
+## rectangles), so Generate cave can keep walls between them with gaps at those doors. Gates
+## that would have the same name are renamed (side + number). No checkpoint: the caller takes
+## one. Returns {id, removed: absorbed ids, renamed: {"room/gate": new name}, dropped:
+## ["room/gate"], sources: [{id, origin, scene_path, rects (world)}] of the absorbed rooms}, or
+## {error}.
+func merge_rooms(ids: Array, keep_id := "") -> Dictionary:
+	var error := merge_error(ids, keep_id)
+	if not error.is_empty():
+		return {"error": error}
+	var picked: Array[String] = []
+	for v in ids:
+		var id := str(v)
+		if not picked.has(id):
+			picked.append(id)
+	if keep_id.is_empty():
+		keep_id = picked[0]
+	# The kept room first: its gates keep their names.
+	picked.erase(keep_id)
+	picked.push_front(keep_id)
+	var origin := get_origin(keep_id)
+	var sources: Array = []
+	for id in picked:
+		if id != keep_id:
+			var world_rects: Array[Rect2] = get_world_rects(id)
+			sources.append({"id": id, "origin": get_origin(id), "scene_path": get_scene_path(id), "rects": world_rects})
+	# Rectangles, relative to the kept origin; the old rooms as parts.
+	var rects: Array = []
+	var parts: Array = []
+	var shaped := false
+	var pieces: Array[PackedVector2Array] = []
+	for id in picked:
+		var off := get_origin(id) - origin
+		var old_parts: Array = data.rooms[id].get("parts", [])
+		if old_parts.is_empty():
+			old_parts = [data.rooms[id].get("rects", [])]
+		for part: Array in old_parts:
+			var moved: Array = []
+			for r: Array in part:
+				moved.append([float(r[0]) + off.x, float(r[1]) + off.y, float(r[2]), float(r[3])])
+			parts.append(moved)
+		for r in get_world_rects(id):
+			var local := [r.position.x - origin.x, r.position.y - origin.y, r.size.x, r.size.y]
+			if not rects.has(local):
+				rects.append(local)
+		shaped = shaped or has_room_shape(id)
+		pieces.append_array(get_room_outline(id))
+	# Which gates go (between the merged rooms) and which stay, with their names in the merged room.
+	var renamed: Dictionary = {}
+	var dropped: Array[String] = []
+	var part_doors: Array = []
+	for id in picked:
+		var off := get_origin(id) - origin
+		for d: Dictionary in data.rooms[id].get("part_doors", []):
+			part_doors.append({"pos": [float(d.pos[0]) + off.x, float(d.pos[1]) + off.y], "side": str(d.get("side", "door"))})
+	var gates: Dictionary = {}
+	var names: Dictionary = {} # "room/gate" -> name in the merged room
+	for id in picked:
+		for g: String in get_gates(id).keys():
+			var gate: Dictionary = get_gates(id)[g]
+			var to := str(gate.get("to", ""))
+			if _between_merged(id, g, picked, to):
+				dropped.append("%s/%s" % [id, g])
+				if not (picked.has(to) and dropped.has("%s/%s" % [to, str(gate.get("to_gate", ""))])):
+					var lp := get_gate_world_pos(id, g) - origin
+					part_doors.append({"pos": [lp.x, lp.y], "side": get_gate_side(id, g)})
+				continue
+			var gate_name := g
+			if gates.has(gate_name):
+				var side := get_gate_side(id, g)
+				var n := 1
+				while gates.has("%s%d" % [side, n]):
+					n += 1
+				gate_name = "%s%d" % [side, n]
+			var copy: Dictionary = gate.duplicate(true)
+			var lp := get_gate_world_pos(id, g) - origin
+			copy.pos = [lp.x, lp.y]
+			gates[gate_name] = copy
+			names["%s/%s" % [id, g]] = gate_name
+			if id != keep_id or gate_name != g:
+				renamed["%s/%s" % [id, g]] = gate_name
+	# The merged room's own gates between its parts (an elevator, a long way round): to itself.
+	for gate_name: String in gates:
+		var gate: Dictionary = gates[gate_name]
+		var to := str(gate.get("to", ""))
+		if picked.has(to):
+			var key := "%s/%s" % [to, str(gate.get("to_gate", ""))]
+			if names.has(key):
+				gate.to = keep_id
+				gate.to_gate = names[key]
+			else:
+				gate.erase("to")
+				gate.erase("to_gate")
+	# Everything that pointed at the merged rooms points at the merged one.
+	for other in get_room_ids():
+		if picked.has(other):
+			continue
+		for gate: Dictionary in get_gates(other).values():
+			var to := str(gate.get("to", ""))
+			if not picked.has(to):
+				continue
+			var key := "%s/%s" % [to, str(gate.get("to_gate", ""))]
+			if names.has(key):
+				gate.to = keep_id
+				gate.to_gate = names[key]
+			else:
+				gate.erase("to")
+				gate.erase("to_gate")
+	var links: Array = data.links
+	for link: Dictionary in links:
+		for end in ["a", "b"]:
+			var room := str(link.get(end, ""))
+			if not picked.has(room):
+				continue
+			link[end] = keep_id
+			var gate_key: String = end + "_gate"
+			if link.has(gate_key):
+				var key := "%s/%s" % [room, str(link[gate_key])]
+				if names.has(key):
+					link[gate_key] = names[key]
+				else:
+					link.erase(gate_key)
+	# Links between the merged rooms go, and one link is enough between it and another room.
+	var pairs: Dictionary = {}
+	for i in range(links.size() - 1, -1, -1):
+		var link: Dictionary = links[i]
+		if link.a != keep_id and link.b != keep_id:
+			continue
+		var pair := str(link.b) if link.a == keep_id else str(link.a)
+		if link.a == link.b or pairs.has(pair):
+			links.remove_at(i)
+		else:
+			pairs[pair] = true
+	if picked.has(str(data.get("start_room", ""))):
+		data.start_room = keep_id
+	for area: Dictionary in data.areas.values():
+		var when := str(area.get("objective_done_when", ""))
+		for id in picked:
+			if id != keep_id and when.begins_with("object:%s/" % id):
+				area.objective_done_when = "object:%s/" % keep_id + when.substr(("object:%s/" % id).length())
+	# The merged room's values: the kept room's, names and notes it lacked from the others.
+	var room: Dictionary = data.rooms[keep_id]
+	for id in picked:
+		if id == keep_id:
+			continue
+		var r: Dictionary = data.rooms[id]
+		for key in ["name", "boss", "type", "status", "area"]:
+			if str(room.get(key, "")).is_empty() and not str(r.get(key, "")).is_empty():
+				room[key] = r[key]
+		for grant in r.get("grants", []):
+			var grants: Array = room.get("grants", [])
+			if not grants.has(grant):
+				grants.append(grant)
+				room.grants = grants
+		if not str(r.get("notes", "")).is_empty():
+			room.notes = "%s\n%s: %s" % [str(room.get("notes", "")), id, r.notes] if not str(room.get("notes", "")).is_empty() else str(r.notes)
+	room.rects = rects
+	room.gates = gates
+	room.parts = parts
+	if part_doors.is_empty():
+		room.erase("part_doors")
+	else:
+		room.part_doors = part_doors
+	var removed: Array[String] = []
+	for id in picked:
+		if id != keep_id:
+			data.rooms.erase(id)
+			removed.append(id)
+	if shaped:
+		set_room_shape(keep_id, MDSGeometry.union_all(pieces, INF))
+	else:
+		room.erase("shape")
+	_touch()
+	return {"id": keep_id, "removed": removed, "renamed": renamed, "dropped": dropped, "sources": sources}
+
+## Why rooms [param ids] can't be merged into [param keep_id] (see [method merge_rooms]), or "".
+func merge_error(ids: Array, keep_id := "") -> String:
+	var picked: Array[String] = []
+	for v in ids:
+		if not picked.has(str(v)):
+			picked.append(str(v))
+	if picked.size() < 2:
+		return "Pick two rooms or more to merge."
+	for id in picked:
+		if not has_room(id):
+			return "There is no room %s." % id
+	var layer := get_room_layer(picked[0])
+	for id in picked:
+		if get_room_layer(id) != layer:
+			return "%s is on another layer: rooms on different layers can't be merged (link them instead)." % id
+	if not keep_id.is_empty() and not picked.has(keep_id):
+		return "%s is not one of the rooms merged." % keep_id
+	return ""
+
+## Whether gate [param g] of [param id] goes once rooms [param picked] are merged: it leads to
+## one of them where they meet, or leads nowhere from where it meets one of them.
+func _between_merged(id: String, g: String, picked: Array[String], to: String) -> bool:
+	var side := get_gate_side(id, g)
+	var out: Vector2 = {"right": Vector2.RIGHT, "left": Vector2.LEFT, "bot": Vector2.DOWN, "top": Vector2.UP}.get(side, Vector2.ZERO)
+	var p := get_gate_world_pos(id, g)
+	var q := minf(get_paint_cell().x, get_paint_cell().y) * 0.25
+	var meets := func(other: String) -> bool:
+		if other == id or not picked.has(other):
+			return false
+		if out == Vector2.ZERO:
+			return room_contains(other, p)
+		return room_contains(other, p + out * q)
+	if picked.has(to):
+		# A door to another merged room where the two meet goes; one far away stays (to itself).
+		return meets.call(to)
+	if to.is_empty():
+		for other in picked:
+			if meets.call(other):
+				return true
+	return false
+
+## Whether room [param id] is made of merged rooms (see [method merge_rooms]).
+func is_merged_room(id: String) -> bool:
+	return data.rooms.get(id, {}).get("parts", []).size() >= 2
+
+## The scene-local rectangles of each old room a merged room is made of (none: not merged).
+func get_room_parts(id: String) -> Array:
+	var out: Array = []
+	for part: Array in data.rooms.get(id, {}).get("parts", []):
+		var rs: Array[Rect2] = []
+		for r: Array in part:
+			rs.append(Rect2(float(r[0]), float(r[1]), float(r[2]), float(r[3])))
+		out.append(rs)
+	return out
+
+## Where the doors between a merged room's parts were: [{pos (scene-local), side}].
+func get_part_doors(id: String) -> Array:
+	var out: Array = []
+	for d: Dictionary in data.rooms.get(id, {}).get("part_doors", []):
+		out.append({"pos": Vector2(float(d.pos[0]), float(d.pos[1])), "side": str(d.get("side", "door"))})
+	return out
+
+## Forgets that the room was merged: Generate cave makes it one open cave.
+func clear_room_parts(id: String) -> void:
+	if data.rooms.has(id) and (data.rooms[id].has("parts") or data.rooms[id].has("part_doors")):
+		data.rooms[id].erase("parts")
+		data.rooms[id].erase("part_doors")
+		_touch()
+
 func get_room_layer(id: String) -> int:
 	return int(data.rooms.get(id, {}).get("layer", 0))
 
@@ -894,6 +1142,10 @@ func remove_gate(id: String, gate_name: String) -> void:
 			if g.get("to", "") == id and g.get("to_gate", "") == gate_name:
 				g.erase("to")
 				g.erase("to_gate")
+	for link: Dictionary in data.links:
+		for end in ["a", "b"]:
+			if link.get(end, "") == id and link.get(end + "_gate", "") == gate_name:
+				link.erase(end + "_gate")
 	get_gates(id).erase(gate_name)
 	_touch()
 
@@ -908,6 +1160,10 @@ func rename_gate(id: String, old_name: String, new_name: String) -> String:
 		for g in get_gates(other).values():
 			if g.get("to", "") == id and g.get("to_gate", "") == old_name:
 				g.to_gate = new_name
+	for link: Dictionary in data.links:
+		for end in ["a", "b"]:
+			if link.get(end, "") == id and link.get(end + "_gate", "") == old_name:
+				link[end + "_gate"] = new_name
 	_touch()
 	return new_name
 
