@@ -124,7 +124,7 @@ In the world picker (tool panel, World section):
 
 Then:
 
-1. **Draw rooms** with the **Room** tool (`R`): drag a rectangle. It snaps to the world grid.
+1. **Draw rooms** with the **Room** tool (`R`): drag a rectangle. It snaps to the world grid. Or draw them at their real size in the **Full view** (rectangles, ellipses, polygons, curvy outlines), then **Generate map** (see [Full view](#full-view-every-room-at-its-real-size)).
 2. **Or place scenes**: drag `.tscn` files from the FileSystem dock onto the map. Each becomes a room sized to its terrain, and gate nodes in the scene become map gates. Dropping one scene on a room that has none assigns it.
 3. **Shape rooms** with **Extend** (`E`) to add rectangles (L, T, U shapes...) and the resize handles.
 4. **Connect rooms** with the **Gate** tool (`G`): click a room's edge to add a gate, then drag from one gate to another gate (or to a room edge, which creates the gate for you). **Scenes > Auto-connect facing gates** pairs every facing, unconnected gate that's close enough.
@@ -289,11 +289,41 @@ MDSWorldSceneTools.prepare_merged_scene(world, r.id, ["right1"])         # gate 
 painter.generate_cave(world, r.id, 7, 0, 0, {}, {"parts": true})         # walls between its parts
 ```
 
+### Full view: every room at its real size
+
+The tool panel's View section has three views: **Map view** (the world map), **Full view** and **Room view**. The **Full view** shows every room of the map's layer where it is on the map, at its real size, with what its scene holds: each room's outline in its area's color, its name, its gates, and the area names. It works on an empty world too: draw the rooms there first, then generate the map from them. Right-click a room on the map > **Show in the Full view** opens it there.
+
+![Full view: outlines drawn, then rooms with their caves](docs/full_view.png)
+
+- **Drawing rooms:** the Full view section's tools draw outlines at the rooms' real size.
+  - **Rectangle**: drag a box. **Ellipse**: drag its box (Shift: a circle). With **Snap to cells** they sit on the paint cells' corners.
+  - **Polygon**: click its corners, then click the first one, double-click or press Enter. Backspace takes the last corner back, Esc drops it. Corners snap to the world grid.
+  - **Curvy**: drag around it freehand and release. It closes and is smoothed.
+  - An outline shows the paint cells it will take. Cells other rooms have are left out.
+- **What an outline makes** (**Make**): **One room each**, or **Split into rooms** like a generated area (rectangles, L, T and U shapes, shafts, up to the size set beside it) with doors between them. **Area**: a new one (outlines that touch share it), none, or one of the world's. Changing them changes the outlines selected too. Outlines of the same kind and area that overlap are one.
+- **Generate map** makes the outlines selected, or every outline, rooms on the map. Their rectangles are the paint cells the outline covers, and the outline is the rooms' outline on the map, so curves and slants show. Each outline gets a door to every room or area it touches. **Caves too** also makes a scene for each new room and a cave in it. **At once** makes every outline rooms as soon as it is drawn. One Ctrl+Z takes it back to the outlines.
+- **Rooms tool:** click rooms and outlines to select them (Ctrl or Shift adds or takes out), or drag a box on empty space. Drag them to move them: rooms move by whole paint cells, stop against other rooms and get doors where they touch. Delete removes them, Ctrl+A selects everything, the arrows nudge, Ctrl+Z / Ctrl+Y undo and redo on the map. One room selected shows in the Inspect tab.
+- **Room view of the rooms selected:** double-click one of them, press **Edit selected**, or press **Room view**.
+- **Generate area** drags a box for the Generate area dialog, as the map's tool does.
+- **Painting:** pick a Room painting tool and press in any room. It is edited from then on (a room without a scene gets one), as with [several rooms in the Room view](#room-view-painting-the-room-itself): each keeps its changes and undo, painting stops where another room starts, **Save** saves them all, and **Generate all** / **New variation for all** make caves in the rooms selected, or all of them.
+- **Scenes** dragged from the FileSystem dock or the Scenes tab become rooms where they are dropped, as on the map. Dropped on a room without a scene, a scene becomes that room's.
+- Rooms load their scenes as the view comes to them, so big worlds open fast. Weather and backgrounds are left out here; the Room view shows them.
+
+```gdscript
+world.checkpoint()
+MDSRoomSketches.add(world, 0, MDSRoomSketches.ellipse(Vector2.ZERO, Vector2(1440, 810)), MDSRoomSketches.ROOMS, MDSRoomSketches.NEW_AREA)
+MDSRoomSketches.add(world, 0, MDSRoomSketches.freehand(stroke_points))      # one room, curvy
+var made := MDSRoomSketches.new().generate(world, 0)   # {rooms, areas, doors, outlines, left}
+room_view.open_full(world, 0)                          # the Full view of layer 0
+```
+
+The outlines are kept in the world file (`"sketches"`) until they are rooms.
+
 ### Room view: painting the room itself
 
-The map is one view of a room; the **Room view** is the other. It shows the room at its real size and lets you paint what's inside it. Open it with **Room view** in the tool panel's View section, **Paint room** in the Inspector, or right-click > **Paint room (actual view)**. A room that has no scene yet gets one first.
+The map is one view of a room; the **Room view** is the other. It shows the room at its real size and lets you paint what's inside it. Open it with **Room view** in the tool panel's View section, **Paint room** in the Inspector, or right-click > **Paint room (actual view)**. A room that has no scene yet gets one first. From the Full view, **Room view** opens the rooms selected there.
 
-**Several rooms together:** with an area selected, or several rooms selected on the map (Ctrl+click, Ctrl+drag a box), **Room view** shows them all where they are on the map. You can also right-click > **Edit area X in the Room view** or **Edit the N rooms in the Room view**. One room is edited, and the others show around it, dimmed, with their names.
+**Several rooms together:** with an area selected, or several rooms selected on the map (Ctrl+click, Ctrl+drag a box) or in the Full view, **Room view** shows them all where they are on the map. You can also right-click > **Edit area X in the Room view** or **Edit the N rooms in the Room view**. One room is edited, and the others show around it, dimmed, with their names.
 
 - A click in another room edits that one, and the press goes on there: a brush stroke paints in it at once.
 - Each room keeps its changes and its own undo while you edit another. Painting stops where another room starts.
@@ -1486,6 +1516,7 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── world_scene_tools.gd # MDSWorldSceneTools: place/create scenes, sync gates, fit rooms, combine merged rooms' scenes
 │   ├── map_image_importer.gd # MDSMapImageImporter: a picture of a map to rooms, areas and doors
 │   ├── area_generator.gd  # MDSAreaGenerator: area outlines (curves, slants, blocks) split into rooms with doors
+│   ├── room_sketches.gd   # MDSRoomSketches: outlines drawn in the Full view, made rooms on the map
 │   ├── area_tools.gd      # MDSAreaTools: areas as one piece (cells, outline, sliding, auto doors)
 │   ├── room_painter.gd    # MDSRoomPainter: paints a room scene's tile layers, generates caves, spritesheets
 │   ├── terrain_shapes.gd  # MDSTerrainShapes: rectangle, irregular and curved-side shape brushes
@@ -1549,7 +1580,8 @@ addons/MetroidvaniaDeveloperSystem/
 │   ├── world_canvas.gd    # MDSWorldCanvas: free-form world editor
 │   ├── world_map_view.gd  # MDSWorldMapView: in-game map or minimap (benches found, the player)
 │   ├── map_style.gd       # MDSMapStyle: tilesets (built-in, custom PNG, MetSys themes), glowing areas
-│   ├── room_view.gd       # MDSRoomView: the Room view (actual view) and its brush controls
+│   ├── room_view.gd       # MDSRoomView: the Room view (actual view), the Full view, and their controls
+│   ├── full_view_tools.gd # MDSFullViewTools: the Full view's tools (draw rooms, select and move them)
 │   ├── side_panel.gd      # MDSSidePanel: the left tool panel (foldable sections)
 │   ├── room_canvas.gd     # MDSRoomCanvas: room painting surface (own SubViewport)
 │   ├── tile_palette.gd    # MDSTilePalette: spritesheet palette (pick, turn 0-360 degrees, mirror, solid, tag, make terrain)

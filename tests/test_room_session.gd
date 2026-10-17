@@ -98,6 +98,11 @@ func _run() -> void:
 	view.close_room(false)
 	check(not view.is_session() and canvas._context.is_empty() and view._painters.is_empty(), "closing lets go of them all")
 	check(view.open_room(world, "A").is_empty() and not view.is_session() and canvas.session.is_empty(), "a room opened on its own is shown alone")
+	# Saving it says it saved, and nothing else after.
+	var said: Array[String] = []
+	view.status_message.connect(func(t: String) -> void: said.append(t))
+	view.painter.dirty = true
+	check(view.save() == OK and not said.is_empty() and said[-1].begins_with("Saved"), "Save on one room says it saved (%s)" % (said[-1] if not said.is_empty() else ""))
 	view.close_room(false)
 	view.queue_free()
 	await get_tree().process_frame

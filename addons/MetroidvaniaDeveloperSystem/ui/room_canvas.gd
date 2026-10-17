@@ -33,6 +33,10 @@ extends Control
 ## resizes it, the opposite side staying (Shift: a corner keeps the shape; [member snap_to_grid]:
 ## the sides go to the tile grid). Stamps, pictures and free tiles scale; freeform shapes scale
 ## their points; grid tiles become free tiles.
+##
+## Full view ([member full]): every room of [member full_layer] shows where it is on the map, at
+## its real size, with no room edited until a press in one; [member full_tools] draws rooms and
+## moves them (see [MDSFullViewTools]), and scenes dropped on it are placed as rooms.
 
 signal painted
 signal status_message(text: String)
@@ -52,6 +56,8 @@ signal turn_requested(degrees: float)
 ## edited. The Room view makes it the one edited (see [method MDSRoomView.activate_room]), and
 ## the press goes on there.
 signal room_pressed(id: String)
+## Full view: scene files dropped at [param world_pos] (world px).
+signal scenes_dropped(files: PackedStringArray, world_pos: Vector2)
 
 enum Tool { TERRAIN, BACKGROUND, DECOR, ERASE, FOREGROUND, FREEFORM, STAMP, EFFECT, PLACE, SELECT }
 ## What the Select tool's clicks and boxes pick: everything, the tiles of one layer (on the grid
@@ -82,6 +88,11 @@ const HANDLE_GRAB := 7.0
 ## How far (screen px) the handles of a selection stand out from its outline (clear of a shape's
 ## points).
 const HANDLE_GAP := 6.0
+## Shown with other rooms, a room whose rectangles leave notches in its box goes this far down, under
+## the tile layers (-10 to 21) of the others, and its tile layers draw only inside its rectangles.
+const NOTCHED_Z := -64
+const ROOM_MASK := preload("res://addons/MetroidvaniaDeveloperSystem/ui/room_mask.gdshader")
+const MASK_RECTS := 16
 enum FreeformMode { DRAW, EDIT }
 
 var painter: MDSRoomPainter
@@ -95,6 +106,15 @@ var session: Array[String] = []
 var session_painters: Dictionary = {}
 var _context: Dictionary = {} ## id -> Node2D holding another room of [member session], where it is
 var _context_painter: Dictionary = {} ## id -> the painter whose layers that Node2D holds
+## Full view (see [method MDSRoomView.open_full]): every room of [member full_layer] is in
+## [member session], shown at its real size; none needs to be edited.
+var full := false
+var full_layer := 0
+## The Full view's own tools (drawing rooms, moving them).
+var full_tools: MDSFullViewTools
+## Where on the map the view's (0, 0) is while no room is edited (see [method frame_origin]).
+var _frame := Vector2.ZERO
+var _context_pending := false
 var tool: int = Tool.TERRAIN
 ## Fill painted by each tool (see [method MDSRoomPainter.paint_fill]).
 var fills: Dictionary = {
@@ -205,6 +225,11 @@ var _place_orig := Vector2.ZERO
 var _place_pick := Vector2i(-1, -1) ## Random: the tile the next click places
 
 var _view: Node2D
+## The room edited: its scene, tile layers and items. Shown with other rooms, a room whose
+## rectangles leave notches in its box is drawn under them (see [method _order_room]).
+var _room_node: Node2D
+## Room id -> the mask its tile layers draw with while shown with others (see [method _order_room]).
+var _masks: Dictionary = {}
 var _display_scene: Node
 var _overlay: Control
 var _painting := false
@@ -252,6 +277,9 @@ func _init() -> void:
 	vp.add_child(backdrop)
 	_view = Node2D.new()
 	vp.add_child(_view)
+	_room_node = Node2D.new()
+	_room_node.name = "Room"
+	_view.add_child(_room_node)
 	_overlay = Control.new()
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -275,19 +303,20 @@ func open(p_world: MDSWorld, id: String, p_painter: MDSRoomPainter, keep_view :=
 			# The painter's copies are shown instead.
 			if l is TileMapLayer or MDSRoomPainter.is_item(l, _display_scene):
 				l.visible = false
-		_view.add_child(_display_scene)
+		_room_node.add_child(_display_scene)
 	for n in MDSRoomPainter.LAYER_ORDER:
 		var l: TileMapLayer = painter.layers[n]
 		if l.get_parent():
 			l.get_parent().remove_child(l)
-		_view.add_child(l)
+		_room_node.add_child(l)
 	# The same room opened anew may go on with the items it showed: they stay in the tree, drawn
 	# over the layers.
-	if painter.items_root.get_parent() != _view:
+	if painter.items_root.get_parent() != _room_node:
 		if painter.items_root.get_parent():
 			painter.items_root.get_parent().remove_child(painter.items_root)
-		_view.add_child(painter.items_root)
-	_view.move_child(painter.items_root, -1)
+		_room_node.add_child(painter.items_root)
+	_room_node.move_child(painter.items_root, -1)
+	_order_room(_room_node, room_id)
 	if not session.is_empty():
 		refresh_context()
 	selected = null
@@ -361,24 +390,39 @@ func close() -> void:
 	_sel_drag = 0
 	if painter:
 		for l in painter.layers.values():
-			if l.get_parent() == _view:
-				_view.remove_child(l)
-		if painter.items_root.get_parent() == _view:
-			_view.remove_child(painter.items_root)
+			if l.get_parent() == _room_node:
+				_room_node.remove_child(l)
+		if painter.items_root.get_parent() == _room_node:
+			_room_node.remove_child(painter.items_root)
 	if is_instance_valid(_display_scene):
 		_display_scene.queue_free()
 	_display_scene = null
+	# The view's (0, 0) stays where the room was on the map (the Full view goes on without it).
+	if world:
+		_frame = frame_origin()
 	painter = null
 
-## Fits the room in the view (with [param all], and rooms shown together: all of them).
+## Fits the room in the view (with [param all], and rooms shown together: all of them; the Full
+## view: every room and outline drawn, or the room edited without [param all]).
 func fit(all := true) -> void:
-	if not world or not world.has_room(room_id) or size.x <= 0:
+	if not world or size.x <= 0:
+		return
+	if not world.has_room(room_id) and not full:
 		return
 	var b := Rect2()
 	var first := true
-	var rects := world.get_local_rects(room_id)
-	if all:
+	var rects: Array[Rect2] = []
+	if world.has_room(room_id) and painter:
+		rects = world.get_local_rects(room_id)
+	if all or rects.is_empty():
 		rects.append_array(session_rects())
+	if full and (all or rects.is_empty()) and full_tools:
+		for r in full_tools.outline_bounds():
+			rects.append(Rect2(r.position - frame_origin(), r.size))
+	if rects.is_empty() and full:
+		# Nothing on the layer yet: a few rooms' worth of space around the frame.
+		var room := world.get_default_room_size()
+		rects.append(Rect2(-room, room * 3.0))
 	for r in rects:
 		b = r if first else b.merge(r)
 		first = false
@@ -392,7 +436,8 @@ func set_zoom(value: float, anchor := Vector2(-1, -1)) -> void:
 	if anchor.x < 0:
 		anchor = size / 2.0
 	var local := (anchor - pan) / zoom
-	zoom = clampf(value, 0.05, 8.0)
+	# The Full view shows a whole world: further out.
+	zoom = clampf(value, 0.004 if full else 0.05, 8.0)
 	pan = anchor - local * zoom
 	_apply_view()
 
@@ -424,8 +469,18 @@ func _apply_view() -> void:
 	_view.position = pan
 	_view.scale = Vector2(zoom, zoom)
 	_update_depth_view()
+	_update_masks()
 	queue_redraw()
 	_overlay.queue_redraw()
+	if full and not _context_pending:
+		_context_pending = true
+		_load_shown_context.call_deferred()
+
+## The Full view: the scenes of the rooms come in as the view reaches them.
+func _load_shown_context() -> void:
+	_context_pending = false
+	if full:
+		refresh_context()
 
 func screen_to_local(p: Vector2) -> Vector2:
 	return (p - pan) / zoom
@@ -435,12 +490,34 @@ func local_to_screen(p: Vector2) -> Vector2:
 
 # --- Rooms shown together -------------------------------------------------------------------
 
+## Where on the map the view's (0, 0) is: the edited room's origin (its scene's (0, 0)), else (the
+## Full view with no room edited) where it was last.
+func frame_origin() -> Vector2:
+	if world and painter and world.has_room(room_id):
+		return world.get_origin(room_id)
+	return _frame
+
+## [param world_pos] (world px) in the view's frame (the edited room's scene-local).
+func world_to_local(world_pos: Vector2) -> Vector2:
+	return world_pos - frame_origin()
+
+func local_to_world(local: Vector2) -> Vector2:
+	return local + frame_origin()
+
+## Whether other rooms show around the one edited (rooms shown together, or the Full view).
+func _together() -> bool:
+	return full or session.size() >= 2
+
+## Whether a room is being edited (the Full view may have none).
+func is_editing() -> bool:
+	return painter != null and world != null and world.has_room(room_id)
+
 ## The rectangles of the other rooms shown together, in the edited room's frame (scene-local).
 func session_rects() -> Array[Rect2]:
 	var out: Array[Rect2] = []
-	if session.size() < 2 or not world or not world.has_room(room_id):
+	if not _together() or not world or (not full and not world.has_room(room_id)):
 		return out
-	var here := world.get_origin(room_id)
+	var here := frame_origin()
 	for id in session:
 		if id != room_id and world.has_room(id):
 			for r in world.get_world_rects(id):
@@ -450,14 +527,17 @@ func session_rects() -> Array[Rect2]:
 ## The other room shown together whose rectangles hold [param local] (in the edited room's
 ## frame) when the edited room's don't, else "".
 func other_room_at(local: Vector2) -> String:
-	if session.size() < 2 or not world or not world.has_room(room_id):
+	if not _together() or not world or (not full and not world.has_room(room_id)):
 		return ""
-	for r in world.get_local_rects(room_id):
-		if r.has_point(local):
-			return ""
-	var here := world.get_origin(room_id)
-	for id in session:
-		if id != room_id and world.has_room(id):
+	if is_editing():
+		for r in world.get_local_rects(room_id):
+			if r.has_point(local):
+				return ""
+	var here := frame_origin()
+	# The last on top, as the map draws them.
+	for i in range(session.size() - 1, -1, -1):
+		var id := session[i]
+		if (id != room_id or not is_editing()) and world.has_room(id):
 			for r in world.get_world_rects(id):
 				if r.has_point(local + here):
 					return id
@@ -467,27 +547,37 @@ func other_room_at(local: Vector2) -> String:
 ## map: the tiles and items of the ones with a painter open (their changes not saved yet too),
 ## the scenes of the others.
 func refresh_context() -> void:
+	_order_room(_room_node, room_id)
 	for id: String in _context.keys():
-		if not world or not session.has(id) or id == room_id or not world.has_room(id) or _context_painter.get(id) != session_painters.get(id):
+		if not world or not session.has(id) or (id == room_id and is_editing()) or not world.has_room(id) or _context_painter.get(id) != session_painters.get(id) or _context[id].get_meta(&"mds_scene", "") != world.get_scene_path(id):
 			_drop_context(id)
-	if session.size() < 2 or not world or not world.has_room(room_id):
+	if not _together() or not world or (not full and not world.has_room(room_id)):
 		return
-	var here := world.get_origin(room_id)
+	var here := frame_origin()
+	# The Full view loads the scenes of the rooms in view (and a screen around it) only.
+	var in_view := Rect2(screen_to_local(-size), size * 3.0 / zoom) if full and zoom > 0.0 and size.x > 0.0 else Rect2()
 	for id in session:
-		if id == room_id or not world.has_room(id):
+		if (id == room_id and is_editing()) or not world.has_room(id):
 			continue
 		var box: Node2D = _context.get(id)
 		if not box:
 			box = Node2D.new()
 			box.name = "Room_" + id.validate_node_name()
-			box.modulate = Color(0.8, 0.8, 0.85, 0.7)
+			# The Full view shows the rooms as they are, a little dimmer than the one edited.
+			box.modulate = Color(0.92, 0.92, 0.96, 0.9) if full else Color(0.8, 0.8, 0.85, 0.7)
+			box.set_meta(&"mds_scene", world.get_scene_path(id))
 			_view.add_child(box)
 			_view.move_child(box, 0)
 			_context[id] = box
 		box.position = world.get_origin(id) - here
+		_order_room(box, id)
 		if box.get_child_count() > 0:
 			continue
 		var p: MDSRoomPainter = session_painters.get(id)
+		if not p and in_view.has_area():
+			var b := world.get_room_bounds(id)
+			if not Rect2(b.position - here, b.size).intersects(in_view):
+				continue
 		var packed: PackedScene = p.packed_scene if p and p.packed_scene else null
 		if not packed:
 			var path := world.get_scene_path(id)
@@ -513,6 +603,67 @@ func refresh_context() -> void:
 				p.items_root.get_parent().remove_child(p.items_root)
 			box.add_child(p.items_root)
 			_context_painter[id] = p
+		# Its layers just came in.
+		_order_room(box, id)
+
+## Draws [param node] (room [param id]'s display) under the other rooms shown when its rectangles
+## leave notches in its box, and its tile layers only inside its rectangles: Generate cave fills a
+## room's whole box with rock, and in its notches are other rooms. Its layers keep their own depths
+## (-10 to 21) within it. The mask is the layers' material while it lasts (a painter saves their
+## tiles only); a material of their own comes back after.
+func _order_room(node: Node2D, id: String) -> void:
+	var on := _together() and world != null and world.has_room(id) and has_notches(world, id)
+	node.z_index = NOTCHED_Z if on else 0
+	var rects: Array[Rect2] = []
+	if on:
+		rects = world.get_local_rects(id)
+	var mask: ShaderMaterial = null
+	if on and rects.size() <= MASK_RECTS:
+		mask = _masks.get(id)
+		if not mask:
+			mask = ShaderMaterial.new()
+			mask.shader = ROOM_MASK
+			_masks[id] = mask
+		var list := PackedVector4Array()
+		for r in rects:
+			list.append(Vector4(r.position.x, r.position.y, r.size.x, r.size.y))
+		mask.set_shader_parameter("rects", list)
+		mask.set_shader_parameter("rect_count", rects.size())
+		node.set_meta(&"mds_mask", id)
+		_update_mask(node, mask)
+	elif node.has_meta(&"mds_mask"):
+		node.remove_meta(&"mds_mask")
+	for l: Node in node.find_children("*", "TileMapLayer", true, false):
+		var layer := l as TileMapLayer
+		if mask:
+			if not layer.has_meta(&"mds_own_material"):
+				layer.set_meta(&"mds_own_material", layer.material)
+			layer.material = mask
+		elif layer.has_meta(&"mds_own_material"):
+			layer.material = layer.get_meta(&"mds_own_material")
+			layer.remove_meta(&"mds_own_material")
+
+## The masks follow the view: where each room's (0, 0) is on the canvas, and the zoom.
+func _update_masks() -> void:
+	for node: Node2D in [_room_node] + _context.values():
+		if is_instance_valid(node) and node.has_meta(&"mds_mask") and _masks.has(node.get_meta(&"mds_mask")):
+			_update_mask(node, _masks[node.get_meta(&"mds_mask")])
+
+func _update_mask(node: Node2D, mask: ShaderMaterial) -> void:
+	mask.set_shader_parameter("origin", pan + node.position * zoom)
+	mask.set_shader_parameter("zoom", zoom)
+
+## Whether room [param id]'s rectangles leave parts of their box out (an L, T or U shape).
+static func has_notches(p_world: MDSWorld, id: String) -> bool:
+	var rects := p_world.get_local_rects(id)
+	if rects.size() < 2:
+		return false
+	var b := rects[0]
+	var area := 0.0
+	for r in rects:
+		b = b.merge(r)
+		area += r.get_area()
+	return area < b.get_area() - 1.0
 
 ## Takes room [param id]'s painter out of its place around the edited room (its layers leave the
 ## tree, so it can be freed or edited).
@@ -537,9 +688,9 @@ func _drop_context(id: String) -> void:
 
 ## The other rooms shown together: their outlines, names and gates, dimmer than the edited one's.
 func _draw_session_rooms(ci: CanvasItem, font: Font) -> void:
-	if session.size() < 2:
+	if session.size() < 2 or full:
 		return
-	var here := world.get_origin(room_id)
+	var here := frame_origin()
 	for id in session:
 		if id == room_id or not world.has_room(id):
 			continue
@@ -576,10 +727,15 @@ func refresh_scene_edits() -> void:
 			n.position = e.get("position", o.position)
 
 func _draw_overlay() -> void:
+	var ci := _overlay
+	if full and world and full_tools:
+		full_tools.draw_under(ci, get_theme_default_font())
 	if not painter or not world or not world.has_room(room_id):
+		if full and world and full_tools:
+			full_tools.draw_over(ci, get_theme_default_font())
+			_draw_title(ci, full_tools.title())
 		return
 	refresh_scene_edits()
-	var ci := _overlay
 	var rects := world.get_local_rects(room_id)
 	# Shade what lies outside the room's shape on the map.
 	var b := rects[0]
@@ -593,7 +749,9 @@ func _draw_overlay() -> void:
 		all = all.merge(r)
 	var outer := all.grow(maxf(all.size.x, all.size.y))
 	var shade := Color(0, 0, 0, 0.55)
-	_shade_outside(ci, shown, outer, shade)
+	# The Full view leaves the space between rooms clear: rooms are drawn there.
+	if not full:
+		_shade_outside(ci, shown, outer, shade)
 	_draw_session_rooms(ci, get_theme_default_font())
 	for r in rects:
 		ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(1, 1, 1, 0.8), false, 2.0)
@@ -683,8 +841,15 @@ func _draw_overlay() -> void:
 			ci.draw_line(p - Vector2(8, 0), p + Vector2(8, 0), color, 1.0)
 			ci.draw_line(p - Vector2(0, 8), p + Vector2(0, 8), color, 1.0)
 	var title := "%s  (actual view)%s" % [room_id, "  *unsaved" if painter.dirty else ""]
-	if session.size() >= 2:
+	if full and full_tools:
+		full_tools.draw_over(ci, font)
+		title = full_tools.title()
+	elif session.size() >= 2:
 		title = "%s  (%d rooms shown: click another one to edit it)%s" % [room_id, session.size(), "  *unsaved" if painter.dirty else ""]
+	_draw_title(ci, title)
+
+func _draw_title(ci: CanvasItem, title: String) -> void:
+	var font := get_theme_default_font()
 	ci.draw_rect(Rect2(Vector2(6, 6), font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 14) + Vector2(12, 8)), Color(0, 0, 0, 0.6))
 	ci.draw_string(font, Vector2(12, 23), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
 
@@ -859,7 +1024,7 @@ func _paint_line(a: Vector2i, b: Vector2i, shift: bool) -> void:
 
 func _apply(list: Array, shift: bool) -> void:
 	# Rooms shown together: the edited room's painting stops where another room is.
-	if session.size() >= 2:
+	if _together():
 		list = list.filter(func(c: Vector2i) -> bool: return other_room_at(painter.cell_rect("Terrain", c).get_center()).is_empty())
 	match tool:
 		Tool.TERRAIN:
@@ -1974,7 +2139,7 @@ func refresh_weather() -> void:
 	_refresh_parallax()
 	_refresh_background()
 	var spec := ""
-	if weather_preview and world and painter and world.has_room(room_id):
+	if weather_preview and world and painter and world.has_room(room_id) and not full:
 		spec = MDSEnvironment.spec_for_room(world, room_id)
 	if spec == _weather_spec and (spec.is_empty() or MDSEnvironment.is_none(spec) or is_instance_valid(_weather)):
 		return
@@ -1997,7 +2162,7 @@ func refresh_weather() -> void:
 ## Shows the room's parallax background behind it, as the game adds it (not saved).
 func _refresh_parallax() -> void:
 	var value := ""
-	if parallax_preview and world and painter and world.has_room(room_id):
+	if parallax_preview and world and painter and world.has_room(room_id) and not full:
 		value = MDSEnvironment.parallax_for_room(world, room_id)
 	if value == _parallax_value and (value.is_empty() or MDSEnvironment.is_none(value) or is_instance_valid(_parallax)):
 		return
@@ -2021,7 +2186,7 @@ func _refresh_parallax() -> void:
 ## Shows the room's animated background behind it, as the game adds it (not saved).
 func _refresh_background() -> void:
 	var value := ""
-	if parallax_preview and world and painter and world.has_room(room_id):
+	if parallax_preview and world and painter and world.has_room(room_id) and not full:
 		value = MDSEnvironment.background_for_room(world, room_id)
 	if value == _background_value and (value.is_empty() or MDSEnvironment.is_none(value) or is_instance_valid(_background)):
 		return
@@ -2069,6 +2234,10 @@ func set_weather_preview(on: bool) -> void:
 # --- Dropping ----------------------------------------------------------------------------------
 
 func _can_drop_data(_at: Vector2, data: Variant) -> bool:
+	if full and world and data is Dictionary and data.get("type", "") == "files":
+		for f in data.get("files", []):
+			if str(f).get_extension().to_lower() in ["tscn", "scn"]:
+				return true
 	if not painter or not data is Dictionary:
 		return false
 	if data.get("type", "") == DRAG_EFFECT:
@@ -2094,6 +2263,17 @@ func _background_at(at: Vector2) -> MDSEnvironmentEffect:
 
 func _drop_data(at: Vector2, data: Variant) -> void:
 	if not data is Dictionary:
+		return
+	# The Full view: scenes become rooms where they are dropped.
+	if full and world:
+		var scenes := PackedStringArray()
+		for f in data.get("files", []):
+			if str(f).get_extension().to_lower() in ["tscn", "scn"]:
+				scenes.append(str(f))
+		if not scenes.is_empty():
+			scenes_dropped.emit(scenes, local_to_world(screen_to_local(at)))
+			return
+	if not painter:
 		return
 	if data.get("type", "") == DRAG_EFFECT:
 		if before_effect_drop.is_valid():
@@ -2179,6 +2359,14 @@ func _stamp_motion(mm: InputEventMouseMotion) -> void:
 		_last_stamp = p
 
 func _gui_input(event: InputEvent) -> void:
+	if full and world:
+		if full_tools and full_tools.gui_input(event):
+			accept_event()
+			_overlay.queue_redraw()
+			return
+		if not painter:
+			_full_idle_input(event)
+			return
 	if not painter:
 		return
 	if event is InputEventMouseButton:
@@ -2303,6 +2491,41 @@ func _gui_input(event: InputEvent) -> void:
 			KEY_F:
 				fit()
 		_overlay.queue_redraw()
+
+## The Full view with no room edited, under a painting tool: the wheel zooms, middle or right drag
+## pans, and a press in a room edits it (the press goes on there).
+func _full_idle_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		_mouse = mb.position
+		if mb.pressed and (mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+			set_zoom(zoom * (1.15 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.15), mb.position)
+		elif mb.button_index == MOUSE_BUTTON_MIDDLE or mb.button_index == MOUSE_BUTTON_RIGHT:
+			_panning = mb.button_index if mb.pressed else 0
+			_pan_start = mb.position
+			_pan_orig = pan
+		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			grab_focus()
+			var id := other_room_at(screen_to_local(mb.position))
+			if id.is_empty():
+				status_message.emit("Click in a room to paint it, or draw rooms with the Full view's Rectangle, Ellipse, Polygon or Curvy tool, then Generate map.")
+			else:
+				room_pressed.emit(id)
+				if painter:
+					_gui_input(event)
+		accept_event()
+		_overlay.queue_redraw()
+	elif event is InputEventMouseMotion:
+		var mm := event as InputEventMouseMotion
+		_mouse = mm.position
+		if _panning:
+			pan = _pan_orig + (mm.position - _pan_start)
+			_apply_view()
+		_overlay.queue_redraw()
+		accept_event()
+	elif event is InputEventKey and event.pressed and not event.echo and (event as InputEventKey).keycode == KEY_F:
+		fit()
+		accept_event()
 
 ## Keys of the Place and Select tools: R / Shift+R turn (the palette's tiles, or the selection),
 ## the arrows nudge the selection, Delete removes it, Esc clears it. Returns whether [param key]
