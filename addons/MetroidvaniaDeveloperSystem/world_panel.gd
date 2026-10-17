@@ -14,12 +14,13 @@ const SECTION_TOOLS := "Map tools"
 const SECTION_DISPLAY := "Map display"
 const SECTION_MARKERS := "Markers"
 const SECTION_ROOM := "Room painting"
+const SECTION_FULL := "Full view"
 
 enum WorldItem { NEW = 1000, OPEN, IMPORT_METSYS, RELOAD, IMPORT_IMAGE }
 enum ViewItem { LABELS, AREA_LABELS, TERRAIN, PREVIEWS, GATES, MARKERS, PINS, ISSUES, GRID, LEGEND }
 enum ExportItem { JSON, PNG, DOT, MARKDOWN }
 enum ScenesItem { RESCAN, ADD_SCENES, AUTO_CONNECT, SETTINGS, GAME_SCENE, AUTO_DOORS }
-enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, SET_START, ROUTE, LINK, DUPLICATE, DELETE, ADD_ROOM, ADD_PIN, REMOVE_PIN, ADD_GATE, COPY_ID, PAINT_ROOM, GENERATE_AREA, SELECT_AREA, AREA_CAVES, EDIT_ROOMS, MERGE_ROOMS, EDIT_AREA, MERGE_AREA, IMPORT_IMAGE }
+enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, SET_START, ROUTE, LINK, DUPLICATE, DELETE, ADD_ROOM, ADD_PIN, REMOVE_PIN, ADD_GATE, COPY_ID, PAINT_ROOM, GENERATE_AREA, SELECT_AREA, AREA_CAVES, EDIT_ROOMS, MERGE_ROOMS, EDIT_AREA, MERGE_AREA, IMPORT_IMAGE, FULL_VIEW }
 
 # Data
 var world_path := ""
@@ -107,6 +108,7 @@ var _gate_rooms: Dictionary = {} ## rooms waiting for their gate nodes
 var _gate_timer: Timer
 var _gate_log: Array = [] ## automatic writes to saved scenes, for undo
 var map_view_button: Button
+var full_view_button: Button
 var room_view_button: Button
 ## Physics checks of the room scenes (Issues > Geometry), in the background.
 var geometry_checker: MDSGeometryChecker
@@ -191,25 +193,32 @@ func _build_ui() -> void:
 	ep.id_pressed.connect(_on_export_menu)
 	MDSSidePanel.row(toolbar, [scenes_menu, export_menu])
 
-	# View: map or the selected room's actual contents.
+	# View: the map, every room at its actual size, or the rooms selected.
 	var view_section := side_panel.add_section("View")
+	var view_grid := MDSSidePanel.grid(view_section, 2)
 	var view_group := ButtonGroup.new()
 	map_view_button = MDSUi.button("Map view", "The world map")
 	map_view_button.toggle_mode = true
 	map_view_button.button_group = view_group
 	map_view_button.button_pressed = true
 	map_view_button.pressed.connect(show_map_view)
-	room_view_button = MDSUi.button("Room view", "Paint the selected room's actual contents (terrain, background, decorations)")
+	full_view_button = MDSUi.button("Full view", "Every room of the layer where it is on the map, at its actual size, with its scene: draw rooms (rectangles, ellipses, polygons, curvy outlines) and generate the map from them, move rooms, drop scenes to place them, paint any room. Works on an empty world too")
+	full_view_button.toggle_mode = true
+	full_view_button.button_group = view_group
+	full_view_button.pressed.connect(func() -> void: show_full_view())
+	room_view_button = MDSUi.button("Room view", "Paint the rooms selected (on the map or in the Full view), or the selected room or area: their actual contents (terrain, background, decorations)")
 	room_view_button.toggle_mode = true
 	room_view_button.button_group = view_group
 	room_view_button.pressed.connect(_open_room_view)
-	MDSSidePanel.row(view_section, [map_view_button, room_view_button])
+	view_grid.add_child(MDSSidePanel.fill(map_view_button))
+	view_grid.add_child(MDSSidePanel.fill(full_view_button))
+	view_grid.add_child(MDSSidePanel.fill(room_view_button))
 	side_tabs_check = CheckBox.new()
 	side_tabs_check.text = "Side tabs"
 	side_tabs_check.button_pressed = true
 	side_tabs_check.tooltip_text = "Show the Rooms / Scenes / Inspect... tabs on the right. Hide them for a bigger map"
 	side_tabs_check.toggled.connect(func(on: bool) -> void: sidebar.visible = on)
-	view_section.add_child(side_tabs_check)
+	view_grid.add_child(side_tabs_check)
 
 	# Map tools.
 	var tools := side_panel.add_section(SECTION_TOOLS)
@@ -348,8 +357,24 @@ func _build_ui() -> void:
 	room_view.status_message.connect(_set_status)
 	room_view.room_requested.connect(show_room_view)
 	room_view.area_caves_requested.connect(ask_area_caves)
+	room_view.rooms_requested.connect(func(ids: Array[String]) -> void: _edit_rooms(ids))
+	room_view.scenes_dropped.connect(func(files: PackedStringArray, at: Vector2) -> void:
+		_on_scenes_dropped(files, at)
+		room_view.refresh_full())
+	room_view.generate_area_requested.connect(open_generate_dialog)
+	room_view.scene_path_for = _default_scene_path
+	# One room selected in the Full view: the Inspect tab shows it.
+	room_view.full_tools.selection_changed.connect(func() -> void:
+		var picked := room_view.full_selection()
+		if picked.size() == 1 and world and world.has_room(picked[0]) and picked[0] != canvas.selected_room:
+			canvas.selected_room = picked[0]
+			canvas.selected_gate = ""
+			_rebuild_inspector())
 	view_box.add_child(room_view)
-	# The Room view's brushes and actions live in the tool panel too, shown with it.
+	# The Full view's tools and the Room view's brushes and actions live in the tool panel too,
+	# shown with them.
+	side_panel.add_section(SECTION_FULL, room_view.full_controls)
+	side_panel.set_section_visible(SECTION_FULL, false)
 	side_panel.add_section(SECTION_ROOM, room_view.controls)
 	side_panel.set_section_visible(SECTION_ROOM, false)
 
@@ -464,7 +489,12 @@ func _build_palette_tab() -> void:
 	palette.fixed_icon_size = Vector2i(48, 48)
 	palette.set_drag_forwarding(_palette_get_drag, Callable(), Callable())
 	palette.item_activated.connect(func(i: int) -> void:
-		_on_scenes_dropped(PackedStringArray([palette.get_item_metadata(i)]), canvas.screen_to_world(canvas.size / 2.0)))
+		var at := canvas.screen_to_world(canvas.size / 2.0)
+		if room_view.visible and room_view.is_full():
+			at = room_view.canvas.local_to_world(room_view.canvas.screen_to_local(room_view.canvas.size / 2.0))
+		_on_scenes_dropped(PackedStringArray([palette.get_item_metadata(i)]), at)
+		if room_view.visible and room_view.is_full():
+			room_view.refresh_full())
 	box.add_child(palette)
 
 func _refresh_palette() -> void:
@@ -627,6 +657,9 @@ func _build_area_dialogs() -> void:
 	generate_dialog = MDSAreaGenerateDialog.new()
 	generate_dialog.generated.connect(func(r: Dictionary) -> void:
 		canvas.select_area(r.area)
+		if room_view.visible and room_view.is_full():
+			room_view.refresh_full()
+			room_view.full_tools.select(r.rooms)
 		var links: Array = r.get("links", [])
 		_set_status("Generated %s: %d room(s), %d door(s)%s. Drag it with the Area tool (A); double-click to rename it." % [r.area, r.rooms.size(), r.doors,
 			", connected to %d area(s) it touches" % links.size() if not links.is_empty() else ""]))
@@ -784,11 +817,11 @@ func show_rooms_view(ids: Array[String], active := "", label := "") -> void:
 	var error := room_view.open_rooms(world, list, active, label)
 	if not error.is_empty():
 		_set_status(error)
-		map_view_button.set_pressed_no_signal(true)
+		_press_view(map_view_button)
 		return
 	canvas.visible = false
 	room_view.visible = true
-	room_view_button.set_pressed_no_signal(true)
+	_press_view(room_view_button)
 	_show_room_sections(true)
 	_set_status("Room view: %s, %d rooms where they are on the map. Edit %s; click another room to edit it (each keeps its changes and undo); Save saves them all%s." % [label if not label.is_empty() else "%d rooms" % list.size(), list.size(), room_view.room_id,
 		"; %d new scene(s)" % made if made > 0 else ""])
@@ -1035,6 +1068,12 @@ func load_world(p: String) -> void:
 	_refresh()
 	if not same:
 		_fit_when_ready()
+	# The Full view edits the world: it goes on with the one loaded (another world: the map).
+	if room_view and room_view.visible and room_view.is_full():
+		if same:
+			room_view.open_full(world, canvas.layer, room_view.full_selection())
+		else:
+			show_map_view()
 	_rescan_world_scenes(not same)
 	_set_status("Opened %s: %d rooms, %d areas" % [p.get_file(), world.get_room_ids().size(), world.get_areas().size()])
 
@@ -1057,6 +1096,8 @@ func _on_world_changed() -> void:
 	_refresh_timer.start()
 	canvas.redraw()
 	_track_gate_changes()
+	if room_view and room_view.visible and room_view.is_full():
+		room_view.refresh_full_later()
 
 # --- Gate nodes follow the map --------------------------------------------------------------
 
@@ -1291,12 +1332,22 @@ func on_scene_saved(p: String) -> void:
 
 # --- Map view / Room view --------------------------------------------------------------------
 
+## Shows [param button] pressed, and the other view buttons not (a button group only does that for
+## clicks).
+func _press_view(button: Button) -> void:
+	for b in [map_view_button, full_view_button, room_view_button]:
+		b.set_pressed_no_signal(b == button)
+
 func show_map_view() -> void:
 	if room_view.visible:
+		# The rooms selected in the Full view stay selected on the map.
+		var picked := room_view.full_selection()
+		if room_view.is_full() and not picked.is_empty():
+			canvas.select_rooms(picked)
 		room_view.close_room(true)
 	room_view.visible = false
 	canvas.visible = true
-	map_view_button.set_pressed_no_signal(true)
+	_press_view(map_view_button)
 	_show_room_sections(false)
 	canvas.redraw()
 
@@ -1330,7 +1381,7 @@ func _background_changed(value: String) -> void:
 func show_room_view(id: String) -> void:
 	if not world or not world.has_room(id):
 		_set_status("Select a room on the map first, then open the Room view.")
-		map_view_button.set_pressed_no_signal(true)
+		_press_view(map_view_button)
 		return
 	if world.get_scene_path(id).is_empty():
 		world.checkpoint()
@@ -1338,26 +1389,84 @@ func show_room_view(id: String) -> void:
 		var err := MDSWorldSceneTools.create_scene_for_room(world, id, path)
 		if err != OK:
 			_set_status(MDSWorldSceneTools.last_error if not MDSWorldSceneTools.last_error.is_empty() else "Could not create a scene for %s (error %d)." % [id, err])
-			map_view_button.set_pressed_no_signal(true)
+			_press_view(map_view_button)
 			return
 		EditorInterface.get_resource_filesystem().update_file(path)
 	var error := room_view.open_room(world, id)
 	if not error.is_empty():
 		_set_status(error)
-		map_view_button.set_pressed_no_signal(true)
+		_press_view(map_view_button)
 		return
 	canvas.visible = false
 	room_view.visible = true
-	room_view_button.set_pressed_no_signal(true)
+	_press_view(room_view_button)
 	_show_room_sections(true)
 	var area := world.get_room_area(id)
 	if not area.is_empty():
 		room_view.set_area(area, MDSWorldSceneTools.area_room_order(world, area, world.get_room_layer(id)))
 	_set_status("Room view: %s. Paint terrain, or press Generate cave to start from the room's shape on the map%s." % [id, " (Caves for the area does every room of %s)" % area if not area.is_empty() else ""])
 
-## The Room view button: the rooms selected together, or the selected room, or the selected
-## area's rooms (shown together).
+## Opens the Full view: every room of the map's layer at its actual size (the rooms selected on
+## the map selected there too, [param focus] in the middle of it).
+func show_full_view(focus := "") -> void:
+	if not world:
+		_set_status("Open or make a world first (the world picker), then the Full view shows it.")
+		_press_view(map_view_button)
+		return
+	var picked := canvas.get_selected_rooms()
+	if picked.is_empty() and world.has_room(canvas.selected_room):
+		picked = [canvas.selected_room]
+	if room_view.visible and not room_view.is_full():
+		room_view.close_room(true)
+	var error := room_view.open_full(world, canvas.layer, picked)
+	if not error.is_empty():
+		_set_status(error)
+		_press_view(map_view_button)
+		return
+	canvas.visible = false
+	room_view.visible = true
+	_press_view(full_view_button)
+	_show_room_sections(true, true)
+	if world.has_room(focus):
+		_center_full_on.call_deferred(focus)
+	var n := 0
+	for id in world.get_room_ids():
+		if world.get_room_layer(id) == canvas.layer:
+			n += 1
+	if n == 0:
+		_set_status("Full view: no rooms yet. Draw them at their real size (Rectangle, Ellipse, Polygon, Curvy), then Generate map; or drop scenes from the Scenes tab.")
+	else:
+		_set_status("Full view: %d room(s) at their actual size. Click a room to paint it; the Full view's tools draw new rooms (then Generate map), move them, and Room view edits the ones selected." % n)
+
+func _center_full_on(id: String) -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var c := room_view.canvas
+	if world.has_room(id):
+		var b := world.get_room_bounds(id)
+		c.pan = c.size / 2.0 - c.world_to_local(b.get_center()) * c.zoom
+		c._apply_view()
+
+## Edits rooms [param ids] in the Room view (one alone, or several together where they are).
+func _edit_rooms(ids: Array[String]) -> void:
+	if ids.size() >= 2:
+		show_rooms_view(ids, ids[0], "%d rooms" % ids.size())
+	elif not ids.is_empty():
+		show_room_view(ids[0])
+
+## The Room view button: the rooms selected in the Full view, or together on the map, or the
+## selected room, or the selected area's rooms (shown together).
 func _open_room_view() -> void:
+	if room_view.visible and room_view.is_full():
+		var chosen := room_view.full_selection()
+		if chosen.is_empty() and room_view.painter:
+			chosen = [room_view.room_id]
+		if chosen.is_empty():
+			_set_status("Select rooms in the Full view first (its Rooms tool: click, Ctrl+click, a box), or click one to paint it there.")
+			_press_view(full_view_button)
+			return
+		_edit_rooms(chosen)
+		return
 	var picked := canvas.get_selected_rooms()
 	if picked.size() >= 2:
 		show_rooms_view(picked, canvas.selected_room, "%d rooms" % picked.size())
@@ -1393,7 +1502,10 @@ func generate_area_caves_now() -> void:
 	if not world or _caves_rooms.is_empty():
 		return
 	var shown := room_view.room_id if room_view.visible else ""
-	var shown_together: Array[String] = room_view.session_rooms() if room_view.visible else []
+	var was_full := room_view.visible and room_view.is_full()
+	var shown_together: Array[String] = []
+	if room_view.visible and not was_full:
+		shown_together = room_view.session_rooms()
 	if room_view.has_unsaved():
 		room_view.save()
 	# The Room view's fills and Generate options (its defaults when no room was opened there).
@@ -1411,7 +1523,9 @@ func generate_area_caves_now() -> void:
 	for path in changed:
 		EditorInterface.get_resource_filesystem().update_file(path)
 	var reopen := shown if world.has_room(shown) else _caves_rooms[0]
-	if shown_together.size() >= 2:
+	if was_full:
+		show_full_view()
+	elif shown_together.size() >= 2:
 		show_rooms_view(shown_together, reopen)
 	elif room_view.visible or not shown.is_empty():
 		show_room_view(reopen)
@@ -1430,9 +1544,10 @@ func generate_area_caves_now() -> void:
 
 ## The tool panel shows the map tools with the Map view and the room brushes with the
 ## Room view.
-func _show_room_sections(room: bool) -> void:
+func _show_room_sections(room: bool, full := false) -> void:
 	for section in [SECTION_TOOLS, SECTION_DISPLAY, SECTION_MARKERS]:
 		side_panel.set_section_visible(section, not room)
+	side_panel.set_section_visible(SECTION_FULL, room and full)
 	side_panel.set_section_visible(SECTION_ROOM, room)
 	var tiles := sidebar.get_tab_idx_from_control(room_view.palette)
 	sidebar.set_tab_hidden(tiles, not room)
@@ -2294,6 +2409,7 @@ func _on_canvas_context(room_id: String, world_pos: Vector2, local_pos: Vector2)
 		else:
 			context_menu.add_item("Create scene...", ContextItem.CREATE_SCENE)
 		context_menu.add_item("Paint room (actual view)", ContextItem.PAINT_ROOM)
+		context_menu.add_item("Show in the Full view", ContextItem.FULL_VIEW)
 		context_menu.add_item("Assign scene...", ContextItem.ASSIGN_SCENE)
 		context_menu.add_separator()
 		context_menu.add_item("Add gate here", ContextItem.ADD_GATE)
@@ -2343,6 +2459,8 @@ func _on_context_menu(item: int) -> void:
 			_open_file_dialog("assign_scene", EditorFileDialog.FILE_MODE_OPEN_FILE, ["*.tscn, *.scn ; Scenes"])
 		ContextItem.PAINT_ROOM:
 			show_room_view(id)
+		ContextItem.FULL_VIEW:
+			show_full_view(id)
 		ContextItem.FIT:
 			world.checkpoint()
 			if not MDSWorldSceneTools.fit_room_to_scene(world, id, scene_database.get(world.get_scene_path(id), {})):

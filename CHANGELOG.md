@@ -6,6 +6,15 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 ### Added
 
+- **Full view** (tool panel > View): every room of the layer where it is on the map, at its real size, with its scene. Each room's outline is in its area's color, with its name, its gates and the area names. It works on an empty world too.
+  - **Draw rooms first:** Rectangle, Ellipse, Polygon and Curvy draw outlines at the rooms' real size, showing the paint cells they will take. **Generate map** makes them rooms on the map: one room each, or split into rooms with doors like a generated area, in a new area, none, or one of the world's. The rooms keep the outline's curves, and get doors to what they touch. **Caves too** makes their scenes and caves as well. One Ctrl+Z takes it back to the outlines.
+  - **Rooms tool:** select rooms and outlines (click, Ctrl or Shift+click, a box), move them (rooms by paint cells, stopping against others, with doors where they touch), delete them, nudge them with the arrows. Ctrl+Z / Ctrl+Y undo on the map. A double-click, **Edit selected** or **Room view** edits the rooms selected in the Room view.
+  - **Generate area** drags a box for the Generate area dialog.
+  - **Painting:** a press in any room with a Room painting tool edits it, making a scene for it when it has none. Each room keeps its changes and undo, **Save** saves them all, and **Generate all** / **New variation for all** make caves in the rooms selected, or all of them.
+  - Scenes dropped on it become rooms where they were dropped.
+  - Rooms load their scenes as the view comes to them.
+  - Map: right-click a room > **Show in the Full view**.
+  - In code: `MDSRoomSketches` (outlines kept in the world file as `"sketches"`, and `generate()`), `MDSRoomView.open_full()`, `MDSFullViewTools`.
 - **Several rooms in the Room view:** an area, or the rooms selected on the map, show together where they are on the map. One is edited and the others show around it, dimmed.
   - A click in another one edits it, and the press goes on there. Each keeps its changes and its own undo meanwhile, and painting stops where another room starts.
   - **Save** saves them all, **<** and **>** go from one to the next, and **Generate all** / **New variation for all** make caves in every one, joined at their doors.
@@ -68,6 +77,10 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 ### Fixed
 
+- **Generate caves for an area from the map works again.** With the Room view closed, it stopped before generating anything.
+- **Saving one room in the Room view says it saved.** It went on to say "Could not save … (error 0)".
+- **Rooms shown together no longer hide each other.** Generate cave fills an L, T or U room's whole box with rock, and its rock in the notches covered the rooms there. Such a room's tiles now show only inside its rectangles, and the rest of it goes under the other rooms.
+- **Only the view shown has its button pressed** in the tool panel's View section.
 - **Links follow their gates.** Renaming or removing a gate left a link's gate end (`a_gate`, `b_gate`) naming the old gate.
 - **Tilesets no longer embed images.** Godot writes an image embedded in a `.tres` out byte by byte, so the starter tileset was 850 KiB of text.
   - The starter tileset's atlas is now the PNG next to it (linked in the editor, packed without loss elsewhere), and the solid colors' tile is packed.

@@ -17,6 +17,13 @@ extends HBoxContainer
 ## pictures and freeform shapes (one by one or in a box) and moves them by pixels, or by whole
 ## tiles with Snap to tiles, and turns them.
 ##
+## The Full view ([method open_full]) shows every room of a layer where it is on the map, at its
+## real size, none of them edited until a press in one (a room without a scene gets one). Its own
+## tools ([member full_controls], see [MDSFullViewTools]) draw rooms (rectangles, ellipses,
+## polygons, curvy outlines) for Generate map to make rooms of, select and move rooms, and open
+## the rooms selected in the Room view; scenes dropped on it are placed as rooms. The painting
+## tools work in any room, as with rooms shown together.
+##
 ## Its buttons are in [member controls], a narrow column that MetDevSys puts in its left
 ## tool panel, and MetDevSys shows the [member palette] as a tab. Used on its own, the view
 ## shows the column on its left and the palette on its right.
@@ -32,6 +39,12 @@ signal room_requested(room_id: String)
 signal area_caves_requested(area: String, rooms: Array[String])
 ## Rooms shown together (see [method open_rooms]): [param room_id] is the one edited now.
 signal room_activated(room_id: String)
+## The Full view asks to edit rooms [param ids] in the Room view (a double-click on one).
+signal rooms_requested(ids: Array[String])
+## Scene files dropped on the Full view at [param world_pos] (world px), to place as rooms.
+signal scenes_dropped(files: PackedStringArray, world_pos: Vector2)
+## The Full view's Generate area tool: a box of paint cells for the Generate area dialog.
+signal generate_area_requested(box: Rect2i)
 
 const DEFAULT_TILESET := MDSTilesetFactory.DEFAULT_PATH
 const Shape := MDSTerrainShapes.Shape
@@ -117,6 +130,19 @@ var turn_spin: SpinBox
 var _turn_row: Control
 var _select_row: Control
 var _select_hint: Label
+var _tool_group: ButtonGroup
+## The Full view (see [method open_full]): its tools, and their column for a side panel.
+var full_tools: MDSFullViewTools
+var full_controls: VBoxContainer
+var full_tool_buttons: Array[Button] = []
+var _full := false
+var _kind_opt: OptionButton
+var _area_opt: OptionButton
+var _full_caves: CheckBox
+var _full_hint: Label
+var _full_refresh_pending := false
+## The path of the scene a room clicked in the Full view gets when it has none (id -> path).
+var scene_path_for: Callable
 
 ## The Effects tool's list: dragging an entry onto the room places that effect.
 class EffectList extends ItemList:
@@ -145,6 +171,7 @@ func _init() -> void:
 	# What to paint.
 	var tool_grid := MDSSidePanel.grid(controls, 2)
 	var group := ButtonGroup.new()
+	_tool_group = group
 	var names := ["Terrain", "Background", "Decor", "Erase", "Foreground", "Freeform", "Stamps", "Effects", "Place", "Select"]
 	var tips := ["Paint the Terrain layer (solid ground: autotiled terrain, palette tiles or colors)", "Paint the Background layer (foliage, palette tiles or a solid color)", "Paint the Decor layer (grass, vines, stalactites, palette tiles...)", "Erase the top item under the brush: a stamp or free tiles, else foreground, decoration, terrain, then background (palette tiles and colors too). Pick one layer or all layers in the list next to it; Shift erases background only. Works with shapes too, to carve curved caves",
 		"Paint the Foreground layer, drawn in front of everything (dark silhouettes framing the room)",
@@ -534,8 +561,267 @@ func _init() -> void:
 	palette.tileset_changed.connect(func() -> void:
 		_fill_pickers(true)
 		canvas._overlay.queue_redraw())
+	_build_full_controls()
 	_update_shape_controls()
 	_update_tool_controls()
+
+## The Full view's column: its tools, what an outline makes and where, Generate map.
+func _build_full_controls() -> void:
+	full_tools = MDSFullViewTools.new(canvas)
+	canvas.full_tools = full_tools
+	full_tools.status_message.connect(func(t: String) -> void: status_message.emit(t))
+	full_tools.rooms_requested.connect(func(ids: Array[String]) -> void: rooms_requested.emit(ids))
+	full_tools.generate_requested.connect(func(box: Rect2i) -> void: generate_area_requested.emit(box))
+	full_tools.selection_changed.connect(_update_session_bar)
+	canvas.scenes_dropped.connect(func(files: PackedStringArray, at: Vector2) -> void: scenes_dropped.emit(files, at))
+	full_controls = VBoxContainer.new()
+	full_controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var grid := MDSSidePanel.grid(full_controls, 2)
+	for i in MDSFullViewTools.TOOL_NAMES.size():
+		var b := MDSUi.button(MDSFullViewTools.TOOL_NAMES[i], MDSFullViewTools.TOOL_TIPS[i])
+		b.toggle_mode = true
+		b.button_group = _tool_group
+		b.pressed.connect(func() -> void: set_full_tool(i))
+		full_tool_buttons.append(b)
+		grid.add_child(MDSSidePanel.fill(b))
+	_kind_opt = OptionButton.new()
+	_kind_opt.add_item("One room each", 0)
+	_kind_opt.set_item_tooltip(0, "Each outline drawn becomes one room, its rectangles on the paint cells it covers and its outline on the map the shape drawn. Outlines that overlap are one room")
+	_kind_opt.add_item("Split into rooms", 1)
+	_kind_opt.set_item_tooltip(1, "Each outline drawn is split into rooms like a generated area (rectangles, L, T and U shapes, shafts) with doors between them; those on its edge keep its curves")
+	_kind_opt.tooltip_text = "What Generate map makes of an outline drawn (and of the outlines selected, when changed)"
+	_kind_opt.item_selected.connect(func(idx: int) -> void:
+		full_tools.kind = MDSRoomSketches.ROOMS if idx == 1 else MDSRoomSketches.ROOM
+		_apply_to_outlines())
+	MDSSidePanel.field(full_controls, "Make", _kind_opt)
+	_area_opt = OptionButton.new()
+	_area_opt.tooltip_text = "The area of the rooms of an outline drawn (and of the outlines selected, when changed): a new area (outlines that touch share it), none, or one of the world's"
+	_area_opt.item_selected.connect(func(idx: int) -> void:
+		full_tools.area = str(_area_opt.get_item_metadata(idx))
+		_apply_to_outlines())
+	MDSSidePanel.field(full_controls, "Area", _area_opt)
+	var size_x := SpinBox.new()
+	size_x.min_value = 1
+	size_x.max_value = 12
+	size_x.value = full_tools.sketches.room_max.x
+	size_x.prefix = "Up to"
+	size_x.tooltip_text = "Split into rooms: the widest room, in paint cells"
+	size_x.value_changed.connect(func(v: float) -> void: full_tools.sketches.room_max.x = int(v))
+	var size_y := SpinBox.new()
+	size_y.min_value = 1
+	size_y.max_value = 12
+	size_y.value = full_tools.sketches.room_max.y
+	size_y.prefix = "x"
+	size_y.tooltip_text = "Split into rooms: the tallest room, in paint cells"
+	size_y.value_changed.connect(func(v: float) -> void: full_tools.sketches.room_max.y = int(v))
+	MDSSidePanel.row(full_controls, [size_x, size_y])
+	var snap := CheckBox.new()
+	snap.text = "Snap to cells"
+	snap.button_pressed = true
+	snap.tooltip_text = "Rectangles and ellipses on the paint cells' corners, polygon corners on the world grid, outlines and rooms moved by whole cells"
+	snap.toggled.connect(func(on: bool) -> void: full_tools.snap = on)
+	var at_once := CheckBox.new()
+	at_once.text = "At once"
+	at_once.tooltip_text = "Each outline drawn becomes rooms on the map right away (off: draw them all first, then Generate map)"
+	at_once.toggled.connect(func(on: bool) -> void: full_tools.right_away = on)
+	MDSSidePanel.row(full_controls, [snap, at_once])
+	var gen_map := MDSUi.button("Generate map", "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back")
+	gen_map.pressed.connect(func() -> void: generate_map(_full_caves.button_pressed))
+	var clear := MDSUi.button("Clear outlines", "Remove every outline drawn on this layer (Ctrl+Z undoes it)")
+	clear.pressed.connect(func() -> void:
+		full_tools.clear_outlines()
+		canvas._overlay.queue_redraw())
+	MDSSidePanel.row(full_controls, [gen_map, clear])
+	_full_caves = CheckBox.new()
+	_full_caves.text = "Caves too"
+	_full_caves.tooltip_text = "Generate map also makes a scene for each new room and a cave in it, joined at their doors, with the fills and Generate options below (Save writes them)"
+	var edit := MDSUi.button("Edit selected", "Edit the rooms selected (Rooms tool) in the Room view")
+	edit.pressed.connect(func() -> void:
+		var ids := full_tools.selected_rooms()
+		if ids.is_empty():
+			status_message.emit("Select rooms first with the Rooms tool (click, Ctrl+click, or drag a box).")
+		else:
+			rooms_requested.emit(ids))
+	MDSSidePanel.row(full_controls, [_full_caves, edit])
+	_full_hint = MDSUi.hint("")
+	_full_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	full_controls.add_child(_full_hint)
+	full_controls.add_child(HSeparator.new())
+
+## The Full view's tool [param t] (see [enum MDSFullViewTools.Tool]), in place of the painting tools.
+func set_full_tool(t: int) -> void:
+	full_tools.set_tool(t)
+	if t >= 0 and t < full_tool_buttons.size():
+		_press_tool(full_tool_buttons[t])
+	_update_full_hint()
+	canvas.grab_focus()
+
+## What the Make and Area pickers say goes for the outlines selected.
+func _apply_to_outlines() -> void:
+	var n := full_tools.apply_to_selected()
+	if n > 0:
+		status_message.emit("%d outline(s) selected changed." % n)
+	canvas._overlay.queue_redraw()
+
+func _update_full_hint() -> void:
+	if not _full_hint:
+		return
+	var t := full_tools.tool
+	if t < 0:
+		_full_hint.text = "Painting: click a room to paint it (one without a scene gets one). Pick a tool above to draw or move rooms."
+	elif t == MDSFullViewTools.Tool.ROOMS:
+		_full_hint.text = "Click or box-select rooms and outlines, drag to move them, Delete removes them. Double-click a room (or Edit selected) for the Room view."
+	elif t == MDSFullViewTools.Tool.GENERATE:
+		_full_hint.text = "Drag a box: the Generate area dialog makes an area of rooms in it."
+	else:
+		_full_hint.text = "Draw at the rooms' real size, then Generate map. Overlapping outlines of one kind and area are one; cells rooms have are left out."
+
+## The area picker: a new area, none, the world's areas.
+func _fill_area_picker() -> void:
+	_area_opt.clear()
+	_area_opt.add_item("New area")
+	_area_opt.set_item_metadata(0, MDSRoomSketches.NEW_AREA)
+	_area_opt.add_item("No area")
+	_area_opt.set_item_metadata(1, "")
+	if world:
+		var names: Array = world.get_areas().keys()
+		names.sort()
+		for a in names:
+			_area_opt.add_item(str(a))
+			_area_opt.set_item_metadata(_area_opt.item_count - 1, str(a))
+	for i in _area_opt.item_count:
+		if str(_area_opt.get_item_metadata(i)) == full_tools.area:
+			_area_opt.select(i)
+			return
+	full_tools.area = MDSRoomSketches.NEW_AREA
+	_area_opt.select(0)
+
+# --- Full view --------------------------------------------------------------------------------
+
+## Opens the Full view of [param p_world]'s [param layer]: every room of it where it is on the
+## map, at its real size. None is edited until a press in one with a painting tool (a room without
+## a scene gets one, see [member scene_path_for]); each keeps its changes and undo meanwhile, and
+## Save saves them all. The Full view's tools draw rooms and move them. [param picked]: rooms to
+## select. Returns an error message, or "" on success.
+func open_full(p_world: MDSWorld, layer: int, picked: Array = []) -> String:
+	if not p_world:
+		return "No world."
+	if has_unsaved():
+		save()
+	close_room(false)
+	world = p_world
+	room_id = ""
+	_full = true
+	canvas.full = true
+	canvas.full_layer = layer
+	canvas.world = world
+	canvas.room_id = ""
+	canvas._frame = Vector2.ZERO
+	_session_label = "Full view"
+	full_tools.reset()
+	_full_session()
+	canvas.session = _session
+	canvas.session_painters = _painters
+	full_tools.select(picked)
+	_fill_area_picker()
+	palette.set_painter(null)
+	set_area("", [])
+	# Nothing on the layer yet: drawing rooms is the first thing to do.
+	set_full_tool(MDSFullViewTools.Tool.ROOMS if not _session.is_empty() else MDSFullViewTools.Tool.RECTANGLE)
+	canvas.refresh_context()
+	_update_session_bar()
+	_fit_later()
+	return ""
+
+## Whether the Full view is open (see [method open_full]).
+func is_full() -> bool:
+	return _full
+
+## The rooms selected in the Full view.
+func full_selection() -> Array[String]:
+	if not _full:
+		var none: Array[String] = []
+		return none
+	return full_tools.selected_rooms()
+
+## Every room of the Full view's layer, in the map's order, is shown.
+func _full_session() -> void:
+	var list: Array[String] = []
+	for id in world.get_room_ids():
+		if world.get_room_layer(id) == canvas.full_layer:
+			list.append(id)
+	_session.assign(list)
+
+## The Full view after the world changed (rooms drawn, moved, removed, undone), a moment later.
+func refresh_full_later() -> void:
+	if _full and not _full_refresh_pending:
+		_full_refresh_pending = true
+		_refresh_full_deferred.call_deferred()
+
+func _refresh_full_deferred() -> void:
+	_full_refresh_pending = false
+	refresh_full()
+
+## The Full view after the world changed: every room of the layer shown again. A room no longer
+## there (or now with another scene) is let go, its changes saved first.
+func refresh_full() -> void:
+	if not _full or not world:
+		return
+	_full_session()
+	for id: String in _painters.keys():
+		var p: MDSRoomPainter = _painters[id]
+		if world.has_room(id) and world.get_room_layer(id) == canvas.full_layer and world.get_scene_path(id) == p.scene_path:
+			continue
+		if p == painter:
+			_let_go()
+		canvas.release_painter(id)
+		if p.dirty and p.save() == OK:
+			saved.emit(p.scene_path)
+		p.free_instance()
+		_painters.erase(id)
+	full_tools.invalidate()
+	canvas.refresh_context()
+	_fill_area_picker()
+	_update_session_bar()
+	canvas._overlay.queue_redraw()
+
+## The Full view: no room edited any more (its painter stays with its changes, shown with the
+## others, unless it is let go too).
+func _let_go() -> void:
+	if not painter:
+		return
+	_editor_marks[painter.scene_path] = _editor_seen
+	canvas.close()
+	painter = null
+	room_id = ""
+	canvas.room_id = ""
+	palette.set_painter(null)
+
+## Makes a scene for room [param id] of the Full view (see [member scene_path_for]). Returns
+## whether it has one now.
+func _make_scene(id: String) -> bool:
+	var path := str(scene_path_for.call(id)) if scene_path_for.is_valid() else str(world.get_setting("scene_folder", "res://rooms")).path_join(id.to_snake_case() + ".tscn")
+	world.checkpoint()
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	var err := MDSWorldSceneTools.create_scene_for_room(world, id, path)
+	if err != OK:
+		status_message.emit(MDSWorldSceneTools.last_error if not MDSWorldSceneTools.last_error.is_empty() else "Could not create a scene for %s (error %d)." % [id, err])
+		return false
+	saved.emit(path)
+	return true
+
+## Generate map in the Full view (see [method MDSFullViewTools.generate_map]); with
+## [param caves], the new rooms get scenes and caves too (Save writes them).
+func generate_map(caves := false) -> Dictionary:
+	var r := full_tools.generate_map()
+	if r.is_empty():
+		return r
+	refresh_full()
+	if caves and not r.rooms.is_empty():
+		var ids: Array[String] = []
+		ids.assign(r.rooms)
+		generate_all(false, ids)
+	return r
 
 ## Opens the room for painting. Returns an error message, or "" on success.
 func open_room(p_world: MDSWorld, id: String) -> String:
@@ -622,19 +908,23 @@ func session_rooms() -> Array[String]:
 ## far stays open, with its changes and its undo history, shown around it. The view stays where
 ## it is. Returns whether [param id] is the one edited now.
 func activate_room(id: String) -> bool:
-	if not _session.has(id) or not world or not world.has_room(id) or not painter:
+	if not _session.has(id) or not world or not world.has_room(id) or (not painter and not _full):
 		return false
-	if id == room_id:
+	if id == room_id and painter:
 		return true
 	if canvas.is_busy():
+		return false
+	# The Full view: a room without a scene gets one.
+	if _full and world.get_scene_path(id).is_empty() and not _make_scene(id):
 		return false
 	var fresh := not _painters.has(id)
 	var p := _session_painter(id)
 	if not p:
 		return false
-	_editor_marks[painter.scene_path] = _editor_seen
+	if painter:
+		_editor_marks[painter.scene_path] = _editor_seen
 	# The same place on the map stays where it is on screen.
-	canvas.pan += (world.get_origin(id) - world.get_origin(room_id)) * canvas.zoom
+	canvas.pan += (world.get_origin(id) - canvas.frame_origin()) * canvas.zoom
 	painter = p
 	room_id = id
 	_editor_seen = _editor_marks.get(p.scene_path, [])
@@ -674,7 +964,7 @@ func _session_painter(id: String) -> MDSRoomPainter:
 
 ## The bar of the rooms shown together: which one is edited, and buttons for all of them.
 func _update_session_bar() -> void:
-	var on := _session.size() >= 2
+	var on := _session.size() >= 2 or _full
 	_session_row.visible = on
 	_area_caves_button.visible = not on
 	if not on:
@@ -684,13 +974,18 @@ func _update_session_bar() -> void:
 	for p: MDSRoomPainter in _painters.values():
 		if p.dirty:
 			unsaved += 1
+	if _full:
+		var picked := full_tools.selected_rooms().size()
+		_area_label.text = "Full view: %d room(s)%s%s. Generate all makes caves in %s." % [_session.size(), ", editing %s" % room_id if painter else "", ", %d unsaved" % unsaved if unsaved > 0 else "",
+			"the %d selected" % picked if picked > 0 else "all of them"]
+		return
 	_area_label.text = "%s: room %d of %d (%s)%s. Click another one to edit it." % [_session_label, _session.find(room_id) + 1, _session.size(), room_id, ", %d unsaved" % unsaved if unsaved > 0 else ""]
 
 ## Generate cave in every room shown together (see [method open_rooms]), with the fills and
 ## options here, or New variation of them all ([param new_variation]). Each room can be undone
 ## on its own (Ctrl+Z in it); Save writes them. Returns the number of rooms generated.
-func generate_all(new_variation: bool) -> int:
-	if _session.size() < 2:
+func generate_all(new_variation: bool, ids: Array[String] = []) -> int:
+	if _session.size() < 2 and not _full:
 		generate(new_variation)
 		return 1 if painter else 0
 	if canvas.is_busy():
@@ -700,7 +995,16 @@ func generate_all(new_variation: bool) -> int:
 	var fills := generation_fills()
 	var done := 0
 	var failed: PackedStringArray = []
-	for id in _session:
+	# The Full view: the rooms selected, else all of them; rooms without a scene get one.
+	var targets: Array[String] = ids.duplicate()
+	if targets.is_empty() and _full:
+		targets = full_tools.selected_rooms()
+	if targets.is_empty():
+		targets = _session.duplicate()
+	for id in targets:
+		if _full and world.has_room(id) and world.get_scene_path(id).is_empty() and not _make_scene(id):
+			failed.append(id)
+			continue
 		var p := _session_painter(id)
 		if not p:
 			failed.append(id)
@@ -722,7 +1026,7 @@ func generate_all(new_variation: bool) -> int:
 		done += 1
 	canvas.refresh_context()
 	_update_session_bar()
-	var text := "Generated caves in %d of %d rooms, joined at their doors. Ctrl+Z undoes it in the room edited; Save writes them all." % [done, _session.size()]
+	var text := "Generated caves in %d of %d rooms, joined at their doors. Ctrl+Z undoes it in the room edited; Save writes them all." % [done, targets.size()]
 	if not failed.is_empty():
 		text += " Not in %s (no terrains in its tileset: pick palette tiles or a color as the Terrain fill)." % ", ".join(failed)
 	_changed(text)
@@ -781,6 +1085,9 @@ func _ready() -> void:
 func _adopt_controls() -> void:
 	if palette and not palette.get_parent():
 		_split.add_child(palette)
+	if full_controls and not full_controls.get_parent():
+		controls.add_child(full_controls)
+		controls.move_child(full_controls, 0)
 	if controls and not controls.get_parent():
 		var scroll := ScrollContainer.new()
 		scroll.custom_minimum_size.x = MDSSidePanel.WIDTH * MDSUi.editor_scale()
@@ -802,6 +1109,8 @@ func _notification(what: int) -> void:
 		for p: MDSRoomPainter in _painters.values():
 			if p != painter and is_instance_valid(p.root):
 				p.root.free()
+		if is_instance_valid(full_controls) and not full_controls.get_parent():
+			full_controls.free()
 		if is_instance_valid(controls) and not controls.get_parent():
 			controls.free()
 		if is_instance_valid(palette) and not palette.get_parent():
@@ -825,14 +1134,22 @@ func close_room(auto_save := true) -> void:
 		painter.free_instance()
 	painter = null
 	palette.set_painter(null)
+	# The Full view ends with it: the painting tools are the tools again.
+	if _full:
+		_full = false
+		canvas.full = false
+		full_tools.reset()
+		full_tools.set_tool(-1)
+		_press_tool(tool_buttons[canvas.tool])
+		canvas.refresh_context()
 
 func save() -> Error:
-	if not painter:
+	if not painter and not (_full and has_unsaved()):
 		return ERR_UNCONFIGURED
 	# What changed in the editor first, so saving never writes over it.
 	sync_from_editor()
-	var err := painter.save()
-	if err == OK:
+	var err := painter.save() if painter else OK
+	if painter and err == OK:
 		saved.emit(painter.scene_path)
 		# The editor reloaded it: that is no change to take in.
 		var live := live_scene_root(painter.scene_path)
@@ -840,6 +1157,10 @@ func save() -> Error:
 		var note := painter.size_note()
 		status_message.emit("Saved. " + note if not note.is_empty() else "Saved %s." % painter.scene_path.get_file())
 		_report_size()
+	elif painter and not MDSWorldSceneTools.last_error.is_empty():
+		status_message.emit(MDSWorldSceneTools.last_error)
+	elif painter:
+		status_message.emit("Could not save %s (error %d)." % [painter.scene_path, err])
 	# The other rooms shown with it that changed.
 	var others := 0
 	for id: String in _painters:
@@ -857,14 +1178,10 @@ func save() -> Error:
 				err = e
 			status_message.emit("Could not save %s: %s" % [p.scene_path.get_file(), MDSWorldSceneTools.last_error if not MDSWorldSceneTools.last_error.is_empty() else "error %d" % e])
 	if others > 0 and err == OK:
-		status_message.emit("Saved %s and %d other room(s) shown." % [painter.scene_path.get_file(), others])
-	if _session_row and _session.size() >= 2:
+		status_message.emit("Saved %s and %d other room(s) shown." % [painter.scene_path.get_file(), others] if painter else "Saved %d room(s)." % others)
+	if _session_row and (_session.size() >= 2 or _full):
 		_update_session_bar()
 		canvas.refresh_context()
-	elif not MDSWorldSceneTools.last_error.is_empty():
-		status_message.emit(MDSWorldSceneTools.last_error)
-	else:
-		status_message.emit("Could not save %s (error %d)." % [painter.scene_path, err])
 	canvas._overlay.queue_redraw()
 	return err
 
@@ -904,19 +1221,21 @@ static func _open_from(live: Node, path: String, tiles: TileSet) -> MDSRoomPaint
 	return MDSRoomPainter.open_packed(packed, path, tiles)
 
 func _on_editor_history() -> void:
-	if painter and _sync_timer and is_inside_tree():
+	if (painter or (_full and not _painters.is_empty())) and _sync_timer and is_inside_tree():
 		_sync_timer.start()
 
 ## Takes in the changes made to the room's scene in the editor since the Room view last did (it
 ## does after every change there, a moment later, and before saving): see
 ## [method sync_from_scene]. Returns whether there were any.
 func sync_from_editor() -> bool:
-	if not painter:
+	if not painter and not _full:
 		return false
 	var others := false
 	for id: String in _painters.keys():
-		if id != room_id:
+		if id != room_id or not painter:
 			others = _sync_other(id) or others
+	if not painter:
+		return others
 	var live := live_scene_root(painter.scene_path)
 	if not live:
 		return others
@@ -986,9 +1305,18 @@ func sync_from_scene(live: Node) -> bool:
 	_changed("%s changed in the editor: the Room view shows it now%s." % [painter.scene_path.get_file(), ", with its own changes not saved yet" if had else ""])
 	return true
 
+## Shows [param button] pressed and the other tool buttons (painting and Full view) not: a button
+## group only does that for clicks.
+func _press_tool(button: Button) -> void:
+	for b in tool_buttons + full_tool_buttons:
+		b.set_pressed_no_signal(b == button)
+
 func set_tool(t: int) -> void:
 	canvas.tool = t
-	tool_buttons[t].set_pressed_no_signal(true)
+	_press_tool(tool_buttons[t])
+	if full_tools and full_tools.tool >= 0:
+		full_tools.set_tool(-1)
+		_update_full_hint()
 	_fill_pickers(false)
 	_update_tool_controls()
 	canvas._overlay.queue_redraw()
@@ -1378,7 +1706,7 @@ func generation_fills() -> Dictionary:
 func set_area(area: String, rooms: Array[String]) -> void:
 	_area = area
 	_area_rooms = rooms
-	if _session.size() >= 2:
+	if _session.size() >= 2 or _full:
 		_update_session_bar()
 		return
 	_area_box.visible = not area.is_empty() and not rooms.is_empty()
