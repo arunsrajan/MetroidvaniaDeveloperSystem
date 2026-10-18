@@ -1,72 +1,165 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_switch.gd" id="1_f380p"]
-[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate_barrier.gd" id="2_vy620"]
-[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="3_n44l1"]
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_mdmdj"]
-size = Vector2(450, 88)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_cdlts"]
-size = Vector2(452, 88)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_3gm7w"]
-size = Vector2(30, 120)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_oveet"]
-size = Vector2(48, 128)
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_freeform.gd" id="1_n44l1"]
+[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/garden_limestone.freeform.tres" id="2_mdmdj"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_switch.gd" id="3_cdlts"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate_barrier.gd" id="4_3gm7w"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="5_oveet"]
+[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/clumps.png" id="6_mdmdj"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_40koa"]
+size = Vector2(30, 124)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_occq8"]
 size = Vector2(48, 128)
 
-[node name="Gardens03" type="Node2D" unique_id=351320337]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_u6eds"]
+size = Vector2(48, 128)
 
-[node name="MapBounds" type="Node2D" parent="." unique_id=1182057533]
+[node name="Gardens03" type="Node2D" unique_id=503727449]
 
-[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=944774503]
+[node name="MapBounds" type="Node2D" parent="." unique_id=1902802362]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1284633815]
 offset_right = 1152.0
 offset_bottom = 648.0
 
-[node name="Floor" type="StaticBody2D" parent="." unique_id=1728208965]
-collision_mask = 0
+[node name="Freeform" type="Node2D" parent="." unique_id=1864138872]
+z_index = 1
 
-[node name="@CollisionShape2D@18" type="CollisionShape2D" parent="Floor" unique_id=621468674]
-position = Vector2(225, 604)
-shape = SubResource("RectangleShape2D_mdmdj")
+[node name="Ground" type="Node2D" parent="Freeform" unique_id=1819135098]
+script = ExtResource("1_n44l1")
+points = PackedVector2Array(450, 744, 389.33334, 744, 328.66666, 744, 268, 744, 207.33333, 744, 146.66666, 744, 86, 744, 25.333313, 744, -35.333344, 744, -96, 744, -96, 682.6667, -96, 621.3333, -96, 560, -30, 560, 36, 560, 102, 560, 168, 560, 234, 560, 300, 560, 366, 560, 432, 560, 450, 578, 450, 633.3333, 450, 688.6667)
+style = ExtResource("2_mdmdj")
+seed_value = 28094
 
-[node name="@CollisionShape2D@19" type="CollisionShape2D" parent="Floor" unique_id=23563150]
-position = Vector2(926, 604)
-shape = SubResource("RectangleShape2D_cdlts")
+[node name="Ground2" type="Node2D" parent="Freeform" unique_id=1795753611]
+script = ExtResource("1_n44l1")
+points = PackedVector2Array(700, 578, 718, 560, 784.25, 560, 850.5, 555.50336, 916.75, 560, 983, 560, 1049.25, 560, 1115.5, 560, 1181.75, 560, 1248, 560, 1248, 621.3333, 1248, 682.6667, 1248, 744, 1187.1111, 744, 1126.2222, 744, 1065.3334, 744, 1004.44446, 744, 943.55554, 744, 882.6666, 744, 821.7778, 744, 760.8889, 744, 700, 744, 700, 688.6667, 700, 633.3333)
+style = ExtResource("2_mdmdj")
+seed_value = 17930
 
-[node name="BridgeSwitch" type="Area2D" parent="." unique_id=1665884912]
-position = Vector2(350, 540)
-script = ExtResource("1_f380p")
+[node name="Ceiling" type="Node2D" parent="Freeform" unique_id=1471761792]
+script = ExtResource("1_n44l1")
+points = PackedVector2Array(1248, -96, 1248, -31.5, 1248, 33, 1248, 97.5, 1248, 162, 1248, 226.5, 1248, 291, 1248, 355.5, 1248, 420, 1200.6666, 420, 1153.3334, 420, 1106, 420, 1088, 402, 1088, 342.5, 1073.0746, 283, 1080.4957, 223.5, 1088, 164, 1067.2, 120.8, 1024, 100, 964.26666, 115.07408, 904.5333, 115.47168, 844.8, 121.288086, 785.06665, 117.09454, 725.3333, 114.663864, 665.6, 107.143486, 605.8667, 111.23328, 546.1333, 121.15009, 486.39996, 119.63171, 426.66663, 124, 366.93335, 112.55485, 307.2, 113.345726, 247.46667, 110.73833, 187.73334, 108.71386, 128, 100, 84.8, 120.8, 64, 164, 87.31618, 223.5, 74.18321, 283, 70.225525, 342.5, 64, 402, 46, 420, -1.3333359, 420, -48.66667, 420, -96, 420, -96, 355.5, -96, 291, -96, 226.5, -96, 162, -96, 97.5, -96, 33, -96, -31.5, -96, -96, -25.26316, -96, 45.47368, -96, 116.21051, -96, 186.94736, -96, 257.68423, -96, 328.42102, -96, 399.1579, -96, 469.8947, -96, 540.6316, -96, 611.36847, -96, 682.1053, -96, 752.84204, -96, 823.579, -96, 894.3158, -96, 965.0526, -96, 1035.7894, -96, 1106.5262, -96, 1177.2632, -96)
+style = ExtResource("2_mdmdj")
+seed_value = 83197
+
+[node name="BridgeSwitch" type="Area2D" parent="." unique_id=1690071581]
+position = Vector2(350, 536)
+script = ExtResource("3_cdlts")
 flag = "bridge_lowered"
 metadata/mds_grants = PackedStringArray("flag:bridge_lowered")
 
-[node name="BridgeBarrier" type="StaticBody2D" parent="." unique_id=665508918]
-position = Vector2(1130, 480)
-script = ExtResource("2_vy620")
+[node name="BridgeBarrier" type="StaticBody2D" parent="." unique_id=354877556]
+position = Vector2(1110, 498)
+script = ExtResource("4_3gm7w")
 requires = PackedStringArray("flag:bridge_lowered")
 
-[node name="@CollisionShape2D@20" type="CollisionShape2D" parent="BridgeBarrier" unique_id=765208519]
-position = Vector2(15, 0)
-shape = SubResource("RectangleShape2D_3gm7w")
+[node name="@CollisionShape2D@4" type="CollisionShape2D" parent="BridgeBarrier" unique_id=944462502]
+shape = SubResource("RectangleShape2D_40koa")
 
-[node name="Gates" type="Node2D" parent="." unique_id=992806402]
+[node name="Gates" type="Node2D" parent="." unique_id=173851512]
 
-[node name="left1" type="Area2D" parent="Gates" unique_id=1424432616]
+[node name="left1" type="Area2D" parent="Gates" unique_id=1637858573]
 position = Vector2(0, 500)
 collision_layer = 0
-script = ExtResource("3_n44l1")
+script = ExtResource("5_oveet")
 
-[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=412199863]
-shape = SubResource("RectangleShape2D_oveet")
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=1532438854]
+shape = SubResource("RectangleShape2D_occq8")
 
-[node name="right1" type="Area2D" parent="Gates" unique_id=2073231451]
+[node name="right1" type="Area2D" parent="Gates" unique_id=106655005]
 position = Vector2(1152, 500)
 collision_layer = 0
-script = ExtResource("3_n44l1")
+script = ExtResource("5_oveet")
 
-[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=936217756]
-shape = SubResource("RectangleShape2D_40koa")
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=432271305]
+shape = SubResource("RectangleShape2D_u6eds")
+
+[node name="StampsBack" type="Node2D" parent="." unique_id=1929519369]
+z_index = -6
+
+[node name="Stamp1" type="Sprite2D" parent="StampsBack" unique_id=255208606]
+position = Vector2(186.64456, 104.556946)
+rotation = -0.022828344
+scale = Vector2(0.64276767, 0.64276767)
+texture = ExtResource("6_mdmdj")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/mds_stamp = 15
+metadata/mds_decor = true
+
+[node name="Stamp2" type="Sprite2D" parent="StampsBack" unique_id=1637137027]
+position = Vector2(350.12848, 108.06401)
+rotation = -0.032010157
+scale = Vector2(0.72018105, 0.72018105)
+texture = ExtResource("6_mdmdj")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/mds_stamp = 15
+metadata/mds_decor = true
+
+[node name="Stamp3" type="Sprite2D" parent="StampsBack" unique_id=959319715]
+position = Vector2(442.08148, 119.76017)
+rotation = -3.1305847
+scale = Vector2(0.9538552, -0.9538552)
+texture = ExtResource("6_mdmdj")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/mds_stamp = 15
+metadata/mds_decor = true
+
+[node name="Stamp4" type="Sprite2D" parent="StampsBack" unique_id=1402521155]
+position = Vector2(574.5756, 112.82341)
+rotation = 0.036472734
+scale = Vector2(0.5805048, 0.5805048)
+texture = ExtResource("6_mdmdj")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(768, 128, 128, 128)
+metadata/mds_stamp = 14
+metadata/mds_decor = true
+
+[node name="Stamp5" type="Sprite2D" parent="StampsBack" unique_id=2047140273]
+position = Vector2(702.78345, 107.67797)
+rotation = 0.041501332
+scale = Vector2(0.77278125, 0.77278125)
+texture = ExtResource("6_mdmdj")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/mds_stamp = 15
+metadata/mds_decor = true
+
+[node name="Stamp6" type="Sprite2D" parent="StampsBack" unique_id=1888663345]
+position = Vector2(843.2643, 117.25889)
+rotation = -3.0965965
+scale = Vector2(0.79678214, -0.79678214)
+texture = ExtResource("6_mdmdj")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(896, 128, 128, 128)
+metadata/mds_stamp = 15
+metadata/mds_decor = true
+
+[node name="Stamp7" type="Sprite2D" parent="StampsBack" unique_id=969061434]
+position = Vector2(1025.9442, 96.39492)
+rotation = -0.002814781
+scale = Vector2(0.7714747, 0.7714747)
+texture = ExtResource("6_mdmdj")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(768, 128, 128, 128)
+metadata/mds_stamp = 14
+metadata/mds_decor = true

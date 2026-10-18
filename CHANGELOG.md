@@ -8,7 +8,7 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 - **Gameplay Kit** (`addons/MetroidvaniaDeveloperSystem/gameplay/`, see the README): the gameplay half of a Metroidvania, plugged into `MDSWorldGame`.
   - **Hub:** `MDSGameplay` under the game holds items, currency, equipment, story flags, health and mana, saved with the game in `ext.gameplay` (versioned, `MIGRATIONS`). `MDSGameplaySetup` adds the input actions, collision layer names and settings a project lacks.
-  - **Conditions:** `item:<id>`, `item:<id>>=<n>` and `flag:<name>` work in gate and barrier `requires`, objectives, dialogue and shops, and in the Progress tab. `MDSGateBarrier.consume_items` uses the items up.
+  - **Conditions:** `item:<id>`, `item:<id>>=<n>` and `flag:<name>` work in gate and barrier `requires`, objectives, dialogue and shops, and in the Progress tab. `MDSGateBarrier.consume_items` uses the items up; the map gate behind the open barrier still lets the player through.
   - **Player:** `MDSPlayer` (`gameplay/player/mds_player.tscn`) on `MDSStateMachine` / `MDSState`, tuned by `MDSMovementConfig` (coyote time, jump buffer, jump cut, apex gravity, corner correction, slopes, one-way platforms), with `MDSInputBuffer`. It is `Locked` while rooms change and sits on benches.
   - **Abilities:** `MDSAbilityData` and twelve ability states (double jump, wall jump, dash, air dash, slide, ledge grab, climb, swim, glide, grapple, ground pound, super attack) plus charge attack and parry, each only while granted. `MDSAbilityPickup`, `MDSAbilityPopup`, `MDSClimbable`, `MDSGrapplePoint`, `MDSSwimZone` (`MDSWater.swimmable`).
   - **World objects:** `MDSPickup`, `MDSHealthUpgrade`, `MDSManaUpgrade`, `MDSSlotUpgrade`, `MDSCurrencyPickup`, `MDSBreakable`, `MDSSwitch`, `MDSCheckpoint`, `MDSLoreTablet`, all persistent through MDS's stored objects or flags.
@@ -17,7 +17,7 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - **Items and economy:** `MDSItemData` and its effects (`MDSHealEffect`, `MDSMaxHealthEffect`, `MDSManaEffect`, `MDSBuffEffect`), `MDSEquipmentData` charms, `MDSShop` and `MDSShopInventory`, currency, `MDSCorpse` (the death penalty), `MDSLevelCurve`.
   - **NPCs and UI:** `MDSNPC`, `MDSDialogueData` / `MDSDialogueLine`; `MDSHud`, `MDSToast`, `MDSPauseMenu` (Map, Inventory, Equipment, Journal, Bestiary, Options, Quit), `MDSInventoryScreen`, `MDSEquipmentScreen`, `MDSShopScreen`, `MDSDialogueBox`, `MDSTitleScreen` (3 save slots), `MDSOptionsMenu` and `MDSOptions` (volumes, rebinding, display, game speed, assist mode, shake and flash, camera motion, text size, glyphs, toggled glide), `mds_gameplay_theme.tres`.
   - **Editor:** Create game scene builds the kit's player, hub and UI (**Include gameplay kit**, on by default). The Room view's Effects tool has **Gameplay Objects**. New Issues checks: an ability pickup without data, an item no pickup grants, a boss arena without a boss or doors, a boss whose name differs from its room's. A jump-arc preview for `MDSMovementConfig` (`MDSMovementInspectorPlugin`), and debug keys F1–F7 (`MDSGameplayDebug`).
-  - **Demo:** `examples/gameplay_demo/`, 12 rooms in two areas: double jump, the Warden, dash, the red key, the bridge switch, wall jump, the ending.
+  - **Demo:** `examples/gameplay_demo/`, 12 rooms in two areas: double jump, the Warden, dash, the red key, the bridge switch, wall jump, the ending. Its rooms are built by MDS's own tools (Convert to freeform, Decorate freeform) with the Mossgrove and Sunken Gardens packs, and `build_gameplay_demo.gd` builds them again. Each ability is needed where the route says, and its test plays the whole route with simulated input.
   - **Tests:** `tests/test_gameplay_*` (conditions, save, movement, abilities, world objects, combat, enemies, boss, analysis, death, economy, player in a game, scene tools, demo).
 
 - **Full view** (tool panel > View): every room of the layer where it is on the map, at its real size, with its scene. Each room's outline is in its area's color, with its name, its gates and the area names. It works on an empty world too.
@@ -91,6 +91,8 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 ### Fixed
 
+- **A barrier that needs `boss:<name>` opens when the boss falls.** It opened only when its room loaded again.
+- **The camera director no longer reports a negative `Rect2`** when the view is smaller than its on-screen inset (a headless run framing a boss).
 - **Generate caves for an area from the map works again.** With the Room view closed, it stopped before generating anything.
 - **Saving one room in the Room view says it saved.** It went on to say "Could not save … (error 0)".
 - **Rooms shown together no longer hide each other.** Generate cave fills an L, T or U room's whole box with rock, and its rock in the notches covered the rooms there. Such a room's tiles now show only inside its rectangles, and the rest of it goes under the other rooms.

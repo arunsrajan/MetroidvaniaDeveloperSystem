@@ -1536,7 +1536,17 @@ Teleporting is MDS's **Play from here**.
 
 ### Gameplay demo
 
-`examples/gameplay_demo/` is a 12-room, two-area world (Mossgrove and Sunken Gardens) with its game scene, `game.tscn`: get `double_jump` in Grove_03, beat the Warden in Grove_05, get `dash` in Grove_06 and the `red_key` in Gardens_02, pull the switch that lowers the bridge in Gardens_03, get `wall_jump` in Gardens_04 and reach the end of Gardens_05. Open `game.tscn` and press **F6**. Its rooms are blocked out with plain collision floors, not painted with the asset packs.
+`examples/gameplay_demo/` is a 12-room, two-area world (Mossgrove and Sunken Gardens) with its game scene, `game.tscn`: get `double_jump` in Grove_03, beat the Warden in Grove_05, get `dash` in Grove_06 and the `red_key` in Gardens_02, pull the switch that lowers the bridge in Gardens_03, get `wall_jump` in Gardens_04 and reach the end of Gardens_05. Open `game.tscn` and press **F6**.
+
+![Grove_02, Grove_07, Gardens_02 and Gardens_05](docs/gameplay_demo.png)
+
+Its rooms were made with MDS's own tools: blocked out with straight-edged freeform shapes, then **Convert to freeform** and **Decorate freeform** with the Mossgrove pack (the Grove rooms) and the Sunken Gardens pack (the Gardens rooms). `build_gameplay_demo.gd` builds them again:
+
+```
+godot --headless --path . --script res://examples/gameplay_demo/build_gameplay_demo.gd
+```
+
+Every gate is reached by playing: Grove_02's high ledge needs the double jump, Grove_07's lava cavern is too low to jump in and needs the dash, and Gardens_05's shaft needs the wall jump. `tests/test_gameplay_demo.gd` plays the whole route with simulated input, the Warden fight included, and checks each of those obstacles can't be passed without its ability.
 
 ---
 

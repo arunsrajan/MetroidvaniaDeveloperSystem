@@ -45,6 +45,8 @@ func _ready() -> void:
 	if _game:
 		_game.ability_gained.connect(func(_a: String) -> void: _check())
 		_game.room_loaded.connect(func(_r: String) -> void: _check())
+		# A boss: barrier opens when the boss falls, not on the next room load.
+		_game.defeated.connect(func(_id: String, _boss: String) -> void: _check())
 		# Items and flags (the Gameplay Kit) can open it too.
 		var kit := MDSGameplay.find(_game)
 		if kit:

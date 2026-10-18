@@ -793,7 +793,7 @@ func _on_gate_entered(t: Dictionary) -> void:
 		var reqs: Array = t.get("requires", []) if t.get("link", false) else world.get_gate(current_room, t.get("from_gate", "")).get("requires", [])
 		for r in reqs:
 			# Abilities, and the other conditions too (item:, flag:, boss:, object:).
-			if not is_condition_met(str(r)):
+			if not is_condition_met(str(r)) and not _opened_by_barrier(str(r)):
 				missing.append(r)
 		if not missing.is_empty():
 			transition_blocked.emit(t, missing)
@@ -804,6 +804,17 @@ func _on_gate_entered(t: Dictionary) -> void:
 	if cinematic:
 		await play_cinematic(cinematic, t)
 	load_room(t.room, t.gate)
+
+## Whether an open [MDSGateBarrier] in the current room asked for [param requirement]: a key
+## its door used up ([member MDSGateBarrier.consume_items]) still lets the player through the
+## gate behind it.
+func _opened_by_barrier(requirement: String) -> bool:
+	if not room_node:
+		return false
+	for b in room_node.find_children("*", "StaticBody2D", true, false):
+		if b is MDSGateBarrier and (b as MDSGateBarrier).is_open and (b as MDSGateBarrier).get_requirements().has(requirement):
+			return true
+	return false
 
 ## Plays a cinematic scene between rooms, over everything. Its root may have a method
 ## [code]play(transition: Dictionary)[/code] (awaited) or a [code]finished[/code] signal;

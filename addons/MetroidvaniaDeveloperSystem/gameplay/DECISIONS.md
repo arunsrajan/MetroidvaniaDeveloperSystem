@@ -20,7 +20,9 @@ itself, closest to how MDS already behaves. Newest at the bottom of each section
   `MDSWorldGame.abilities`.
 - **Barriers re-check on the kit's changes.** `MDSGateBarrier` listened to `ability_gained` and
   `room_loaded` only; it now also listens to `MDSGameplay.item_changed`, `flag_changed` and
-  `equipment_changed`, else an `item:` or `flag:` barrier would only open on the next room load.
+  `equipment_changed`, else an `item:` or `flag:` barrier would only open on the next room load. It
+  listens to `MDSWorldGame.defeated` too, so a `boss:` barrier in the boss's room opens when the
+  boss falls.
 - **The scanner counts grants.** `item:x>=n` needs `n` grants of `item:x`, and a scene's
   `grants` list is de-duplicated, so the scanner also records `grant_counts` (grant -> number of
   nodes). The analysis counts each room once per grant node.
@@ -60,6 +62,9 @@ itself, closest to how MDS already behaves. Newest at the bottom of each section
   - `world_panel.gd`: the Create game scene dialog with its **Include gameplay kit** checkbox.
   - `tests/run_all.gd`: unpauses the tree and resets the time scale between test scenes, so one
     scene's open menu or hit-stop can't stall the next.
+  - `nodes/mds_camera_director.gd`: `on_screen()` is false in a view smaller than its inset (a
+    headless run's) instead of reporting a negative `Rect2`, which a boss arena framing the boss
+    did on every headless fight.
 
 ## Player
 
@@ -177,7 +182,41 @@ itself, closest to how MDS already behaves. Newest at the bottom of each section
   file, as the spec says.
 - **Glyphs follow the options.** The ability popup shows gamepad buttons when the options' input
   glyphs say so (Auto: when a gamepad is connected); its `gamepad_glyphs` export forces them.
-- **The demo is blocked out.** Its rooms are plain collision floors with the kit's objects, and its
-  test drives the intended route room by room (`load_room()`, collecting, switching) rather than
-  playing it with inputs; painting the rooms with the Mossgrove and Sunken Gardens packs and a
-  fully played route test are still to do.
+- **The demo is built with MDS's own tools.** `build_gameplay_demo.gd` blocks each room out with
+  straight-edged freeform shapes (rock, one-way ledges) and the kit's objects, then runs Convert to
+  freeform (`MDSFreeformConverter`) and Decorate freeform (`MDSFreeformDecorator`) on it with the
+  Mossgrove pack (Grove_*: Mossy rock, the Mossgrove stamps, Jungle foliage mounds) or the Sunken
+  Gardens pack (Gardens_*: Garden limestone, Garden ledges, the garden stamps, Sunken ruin
+  structures), with fixed seeds, so running it again builds the same rooms. `KeepClear` rectangles
+  (`mds_protected`) keep the converted rock out of the spaces the moves need. The decorator's
+  foreground framing is off: it hangs a mass from the room's top down to the first rock 200 px in
+  from each side, which in these one-screen rooms covered doorways and ledges.
+- **The demo's obstacles are sized from the default `MDSMovementConfig`**: a jump of about 90 px, a
+  double jump of about 180, a dash of 96 px that only starts on the ground. Grove_02's high ledge is
+  120 px over a hanging ledge 140 px over the floor (double jumps). Grove_07 is a lava cavern 72 px
+  high, too low to jump in, with stepping stones 80 px apart (dashes: the kit's dash is ground-only
+  and flat, so the low ceiling is what makes it needed). Gardens_05's shaft is 128 px wide and
+  starts 160 px over the floor (a double jump into it, then wall jumps). Grove_02 and Gardens_02
+  are climbed by ledges that end under their ceiling holes, as the gates there are on the ceiling.
+- **The demo's Warden is gentler than the kit's default boss**: 18 health (two phases, at 100% and
+  50%), 1 damage by touch and swipe, 3 shots a volley and a 1.2 s rest between attacks (the
+  defaults: 30, 2, 5 and 0.9 s), so it can be beaten with the default attacks. The demo's lava does
+  1 damage (`MDSLava` does 10 by default, more than the player's 5 health).
+- **The demo test plays the route with inputs.** It holds and releases actions with
+  `Input.action_press()` and notes presses in the player's `MDSInputBuffer`, steering to positions
+  and checking where each jump lands (closed loop, not frame-counted scripts), and fights the Warden
+  by watching its state as a player watches it. The ability popups and the bench only listen to
+  input events, so those presses are `InputEventAction`s. No debug keys, and no `load_room()`:
+  every gate is walked, jumped or dropped through. Separate checks load the three gated rooms
+  directly and show each obstacle can't be passed without its ability.
+- **The played run goes four times faster than real time.** The route takes about 100 s of game time
+  played by the test (the spec's "about 10 minutes" is a first-time player's pace). The test raises
+  `Engine.physics_ticks_per_second` and `Engine.time_scale` together by 4, so every physics step is
+  still 1/60 s and the game plays exactly as at normal speed; the test takes about 30 s headless.
+  Timers that count real time (hit-stop, the gate cooldown, the popup's minimum time) are shorter in
+  game time there, so runs differ slightly from machine to machine; the route has room for that.
+- **A key used up by its door still opens the gate behind it.** With `enforce_requirements`, map
+  gates check their own `requires`; once a barrier with `consume_items` had taken the red key, the
+  gate behind it (which requires `item:red_key` for the Progress tab) refused the player for good.
+  `MDSWorldGame._on_gate_entered()` now counts a requirement an open `MDSGateBarrier` in the room
+  asked for as met.

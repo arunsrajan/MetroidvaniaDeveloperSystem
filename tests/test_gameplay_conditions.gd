@@ -1,8 +1,9 @@
 extends "res://tests/test_case.gd"
 ## Gameplay Kit, phase 1: the condition grammar (item:, item:x>=n, flag:, the old strings
 ## unchanged), MDSWorldGame.is_condition_met handing item and flag conditions to MDSGameplay, gate
-## barriers opening on an item or a flag (and using up the key with consume_items), map gates
-## refusing the player without the item, and equipment lending abilities.
+## barriers opening on an item, a flag or a boss's defeat (and using up the key with consume_items),
+## map gates refusing the player without the item (but not for a key its open door used up), and
+## equipment lending abilities.
 
 const Fixture := preload("res://tests/game_fixture.gd")
 
@@ -75,24 +76,28 @@ func _barrier(requires: PackedStringArray, consume := false) -> MDSGateBarrier:
 func _barriers() -> void:
 	var key_door := _barrier(["item:red_key"], true)
 	var bridge := _barrier(["flag:lever_pulled"])
+	var boss_door := _barrier(["boss:Moss Mother"])
 	await get_tree().process_frame
-	check(not key_door.is_open and not bridge.is_open, "the barriers start shut")
+	check(not key_door.is_open and not bridge.is_open and not boss_door.is_open, "the barriers start shut")
 	kit.add_item("red_key")
 	check(key_door.is_open, "an item:red_key barrier opens on add_item")
 	check(kit.get_item_count("red_key") == 0, "consume_items uses the key up")
 	kit.set_flag("lever_pulled")
 	check(bridge.is_open, "a flag:lever_pulled barrier opens on set_flag")
 	check(game.is_object_stored(game.object_id(bridge)), "and stays open (stored)")
+	game.defeat_boss("Moss Mother")
+	check(boss_door.is_open, "a boss:Moss Mother barrier opens when the boss is defeated")
 
 func _map_gates() -> void:
 	var gate := game.world.get_gate("Garden_01", "right1")
-	gate["requires"] = ["item:gate_pass"]
+	gate["requires"] = ["item:red_key", "item:gate_pass"]
 	game.enforce_requirements = true
 	var blocked: Array = []
 	game.transition_blocked.connect(func(_t: Dictionary, missing: PackedStringArray) -> void: blocked.append(missing))
 	game._on_gate_entered({"room": "Garden_02", "gate": "left1", "from_gate": "right1", "from_room": game.current_room})
 	await get_tree().process_frame
-	check(game.current_room == "Garden_01" and blocked.size() == 1 and blocked[0] == PackedStringArray(["item:gate_pass"]), "a map gate needing item:gate_pass refuses the player (%s)" % [blocked])
+	check(game.current_room == "Garden_01" and blocked.size() == 1 and blocked[0].has("item:gate_pass"), "a map gate needing item:gate_pass refuses the player (%s)" % [blocked])
+	check(blocked.size() == 1 and not blocked[0].has("item:red_key") and not kit.has_item("red_key"), "its item:red_key, used up by the open key door in the room, is not missing")
 	kit.add_item("gate_pass")
 	game._on_gate_entered({"room": "Garden_02", "gate": "left1", "from_gate": "right1", "from_room": game.current_room})
 	await game.room_loaded
