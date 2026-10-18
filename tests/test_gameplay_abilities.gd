@@ -211,6 +211,18 @@ func _glide() -> void:
 	if await _gate("glide", &"Glide", setup):
 		await physics_frames(30)
 		check(player.velocity.y <= player.config.glide_fall_speed + 0.5 and player.machine.is_in(&"Glide"), "gliding down slowly (%.0f)" % player.velocity.y)
+		# The options' "Glide: press to toggle": a press starts it, jump isn't held, a press ends it.
+		MDSPlayerGlideState.toggled = true
+		await _put(Vector2(150, 100), false, 300.0)
+		check(not player.machine.transition_to(&"Glide"), "toggled glide: not without a press")
+		player.buffer.press("jump")
+		check(player.machine.transition_to(&"Glide"), "toggled glide: a jump press starts it")
+		await physics_frames(20)
+		check(player.machine.is_in(&"Glide") and not Input.is_action_pressed(&"jump"), "and it goes on with jump let go")
+		player.buffer.press("jump")
+		await physics_frames(2)
+		check(player.machine.is_in(&"Fall"), "the next press ends it (%s)" % player.machine.get_state())
+		MDSPlayerGlideState.toggled = false
 	_forget("glide")
 	await physics_frames(40)
 

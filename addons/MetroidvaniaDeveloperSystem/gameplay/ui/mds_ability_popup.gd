@@ -13,7 +13,8 @@ signal closed
 @export var confirm_actions: PackedStringArray = ["ui_accept", "jump", "attack", "interact"]
 ## Seconds before it can be closed (so a held button doesn't skip it).
 @export var min_time := 0.6
-## Show the gamepad button rather than the key.
+## Always show the gamepad button rather than the key. Off: the options' input glyphs choose
+## ([method MDSOptions.use_gamepad_glyphs]: keyboard, gamepad, or the gamepad when one is connected).
 @export var gamepad_glyphs := false
 
 var _queue: Array[MDSAbilityData] = []
@@ -81,14 +82,19 @@ func show_ability(data: MDSAbilityData) -> void:
 	_desc.text = data.description
 	_icon.texture = data.icon
 	_icon.visible = data.icon != null
-	var key := MDSGameplaySetup.glyph(data.input_action, gamepad_glyphs) if data.input_action != &"" else ""
+	var pad := uses_gamepad_glyphs()
+	var key := MDSGameplaySetup.glyph(data.input_action, pad) if data.input_action != &"" else ""
 	_glyph.text = "[ %s ]" % key if not key.is_empty() else ""
-	_hint.text = "Press %s" % MDSGameplaySetup.glyph(&"jump", gamepad_glyphs) if InputMap.has_action(&"jump") else ""
+	_hint.text = "Press %s" % MDSGameplaySetup.glyph(&"jump", pad) if InputMap.has_action(&"jump") else ""
 	visible = true
 	_opened = Time.get_ticks_msec()
 	if pause_game and is_inside_tree() and not get_tree().paused:
 		get_tree().paused = true
 		_paused_it = true
+
+## Whether its glyphs show gamepad buttons: [member gamepad_glyphs], else the options' choice.
+func uses_gamepad_glyphs() -> bool:
+	return gamepad_glyphs or MDSOptions.use_gamepad_glyphs()
 
 ## Whether it is showing an ability.
 func is_showing() -> bool:

@@ -1,4 +1,5 @@
 @tool
+@icon("res://addons/MetroidvaniaDeveloperSystem/icons/gameplay/mds_movement_inspector.svg")
 class_name MDSMovementInspectorPlugin
 extends EditorInspectorPlugin
 ## Inspector plugin for [MDSMovementConfig]: previews the jump arc (height and distance

@@ -49,6 +49,7 @@ var _charge := 0.0
 var _charged := false
 var _last_attack_press := -10.0
 var _clock := 0.0
+var _bounced := false ## this swing already bounced the player (pogo)
 
 func _ready() -> void:
 	if ground_combo.is_empty():
@@ -80,6 +81,8 @@ func _ready() -> void:
 	hitbox.active = false
 	hitbox.monitoring = false
 	hitbox.source = get_parent()
+	# It also sees hazards' hitboxes (they have no hurtbox): a down hit on spikes is a pogo.
+	hitbox.collision_mask |= MDSGameplaySetup.bit("enemy_hitbox")
 	if not hitbox.hit_landed.is_connected(_on_hit):
 		hitbox.hit_landed.connect(_on_hit)
 	var p := _player()
@@ -159,6 +162,7 @@ func start(a: MDSAttackData) -> void:
 	_time = 0.0
 	hitbox.attack = a
 	hitbox.reset_hits()
+	_bounced = false
 	_place_hitbox(a)
 	attack_started.emit(a)
 
@@ -179,6 +183,8 @@ func _advance(delta: float) -> void:
 			hitbox.extra_breaks = PackedStringArray(["reinforced"]) if p and p.has_ability("super_attack") else PackedStringArray()
 			hitbox.monitoring = true
 			hitbox.active = true
+		elif _hits_hazard():
+			_pogo(p)
 	elif _time < current.total_time():
 		_hitbox_off()
 		phase = Phase.RECOVERY
@@ -232,14 +238,30 @@ func _on_hit(target: Node, info: MDSDamageInfo) -> void:
 		p.gameplay.hitstop(info.hitstop_ms)
 	if p.game and p.game.room_camera and p.game.room_camera.has_method(&"shake"):
 		p.game.room_camera.call(&"shake", 3.0 if info.amount < 3 else 7.0, 0.15)
-	# Pogo: a down hit in the air bounces up off what it hit.
-	if current and current.direction == MDSAttackData.Direction.DOWN and not p.is_on_floor():
-		p.velocity.y = -pogo_velocity
-		p.air_dashes_left = p.config.air_dashes
-		p.air_jumps_left = p.config.max_air_jumps if p.has_ability("double_jump") else 0
-		if p.machine.has_state(&"Jump"):
-			p.machine.force(&"Jump", {"keep_velocity": true})
+	_pogo(p)
 	hit.emit(target, info)
+
+## Pogo: a down attack in the air bounces the player up off what it hit (once a swing): air
+## jumps and air dashes come back.
+func _pogo(p: MDSPlayer) -> void:
+	if _bounced or not current or current.direction != MDSAttackData.Direction.DOWN or not p or p.is_on_floor():
+		return
+	_bounced = true
+	p.velocity.y = -pogo_velocity
+	p.air_dashes_left = p.config.air_dashes
+	p.air_jumps_left = p.config.max_air_jumps if p.has_ability("double_jump") else 0
+	if p.machine.has_state(&"Jump"):
+		p.machine.force(&"Jump", {"keep_velocity": true})
+
+## Whether the active down attack touches a hazard ([MDSHazard]'s hitbox: spikes, thorns),
+## which has nothing to hurt but still bounces the player.
+func _hits_hazard() -> bool:
+	if _bounced or not current or current.direction != MDSAttackData.Direction.DOWN or not hitbox.monitoring:
+		return false
+	for a in hitbox.get_overlapping_areas():
+		if a is MDSHitbox and (a as MDSHitbox).team == MDSHitbox.Team.HAZARD:
+			return true
+	return false
 
 ## Blocks [param info] when the player has the parry ability and pressed attack within
 ## [member parry_window] of the hit; the attacker is stunned. Returns whether it blocked.

@@ -108,6 +108,10 @@ func apply_damage(info: MDSDamageInfo, multiplier := 1.0) -> int:
 	_iframes = iframe_time
 	if flash_on_hit and flash_scale > 0.0 and bool(MDSGameplaySetup.setting("feel/hit_flash")):
 		_start_flash()
+	if dmg > 0 and bool(MDSGameplaySetup.setting("feel/damage_numbers")):
+		var body := get_parent() as Node2D
+		if body and body.is_inside_tree():
+			MDSDamageNumber.spawn(body, dmg, body.is_in_group(&"player"))
 	damaged.emit(info)
 	health_changed.emit(current, _max)
 	if current <= 0 and not _dead:

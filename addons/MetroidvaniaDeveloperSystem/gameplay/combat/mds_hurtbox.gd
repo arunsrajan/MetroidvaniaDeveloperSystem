@@ -12,6 +12,9 @@ signal hurt(info: MDSDamageInfo)
 
 enum Team { PLAYER, ENEMY, HAZARD, NEUTRAL }
 
+## Every hurtbox is in this group (the F1 debug overlay draws them).
+const GROUP := &"mds_hurtbox"
+
 ## The health hits go to. Empty: the body's [MDSHealth].
 @export var health: MDSHealth
 @export var team: Team = Team.ENEMY
@@ -19,6 +22,9 @@ enum Team { PLAYER, ENEMY, HAZARD, NEUTRAL }
 @export var enabled := true
 ## Asked before a hit lands: returns true to block it (a parry). Set by code.
 var blocker: Callable
+
+func _init() -> void:
+	add_to_group(GROUP)
 
 func _ready() -> void:
 	collision_layer = MDSGameplaySetup.bit("player_hurtbox") if team == Team.PLAYER else MDSGameplaySetup.bit("enemy_hurtbox")

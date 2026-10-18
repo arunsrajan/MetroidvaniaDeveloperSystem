@@ -13,6 +13,9 @@ signal hit_landed(target: Node, info: MDSDamageInfo)
 
 enum Team { PLAYER, ENEMY, HAZARD }
 
+## Every hitbox is in this group (the F1 debug overlay draws them).
+const GROUP := &"mds_hitbox"
+
 @export var attack: MDSAttackData
 @export var team: Team = Team.ENEMY
 @export var one_hit_per_target := true
@@ -27,6 +30,9 @@ var extra_breaks: PackedStringArray = []
 var respawn := false
 
 var _hit: Dictionary = {}
+
+func _init() -> void:
+	add_to_group(GROUP)
 
 func _ready() -> void:
 	collision_layer = MDSGameplaySetup.bit("player_hitbox") if team == Team.PLAYER else MDSGameplaySetup.bit("enemy_hitbox")

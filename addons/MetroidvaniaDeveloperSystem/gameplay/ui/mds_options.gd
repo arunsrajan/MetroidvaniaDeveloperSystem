@@ -33,7 +33,7 @@ static var camera_motion := 0
 ## Index of [constant TEXT_SCALES].
 static var text_size := 0
 static var glyphs: Glyphs = Glyphs.AUTO
-## Glide switched on and off by a jump press instead of held.
+## Glide switched on and off by a jump press instead of held ([member MDSPlayerGlideState.toggled]).
 static var toggle_glide := false
 ## Action -> serialized events ([[kind, ...], ...]) the player bound; empty: the project's.
 static var bindings: Dictionary = {}
@@ -116,6 +116,7 @@ static func apply(tree: SceneTree = null) -> void:
 	Engine.time_scale = game_speed
 	MDSRoomCamera.shake_scale = shake
 	MDSHealth.flash_scale = flash
+	MDSPlayerGlideState.toggled = toggle_glide
 	MDSGameplayUi.get_theme().default_font_size = MDSGameplayUi.font(MDSGameplayUi.BASE_FONT_SIZE)
 	for action: String in bindings:
 		_apply_binding(action)

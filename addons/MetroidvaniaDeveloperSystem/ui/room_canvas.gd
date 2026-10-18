@@ -2073,31 +2073,13 @@ func place_gameplay_object(gameplay_type: String, p: Vector2) -> Node2D:
 			node = MDSGrapplePoint.new()
 			node.name = "GrapplePoint"
 			node.position = Vector2(p.x, floor_y - 120)
-		"enemy_walker":
-			var sc := load("res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/walker.tscn") as PackedScene
-			node = sc.instantiate() if sc else MDSEnemy.new()
-			node.name = "Walker"
-			node.position = Vector2(p.x, floor_y)
-		"enemy_flyer":
-			var sc := load("res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/flyer.tscn") as PackedScene
-			node = sc.instantiate() if sc else MDSEnemy.new()
-			node.name = "Flyer"
-			node.position = Vector2(p.x, floor_y - 100)
-		"enemy_turret":
-			var sc := load("res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/turret.tscn") as PackedScene
-			node = sc.instantiate() if sc else MDSEnemy.new()
-			node.name = "Turret"
-			node.position = Vector2(p.x, floor_y)
-		"enemy_charger":
-			var sc := load("res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/charger.tscn") as PackedScene
-			node = sc.instantiate() if sc else MDSEnemy.new()
-			node.name = "Charger"
-			node.position = Vector2(p.x, floor_y)
-		"enemy_ambusher":
-			var sc := load("res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/ambusher.tscn") as PackedScene
-			node = sc.instantiate() if sc else MDSEnemy.new()
-			node.name = "Ambusher"
-			node.position = Vector2(p.x, floor_y)
+		"enemy_walker", "enemy_flyer", "enemy_turret", "enemy_charger", "enemy_ambusher":
+			# The template scene (gameplay/enemies/templates/mds_<kind>.tscn), standing on the
+			# floor (its origin is its middle); flyers hover above it.
+			var kind := gameplay_type.trim_prefix("enemy_")
+			node = enemy_template(kind)
+			var half := (node as MDSEnemy).body_size.y * 0.5 if node is MDSEnemy else 24.0
+			node.position = Vector2(p.x, floor_y - half - (100.0 if kind == "flyer" else 0.0))
 		"boss_arena":
 			node = MDSBossArena.new()
 			node.name = "BossArena"
@@ -2119,6 +2101,18 @@ func place_gameplay_object(gameplay_type: String, p: Vector2) -> Node2D:
 	painted.emit()
 	_overlay.queue_redraw()
 	status_message.emit("%s placed on the floor. Drag to move, handles to resize, Delete removes it." % label_name)
+	return node
+
+## A new enemy from the Gameplay Kit's template scene for [param kind] ("walker", "flyer",
+## "turret", "charger", "ambusher"), named after it; a plain [MDSEnemy] when the scene is missing.
+static func enemy_template(kind: String) -> Node2D:
+	var path := "res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_%s.tscn" % kind
+	var node: Node2D = null
+	if ResourceLoader.exists(path):
+		node = (load(path) as PackedScene).instantiate() as Node2D
+	if not node:
+		node = MDSEnemy.new()
+	node.name = kind.capitalize()
 	return node
 
 func _own_all_nodes(node: Node, root_node: Node) -> void:

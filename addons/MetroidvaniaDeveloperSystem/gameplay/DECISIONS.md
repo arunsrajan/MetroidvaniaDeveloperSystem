@@ -46,6 +46,20 @@ itself, closest to how MDS already behaves. Newest at the bottom of each section
 - **A game run without the actions gets them at runtime.** A project made before the kit, a test or
   an exported game whose settings lack them: `MDSGameplaySetup.ensure_runtime_actions()` adds them
   to the running InputMap (never to the project).
+- **Two more folders.** `MDSNPC` and `MDSShop` (an NPC) live in `gameplay/npc/` rather than
+  `world/`, and the editor-facing `MDSMovementInspectorPlugin` and `MDSGameplayDebug` in
+  `gameplay/editor/`.
+- **Files changed beyond the spec's named hooks**, each only to add what the kit needs and with
+  the old behaviour kept:
+  - `scene_scanner.gd`: counts grants (`grant_counts`, for `item:x>=n`) and records the data of
+    the new Issues checks.
+  - `core/room_painter.gd`: `effects()`, `effect_at()` and `effects_at()` also return the gameplay
+    objects the Room view placed (group `mds_gameplay_placed`), so their return type is `Node2D`
+    instead of `MDSEnvironmentEffect`; environment effects come back as before.
+  - `ui/room_canvas.gd`: places, selects and resizes the Room view's gameplay objects.
+  - `world_panel.gd`: the Create game scene dialog with its **Include gameplay kit** checkbox.
+  - `tests/run_all.gd`: unpauses the tree and resets the time scale between test scenes, so one
+    scene's open menu or hit-stop can't stall the next.
 
 ## Player
 
@@ -72,6 +86,10 @@ itself, closest to how MDS already behaves. Newest at the bottom of each section
   uses (Section 8 mentions both), beside the twelve movement and combat abilities.
 - **Hit-stop ends by token.** Each hit-stop restores the time scale only if it is still the latest
   one asked for; comparing end times missed by a millisecond and left the game in slow motion.
+- **Hold-to-toggle is for glide only.** The options' "Glide: press to toggle" sets
+  `MDSPlayerGlideState.toggled`: a jump press while falling starts the glide (a double jump, when
+  there is one, comes first) and the next press ends it. The spec also names dash, but the kit's dash
+  is a single press, never held, so a toggle for it would change nothing.
 
 ## Combat
 
@@ -85,6 +103,15 @@ itself, closest to how MDS already behaves. Newest at the bottom of each section
 - **The projectile's fall is `drop`**, not `gravity`: Area2D already has a `gravity` property.
 - **Hit flash is a shader** (`shaders/hit_flash.gdshader`) set on the body's visual while it flashes,
   turned off by the `feel/hit_flash` setting or the options' flash slider.
+- **Pogo off hazards.** A hazard has no hurtbox (nothing to hurt), so the player's attack hitbox
+  also looks at the `enemy_hitbox` layer and a hazard's hitbox is monitorable: an active down attack
+  in the air that touches a HAZARD hitbox bounces the player, without hit-stop or mana. One bounce
+  per swing, whatever it hit.
+- **Damage numbers** are shown by `MDSHealth` for each hit that does damage (`MDSDamageNumber`, in
+  the body's parent), while `feel/damage_numbers` is on. Breakables and switches take hits without
+  health, so they show none.
+- **Hitboxes and hurtboxes join the groups `mds_hitbox` and `mds_hurtbox`** (`MDSHitbox.GROUP`,
+  `MDSHurtbox.GROUP`), for the F1 overlay.
 
 ## Enemies and bosses
 
@@ -100,6 +127,10 @@ itself, closest to how MDS already behaves. Newest at the bottom of each section
   `MDSMusic.play_boss()` when the fight starts.
 - **Boss states are inner classes** (Dormant, Idle, Swipe, Charge, Slam, Volley, Stagger, Dead);
   a phase change staggers the boss, and its attacks speed up by the phase's `speed`.
+- **`MDSGameplay` doesn't listen to `MDSWorldGame.defeated`.** An `MDSEnemy` rolls its own drops
+  and reports its defeat (`record_defeat()`, the Bestiary and XP) as it dies, and arenas reset by
+  being loaded again, so the signal would only repeat that. Ability popups (`ability_gained`) and
+  rest-defeated enemies (`room_loaded`) work as the spec says.
 
 ## Items, economy and death
 
@@ -125,10 +156,28 @@ itself, closest to how MDS already behaves. Newest at the bottom of each section
 - **`MDSAnalysis` boss grants:** `MDSAnalysis` treats room `boss_names` from room meta as grants
   prefixed by `boss:` (`boss:<name>`), so progression analysis recognizes boss defeat as unlocking
   subsequent spheres (`boss:Warden` gating Grove_06).
-- **Gameplay issue validators:** `MDSWorldValidator` checks for empty shops, blank lore tablets,
-  floating checkpoints lacking collision below, and requirements for abilities never granted.
+- **Gameplay issue validators:** the Issues tab (`MDSValidator`, `MDSWorldValidator`) reports the
+  spec's checks only: an ability pickup with no `MDSAbilityData`, an item or flag required (by a
+  gate, a barrier or an objective) that nothing grants, a boss arena with no boss or no doors, and
+  an `MDSBoss` whose `boss_name` differs from its room's `boss`. The scanner records what they need
+  (`ability_pickups_without_data`, `invalid_boss_arenas`, `boss_nodes`).
 - **Scene tree pause cleanup:** `MDSGameplayScreen` and `MDSAbilityPopup` clean up their pause state
   via `Engine.get_main_loop()` in `_exit_tree()`, ensuring tree pause never persists when rooms or
   game instances are freed dynamically.
 - **Headless test camera cuts:** Scripted multi-room tests set `MDSRoomCamera.room_transition = CUT`
   and `transition_time = 0.0` so room load sequences execute without transition delay timers.
+- **Room view enemies are the template scenes** (`enemies/templates/mds_<kind>.tscn`,
+  `MDSRoomCanvas.enemy_template()`), standing on the floor where clicked (their origin is their
+  middle); flyers hover 100 px above it.
+- **F2 grants the abilities the world file names**: room grants and gate requirements
+  (`MDSWorld.get_known_abilities()`) that are abilities, not items, flags, bosses or objects.
+- **The title screen goes through the game's save API.** For each slot it points
+  `save_file` at the slot's file, asks `has_save_game()` / `read_save_game()` /
+  `delete_save_game()`, and puts the game's own file back; Continue and New game keep the slot's
+  file, as the spec says.
+- **Glyphs follow the options.** The ability popup shows gamepad buttons when the options' input
+  glyphs say so (Auto: when a gamepad is connected); its `gamepad_glyphs` export forces them.
+- **The demo is blocked out.** Its rooms are plain collision floors with the kit's objects, and its
+  test drives the intended route room by room (`load_room()`, collecting, switching) rather than
+  playing it with inputs; painting the rooms with the Mossgrove and Sunken Gardens packs and a
+  fully played route test are still to do.

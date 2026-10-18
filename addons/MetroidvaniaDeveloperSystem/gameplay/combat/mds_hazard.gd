@@ -5,8 +5,8 @@ extends Area2D
 ## Spikes, thorns or a pit: an area of [member size] (centred on the node) with an [MDSHitbox] of
 ## the HAZARD team. DAMAGE hurts the player and knocks it back; RESPAWN hurts it, then puts it
 ## back on the last safe ground (or the [MDSCheckpoint] touched in the room), as Hollow Knight's
-## spikes do. While the player touches it no ground counts as safe. Nothing is saved: benches stay
-## the only save points.
+## spikes do. While the player touches it no ground counts as safe. The player's down attack in the
+## air bounces off it (pogo). Nothing is saved: benches stay the only save points.
 
 enum Mode { DAMAGE, RESPAWN }
 enum Look { SPIKES, THORNS, PIT, NONE }
@@ -40,6 +40,8 @@ func _ready() -> void:
 	hitbox.one_hit_per_target = false
 	hitbox.respawn = mode == Mode.RESPAWN
 	add_child(hitbox)
+	# The player's down attack finds it (a pogo off the spikes, see MDSAttackController).
+	hitbox.monitorable = true
 	_fit()
 	body_entered.connect(func(b: Node) -> void:
 		if b is MDSPlayer:

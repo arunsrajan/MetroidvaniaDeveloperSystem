@@ -94,56 +94,75 @@ func _toggle_overlay() -> void:
 		_overlay_canvas.visible = show_overlay
 
 func _update_overlay_info() -> void:
+	_overlay_label.text = "\n".join(overlay_lines())
+
+## The overlay's text: the player's state, velocity, position and health, the kit's mana,
+## currency and equipment, and the room.
+func overlay_lines() -> Array[String]:
 	var p := _get_player()
 	var game := MDSWorldGame.instance
 	var gp := MDSGameplay.find(game) if game else null
 	var lines: Array[String] = ["[DEBUG OVERLAY] (F1 toggle)"]
 	if p:
-		var st_name: String = p.machine.state.name if p.machine and p.machine.state else "None"
+		var st_name := String(p.machine.get_state()) if p.machine and p.machine.current else "None"
 		lines.append("State: %s" % st_name)
 		lines.append("Vel: (%d, %d)" % [roundi(p.velocity.x), roundi(p.velocity.y)])
 		lines.append("Pos: (%d, %d)" % [roundi(p.global_position.x), roundi(p.global_position.y)])
 		if p.health:
-			lines.append("HP: %d/%d (Invulnerable: %s)" % [p.health.current, p.health.get_max_health(), str(p.health.invulnerable)])
+			lines.append("HP: %d/%d (Invulnerable: %s)" % [p.health.current, p.health.get_max(), str(p.health.invulnerable)])
 		lines.append("Noclip: %s" % str(noclip))
 	if gp:
-		lines.append("Mana: %d/%d | Currency: %d" % [gp.mana, gp.max_mana, gp.currency])
+		lines.append("Mana: %d/%d | Currency: %d" % [gp.mana, gp.player_max_mana(), gp.currency])
 		lines.append("Equipped: %s" % ", ".join(gp.equipped))
 	if game:
 		lines.append("Room: %s" % game.current_room)
-	_overlay_label.text = "\n".join(lines)
+	return lines
 
+## Outlines every hitbox (red while active) and hurtbox (green) on screen.
 func _on_overlay_draw() -> void:
 	if not show_overlay or not is_inside_tree():
 		return
-	var camera := get_viewport().get_camera_2d()
-	if not camera:
-		return
-	var canvas_xform := camera.get_canvas_transform()
-	# Draw hitboxes and hurtboxes in the tree
-	var hitboxes := get_tree().get_nodes_in_group(&"hitbox")
-	for n in hitboxes:
-		if n is Area2D and (n as Area2D).is_visible_in_tree():
-			var screen_pos := canvas_xform * (n as Area2D).global_position
-			_overlay_draw.draw_circle(screen_pos, 4.0, Color(1.0, 0.2, 0.2, 0.8))
+	var canvas_xform := get_viewport().get_canvas_transform()
+	for n in get_tree().get_nodes_in_group(MDSHitbox.GROUP):
+		var hb := n as MDSHitbox
+		if hb and hb.is_visible_in_tree():
+			_draw_area(hb, canvas_xform, Color(1.0, 0.2, 0.2, 0.9) if hb.active and hb.monitoring else Color(1.0, 0.2, 0.2, 0.25))
+	for n in get_tree().get_nodes_in_group(MDSHurtbox.GROUP):
+		var hu := n as MDSHurtbox
+		if hu and hu.is_visible_in_tree():
+			_draw_area(hu, canvas_xform, Color(0.2, 1.0, 0.2, 0.8 if hu.enabled else 0.25))
 
-	var hurtboxes := get_tree().get_nodes_in_group(&"hurtbox")
-	for n in hurtboxes:
-		if n is Area2D and (n as Area2D).is_visible_in_tree():
-			var screen_pos := canvas_xform * (n as Area2D).global_position
-			_overlay_draw.draw_circle(screen_pos, 4.0, Color(0.2, 1.0, 0.2, 0.8))
+func _draw_area(area: Area2D, canvas_xform: Transform2D, color: Color) -> void:
+	for c in area.get_children():
+		var cs := c as CollisionShape2D
+		if not cs or not cs.shape or cs.disabled:
+			continue
+		var r := cs.shape.get_rect()
+		var xf := canvas_xform * cs.global_transform
+		var pts := PackedVector2Array([xf * r.position, xf * Vector2(r.end.x, r.position.y), xf * r.end, xf * Vector2(r.position.x, r.end.y), xf * r.position])
+		_overlay_draw.draw_polyline(pts, color, 2.0)
+
+## The abilities the world file names (room grants and gate requirements; not items, flags,
+## bosses or objects).
+static func world_abilities(game: MDSWorldGame) -> PackedStringArray:
+	var out: PackedStringArray = []
+	if not game or not game.world:
+		return out
+	for r in game.world.get_known_abilities():
+		var c := MDSAnnotations.parse_condition(r)
+		var id := MDSGameplay.normalize_id(str(c[1]))
+		if c[0] == "ability" and not id.is_empty() and not id in out:
+			out.append(id)
+	return out
 
 func _grant_all_abilities() -> void:
 	var game := MDSWorldGame.instance
 	if not game:
 		return
-	const ALL_ABILITIES: PackedStringArray = [
-		"dash", "air_dash", "wall_jump", "double_jump", "super_jump",
-		"charge_attack", "parry", "climb", "swim", "glide", "grapple", "ground_pound"
-	]
-	for a in ALL_ABILITIES:
+	var all := world_abilities(game)
+	for a in all:
 		game.grant_ability(a)
-	print("[DEBUG] F2: Granted all abilities.")
+	print("[DEBUG] F2: Granted %d abilities: %s" % [all.size(), ", ".join(all)])
 
 func _toggle_invulnerable() -> void:
 	var p := _get_player()

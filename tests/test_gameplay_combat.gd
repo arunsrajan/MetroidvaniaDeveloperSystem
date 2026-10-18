@@ -20,6 +20,7 @@ func _run() -> void:
 	await physics_frames(40)
 	await _iframes()
 	await _teams()
+	await _damage_numbers()
 	await _attacks()
 	await _environment()
 	await _hazards()
@@ -118,6 +119,25 @@ func _teams() -> void:
 	src.queue_free()
 	await physics_frames(2)
 
+## Off by default; with feel/damage_numbers on, a hit floats its damage up from the body.
+func _damage_numbers() -> void:
+	var key := MDSGameplaySetup.PREFIX + "feel/damage_numbers"
+	var before: Variant = ProjectSettings.get_setting(key, false)
+	var foe := _dummy(MDSHurtbox.Team.ENEMY, Vector2(300, 440))
+	await physics_frames(1)
+	var count := func() -> int: return level.get_children().filter(func(c: Node) -> bool: return c is MDSDamageNumber).size()
+	MDSHealth.of(foe).apply_damage(MDSDamageInfo.make(2))
+	check(count.call() == 0, "no damage numbers by default")
+	ProjectSettings.set_setting(key, true)
+	MDSHealth.of(foe).apply_damage(MDSDamageInfo.make(3))
+	var shown := level.get_children().filter(func(c: Node) -> bool: return c is MDSDamageNumber)
+	check(shown.size() == 1 and (shown[0] as MDSDamageNumber).amount == 3, "with feel/damage_numbers a hit shows its damage")
+	ProjectSettings.set_setting(key, before)
+	await get_tree().create_timer(1.0).timeout
+	check(count.call() == 0, "and the number fades away")
+	foe.queue_free()
+	await physics_frames(2)
+
 func _attacks() -> void:
 	var foe := _dummy(MDSHurtbox.Team.ENEMY, player.global_position + Vector2(44, 0), 6)
 	player.facing = 1
@@ -144,6 +164,28 @@ func _attacks() -> void:
 	Input.action_release(&"move_down")
 	check(bounced and MDSHealth.of(spike).current < 50, "a down attack on it bounces the player up (pogo)")
 	spike.queue_free()
+	await physics_frames(60)
+	# Pogo off real spikes: a hazard has nothing to hurt, but a down attack still bounces off it.
+	player.health.heal_full()
+	var spikes := MDSHazard.new()
+	spikes.size = Vector2(120, 30)
+	spikes.position = Vector2(2500, 485)
+	level.add_child(spikes)
+	await physics_frames(2)
+	player.global_position = Vector2(2500, 395)
+	player.velocity = Vector2(0, 50)
+	player.machine.force(&"Fall")
+	Input.action_press(&"move_down")
+	player.buffer.press("attack")
+	bounced = false
+	for i in 30:
+		await get_tree().physics_frame
+		if player.velocity.y < -300.0:
+			bounced = true
+			break
+	Input.action_release(&"move_down")
+	check(bounced and player.health.current == player.health.get_max(), "a down attack on MDSHazard spikes bounces the player up unhurt (pogo)")
+	spikes.queue_free()
 	await physics_frames(60)
 
 func _environment() -> void:

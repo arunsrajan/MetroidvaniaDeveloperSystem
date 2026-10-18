@@ -43,18 +43,26 @@ func get_slot_path(slot_index: int) -> String:
 		stem = base
 	return "user://%s_slot%d.json" % [stem, slot_index]
 
-## Reads the save data of [param slot_index] ({} if none or invalid).
+## Reads the save data of [param slot_index] ({} if none or invalid), through the game's
+## [method MDSWorldGame.read_save_game] with the slot's file.
 func read_slot(slot_index: int) -> Dictionary:
-	var path := get_slot_path(slot_index)
-	if not FileAccess.file_exists(path):
-		return {}
-	var text := FileAccess.get_file_as_string(path)
-	var data: Variant = JSON.parse_string(text)
-	return data if data is Dictionary else {}
+	return _ask_slot(slot_index, func(g: MDSWorldGame) -> Variant: return g.read_save_game(), {})
 
-## Whether [param slot_index] has existing save data.
+## Whether [param slot_index] has existing save data ([method MDSWorldGame.has_save_game]).
 func has_slot_save(slot_index: int) -> bool:
-	return FileAccess.file_exists(get_slot_path(slot_index))
+	return _ask_slot(slot_index, func(g: MDSWorldGame) -> Variant: return g.has_save_game(), false)
+
+## [param ask] called with the game while its [member MDSWorldGame.save_file] is the slot's;
+## the game's own file is put back after. [param otherwise] without a game.
+func _ask_slot(slot_index: int, ask: Callable, otherwise: Variant) -> Variant:
+	var game := MDSGameplayUi.game_for(self)
+	if not game:
+		return otherwise
+	var own := game.save_file
+	game.save_file = get_slot_path(slot_index)
+	var answer: Variant = ask.call(game)
+	game.save_file = own
+	return answer
 
 ## Loads and continues from [param slot_index].
 func select_slot_continue(slot_index: int) -> void:
@@ -82,9 +90,13 @@ func select_slot_new(slot_index: int) -> void:
 	slot_selected.emit(slot_index, true)
 	game.new_game()
 
-## Deletes [param slot_index]'s save file.
+## Deletes [param slot_index]'s save file ([method MDSWorldGame.delete_save_game]) and its
+## explored map.
 func delete_slot(slot_index: int) -> void:
 	var path := get_slot_path(slot_index)
+	_ask_slot(slot_index, func(g: MDSWorldGame) -> Variant:
+		g.delete_save_game()
+		return null, null)
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	var stem := path.get_file().get_basename()

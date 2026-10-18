@@ -901,7 +901,8 @@ func _build_game_scene_dialog() -> void:
 	var browse_btn := Button.new()
 	browse_btn.text = "Browse..."
 	browse_btn.pressed.connect(func() -> void:
-		_open_file_dialog("game_scene", EditorFileDialog.FILE_MODE_SAVE_FILE, ["*.tscn ; Scene"], game_scene_path_edit.text))
+		# Only fills in the path: Create makes the scene.
+		_open_file_dialog("game_scene_path", EditorFileDialog.FILE_MODE_SAVE_FILE, ["*.tscn ; Scene"], game_scene_path_edit.text))
 	path_row.add_child(browse_btn)
 
 	game_scene_kit_check = CheckBox.new()
@@ -1009,9 +1010,12 @@ func _on_file_dialog_file(p: String) -> void:
 		"create_scene":
 			create_scene_for_room(_dialog_room, p)
 		"game_scene":
+			create_game_scene(p, game_scene_kit_check.button_pressed if game_scene_kit_check else true)
+		"game_scene_path":
 			if game_scene_path_edit:
 				game_scene_path_edit.text = p
-			create_game_scene(p, game_scene_kit_check.button_pressed if game_scene_kit_check else true)
+			if game_scene_dialog and not game_scene_dialog.visible:
+				MDSUi.popup_fitted(game_scene_dialog, 450)
 		"add_scenes":
 			_on_file_dialog_files(PackedStringArray([p]))
 		"tileset":
