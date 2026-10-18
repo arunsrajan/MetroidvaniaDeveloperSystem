@@ -1,0 +1,70 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_lava.gd" id="1_qfbuh"]
+[ext_resource type="PackedScene" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_flyer.tscn" id="2_d6h0k"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_flyer.gd" id="3_s5lb5"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="4_rvc5s"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_u4cjt"]
+size = Vector2(250, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vl1dp"]
+size = Vector2(252, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4k42d"]
+size = Vector2(48, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8xk13"]
+size = Vector2(48, 128)
+
+[node name="Grove07" type="Node2D" unique_id=814196024]
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=1815116188]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1915918870]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=509002094]
+collision_mask = 0
+
+[node name="@CollisionShape2D@12" type="CollisionShape2D" parent="Floor" unique_id=1053094375]
+position = Vector2(125, 604)
+shape = SubResource("RectangleShape2D_u4cjt")
+
+[node name="@CollisionShape2D@13" type="CollisionShape2D" parent="Floor" unique_id=1565250717]
+position = Vector2(1026, 604)
+shape = SubResource("RectangleShape2D_vl1dp")
+
+[node name="Lava" type="Node2D" parent="." unique_id=962510415]
+z_index = 2
+position = Vector2(250, 560)
+script = ExtResource("1_qfbuh")
+size = Vector2(650, 88)
+affect_groups = PackedStringArray("player")
+
+[node name="Flyer" type="CharacterBody2D" parent="." unique_id=1794217631 instance=ExtResource("2_d6h0k")]
+position = Vector2(576, 350)
+script = ExtResource("3_s5lb5")
+body_size = Vector2(36, 28)
+uses_gravity = false
+look = 1
+body_color = Color(0.45, 0.35, 0.6, 1)
+
+[node name="Gates" type="Node2D" parent="." unique_id=1137499603]
+
+[node name="left1" type="Area2D" parent="Gates" unique_id=646887891]
+position = Vector2(0, 500)
+collision_layer = 0
+script = ExtResource("4_rvc5s")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=553375469]
+shape = SubResource("RectangleShape2D_4k42d")
+
+[node name="right1" type="Area2D" parent="Gates" unique_id=37307505]
+position = Vector2(1152, 500)
+collision_layer = 0
+script = ExtResource("4_rvc5s")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=1740097254]
+shape = SubResource("RectangleShape2D_8xk13")

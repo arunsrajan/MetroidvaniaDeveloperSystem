@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MDSAbilityData" format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_ability_data.gd" id="1_3arts"]
+
+[resource]
+script = ExtResource("1_3arts")
+id = "swim"
+display_name = "Swim"
+description = "Swim freely in deep water instead of sinking."
+requires = PackedStringArray()
+input_action = &"move_up"

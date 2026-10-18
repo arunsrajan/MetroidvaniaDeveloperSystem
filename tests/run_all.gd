@@ -31,5 +31,7 @@ func _run() -> void:
 			failed_tests.append(f)
 		test.queue_free()
 		await get_tree().process_frame
+		get_tree().paused = false
+		Engine.time_scale = 1.0
 	print("\n%d test scene(s), %d failed check(s)%s" % [files.size(), failed, (": " + ", ".join(failed_tests)) if failed > 0 else ""])
 	get_tree().quit(1 if failed > 0 else 0)

@@ -1,0 +1,72 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_switch.gd" id="1_f380p"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate_barrier.gd" id="2_vy620"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="3_n44l1"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mdmdj"]
+size = Vector2(450, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cdlts"]
+size = Vector2(452, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_3gm7w"]
+size = Vector2(30, 120)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_oveet"]
+size = Vector2(48, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_40koa"]
+size = Vector2(48, 128)
+
+[node name="Gardens03" type="Node2D" unique_id=351320337]
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=1182057533]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=944774503]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=1728208965]
+collision_mask = 0
+
+[node name="@CollisionShape2D@18" type="CollisionShape2D" parent="Floor" unique_id=621468674]
+position = Vector2(225, 604)
+shape = SubResource("RectangleShape2D_mdmdj")
+
+[node name="@CollisionShape2D@19" type="CollisionShape2D" parent="Floor" unique_id=23563150]
+position = Vector2(926, 604)
+shape = SubResource("RectangleShape2D_cdlts")
+
+[node name="BridgeSwitch" type="Area2D" parent="." unique_id=1665884912]
+position = Vector2(350, 540)
+script = ExtResource("1_f380p")
+flag = "bridge_lowered"
+metadata/mds_grants = PackedStringArray("flag:bridge_lowered")
+
+[node name="BridgeBarrier" type="StaticBody2D" parent="." unique_id=665508918]
+position = Vector2(1130, 480)
+script = ExtResource("2_vy620")
+requires = PackedStringArray("flag:bridge_lowered")
+
+[node name="@CollisionShape2D@20" type="CollisionShape2D" parent="BridgeBarrier" unique_id=765208519]
+position = Vector2(15, 0)
+shape = SubResource("RectangleShape2D_3gm7w")
+
+[node name="Gates" type="Node2D" parent="." unique_id=992806402]
+
+[node name="left1" type="Area2D" parent="Gates" unique_id=1424432616]
+position = Vector2(0, 500)
+collision_layer = 0
+script = ExtResource("3_n44l1")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=412199863]
+shape = SubResource("RectangleShape2D_oveet")
+
+[node name="right1" type="Area2D" parent="Gates" unique_id=2073231451]
+position = Vector2(1152, 500)
+collision_layer = 0
+script = ExtResource("3_n44l1")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=936217756]
+shape = SubResource("RectangleShape2D_40koa")

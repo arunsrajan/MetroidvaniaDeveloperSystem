@@ -1,0 +1,86 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/combat/mds_hazard.gd" id="1_fopwt"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_checkpoint.gd" id="2_nv8nc"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_breakable.gd" id="3_cbgfp"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_health_upgrade.gd" id="4_0gcuk"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_item_data.gd" id="5_vqo60"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="6_dvrwt"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6l78f"]
+size = Vector2(350, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_43ivr"]
+size = Vector2(402, 88)
+
+[sub_resource type="Resource" id="Resource_u3f16"]
+script = ExtResource("5_vqo60")
+id = "health_fragment"
+display_name = "Health Fragment"
+description = "Four make one more health."
+category = 3
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_27a3t"]
+size = Vector2(48, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vfogs"]
+size = Vector2(48, 128)
+
+[node name="Grove04" type="Node2D" unique_id=1410918757]
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=1189853311]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=506284058]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=186074406]
+collision_mask = 0
+
+[node name="@CollisionShape2D@7" type="CollisionShape2D" parent="Floor" unique_id=1373550536]
+position = Vector2(175, 604)
+shape = SubResource("RectangleShape2D_6l78f")
+
+[node name="@CollisionShape2D@8" type="CollisionShape2D" parent="Floor" unique_id=596826424]
+position = Vector2(951, 604)
+shape = SubResource("RectangleShape2D_43ivr")
+
+[node name="Spikes" type="Area2D" parent="." unique_id=343600563]
+position = Vector2(350, 600)
+script = ExtResource("1_fopwt")
+size = Vector2(400, 40)
+
+[node name="Checkpoint" type="Area2D" parent="." unique_id=257756052]
+position = Vector2(250, 560)
+script = ExtResource("2_nv8nc")
+
+[node name="BreakableWall" type="StaticBody2D" parent="." unique_id=1234334855]
+position = Vector2(900, 510)
+script = ExtResource("3_cbgfp")
+requires = PackedStringArray()
+size = Vector2(40, 100)
+
+[node name="HealthFragment" type="Area2D" parent="." unique_id=917433653]
+position = Vector2(1000, 540)
+script = ExtResource("4_0gcuk")
+item = SubResource("Resource_u3f16")
+color = Color(0.95, 0.45, 0.5, 1)
+metadata/mds_grants = PackedStringArray("item:health_fragment")
+
+[node name="Gates" type="Node2D" parent="." unique_id=829616259]
+
+[node name="left1" type="Area2D" parent="Gates" unique_id=2131594439]
+position = Vector2(0, 200)
+collision_layer = 0
+script = ExtResource("6_dvrwt")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=527629382]
+shape = SubResource("RectangleShape2D_27a3t")
+
+[node name="right1" type="Area2D" parent="Gates" unique_id=1121661773]
+position = Vector2(1152, 500)
+collision_layer = 0
+script = ExtResource("6_dvrwt")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=826502863]
+shape = SubResource("RectangleShape2D_vfogs")

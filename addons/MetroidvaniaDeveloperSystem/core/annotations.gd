@@ -193,15 +193,26 @@ func get_known_abilities() -> PackedStringArray:
 	return ret
 
 ## Splits "dash, double jump" into ["dash", "double_jump"].
-## An objective's completion condition ([code]areas[name].objective_done_when[/code]) as
-## [kind, target]: [code]ability:dash[/code] (or just [code]dash[/code]), [code]object:<id>[/code]
-## (a stored object) or [code]boss:<name>[/code] (a defeated boss).
+## A condition (an objective's [code]areas[name].objective_done_when[/code], a gate's or a
+## barrier's requirement) as [kind, target]: [code]ability:dash[/code] (or just [code]dash[/code]),
+## [code]object:<id>[/code] (a stored object), [code]boss:<name>[/code] (a defeated boss), and the
+## Gameplay Kit's [code]item:<id>[/code] (or [code]item:<id>>=<n>[/code], see
+## [method parse_item_requirement]) and [code]flag:<name>[/code]. A bare name is an ability.
 static func parse_condition(condition: String) -> Array:
 	var c := condition.strip_edges()
-	for kind in ["ability", "object", "boss"]:
+	for kind in ["ability", "object", "boss", "item", "flag"]:
 		if c.begins_with(kind + ":"):
 			return [kind, c.substr(kind.length() + 1).strip_edges()]
 	return ["ability", c]
+
+## [id, count] of an [code]item:[/code] condition's target: "red_key" is ["red_key", 1],
+## "health_fragment>=4" is ["health_fragment", 4]. Ids are lowercase, words joined by "_".
+static func parse_item_requirement(target: String) -> Array:
+	var v := target.strip_edges()
+	var at := v.find(">=")
+	var id := v.substr(0, at) if at >= 0 else v
+	var n := maxi(1, v.substr(at + 2).strip_edges().to_int()) if at >= 0 else 1
+	return [id.strip_edges().to_lower().replace(" ", "_"), n]
 
 static func parse_list(text: String) -> PackedStringArray:
 	var ret: PackedStringArray = []

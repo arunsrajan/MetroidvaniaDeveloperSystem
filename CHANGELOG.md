@@ -2,9 +2,23 @@
 
 All notable changes to the Metroidvania Developer System. Versions follow [Semantic Versioning](https://semver.org/): a new major version can need changes in your project (see the README's upgrading notes), a minor one only adds.
 
-## Unreleased
+## [3.4.0] - 2026-10-18
 
 ### Added
+
+- **MetDevSys Gameplay Kit**: complete end-to-end metroidvania gameplay foundation integrating with `MDSWorld` and `MDSWorldGame`.
+  - **MDSGameplay**: central coordinator node managing gameplay state, ability registry, player persistence, inventory, equipment, quests/flags, currency, and gameplay hooks.
+  - **Player & Movement**: responsive Hollow Knight / Celeste-grade platformer controller (`MDSPlayer`, `MDSMovementConfig`, `MDSStateMachine`) featuring jump arc calculation, variable jump cut, coyote time, jump buffering, corner correction, dash, double jump, wall slide, wall jump, and slope handling.
+  - **Abilities & Progression**: pluggable ability system (`MDSAbilityData`, `MDSAbilityPickup`) with runtime action registration and automatic hook into `MDSWorldGame` and `MDSAnalysis`.
+  - **Combat & Hazards**: component architecture (`MDSHitbox`, `MDSHurtbox`, `MDSHealth`, `MDSKnockback`, `MDSAttack`), combat feel system with screen shake, directional damage numbers (`MDSDamageNumber`), hit-stop, and hazard zones (`MDSHazard`, `MDSLava`, `MDSSpikes`).
+  - **Enemies & Bosses**: modular enemy AI framework (`MDSEnemy`, `MDSWalker`, `MDSFlyer`, `MDSTurret`, `MDSCharger`) and boss system (`MDSBoss`, `MDSBossArena`, `MDSBossBar`, `MDSBossPhase`, `MDSBossAttackPattern`) with gate locks, combat music triggers, and `boss:<name>` objective condition integration.
+  - **Economy, Inventory & Equipment**: currencies, collectable pickups, slot-based charm/equipment system (`MDSEquipmentScreen`, `MDSSlotUpgrade`), NPC shops (`MDSShop`, `MDSShopInventory`), and destructible objects (`MDSBreakableWall`, `MDSChest`).
+  - **Checkpoints, Benches & Death**: checkpoints (`MDSCheckpoint`), respawn flows with shade retrieval mechanics (`MDSShade`), bench rest flows, and auto-save synchronization.
+  - **UI Framework & Dialogue**: gamepad and keyboard accessible UI screens (`MDSGameplayScreen`, `MDSGameplayUi`, `MDSPauseMenu`, `MDSInventoryScreen`, `MDSEquipmentScreen`, `MDSTitleScreen`, `MDSOptionsMenu`, `MDSAbilityPopup`), branchable dialogue system with portrait support (`MDSDialogueBox`, `MDSDialogueResource`, `MDSDialogueNPC`), and lore tablets (`MDSLoreTablet`).
+  - **Editor Integration**: jump-arc inspector (`MDSMovementInspectorPlugin`), Room View gameplay node placement submenu (16 placeable nodes), Issues tab gameplay validators (`core/world_validator.gd`, `core/validator.gd`), and runtime debug hotkeys (F1–F7).
+  - **Gameplay Demo**: 12-room 2-area gameplay showcase world (`examples/gameplay_demo/`) across Mossgrove and Sunken Gardens with full progression chain (double jump -> boss Warden -> dash -> red key -> bridge switch -> wall jump -> ending).
+  - **Headless Test Suite**: 10 comprehensive gameplay test suites covering movement, tuning, abilities, combat, enemies, boss fights, economy, death/shade, UI, and demo world integration.
+
 
 - **Full view** (tool panel > View): every room of the layer where it is on the map, at its real size, with its scene. Each room's outline is in its area's color, with its name, its gates and the area names. It works on an empty world too.
   - **Draw rooms first:** Rectangle, Ellipse, Polygon and Curvy draw outlines at the rooms' real size, showing the paint cells they will take. **Generate map** makes them rooms on the map: one room each, or split into rooms with doors like a generated area, in a new area, none, or one of the world's. The rooms keep the outline's curves, and get doors to what they touch. **Caves too** makes their scenes and caves as well. One Ctrl+Z takes it back to the outlines.

@@ -12,3 +12,7 @@ mds_tiles/
 
 # Scenes the tests write
 tests/tmp/
+
+# Agent and knowledge graph artifacts
+.agents/
+graphify-out/

@@ -413,26 +413,41 @@ func add_effect(id: String, pos: Vector2, settings: Dictionary = {}) -> MDSEnvir
 	dirty = true
 	return e
 
-## The effects the Room view edits.
+## The effects and gameplay items the Room view edits.
 func effects() -> Array:
-	return items(EFFECTS_GROUP)
+	var list := items(EFFECTS_GROUP)
+	if root:
+		for c in root.get_children():
+			if is_instance_valid(c) and c is Node2D and c.is_in_group(&"mds_gameplay_placed"):
+				list.append(c)
+	return list
+
+static func node_effect_rect(node: Node2D) -> Rect2:
+	if node is MDSEnvironmentEffect:
+		return (node as MDSEnvironmentEffect).get_effect_rect()
+	if node.has_method("get_effect_rect"):
+		return node.get_effect_rect()
+	if "size" in node:
+		var s: Vector2 = node.size
+		return Rect2(-s.x * 0.5, -s.y, s.x, s.y)
+	return Rect2(-24, -48, 48, 48)
 
 ## Every effect whose area holds [param p] (scene-local), the top-most first.
-func effects_at(p: Vector2) -> Array[MDSEnvironmentEffect]:
-	var out: Array[MDSEnvironmentEffect] = []
+func effects_at(p: Vector2) -> Array[Node2D]:
+	var out: Array[Node2D] = []
 	var list := effects()
 	for i in range(list.size() - 1, -1, -1):
-		var e: MDSEnvironmentEffect = list[i]
-		if e.get_effect_rect().has_point(e.transform.affine_inverse() * p):
+		var e: Node2D = list[i]
+		if node_effect_rect(e).has_point(e.transform.affine_inverse() * p):
 			out.append(e)
 	return out
 
 ## The top-most effect whose area holds [param p] (scene-local), or null.
-func effect_at(p: Vector2) -> MDSEnvironmentEffect:
+func effect_at(p: Vector2) -> Node2D:
 	var list := effects()
 	for i in range(list.size() - 1, -1, -1):
-		var e: MDSEnvironmentEffect = list[i]
-		if e.get_effect_rect().has_point(e.transform.affine_inverse() * p):
+		var e: Node2D = list[i]
+		if node_effect_rect(e).has_point(e.transform.affine_inverse() * p):
 			return e
 	return null
 

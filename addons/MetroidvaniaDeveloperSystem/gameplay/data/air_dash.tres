@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MDSAbilityData" format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_ability_data.gd" id="1_or6gg"]
+
+[resource]
+script = ExtResource("1_or6gg")
+id = "air_dash"
+display_name = "Air Dash"
+description = "Dash in the air too."
+requires = PackedStringArray()
+input_action = &"dash"

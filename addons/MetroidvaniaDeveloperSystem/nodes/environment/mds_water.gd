@@ -8,7 +8,8 @@ extends MDSEnvironmentEffect
 ## [member affect_groups] going in and out are reported by
 ## [signal MDSEnvironmentEffect.body_entered_effect] and
 ## [signal MDSEnvironmentEffect.body_exited_effect] (for swimming); with [member drag] they
-## are slowed in it.
+## are slowed in it. With [member swimmable] the Gameplay Kit's player swims in it (an
+## [MDSSwimZone] over its rectangle).
 
 @export var shallow_color := Color(0.25, 0.62, 0.72, 0.45):
 	set(v):
@@ -50,6 +51,9 @@ extends MDSEnvironmentEffect
 @export_group("Force")
 ## Share of a body's speed taken away each second it is in the water (0: none).
 @export_range(0.0, 10.0) var drag := 0.0
+## The Gameplay Kit's player swims in it ([code]swim[/code] ability; without it, it sinks): an
+## [MDSSwimZone] over the water is added when the game runs. Off by default.
+@export var swimmable := false
 
 func _init() -> void:
 	z_index = 3
@@ -57,6 +61,16 @@ func _init() -> void:
 
 func get_effect_id() -> String:
 	return "water"
+
+func _ready() -> void:
+	super()
+	if swimmable and not Engine.is_editor_hint() and not get_node_or_null(^"SwimZone"):
+		var r := get_body_rect()
+		var zone := MDSSwimZone.new()
+		zone.name = "SwimZone"
+		zone.size = r.size
+		zone.position = r.get_center()
+		add_child(zone)
 
 func _build() -> void:
 	var above := wave_height * 2.0 + 2.0

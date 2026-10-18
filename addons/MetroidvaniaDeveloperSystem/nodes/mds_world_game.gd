@@ -754,8 +754,11 @@ func ledge_beside(g: MDSGate) -> Vector2:
 			break
 	return best
 
-## Half the player's size (px, global): its collision shape's, else a 32 x 64 body's.
+## Half the player's size (px, global): its own get_spawn_extent() (an [MDSPlayer]), else its
+## collision shape's, else a 32 x 64 body's.
 func _player_extent() -> Vector2:
+	if player.has_method(&"get_spawn_extent"):
+		return player.call(&"get_spawn_extent")
 	for c in player.get_children():
 		if c is CollisionShape2D and (c as CollisionShape2D).shape:
 			var r := (c as CollisionShape2D).shape.get_rect()
@@ -789,7 +792,8 @@ func _on_gate_entered(t: Dictionary) -> void:
 		var missing: PackedStringArray = []
 		var reqs: Array = t.get("requires", []) if t.get("link", false) else world.get_gate(current_room, t.get("from_gate", "")).get("requires", [])
 		for r in reqs:
-			if not has_ability(r):
+			# Abilities, and the other conditions too (item:, flag:, boss:, object:).
+			if not is_condition_met(str(r)):
 				missing.append(r)
 		if not missing.is_empty():
 			transition_blocked.emit(t, missing)
@@ -991,10 +995,12 @@ func get_objective(area: String) -> String:
 func get_objective_condition(area: String) -> String:
 	return str(world.get_areas().get(area, {}).get("objective_done_when", "")) if world else ""
 
-## [kind ("ability", "object", "boss"), value] of a condition.
+## [kind ("ability", "object", "boss", "item", "flag"), value] of a condition.
 static func parse_condition(condition: String) -> Array:
 	return MDSAnnotations.parse_condition(condition)
 
+## Whether [param condition] is met: an ability, a stored object, a defeated boss, and with the
+## Gameplay Kit ([MDSGameplay] under the game) an item count or a story flag.
 func is_condition_met(condition: String) -> bool:
 	if condition.strip_edges().is_empty():
 		return false
@@ -1004,7 +1010,15 @@ func is_condition_met(condition: String) -> bool:
 			return is_object_stored(str(c[1]))
 		"boss":
 			return is_boss_defeated(str(c[1]))
-	return has_ability(str(c[1]).to_lower().replace(" ", "_"))
+		"item", "flag":
+			var kit := MDSGameplay.find(self)
+			return kit != null and kit.is_condition_met(str(c[0]), str(c[1]))
+	var ability := str(c[1]).to_lower().replace(" ", "_")
+	if has_ability(ability):
+		return true
+	# Equipment worn can lend an ability.
+	var gameplay := MDSGameplay.find(self)
+	return gameplay != null and gameplay.has_equipped_ability(ability)
 
 func is_objective_complete(area: String) -> bool:
 	return completed_objectives.has(area)
@@ -1054,15 +1068,23 @@ func _save_exploration() -> void:
 		data.map = map_view.get_save_data()
 	_write_json(exploration_file, data)
 
+## Writes [param data] to [param path] as JSON, through a ".tmp" file renamed over it: a crash
+## while writing leaves the old file whole.
 static func _write_json(path: String, data: Dictionary) -> Error:
 	if path.begins_with("res://") or path.begins_with("user://"):
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
-	var f := FileAccess.open(path, FileAccess.WRITE)
+	var tmp := path + ".tmp"
+	var f := FileAccess.open(tmp, FileAccess.WRITE)
 	if not f:
 		return FileAccess.get_open_error()
 	f.store_string(JSON.stringify(data, "\t"))
 	f.close()
-	return OK
+	var err := DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(path))
+	if err != OK and FileAccess.file_exists(path):
+		# Some platforms don't rename over a file: the old one goes first.
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+		err = DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(path))
+	return err
 
 ## Save points from a file (room -> [[x, y], ...]) join the ones known, and show on the map.
 func _merge_save_points(from: Variant) -> void:
@@ -1180,7 +1202,29 @@ func get_save_data() -> Dictionary:
 	}
 	if map_view:
 		data.map = map_view.get_save_data()
+	# Nodes that save data of their own with the game (the Gameplay Kit's MDSGameplay): by key.
+	var ext: Dictionary = {}
+	for n in _save_extensions():
+		ext[_extension_key(n)] = n.call(&"mds_get_save_data")
+	if not ext.is_empty():
+		data.ext = ext
 	return data
+
+## The nodes of the game that save data of their own with it: in the
+## [code]mds_save_extension[/code] group, with [code]mds_get_save_data()[/code] and
+## [code]mds_set_save_data(data)[/code].
+func _save_extensions() -> Array[Node]:
+	var out: Array[Node] = []
+	var nodes: Array = get_tree().get_nodes_in_group(&"mds_save_extension") if is_inside_tree() else find_children("*", "", true, false)
+	for n: Node in nodes:
+		if n.is_in_group(&"mds_save_extension") and is_ancestor_of(n) and n.has_method(&"mds_get_save_data"):
+			out.append(n)
+	return out
+
+## The key a save extension's data has in the save's [code]ext[/code]: its mds_save_key(), else
+## its name.
+static func _extension_key(n: Node) -> String:
+	return str(n.call(&"mds_save_key")) if n.has_method(&"mds_save_key") else String(n.name)
 
 ## Restores progress and loads the saved room. Can be called before the game enters the
 ## tree (e.g. by your title screen right after instancing it) or at any time after. Rooms
@@ -1227,6 +1271,12 @@ func _apply_save(data: Dictionary) -> void:
 		var rp: Array = respawn.get("position", [])
 		if rp.size() == 2:
 			map_view.set_respawn(respawn.room, Vector2(float(rp[0]), float(rp[1])) - world.get_origin(respawn.room))
+	# Save extensions get their part ({} for a new game, or a save made without them).
+	var ext: Dictionary = data.get("ext", {}) if data.get("ext", {}) is Dictionary else {}
+	for n in _save_extensions():
+		if n.has_method(&"mds_set_save_data"):
+			var part: Variant = ext.get(_extension_key(n), {})
+			n.call(&"mds_set_save_data", part if part is Dictionary else {})
 	var room: String = data.get("room", "")
 	if world.has_room(room):
 		_load_requested = true

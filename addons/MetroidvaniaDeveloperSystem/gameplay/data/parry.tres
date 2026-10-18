@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MDSAbilityData" format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_ability_data.gd" id="1_x217e"]
+
+[resource]
+script = ExtResource("1_x217e")
+id = "parry"
+display_name = "Parry"
+description = "Attack just as a hit lands to block it and stun the attacker."
+category = 1
+requires = PackedStringArray()
+input_action = &"attack"

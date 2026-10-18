@@ -1,0 +1,72 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_turret.tscn" id="1_jfrof"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_turret.gd" id="2_2u7fl"]
+[ext_resource type="PackedScene" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_charger.tscn" id="3_ks83h"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_charger.gd" id="4_psh3s"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_pickup.gd" id="5_fykk3"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_item_data.gd" id="6_o7gty"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="7_16v51"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_thmre"]
+size = Vector2(1152, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_t6yrp"]
+size = Vector2(200, 20)
+
+[sub_resource type="Resource" id="Resource_jrux4"]
+script = ExtResource("6_o7gty")
+id = "red_key"
+display_name = "Red Key"
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_h610e"]
+size = Vector2(128, 48)
+
+[node name="Gardens02" type="Node2D" unique_id=925953007]
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=1263714673]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1562057347]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=458489581]
+collision_mask = 0
+
+[node name="@CollisionShape2D@16" type="CollisionShape2D" parent="Floor" unique_id=721857589]
+position = Vector2(576, 604)
+shape = SubResource("RectangleShape2D_thmre")
+
+[node name="@CollisionShape2D@17" type="CollisionShape2D" parent="Floor" unique_id=1268120755]
+position = Vector2(400, 410)
+shape = SubResource("RectangleShape2D_t6yrp")
+
+[node name="Turret" type="CharacterBody2D" parent="." unique_id=289209887 instance=ExtResource("1_jfrof")]
+position = Vector2(400, 390)
+script = ExtResource("2_2u7fl")
+uses_gravity = false
+look = 2
+body_color = Color(0.5, 0.52, 0.58, 1)
+
+[node name="Charger" type="CharacterBody2D" parent="." unique_id=385432585 instance=ExtResource("3_ks83h")]
+position = Vector2(650, 550)
+script = ExtResource("4_psh3s")
+body_size = Vector2(52, 40)
+look = 3
+body_color = Color(0.6, 0.45, 0.25, 1)
+
+[node name="RedKeyPickup" type="Area2D" parent="." unique_id=1144173838]
+position = Vector2(950, 520)
+script = ExtResource("5_fykk3")
+item = SubResource("Resource_jrux4")
+metadata/mds_grants = PackedStringArray("item:red_key")
+
+[node name="Gates" type="Node2D" parent="." unique_id=1835624565]
+
+[node name="top1" type="Area2D" parent="Gates" unique_id=1096508128]
+position = Vector2(576, 0)
+collision_layer = 0
+script = ExtResource("7_16v51")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/top1" unique_id=1780543449]
+shape = SubResource("RectangleShape2D_h610e")

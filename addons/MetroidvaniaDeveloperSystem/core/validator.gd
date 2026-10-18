@@ -82,6 +82,20 @@ static func run(model: MDSMapModel, ann: MDSAnnotations, analysis: MDSAnalysis, 
 		for g in meta.get("geometry", []):
 			var cell: Vector2i = room.min_cell + Vector2i(g.get("cell", Vector2i.ZERO))
 			_add(issues, Severity.WARNING, CATEGORY_GEOMETRY, g.message, room.id, Vector3i(cell.x, cell.y, room.layer))
+		# Gameplay Kit validation checks
+		for p in meta.get("ability_pickups_without_data", []):
+			var cell := room.cells[0] if not room.cells.is_empty() else Vector3i.MAX
+			_add(issues, Severity.ERROR, CATEGORY_PROGRESSION, "%s: ability pickup '%s' has no ability data assigned" % [analysis.get_room_name(room.id), p.name], room.id, cell)
+		for arena in meta.get("invalid_boss_arenas", []):
+			var what := "no boss and no doors" if (not arena.has_boss and not arena.has_doors) else ("no boss assigned" if not arena.has_boss else "no doors assigned")
+			var cell := room.cells[0] if not room.cells.is_empty() else Vector3i.MAX
+			_add(issues, Severity.ERROR, CATEGORY_DATA, "%s: boss arena '%s' has %s" % [analysis.get_room_name(room.id), arena.name, what], room.id, cell)
+		var expected_boss := str(ann.get_room_value(room.id, "boss", "")).strip_edges()
+		if not expected_boss.is_empty():
+			for b in meta.get("boss_nodes", []):
+				if not str(b.name).is_empty() and str(b.name).to_lower() != expected_boss.to_lower():
+					var cell := room.cells[0] if not room.cells.is_empty() else Vector3i.MAX
+					_add(issues, Severity.WARNING, CATEGORY_DATA, "%s: boss '%s' in scene differs from room's boss '%s' in world file" % [analysis.get_room_name(room.id), b.name, expected_boss], room.id, cell)
 	for path in scanned_scene_paths:
 		if not placed_paths.has(path) and scene_db.has(path):
 			_add(issues, Severity.INFO, CATEGORY_LAYOUT, "%s has a RoomInstance but is not placed on this map" % path.get_file())
@@ -106,11 +120,15 @@ static func run_common(issues: Array, ann: MDSAnnotations, analysis: MDSAnalysis
 			if room and not room.has_scene:
 				continue
 			_add(issues, Severity.WARNING, CATEGORY_PROGRESSION, "%s is not connected to the start room. Add a door or a link (elevator/teleport) in the Inspector" % analysis.get_room_name(id), id)
+	# Requirements are matched to the grants that satisfy them ("ability:dash" by "dash",
+	# "item:health_fragment>=4" by "item:health_fragment").
+	var required_keys: Dictionary = {}
 	for ability in analysis.all_required:
-		if not ability in analysis.all_granted:
+		required_keys[MDSAnalysis.grant_key(ability)] = true
+		if not ability in analysis.all_granted and not MDSAnalysis.grant_key(ability) in analysis.all_granted:
 			_add(issues, Severity.ERROR, CATEGORY_PROGRESSION, "'%s' is required by a door but no room grants it" % ability)
 	for ability in analysis.all_granted:
-		if not ability in analysis.all_required:
+		if not ability in analysis.all_required and not required_keys.has(ability):
 			_add(issues, Severity.INFO, CATEGORY_PROGRESSION, "'%s' is granted but no door requires it (no backtracking payoff)" % ability, analysis.get_ability_sources(ability)[0])
 
 	for o in analysis.get_objectives():

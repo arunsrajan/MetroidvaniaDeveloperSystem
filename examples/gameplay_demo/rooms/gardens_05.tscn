@@ -1,0 +1,87 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="1_krsrp"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5e33c"]
+size = Vector2(1152, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2x7la"]
+size = Vector2(30, 460)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vtjm3"]
+size = Vector2(30, 460)
+
+[sub_resource type="GDScript" id="GDScript_4c0to"]
+script/source = "@tool
+extends Area2D
+signal demo_completed
+func _ready() -> void:
+	body_entered.connect(func(b: Node) -> void:
+		if b.is_in_group(&\"player\"):
+			set_meta(&\"demo_completed\", true)
+			demo_completed.emit()
+			var game := MDSWorldGame.instance
+			if game:
+				var kit := MDSGameplay.find(game)
+				if kit:
+					kit.notice.emit(\"Demo Completed! Thank you for playing!\"))
+"
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kcqrr"]
+size = Vector2(120, 60)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_js5v2"]
+size = Vector2(48, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qiv5d"]
+size = Vector2(128, 48)
+
+[node name="Gardens05" type="Node2D" unique_id=2049858984]
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=620484876]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=56499631]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=529661247]
+collision_mask = 0
+
+[node name="@CollisionShape2D@22" type="CollisionShape2D" parent="Floor" unique_id=899935971]
+position = Vector2(576, 604)
+shape = SubResource("RectangleShape2D_5e33c")
+
+[node name="@CollisionShape2D@23" type="CollisionShape2D" parent="Floor" unique_id=2009200342]
+position = Vector2(465, 330)
+shape = SubResource("RectangleShape2D_2x7la")
+
+[node name="@CollisionShape2D@24" type="CollisionShape2D" parent="Floor" unique_id=2127812966]
+position = Vector2(715, 330)
+shape = SubResource("RectangleShape2D_vtjm3")
+
+[node name="EndingTrigger" type="Area2D" parent="." unique_id=990799097]
+position = Vector2(576, 120)
+collision_layer = 256
+collision_mask = 5
+script = SubResource("GDScript_4c0to")
+
+[node name="@CollisionShape2D@25" type="CollisionShape2D" parent="EndingTrigger" unique_id=91471089]
+shape = SubResource("RectangleShape2D_kcqrr")
+
+[node name="Gates" type="Node2D" parent="." unique_id=788706133]
+
+[node name="left1" type="Area2D" parent="Gates" unique_id=268833120]
+position = Vector2(0, 500)
+collision_layer = 0
+script = ExtResource("1_krsrp")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=578819752]
+shape = SubResource("RectangleShape2D_js5v2")
+
+[node name="top1" type="Area2D" parent="Gates" unique_id=652353765]
+position = Vector2(576, 0)
+collision_layer = 0
+script = ExtResource("1_krsrp")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/top1" unique_id=900397391]
+shape = SubResource("RectangleShape2D_qiv5d")

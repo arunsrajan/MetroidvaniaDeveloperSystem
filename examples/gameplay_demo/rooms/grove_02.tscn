@@ -1,0 +1,73 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_walker.tscn" id="1_sf5bo"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_walker.gd" id="2_7vnlu"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="3_xgrxd"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_itrnl"]
+size = Vector2(800, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1rtdy"]
+size = Vector2(352, 388)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ybf0e"]
+size = Vector2(48, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_f0lci"]
+size = Vector2(128, 48)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0bqf8"]
+size = Vector2(48, 128)
+
+[node name="Grove02" type="Node2D" unique_id=1162196642]
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=693811860]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1141715767]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=608288117]
+collision_mask = 0
+
+[node name="@CollisionShape2D@3" type="CollisionShape2D" parent="Floor" unique_id=275799049]
+position = Vector2(400, 604)
+shape = SubResource("RectangleShape2D_itrnl")
+
+[node name="@CollisionShape2D@4" type="CollisionShape2D" parent="Floor" unique_id=1061360398]
+position = Vector2(976, 454)
+shape = SubResource("RectangleShape2D_1rtdy")
+
+[node name="Walker" type="CharacterBody2D" parent="." unique_id=1762961769 instance=ExtResource("1_sf5bo")]
+position = Vector2(350, 550)
+script = ExtResource("2_7vnlu")
+
+[node name="@CharacterBody2D@5" type="CharacterBody2D" parent="." unique_id=1478152525 instance=ExtResource("1_sf5bo")]
+position = Vector2(550, 550)
+script = ExtResource("2_7vnlu")
+
+[node name="Gates" type="Node2D" parent="." unique_id=193120217]
+
+[node name="left1" type="Area2D" parent="Gates" unique_id=890129825]
+position = Vector2(0, 500)
+collision_layer = 0
+script = ExtResource("3_xgrxd")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=312132858]
+shape = SubResource("RectangleShape2D_ybf0e")
+
+[node name="top1" type="Area2D" parent="Gates" unique_id=405348263]
+position = Vector2(576, 0)
+collision_layer = 0
+script = ExtResource("3_xgrxd")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/top1" unique_id=1101280278]
+shape = SubResource("RectangleShape2D_f0lci")
+
+[node name="right1" type="Area2D" parent="Gates" unique_id=1251167573]
+position = Vector2(1152, 200)
+collision_layer = 0
+script = ExtResource("3_xgrxd")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=99988811]
+shape = SubResource("RectangleShape2D_0bqf8")

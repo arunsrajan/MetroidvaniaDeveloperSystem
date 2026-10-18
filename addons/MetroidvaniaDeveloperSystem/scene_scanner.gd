@@ -129,6 +129,8 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 		"teleporters": [],
 		"shops": [],
 		"grants": PackedStringArray(),
+		# Grant -> how many nodes grant it (four health fragments: 4).
+		"grant_counts": {},
 		"gates": [],
 		"transitions": [],
 		"has_boss": false,
@@ -153,6 +155,10 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 		# Tile layers with cells pointing at tiles their tileset no longer has:
 		# {path, count, sample (atlas coords), position, cell}.
 		"broken_tiles": [],
+		# Gameplay Kit validation checks
+		"ability_pickups_without_data": [],
+		"invalid_boss_arenas": [],
+		"boss_nodes": [],
 	}
 	if not ResourceLoader.exists(scene_path):
 		return metadata
@@ -264,11 +270,34 @@ func _scan_node(node: Node, root: Node, metadata: Dictionary, solids: Array[Rect
 		for ability in _meta_list(MDSLegacy.get_meta_key(node, &"mds_grants")):
 			if not ability in metadata.grants:
 				metadata.grants.append(ability)
+			metadata.grant_counts[ability] = int(metadata.grant_counts.get(ability, 0)) + 1
 	if MDSLegacy.has_meta_key(node, &"mds_requires"):
 		metadata.gates.append({
 			"requires": _meta_list(MDSLegacy.get_meta_key(node, &"mds_requires")),
 			"position": _local_transform(node, root).origin,
 			"name": String(node.name),
+		})
+	if node is MDSAbilityPickup:
+		if node.ability == null:
+			metadata.ability_pickups_without_data.append({
+				"name": String(node.name),
+				"position": _local_transform(node, root).origin,
+			})
+	elif node is MDSBossArena:
+		var has_b: bool = is_instance_valid(node.boss)
+		var has_d: bool = not node.doors.is_empty()
+		if not has_b or not has_d:
+			metadata.invalid_boss_arenas.append({
+				"name": String(node.name),
+				"has_boss": has_b,
+				"has_doors": has_d,
+				"position": _local_transform(node, root).origin,
+			})
+	elif node is MDSBoss:
+		var b_name := str(node.boss_name)
+		metadata.boss_nodes.append({
+			"name": b_name,
+			"position": _local_transform(node, root).origin,
 		})
 	# Old terrain hidden by Convert to freeform: not part of the room any more.
 	if MDSLegacy.has_meta_key(node, &"mds_blockout"):

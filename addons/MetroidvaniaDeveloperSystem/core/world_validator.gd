@@ -92,6 +92,17 @@ static func run(world: MDSWorld, analysis: MDSAnalysis, scene_db: Dictionary) ->
 		# Physics checks (MDSRoomCheck), run in the background by the panel.
 		for g in meta.get("geometry", []):
 			MDSValidator._add(issues, W, MDSValidator.CATEGORY_GEOMETRY, g.message, id, Vector3i.MAX, world.get_origin(id) + Vector2(g.pos), layer)
+		# Gameplay Kit checks
+		for p in meta.get("ability_pickups_without_data", []):
+			MDSValidator._add(issues, E, MDSValidator.CATEGORY_PROGRESSION, "%s: ability pickup '%s' has no ability data assigned" % [name, p.name], id, Vector3i.MAX, world.get_origin(id) + Vector2(p.position), layer)
+		for arena in meta.get("invalid_boss_arenas", []):
+			var what := "no boss and no doors" if (not arena.has_boss and not arena.has_doors) else ("no boss assigned" if not arena.has_boss else "no doors assigned")
+			MDSValidator._add(issues, E, CATEGORY_ROOMS, "%s: boss arena '%s' has %s" % [name, arena.name, what], id, Vector3i.MAX, world.get_origin(id) + Vector2(arena.position), layer)
+		var expected_boss := str(world.get_room_value(id, "boss", "")).strip_edges()
+		if not expected_boss.is_empty():
+			for b in meta.get("boss_nodes", []):
+				if not str(b.name).is_empty() and str(b.name).to_lower() != expected_boss.to_lower():
+					MDSValidator._add(issues, W, CATEGORY_ROOMS, "%s: boss '%s' in scene differs from room's boss '%s' in world file" % [name, b.name, expected_boss], id, Vector3i.MAX, world.get_origin(id) + Vector2(b.position), layer)
 		var scene_gates: Dictionary = {}
 		for t in meta.get("transitions", []):
 			scene_gates[t.name] = t

@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_bench.gd" id="1_owpxp"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_lore_tablet.gd" id="2_8kwj0"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="3_y6u3y"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6iyee"]
+size = Vector2(1152, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ryg52"]
+size = Vector2(48, 128)
+
+[node name="Grove01" type="Node2D" unique_id=1578194598]
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=507533758]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1053236930]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=2123480858]
+collision_mask = 0
+
+[node name="@CollisionShape2D@2" type="CollisionShape2D" parent="Floor" unique_id=702742441]
+position = Vector2(576, 604)
+shape = SubResource("RectangleShape2D_6iyee")
+
+[node name="Bench" type="Node2D" parent="." unique_id=2082333965]
+z_index = -1
+position = Vector2(300, 560)
+script = ExtResource("1_owpxp")
+rest_actions = PackedStringArray("interact", "ui_up", "move_up")
+leave_actions = PackedStringArray("ui_left", "ui_right", "ui_down", "move_left", "move_right", "move_down", "jump", "ui_accept", "ui_cancel")
+size = Vector2(300, 240)
+affect_groups = PackedStringArray("player")
+
+[node name="LoreTablet" type="Area2D" parent="." unique_id=1622100633]
+position = Vector2(650, 560)
+script = ExtResource("2_8kwj0")
+title = "Welcome to Mossgrove"
+text = "Ancient powers lie deep within these woods. Leap into the canopies to seek them."
+
+[node name="Gates" type="Node2D" parent="." unique_id=179531192]
+
+[node name="right1" type="Area2D" parent="Gates" unique_id=470183260]
+position = Vector2(1152, 500)
+collision_layer = 0
+script = ExtResource("3_y6u3y")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=1309045986]
+shape = SubResource("RectangleShape2D_ryg52")

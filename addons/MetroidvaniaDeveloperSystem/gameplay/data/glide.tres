@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MDSAbilityData" format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_ability_data.gd" id="1_tcxej"]
+
+[resource]
+script = ExtResource("1_tcxej")
+id = "glide"
+display_name = "Glide"
+description = "Hold jump while falling to glide down slowly."
+requires = PackedStringArray()
+input_action = &"jump"

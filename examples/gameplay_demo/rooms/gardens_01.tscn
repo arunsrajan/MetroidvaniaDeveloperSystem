@@ -1,0 +1,77 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/npc/mds_shop.gd" id="1_kaxg1"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate_barrier.gd" id="2_hxshr"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="3_cdjhu"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pex7d"]
+size = Vector2(1152, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4enkc"]
+size = Vector2(30, 120)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_u8tfn"]
+size = Vector2(48, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_71g5l"]
+size = Vector2(128, 48)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_e5dej"]
+size = Vector2(48, 128)
+
+[node name="Gardens01" type="Node2D" unique_id=856402506]
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=1151341933]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1206584234]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=1130317759]
+collision_mask = 0
+
+[node name="@CollisionShape2D@14" type="CollisionShape2D" parent="Floor" unique_id=1300108363]
+position = Vector2(576, 604)
+shape = SubResource("RectangleShape2D_pex7d")
+
+[node name="Shopkeeper" type="Area2D" parent="." unique_id=1060736985]
+position = Vector2(400, 560)
+script = ExtResource("1_kaxg1")
+prompt = "Shop"
+body_color = Color(0.72, 0.6, 0.38, 1)
+
+[node name="RedKeyBarrier" type="StaticBody2D" parent="." unique_id=186942774]
+position = Vector2(1130, 480)
+script = ExtResource("2_hxshr")
+requires = PackedStringArray("item:red_key")
+consume_items = true
+
+[node name="@CollisionShape2D@15" type="CollisionShape2D" parent="RedKeyBarrier" unique_id=2117727515]
+position = Vector2(15, 0)
+shape = SubResource("RectangleShape2D_4enkc")
+
+[node name="Gates" type="Node2D" parent="." unique_id=1548372584]
+
+[node name="left1" type="Area2D" parent="Gates" unique_id=1413388869]
+position = Vector2(0, 500)
+collision_layer = 0
+script = ExtResource("3_cdjhu")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=1834900528]
+shape = SubResource("RectangleShape2D_u8tfn")
+
+[node name="bot1" type="Area2D" parent="Gates" unique_id=1929917241]
+position = Vector2(576, 648)
+collision_layer = 0
+script = ExtResource("3_cdjhu")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/bot1" unique_id=1816569881]
+shape = SubResource("RectangleShape2D_71g5l")
+
+[node name="right1" type="Area2D" parent="Gates" unique_id=216654259]
+position = Vector2(1152, 500)
+collision_layer = 0
+script = ExtResource("3_cdjhu")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=1621915451]
+shape = SubResource("RectangleShape2D_e5dej")

@@ -1,0 +1,87 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/mds_boss.gd" id="1_6v2qs"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/mds_arena_door.gd" id="2_c3vnq"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/mds_boss_arena.gd" id="3_du7wg"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate_barrier.gd" id="4_jcnk7"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="5_46qnh"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xkc5q"]
+size = Vector2(1152, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_06vpc"]
+size = Vector2(30, 120)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mulv5"]
+size = Vector2(48, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c2722"]
+size = Vector2(48, 128)
+
+[node name="Grove05" type="Node2D" unique_id=1401674137]
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=50981245]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1440450984]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=1410594583]
+collision_mask = 0
+
+[node name="@CollisionShape2D@9" type="CollisionShape2D" parent="Floor" unique_id=452586680]
+position = Vector2(576, 604)
+shape = SubResource("RectangleShape2D_xkc5q")
+
+[node name="Warden" type="CharacterBody2D" parent="." unique_id=823190514]
+position = Vector2(750, 520)
+script = ExtResource("1_6v2qs")
+boss_name = "Warden"
+respawn = 2
+body_size = Vector2(56, 96)
+gravity = 1800.0
+look = 5
+body_color = Color(0.32, 0.34, 0.42, 1)
+metadata/mds_boss_name = "Warden"
+
+[node name="Door150" type="StaticBody2D" parent="." unique_id=668952602]
+position = Vector2(150, 460)
+script = ExtResource("2_c3vnq")
+
+[node name="Door1000" type="StaticBody2D" parent="." unique_id=700183058]
+position = Vector2(1000, 460)
+script = ExtResource("2_c3vnq")
+
+[node name="BossArena" type="Area2D" parent="." unique_id=1149367992 node_paths=PackedStringArray("boss", "doors")]
+position = Vector2(576, 400)
+script = ExtResource("3_du7wg")
+boss = NodePath("../Warden")
+doors = [NodePath("../Door150"), NodePath("../Door1000")]
+size = Vector2(800, 350)
+
+[node name="BossBarrier" type="StaticBody2D" parent="." unique_id=778948703]
+position = Vector2(1130, 480)
+script = ExtResource("4_jcnk7")
+requires = PackedStringArray("boss:Warden")
+
+[node name="@CollisionShape2D@10" type="CollisionShape2D" parent="BossBarrier" unique_id=1196560688]
+position = Vector2(15, 0)
+shape = SubResource("RectangleShape2D_06vpc")
+
+[node name="Gates" type="Node2D" parent="." unique_id=765923683]
+
+[node name="left1" type="Area2D" parent="Gates" unique_id=974701421]
+position = Vector2(0, 500)
+collision_layer = 0
+script = ExtResource("5_46qnh")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=1968873280]
+shape = SubResource("RectangleShape2D_mulv5")
+
+[node name="right1" type="Area2D" parent="Gates" unique_id=1870348343]
+position = Vector2(1152, 500)
+collision_layer = 0
+script = ExtResource("5_46qnh")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=1754951079]
+shape = SubResource("RectangleShape2D_c2722")

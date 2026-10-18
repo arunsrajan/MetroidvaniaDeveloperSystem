@@ -1,0 +1,67 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_walker.gd" id="1_1yljh"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/combat/mds_health.gd" id="2_x7j5o"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_combat_stats.gd" id="3_6dxpy"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/combat/mds_hurtbox.gd" id="4_cl52x"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/combat/mds_hitbox.gd" id="5_f5qhs"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_attack_data.gd" id="6_6fv5u"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/combat/mds_knockback.gd" id="7_g05j0"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/mds_player_detector.gd" id="8_qp0tk"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/state/mds_state_machine.gd" id="9_72im6"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8qn2g"]
+size = Vector2(40, 36)
+
+[sub_resource type="Resource" id="Resource_u6wt2"]
+script = ExtResource("3_6dxpy")
+max_health = 3
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mhmua"]
+size = Vector2(46, 42)
+
+[sub_resource type="Resource" id="Resource_7a1xc"]
+script = ExtResource("6_6fv5u")
+id = "touch"
+knockback = Vector2(280, -260)
+hitstop_ms = 40
+cancel_into = PackedStringArray()
+breaks = PackedStringArray()
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6ywlc"]
+size = Vector2(34, 30.6)
+
+[node name="Walker" type="CharacterBody2D" unique_id=1762961769]
+script = ExtResource("1_1yljh")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=684531771]
+shape = SubResource("RectangleShape2D_8qn2g")
+
+[node name="Health" type="Node" parent="." unique_id=1223755371]
+script = ExtResource("2_x7j5o")
+stats = SubResource("Resource_u6wt2")
+iframe_time = 0.12
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=1621159923]
+script = ExtResource("4_cl52x")
+
+[node name="Shape" type="CollisionShape2D" parent="Hurtbox" unique_id=1090578482]
+shape = SubResource("RectangleShape2D_mhmua")
+
+[node name="Contact" type="Area2D" parent="." unique_id=630900972]
+script = ExtResource("5_f5qhs")
+attack = SubResource("Resource_7a1xc")
+one_hit_per_target = false
+
+[node name="Shape" type="CollisionShape2D" parent="Contact" unique_id=1470931363]
+shape = SubResource("RectangleShape2D_6ywlc")
+
+[node name="Knockback" type="Node" parent="." unique_id=259025445]
+script = ExtResource("7_g05j0")
+hitstun_time = 0.25
+
+[node name="PlayerDetector" type="Area2D" parent="." unique_id=852325299]
+script = ExtResource("8_qp0tk")
+
+[node name="StateMachine" type="Node" parent="." unique_id=784279949]
+script = ExtResource("9_72im6")

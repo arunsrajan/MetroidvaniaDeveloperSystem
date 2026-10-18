@@ -1,0 +1,42 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_ability_pickup.gd" id="1_cjru0"]
+[ext_resource type="Resource" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/data/double_jump.tres" id="2_tr5xm"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="3_2j61n"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_d73d5"]
+size = Vector2(1152, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6v2mf"]
+size = Vector2(128, 48)
+
+[node name="Grove03" type="Node2D" unique_id=1515013780]
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=1895294444]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1948074970]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=1957872851]
+collision_mask = 0
+
+[node name="@CollisionShape2D@6" type="CollisionShape2D" parent="Floor" unique_id=462433385]
+position = Vector2(576, 604)
+shape = SubResource("RectangleShape2D_d73d5")
+
+[node name="AbilityPickup_DoubleJump" type="Area2D" parent="." unique_id=113848676]
+position = Vector2(576, 500)
+script = ExtResource("1_cjru0")
+ability = ExtResource("2_tr5xm")
+metadata/mds_grants = PackedStringArray("double_jump")
+
+[node name="Gates" type="Node2D" parent="." unique_id=1855984308]
+
+[node name="bot1" type="Area2D" parent="Gates" unique_id=383896333]
+position = Vector2(576, 648)
+collision_layer = 0
+script = ExtResource("3_2j61n")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/bot1" unique_id=347914784]
+shape = SubResource("RectangleShape2D_6v2mf")

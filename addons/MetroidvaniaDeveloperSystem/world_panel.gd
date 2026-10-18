@@ -81,6 +81,9 @@ var _caves_text: Label
 var _caves_skip: CheckBox
 var _caves_area := ""
 var _caves_rooms: Array[String] = []
+var game_scene_dialog: ConfirmationDialog
+var game_scene_path_edit: LineEdit
+var game_scene_kit_check: CheckBox
 
 # State
 var _files_ready := false ## the editor finished its startup scan and imports
@@ -423,6 +426,7 @@ func _build_ui() -> void:
 	add_child(file_dialog)
 	_build_pin_dialog()
 	_build_settings_dialog()
+	_build_game_scene_dialog()
 	_build_area_dialogs()
 	for i in vp.item_count:
 		var key = vp.get_item_metadata(i)
@@ -881,6 +885,35 @@ func _build_settings_dialog() -> void:
 	settings_dialog.title = "World settings"
 	add_child(settings_dialog)
 
+func _build_game_scene_dialog() -> void:
+	game_scene_dialog = ConfirmationDialog.new()
+	game_scene_dialog.title = "Create game scene"
+	game_scene_dialog.ok_button_text = "Create"
+	var box := VBoxContainer.new()
+	box.custom_minimum_size = Vector2(420, 90)
+	game_scene_dialog.add_child(box)
+
+	var path_row := HBoxContainer.new()
+	box.add_child(path_row)
+	game_scene_path_edit = LineEdit.new()
+	game_scene_path_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	path_row.add_child(game_scene_path_edit)
+	var browse_btn := Button.new()
+	browse_btn.text = "Browse..."
+	browse_btn.pressed.connect(func() -> void:
+		_open_file_dialog("game_scene", EditorFileDialog.FILE_MODE_SAVE_FILE, ["*.tscn ; Scene"], game_scene_path_edit.text))
+	path_row.add_child(browse_btn)
+
+	game_scene_kit_check = CheckBox.new()
+	game_scene_kit_check.text = "Include gameplay kit"
+	game_scene_kit_check.button_pressed = true
+	game_scene_kit_check.tooltip_text = "Includes MDSPlayer, gameplay state, HUD, pause menu and dialogue instead of placeholder nodes."
+	box.add_child(game_scene_kit_check)
+
+	game_scene_dialog.confirmed.connect(func() -> void:
+		create_game_scene(game_scene_path_edit.text, game_scene_kit_check.button_pressed))
+	add_child(game_scene_dialog)
+
 func _setup_filters() -> void:
 	for child in filter_box.get_children():
 		child.queue_free()
@@ -976,7 +1009,9 @@ func _on_file_dialog_file(p: String) -> void:
 		"create_scene":
 			create_scene_for_room(_dialog_room, p)
 		"game_scene":
-			create_game_scene(p)
+			if game_scene_path_edit:
+				game_scene_path_edit.text = p
+			create_game_scene(p, game_scene_kit_check.button_pressed if game_scene_kit_check else true)
 		"add_scenes":
 			_on_file_dialog_files(PackedStringArray([p]))
 		"tileset":
@@ -2366,17 +2401,17 @@ func create_scene_for_room(id: String, scene_path: String) -> void:
 	_set_status("Created %s with %d gate(s); MapBounds shows the room's shape." % [scene_path, world.get_gates(id).size()])
 
 ## Generates a runnable MDSWorldGame scene for this world and makes it the Play-from-here host.
-func create_game_scene(scene_path: String) -> void:
+func create_game_scene(scene_path: String, include_gameplay_kit := true) -> void:
 	if not scene_path.ends_with(".tscn"):
 		scene_path += ".tscn"
-	var err := MDSWorldSceneTools.create_game_scene(world, scene_path)
+	var err := MDSWorldSceneTools.create_game_scene(world, scene_path, include_gameplay_kit)
 	if err != OK:
 		_set_status("Could not create %s (error %d)" % [scene_path, err])
 		return
 	world.set_setting("play_scene", scene_path)
 	EditorInterface.get_resource_filesystem().update_file(scene_path)
 	EditorInterface.open_scene_from_path(scene_path)
-	_set_status("Created %s: replace the placeholder Player with yours, then press F6 or use Play from here." % scene_path)
+	_set_status("Created %s: press F6 or use Play from here." % scene_path)
 
 func _write_gates_to_scene(id: String) -> void:
 	var p := world.get_scene_path(id)
@@ -2562,7 +2597,13 @@ func _on_scenes_menu(item: int) -> void:
 		ScenesItem.SETTINGS:
 			_show_settings()
 		ScenesItem.GAME_SCENE:
-			_open_file_dialog("game_scene", EditorFileDialog.FILE_MODE_SAVE_FILE, ["*.tscn ; Scene"], world_path.get_base_dir().path_join("game.tscn"))
+			var default_p := world_path.get_base_dir().path_join("game.tscn") if not world_path.is_empty() else "res://game.tscn"
+			if game_scene_path_edit:
+				game_scene_path_edit.text = default_p
+			if game_scene_dialog:
+				MDSUi.popup_fitted(game_scene_dialog, 450)
+			else:
+				_open_file_dialog("game_scene", EditorFileDialog.FILE_MODE_SAVE_FILE, ["*.tscn ; Scene"], default_p)
 
 func _show_settings() -> void:
 	for c in settings_dialog.get_children():

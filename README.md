@@ -1,6 +1,6 @@
 # Metroidvania Developer System
 
-[![Tests](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml/badge.svg)](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml) Version 3.3.0 ([changelog](CHANGELOG.md))
+[![Tests](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml/badge.svg)](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml) Version 3.4.0 ([changelog](CHANGELOG.md))
 
 A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, silk threads, will-o'-wisps, void tendrils, cobwebs, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight, glowing bees, spiders, birds and owls watching it, giant clockwork and castle spires, alien reactor cores and specimen tanks turning far behind...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
 
@@ -1336,6 +1336,124 @@ On top of the shared progression and design checks:
 - gate nodes in a scene that aren't on the map, and the reverse.
 
 ![Progression in non-linear mode](docs/nonlinear_progression.png)
+
+---
+
+## Gameplay Kit
+
+The **MetDevSys Gameplay Kit** turns Metroidvania Developer System into a complete game creation engine. Instead of coding player controllers, ability pickups, combat physics, enemy AI, inventory screens, dialogue boxes and boss arenas from scratch, the kit provides a modular, production-ready foundation designed after the feel of **Hollow Knight** and **Celeste**.
+
+Everything is strictly typed GDScript, follows Godot conventions, uses no autoloads, and connects seamlessly to `MDSWorld` and `MDSWorldGame`.
+
+```
+Game (MDSWorldGame)
+├── MDSGameplay                     ability registry, inventory, equipment, flags, feel
+├── Player (MDSPlayer)              state machine, buffered input, attacks, health
+│   ├── CollisionShape2D
+│   ├── Visual (MDSPlayerVisual)
+│   ├── StateMachine (MDSStateMachine)
+│   ├── Health (MDSHealth)
+│   ├── InputBuffer (MDSInputBuffer)
+│   └── Hurtbox (MDSHurtbox)
+├── RoomCamera (MDSRoomCamera)
+├── Music (MDSMusic)
+└── UI
+    ├── HUD (MDSHud)                health, mana, currency counters
+    ├── PauseMenu (MDSPauseMenu)    map, inventory, charms, journal, bestiary, options
+    ├── DialogueBox (MDSDialogueBox)
+    └── AbilityPopup (MDSAbilityPopup)
+```
+
+### Quick start
+
+1. Create or open an MDS world in the editor.
+2. In the tool panel, click **Scenes > Create game scene...**. The generated game scene automatically includes an `MDSWorldGame`, `MDSGameplay`, `MDSPlayer`, camera systems, and complete UI.
+3. Open the game scene (`res://game.tscn`) and press **F6** to play.
+
+Default keyboard controls:
+- **Move**: Left / Right (Arrow keys or A / D)
+- **Look Up / Down / Interact**: Up / Down (W / S)
+- **Jump**: Z (or Space / Xbox A)
+- **Attack**: X (or J / Xbox X)
+- **Dash**: C (or K / Xbox RT)
+- **Special / Cast**: V (or L / Xbox B)
+- **Map**: Tab (or Xbox Select)
+- **Pause / Menu**: Escape (or Xbox Start)
+
+### Player movement and feel
+
+Movement in `MDSPlayer` is tuned through an **`MDSMovementConfig`** resource. Every parameter is derived from jump height and time-to-apex formulas:
+- **Analytic jump arcs**: variable jump height controlled by release timing (`jump_cut_multiplier`), coyote time (0.1s), jump input buffering (0.12s), and ceiling corner correction.
+- **Wall mechanics**: wall slide (`wall_slide_speed`), wall jump with directional kick-away and steering lock.
+- **Dash**: horizontal air and ground dash with invulnerability frames and ghost-trail particles.
+- **Ledges & slopes**: slope walking without sliding down, dropping through one-way platforms (Down + Jump), and automatic ledge hops at vertical gates.
+
+Select any `MDSMovementConfig` resource in the Godot FileSystem dock to preview its jump arc and stats live in the custom **Jump Arc Inspector**.
+
+### Abilities and progression
+
+Abilities are data-driven resources extending `MDSAbilityData`. To grant abilities:
+1. Define an ability resource (e.g. `res://gameplay/abilities/double_jump.tres`) with `id = "double_jump"`, display name, icon, and description.
+2. Register the ability in `MDSGameplay.abilities`.
+3. Drop an **`MDSAbilityPickup`** node into any room scene and set its `ability = "double_jump"`.
+4. When collected, the player immediately unlocks the ability, an `MDSAbilityPopup` banner displays the acquisition, and the save state records the grant.
+
+Gates and barriers throughout the world recognize all condition formats:
+- **Abilities**: `dash`, `ability:double_jump`, `ability:wall_jump`
+- **Items**: `item:red_key`, `item:health_fragment>=4`
+- **Flags**: `flag:bridge_lowered`, `flag:crypt_visited`
+- **Bosses**: `boss:Warden`, `boss:MantisLord`
+- **Objects**: `object:lever_01`
+
+The editor's **Progress tab** and **Issues tab** automatically analyze these conditions across all room scenes, verifying that every sphere of the map is reachable in sequence.
+
+### Combat and hazards
+
+- **Hitboxes & Hurtboxes**: `MDSHitbox` and `MDSHurtbox` components handle collision layers, damage calculation, team filtering (`PLAYER`, `ENEMY`, `ENVIRONMENT`), knockback impulse, and invulnerability blinking.
+- **Juice & Feel**: `MDSGameplay` coordinates hit-stop (screen micro-freezes), camera shakes, shader hit-flashes, and directional floating damage numbers (`MDSDamageNumber`).
+- **Hazards**: `MDSHazard` (spikes), `MDSLava`, and `MDSEnvironmentEffect` automatically hurt and respawn the player at the last safe ground or active checkpoint.
+
+### Enemies and bosses
+
+- **Common Enemies**: modular AI components extending `MDSEnemy`:
+  - `MDSWalker`: patrols platforms, turns at ledges or walls.
+  - `MDSFlyer`: hovers and swoops toward the player when within detection radius.
+  - `MDSTurret`: tracks the player and fires aimed projectiles.
+  - `MDSCharger`: winds up, dashes across the arena, and gets stunned upon hitting a wall.
+- **Boss Encounters**: built with `MDSBoss`, `MDSBossArena`, and `MDSBossBar`:
+  - Triggered by entering an `MDSBossArena`. Entry and exit gates close and lock with barriers until the boss is slain.
+  - Dynamic boss phases (`MDSBossPhase`) and attack patterns (`MDSBossAttackPattern`) with health thresholds, staggers, and combat music cross-fading.
+  - Defeating the boss unlocks `boss:<name>` conditions across the world and records victory in the save file.
+
+### Economy, equipment and NPCs
+
+- **Currencies & Pickups**: enemies drop geo/souls upon defeat, magnetically drawn to the player.
+- **Charms & Equipment**: Hollow Knight style badge system (`MDSEquipmentScreen`). Wearing charms requires equipment notches (`MDSSlotUpgrade`) and modifies stats (movement speed, extra health, attack power, or lent abilities). Charms can only be swapped while resting at a bench.
+- **Shops**: `MDSShop` and `MDSShopInventory` allow buying items, upgrades, and map scraps with dialogue interaction.
+- **Lore & Dialogue**: `MDSLoreTablet` gives readable environmental storytelling. `MDSDialogueBox` and `MDSDialogueNPC` provide branching conversations with character portraits and story flag triggers.
+
+### Benches, checkpoints and death
+
+- **Benches (`MDSBench`)**: resting sits the player down, restores health and mana, respawns defeated non-boss enemies, and auto-saves the game.
+- **Death & Shade (`MDSShade`)**: dying drops a shade corpse holding lost currency at the point of death. Returning to the room and defeating the shade retrieves the lost currency.
+
+### Runtime debug hotkeys
+
+While running in debug builds or the editor, `MDSGameplay` provides hotkeys for rapid testing:
+- **F1**: Toggle God Mode (invulnerability)
+- **F2**: Unlock All Abilities
+- **F3**: Add 100 Currency
+- **F4**: Refill Health & Mana
+- **F5**: Teleport / Respawn at Last Bench
+- **F6**: Kill All Enemies in Room
+- **F7**: Toggle Slow Motion (0.25x speed)
+
+### Full gameplay demo
+
+The repository includes a complete 12-room, 2-area gameplay showcase in `examples/gameplay_demo/`:
+- **Areas**: Mossgrove (lush overgrown caverns) and Sunken Gardens (submerged stone ruins).
+- **Progression Loop**: explore Grove_01 -> collect `double_jump` in Grove_03 -> defeat the boss Warden in Grove_05 -> acquire `dash` in Grove_06 -> navigate Sunken Gardens -> collect `red_key` -> lower the drawbridge -> acquire `wall_jump` -> reach the final summit.
+- Run the demo by opening `examples/gameplay_demo/game.tscn` and pressing **F6**.
 
 ---
 

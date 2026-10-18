@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="MDSAbilityData" format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_ability_data.gd" id="1_bnj8g"]
+
+[resource]
+script = ExtResource("1_bnj8g")
+id = "ledge_grab"
+display_name = "Ledge Grab"
+description = "Catch the edges of ledges and climb up onto them."
+requires = PackedStringArray()
