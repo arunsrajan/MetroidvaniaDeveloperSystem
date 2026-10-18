@@ -3,6 +3,12 @@ extends Node
 ##   godot --headless --path . res://tests/run_all.tscn
 ## Pass a name filter after "--": godot --headless --path . res://tests/run_all.tscn -- freeform
 
+## A test scene still running after this many seconds (real time) fails the run, which stops
+## there: an await that never resumes would otherwise hold it until CI's own timeout, unnamed.
+const TEST_TIME_LIMIT := 300.0
+
+var _running := 0 ## counts test scenes started; a time limit only stops the one it was set for
+
 func _ready() -> void:
 	_run.call_deferred()
 
@@ -25,7 +31,16 @@ func _run() -> void:
 			test.free()
 			continue
 		add_child(test)
+		_running += 1
+		var running := _running
+		# Counts real time and runs while the tree is paused (an open menu).
+		get_tree().create_timer(TEST_TIME_LIMIT, true, false, true).timeout.connect(func() -> void:
+			if running == _running:
+				printerr("  FAIL: %s did not finish in %d s" % [f, int(TEST_TIME_LIMIT)])
+				print("\n%s timed out after %s" % [f, ", ".join(failed_tests) + " failed" if failed > 0 else "the scenes before it passed"])
+				get_tree().quit(1))
 		var n: int = await test.run_tests()
+		_running += 1
 		if n > 0:
 			failed += n
 			failed_tests.append(f)

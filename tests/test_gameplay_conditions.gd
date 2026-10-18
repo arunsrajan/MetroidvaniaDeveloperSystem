@@ -89,6 +89,9 @@ func _barriers() -> void:
 	check(boss_door.is_open, "a boss:Moss Mother barrier opens when the boss is defeated")
 
 func _map_gates() -> void:
+	# A room just arrived in ignores its gates for a few physics frames (on a fast machine the
+	# frames above can all pass before one physics step).
+	await physics_frames(4)
 	var gate := game.world.get_gate("Garden_01", "right1")
 	gate["requires"] = ["item:red_key", "item:gate_pass"]
 	game.enforce_requirements = true
@@ -100,7 +103,10 @@ func _map_gates() -> void:
 	check(blocked.size() == 1 and not blocked[0].has("item:red_key") and not kit.has_item("red_key"), "its item:red_key, used up by the open key door in the room, is not missing")
 	kit.add_item("gate_pass")
 	game._on_gate_entered({"room": "Garden_02", "gate": "left1", "from_gate": "right1", "from_room": game.current_room})
-	await game.room_loaded
+	for i in 120:
+		if game.current_room == "Garden_02" and not game.changing_room:
+			break
+		await get_tree().physics_frame
 	check(game.current_room == "Garden_02", "and lets it through with one")
 	gate.erase("requires")
 	game.enforce_requirements = false

@@ -61,7 +61,8 @@ itself, closest to how MDS already behaves. Newest at the bottom of each section
   - `ui/room_canvas.gd`: places, selects and resizes the Room view's gameplay objects.
   - `world_panel.gd`: the Create game scene dialog with its **Include gameplay kit** checkbox.
   - `tests/run_all.gd`: unpauses the tree and resets the time scale between test scenes, so one
-    scene's open menu or hit-stop can't stall the next.
+    scene's open menu or hit-stop can't stall the next. A scene still running after 300 s (real
+    time) fails the run by name, instead of holding it until CI's 30-minute timeout.
   - `nodes/mds_camera_director.gd`: `on_screen()` is false in a view smaller than its inset (a
     headless run's) instead of reporting a negative `Rect2`, which a boss arena framing the boss
     did on every headless fight.
