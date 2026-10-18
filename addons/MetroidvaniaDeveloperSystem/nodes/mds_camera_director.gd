@@ -314,7 +314,9 @@ static func _minus(a: Rect2, b: Rect2) -> Array[Rect2]:
 func on_screen(pos: Vector2) -> bool:
 	var cam := room_camera.camera
 	var half := _viewport_size() / 2.0 / maxf(cam.zoom.x, 0.01)
-	return Rect2(cam.get_screen_center_position() - half, half * 2.0).grow(-ON_SCREEN_INSET).has_point(pos)
+	var shown := Rect2(cam.get_screen_center_position() - half, half * 2.0).grow(-ON_SCREEN_INSET)
+	# A view smaller than the inset (a headless run's) shows nothing comfortably.
+	return shown.size.x > 0.0 and shown.size.y > 0.0 and shown.has_point(pos)
 
 # --- Running ----------------------------------------------------------------------------------
 

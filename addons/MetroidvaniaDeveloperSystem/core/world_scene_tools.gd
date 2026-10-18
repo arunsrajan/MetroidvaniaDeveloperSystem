@@ -692,8 +692,10 @@ static func file_uid(path: String) -> int:
 ## camera director, area music, and a UI with a minimap (MDSWorldMapView following the player)
 ## in the top-right corner, area titles and objective banners. The game saves at benches and
 ## keeps the explored map in user:// files named after the world, so a restarted game continues
-## from the last bench with the map as far as the player got.
-static func create_game_scene(world: MDSWorld, scene_path: String) -> Error:
+## from the last bench with the map as far as the player got. When [param include_gameplay_kit] is true,
+## the player is the kit's MDSPlayer with movement and abilities, MDSGameplay is added,
+## enforce_requirements is turned on, and the kit's UI is installed.
+static func create_game_scene(world: MDSWorld, scene_path: String, include_gameplay_kit := true) -> Error:
 	var game := MDSWorldGame.new()
 	game.name = world.get_world_name().to_pascal_case() + "Game" if not world.get_world_name().is_empty() else "WorldGame"
 	game.world_file = world.path
@@ -701,23 +703,51 @@ static func create_game_scene(world: MDSWorld, scene_path: String) -> Error:
 	var stem := world.get_world_name().to_snake_case().validate_filename() if not world.get_world_name().is_empty() else "world"
 	game.save_file = "user://%s_save.json" % stem
 	game.exploration_file = "user://%s_exploration.json" % stem
-	var player := CharacterBody2D.new()
-	player.name = "Player"
-	player.add_to_group(&"player", true)
-	game.add_child(player)
-	player.owner = game
-	var shape := CollisionShape2D.new()
-	shape.name = "Shape"
-	var capsule := CapsuleShape2D.new()
-	capsule.radius = 16
-	capsule.height = 64
-	shape.shape = capsule
-	player.add_child(shape)
-	shape.owner = game
-	var camera := Camera2D.new()
-	camera.name = "Camera2D"
-	player.add_child(camera)
-	camera.owner = game
+
+	var player: CharacterBody2D
+	var camera: Camera2D
+
+	if include_gameplay_kit:
+		game.enforce_requirements = true
+		const PLAYER_SCENE := "res://addons/MetroidvaniaDeveloperSystem/gameplay/player/mds_player.tscn"
+		if ResourceLoader.exists(PLAYER_SCENE):
+			var ps := load(PLAYER_SCENE) as PackedScene
+			player = ps.instantiate() as CharacterBody2D
+		else:
+			player = MDSPlayer.build()
+		player.name = "Player"
+		game.add_child(player)
+		player.owner = game
+		_own_all_descendants(player, game)
+		camera = player.get_node_or_null("Camera2D") as Camera2D
+		if not camera:
+			camera = Camera2D.new()
+			camera.name = "Camera2D"
+			player.add_child(camera)
+			camera.owner = game
+		var gameplay := MDSGameplay.new()
+		gameplay.name = "Gameplay"
+		game.add_child(gameplay)
+		gameplay.owner = game
+	else:
+		player = CharacterBody2D.new()
+		player.name = "Player"
+		player.add_to_group(&"player", true)
+		game.add_child(player)
+		player.owner = game
+		var shape := CollisionShape2D.new()
+		shape.name = "Shape"
+		var capsule := CapsuleShape2D.new()
+		capsule.radius = 16
+		capsule.height = 64
+		shape.shape = capsule
+		player.add_child(shape)
+		shape.owner = game
+		camera = Camera2D.new()
+		camera.name = "Camera2D"
+		player.add_child(camera)
+		camera.owner = game
+
 	# Irregular-room camera zones and room transitions (settings: World settings > Camera).
 	var room_camera := MDSRoomCamera.new()
 	room_camera.name = "RoomCamera"
@@ -757,6 +787,10 @@ static func create_game_scene(world: MDSWorld, scene_path: String) -> Error:
 	banner.name = "ObjectiveBanner"
 	ui.add_child(banner)
 	banner.owner = game
+
+	if include_gameplay_kit:
+		MDSGameplayUi.add_to(ui, game)
+
 	game.player = player
 	game.camera = camera
 	game.map_view = map
@@ -767,6 +801,11 @@ static func create_game_scene(world: MDSWorld, scene_path: String) -> Error:
 		return err
 	DirAccess.make_dir_recursive_absolute(scene_path.get_base_dir())
 	return ResourceSaver.save(packed, scene_path)
+
+static func _own_all_descendants(n: Node, new_owner: Node) -> void:
+	for c in n.get_children():
+		c.owner = new_owner
+		_own_all_descendants(c, new_owner)
 
 static func _collect_gate_nodes(node: Node, root: Node, out: Dictionary) -> void:
 	if node != root and node is Node2D:

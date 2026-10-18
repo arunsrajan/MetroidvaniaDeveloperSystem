@@ -1,0 +1,200 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/mds_player.gd" id="1_1wpn6"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/mds_player_visual.gd" id="2_twv7p"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/state/mds_state_machine.gd" id="3_otr65"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_idle_state.gd" id="4_1glq8"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_run_state.gd" id="5_sd1c0"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_jump_state.gd" id="6_tel6k"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_fall_state.gd" id="7_jbebh"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_crouch_state.gd" id="8_2soxo"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_wall_slide_state.gd" id="9_epkyk"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_wall_jump_state.gd" id="10_qtpai"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_dash_state.gd" id="11_f8nxy"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_air_dash_state.gd" id="12_bvvmg"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_slide_state.gd" id="13_n1ahe"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_ledge_grab_state.gd" id="14_gdrb2"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_ledge_climb_state.gd" id="15_e88sy"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_climb_state.gd" id="16_jlgaa"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_swim_state.gd" id="17_a3nqr"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_glide_state.gd" id="18_mdv0i"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_grapple_state.gd" id="19_cfakg"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_ground_pound_state.gd" id="20_207m0"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_attack_state.gd" id="21_qp7cc"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_hurt_state.gd" id="22_b17yr"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_dead_state.gd" id="23_agfs4"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_rest_state.gd" id="24_bnq4y"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/states/mds_player_locked_state.gd" id="25_1tm7h"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/combat/mds_health.gd" id="26_04cy1"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/mds_input_buffer.gd" id="27_nuvob"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/combat/mds_hurtbox.gd" id="28_t4lp5"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/combat/mds_knockback.gd" id="29_bbw5c"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/combat/mds_attack_controller.gd" id="30_3g0yc"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1qrpi"]
+size = Vector2(28, 60)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_50xid"]
+size = Vector2(22.4, 54)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_sqq5u"]
+size = Vector2(44, 68)
+
+[node name="Player" type="CharacterBody2D" unique_id=1769360487]
+script = ExtResource("1_1wpn6")
+abilities_without_game = PackedStringArray()
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1413310692]
+shape = SubResource("RectangleShape2D_1qrpi")
+
+[node name="Visual" type="Node2D" parent="." unique_id=1214717913]
+script = ExtResource("2_twv7p")
+
+[node name="StateMachine" type="Node" parent="." unique_id=1527680518]
+script = ExtResource("3_otr65")
+initial_state = &"Fall"
+
+[node name="Idle" type="Node" parent="StateMachine" unique_id=1320856487]
+script = ExtResource("4_1glq8")
+
+[node name="Run" type="Node" parent="StateMachine" unique_id=1164377767]
+script = ExtResource("5_sd1c0")
+
+[node name="Jump" type="Node" parent="StateMachine" unique_id=1110962300]
+script = ExtResource("6_tel6k")
+trigger = 3
+priority = 25
+
+[node name="Fall" type="Node" parent="StateMachine" unique_id=1399914475]
+script = ExtResource("7_jbebh")
+
+[node name="Crouch" type="Node" parent="StateMachine" unique_id=1016704546]
+script = ExtResource("8_2soxo")
+trigger = 1
+priority = 5
+
+[node name="WallSlide" type="Node" parent="StateMachine" unique_id=1095667722]
+script = ExtResource("9_epkyk")
+required_ability = "wall_jump"
+trigger = 2
+priority = 30
+
+[node name="WallJump" type="Node" parent="StateMachine" unique_id=1767613429]
+script = ExtResource("10_qtpai")
+required_ability = "wall_jump"
+
+[node name="Dash" type="Node" parent="StateMachine" unique_id=1430733393]
+script = ExtResource("11_f8nxy")
+required_ability = "dash"
+trigger = 1
+priority = 30
+
+[node name="AirDash" type="Node" parent="StateMachine" unique_id=973582141]
+script = ExtResource("12_bvvmg")
+required_ability = "air_dash"
+trigger = 2
+priority = 60
+
+[node name="Slide" type="Node" parent="StateMachine" unique_id=1560379598]
+script = ExtResource("13_n1ahe")
+required_ability = "slide"
+trigger = 1
+priority = 40
+
+[node name="LedgeGrab" type="Node" parent="StateMachine" unique_id=1593702454]
+script = ExtResource("14_gdrb2")
+required_ability = "ledge_grab"
+trigger = 2
+priority = 35
+
+[node name="LedgeClimb" type="Node" parent="StateMachine" unique_id=1090182298]
+script = ExtResource("15_e88sy")
+required_ability = "ledge_grab"
+
+[node name="Climb" type="Node" parent="StateMachine" unique_id=1608936706]
+script = ExtResource("16_jlgaa")
+required_ability = "climb"
+trigger = 3
+priority = 45
+
+[node name="Swim" type="Node" parent="StateMachine" unique_id=685513753]
+script = ExtResource("17_a3nqr")
+required_ability = "swim"
+trigger = 3
+priority = 70
+
+[node name="Glide" type="Node" parent="StateMachine" unique_id=99262139]
+script = ExtResource("18_mdv0i")
+required_ability = "glide"
+trigger = 2
+priority = 20
+
+[node name="Grapple" type="Node" parent="StateMachine" unique_id=807381691]
+script = ExtResource("19_cfakg")
+required_ability = "grapple"
+trigger = 3
+priority = 65
+
+[node name="GroundPound" type="Node" parent="StateMachine" unique_id=530526395]
+script = ExtResource("20_207m0")
+required_ability = "ground_pound"
+trigger = 2
+priority = 70
+
+[node name="Attack" type="Node" parent="StateMachine" unique_id=40058991]
+script = ExtResource("21_qp7cc")
+
+[node name="Hurt" type="Node" parent="StateMachine" unique_id=2132824672]
+script = ExtResource("22_b17yr")
+
+[node name="Dead" type="Node" parent="StateMachine" unique_id=1684661496]
+script = ExtResource("23_agfs4")
+
+[node name="Rest" type="Node" parent="StateMachine" unique_id=1877220590]
+script = ExtResource("24_bnq4y")
+
+[node name="Locked" type="Node" parent="StateMachine" unique_id=1155611619]
+script = ExtResource("25_1tm7h")
+
+[node name="Health" type="Node" parent="." unique_id=2032783195]
+script = ExtResource("26_04cy1")
+
+[node name="InputBuffer" type="Node" parent="." unique_id=103653020]
+script = ExtResource("27_nuvob")
+actions = PackedStringArray("jump", "dash", "attack", "special", "grapple")
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=887490188]
+script = ExtResource("28_t4lp5")
+team = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Hurtbox" unique_id=1482477176]
+shape = SubResource("RectangleShape2D_50xid")
+
+[node name="Knockback" type="Node" parent="." unique_id=145288949]
+script = ExtResource("29_bbw5c")
+
+[node name="Attacks" type="Node2D" parent="." unique_id=1966820858]
+script = ExtResource("30_3g0yc")
+blocked_states = PackedStringArray("Locked", "Rest", "Dead", "Hurt", "LedgeGrab", "LedgeClimb", "Climb", "Grapple", "Slide", "Dash", "AirDash", "GroundPound", "Swim")
+
+[node name="WallCheckL" type="RayCast2D" parent="." unique_id=886291723]
+position = Vector2(0, 4)
+target_position = Vector2(-20, 0)
+
+[node name="WallCheckR" type="RayCast2D" parent="." unique_id=372236063]
+position = Vector2(0, 4)
+target_position = Vector2(20, 0)
+
+[node name="LedgeCheck" type="RayCast2D" parent="." unique_id=1577190603]
+position = Vector2(0, -36)
+target_position = Vector2(24, 0)
+
+[node name="CeilingCheck" type="RayCast2D" parent="." unique_id=1904571378]
+target_position = Vector2(0, -60)
+
+[node name="InteractArea" type="Area2D" parent="." unique_id=637934706]
+collision_layer = 256
+collision_mask = 256
+
+[node name="Shape" type="CollisionShape2D" parent="InteractArea" unique_id=298855370]
+shape = SubResource("RectangleShape2D_sqq5u")

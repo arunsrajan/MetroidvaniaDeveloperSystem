@@ -1988,12 +1988,20 @@ func _update_cursor(at: Vector2) -> void:
 ## Whether [param e] is still one of the room's effects. Undo remakes them and frees the ones it
 ## takes out, so [param e] may be a freed one (the selection): it is checked before its type.
 func _is_room_effect(e: Variant) -> bool:
-	return is_instance_valid(e) and e is MDSEnvironmentEffect and painter != null and (e as Node).get_parent() == painter.items_root.get_node(MDSRoomPainter.EFFECTS_GROUP)
+	if not is_instance_valid(e) or not painter:
+		return false
+	if e is MDSEnvironmentEffect and (e as Node).get_parent() == painter.items_root.get_node(MDSRoomPainter.EFFECTS_GROUP):
+		return true
+	if e is Node and (e as Node).is_in_group(&"mds_gameplay_placed"):
+		return true
+	return false
 
 ## Places an effect of [param id] centred on [param p] (scene-local), selects it and returns it.
-func place_effect(id: String, p: Vector2) -> MDSEnvironmentEffect:
+func place_effect(id: String, p: Vector2) -> Node2D:
 	if not painter or id.is_empty():
 		return null
+	if id.begins_with("gameplay:"):
+		return place_gameplay_object(id.trim_prefix("gameplay:"), p)
 	painter.checkpoint()
 	var e := painter.add_effect(id, p)
 	if not e:
@@ -2004,19 +2012,133 @@ func place_effect(id: String, p: Vector2) -> MDSEnvironmentEffect:
 	status_message.emit("%s added. Drag it to move it, drag the handles on its sides and corners to resize it (Shift keeps its shape); its settings are in the Inspector. Delete removes it. To place another, pick it again (or Ctrl+click to keep it picked)." % MDSEnvironment.display_name(id))
 	return e
 
+func place_gameplay_object(gameplay_type: String, p: Vector2) -> Node2D:
+	if not painter or not painter.root:
+		return null
+	painter.checkpoint()
+	var node: Node2D = null
+	var label_name := gameplay_type.capitalize()
+	var floor_y := p.y
+	if world and world.has_room(room_id):
+		var c := MDSRoomDressing.ground_check(self, painter.root, painter, world.get_local_rects(room_id))
+		var hit_y := MDSRoomDressing.floor_under(c, p)
+		c.free_proxy()
+		if not is_nan(hit_y):
+			floor_y = hit_y
+
+	match gameplay_type:
+		"ability_pickup":
+			node = MDSAbilityPickup.new()
+			node.name = "AbilityPickup"
+			node.position = Vector2(p.x, floor_y - 24)
+		"item_pickup":
+			node = MDSPickup.new()
+			node.name = "ItemPickup"
+			node.position = Vector2(p.x, floor_y - 20)
+		"health_fragment":
+			var frag := MDSHealthUpgrade.new()
+			frag.name = "HealthFragment"
+			frag.position = Vector2(p.x, floor_y - 20)
+			node = frag
+		"breakable_wall":
+			var wall := MDSBreakable.new()
+			wall.kind = "wall"
+			wall.size = Vector2(64, 128)
+			wall.name = "BreakableWall"
+			wall.position = Vector2(p.x, floor_y - 64)
+			node = wall
+		"cracked_floor":
+			var fl := MDSBreakable.new()
+			fl.kind = "cracked_floor"
+			fl.size = Vector2(128, 32)
+			fl.name = "CrackedFloor"
+			fl.position = Vector2(p.x, floor_y - 16)
+			node = fl
+		"switch":
+			node = MDSSwitch.new()
+			node.name = "Switch"
+			node.position = Vector2(p.x, floor_y - 24)
+		"hazard":
+			var haz := MDSHazard.new()
+			haz.size = Vector2(128, 32)
+			haz.name = "Hazard"
+			haz.position = Vector2(p.x, floor_y - 16)
+			node = haz
+		"checkpoint":
+			var cp := MDSCheckpoint.new()
+			cp.name = "Checkpoint"
+			cp.position = Vector2(p.x, floor_y)
+			node = cp
+		"grapple_point":
+			node = MDSGrapplePoint.new()
+			node.name = "GrapplePoint"
+			node.position = Vector2(p.x, floor_y - 120)
+		"enemy_walker", "enemy_flyer", "enemy_turret", "enemy_charger", "enemy_ambusher":
+			# The template scene (gameplay/enemies/templates/mds_<kind>.tscn), standing on the
+			# floor (its origin is its middle); flyers hover above it.
+			var kind := gameplay_type.trim_prefix("enemy_")
+			node = enemy_template(kind)
+			var half := (node as MDSEnemy).body_size.y * 0.5 if node is MDSEnemy else 24.0
+			node.position = Vector2(p.x, floor_y - half - (100.0 if kind == "flyer" else 0.0))
+		"boss_arena":
+			node = MDSBossArena.new()
+			node.name = "BossArena"
+			node.position = Vector2(p.x, floor_y)
+		"npc":
+			node = MDSNPC.new()
+			node.name = "NPC"
+			node.position = Vector2(p.x, floor_y)
+
+	if not node:
+		return null
+
+	node.add_to_group(&"mds_gameplay_placed")
+	painter.root.add_child(node, true)
+	node.owner = painter.root
+	_own_all_nodes(node, painter.root)
+	painter.dirty = true
+	selected_effect = node
+	painted.emit()
+	_overlay.queue_redraw()
+	status_message.emit("%s placed on the floor. Drag to move, handles to resize, Delete removes it." % label_name)
+	return node
+
+## A new enemy from the Gameplay Kit's template scene for [param kind] ("walker", "flyer",
+## "turret", "charger", "ambusher"), named after it; a plain [MDSEnemy] when the scene is missing.
+static func enemy_template(kind: String) -> Node2D:
+	var path := "res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_%s.tscn" % kind
+	var node: Node2D = null
+	if ResourceLoader.exists(path):
+		node = (load(path) as PackedScene).instantiate() as Node2D
+	if not node:
+		node = MDSEnemy.new()
+	node.name = kind.capitalize()
+	return node
+
+func _own_all_nodes(node: Node, root_node: Node) -> void:
+	for c in node.get_children():
+		c.owner = root_node
+		_own_all_nodes(c, root_node)
+
 func delete_selected_effect() -> void:
 	if _is_room_effect(selected_effect):
 		painter.checkpoint()
 		var n := selected_effect.name
-		painter.remove_item(selected_effect)
+		if selected_effect is MDSEnvironmentEffect:
+			painter.remove_item(selected_effect)
+		else:
+			if selected_effect.get_parent():
+				selected_effect.get_parent().remove_child(selected_effect)
+			selected_effect.queue_free()
+			painter.dirty = true
 		selected_effect = null
 		painted.emit()
-		status_message.emit("Effect %s removed." % n)
+		status_message.emit("Removed %s." % n)
 
 ## An effect's area on screen.
-func _effect_screen_rect(e: MDSEnvironmentEffect) -> Rect2:
-	var r := e.transform * e.get_effect_rect()
-	return Rect2(local_to_screen(r.position), r.size * zoom)
+func _effect_screen_rect(e: Node2D) -> Rect2:
+	var r := MDSRoomPainter.node_effect_rect(e)
+	return Rect2(local_to_screen(e.transform * r.position), r.size * zoom)
 
 ## Picks the effect a click places ("" for none: clicks select, move and resize).
 func set_effect_pick(id: String) -> void:
@@ -2028,8 +2150,9 @@ func set_effect_pick(id: String) -> void:
 func _begin_effect_drag(kind: int, p: Vector2, checkpointed: bool) -> void:
 	_effect_drag = kind
 	_effect_from = p
-	_effect_orig = Rect2(selected_effect.position, selected_effect.size)
-	_effect_rect0 = selected_effect.get_effect_rect()
+	var sz: Vector2 = selected_effect.size if "size" in selected_effect else Vector2(48, 48)
+	_effect_orig = Rect2(selected_effect.position, sz)
+	_effect_rect0 = MDSRoomPainter.node_effect_rect(selected_effect)
 	_effect_moved = false
 	_effect_checkpointed = checkpointed
 
@@ -2042,10 +2165,13 @@ static func _fit_effect(e: MDSEnvironmentEffect, rect: Rect2, origin: Vector2) -
 
 ## Resizes [param e] so its area is [param rect] (scene-local), as one undo step, as dragging
 ## its handles does.
-func resize_effect(e: MDSEnvironmentEffect, rect: Rect2) -> void:
+func resize_effect(e: Node2D, rect: Rect2) -> void:
 	painter.checkpoint()
-	var inv := e.transform.affine_inverse()
-	_fit_effect(e, Rect2(inv * rect.position, inv.basis_xform(rect.size)).abs(), e.position)
+	if e is MDSEnvironmentEffect:
+		var inv := e.transform.affine_inverse()
+		_fit_effect(e as MDSEnvironmentEffect, Rect2(inv * rect.position, inv.basis_xform(rect.size)).abs(), e.position)
+	elif "size" in e:
+		e.size = rect.size.round().max(Vector2(8, 8))
 	painter.dirty = true
 	painted.emit()
 
@@ -2111,7 +2237,11 @@ func _effect_motion(mm: InputEventMouseMotion) -> void:
 	else:
 		# The handle's sides follow the mouse, the others stay (Shift: a corner keeps the shape).
 		var along := selected_effect.transform.affine_inverse().basis_xform(d)
-		_fit_effect(selected_effect, resized_box(_effect_rect0, _effect_handle, along, mm.shift_pressed, Vector2(16, 16)), _effect_orig.position)
+		if selected_effect is MDSEnvironmentEffect:
+			_fit_effect(selected_effect as MDSEnvironmentEffect, resized_box(_effect_rect0, _effect_handle, along, mm.shift_pressed, Vector2(16, 16)), _effect_orig.position)
+		elif "size" in selected_effect:
+			var box := resized_box(_effect_rect0, _effect_handle, along, mm.shift_pressed, Vector2(16, 16))
+			selected_effect.size = box.size.round().max(Vector2(8, 8))
 	painter.dirty = true
 
 func _draw_effects(ci: CanvasItem, font: Font) -> void:
@@ -2129,7 +2259,15 @@ func _draw_effects(ci: CanvasItem, font: Font) -> void:
 		if sel:
 			_draw_handles(ci, r, Color(0.55, 0.85, 1.0))
 	if active and get_rect().has_point(_mouse) and not effect_id.is_empty() and _effect_drag == 0:
-		var icon := MDSEnvironment.icon(effect_id)
+		var icon: Texture2D = null
+		if effect_id.begins_with("gameplay:"):
+			var gp_name := effect_id.trim_prefix("gameplay:")
+			var icon_file := "mds_%s.svg" % gp_name.replace("enemy_", "")
+			var icon_path := "res://addons/MetroidvaniaDeveloperSystem/icons/gameplay/" + icon_file
+			if ResourceLoader.exists(icon_path):
+				icon = load(icon_path)
+		else:
+			icon = MDSEnvironment.icon(effect_id)
 		if icon:
 			ci.draw_texture_rect(icon, Rect2(_mouse + Vector2(10, 10), Vector2(16, 16)), false)
 

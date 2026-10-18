@@ -1,6 +1,6 @@
 # Metroidvania Developer System
 
-[![Tests](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml/badge.svg)](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml) Version 3.3.0 ([changelog](CHANGELOG.md))
+[![Tests](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml/badge.svg)](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml) Version 3.4.0 ([changelog](CHANGELOG.md))
 
 A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, silk threads, will-o'-wisps, void tendrils, cobwebs, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight, glowing bees, spiders, birds and owls watching it, giant clockwork and castle spires, alien reactor cores and specimen tanks turning far behind...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
 
@@ -1336,6 +1336,217 @@ On top of the shared progression and design checks:
 - gate nodes in a scene that aren't on the map, and the reverse.
 
 ![Progression in non-linear mode](docs/nonlinear_progression.png)
+
+---
+
+## Gameplay Kit
+
+The **Gameplay Kit** (3.4.0) adds the gameplay half of a Metroidvania on top of what MDS already runs: a player with tunable movement and twelve movement and combat abilities, combat components, enemies and bosses, items, currency, equipment and shops, story flags, death and respawn, and the HUD, pause menu, dialogue and options screens. It lives in `addons/MetroidvaniaDeveloperSystem/gameplay/` and plugs into `MDSWorldGame` instead of replacing any of it: rooms, gates, barriers, benches, saving, the map, the camera, music and the editor's analysis are MDS's own, and the kit calls them. There are no autoloads; kit nodes find the game through `MDSWorldGame.instance` and the kit through `MDSGameplay.find(game)`.
+
+```
+Game (MDSWorldGame)
+├── Gameplay (MDSGameplay)          items, currency, equipment, flags, health and mana; saved in ext.gameplay
+├── Player (MDSPlayer)              a CharacterBody2D with components
+│   ├── CollisionShape2D, Visual, Camera2D
+│   ├── StateMachine (MDSStateMachine): Idle, Run, Jump, Fall, Crouch, WallSlide, WallJump, Dash,
+│   │       AirDash, Slide, LedgeGrab, LedgeClimb, Climb, Swim, Glide, Grapple, GroundPound,
+│   │       Attack, Hurt, Dead, Rest, Locked
+│   ├── Health (MDSHealth), Hurtbox (MDSHurtbox), Knockback (MDSKnockback)
+│   ├── Attacks (MDSAttackController), InputBuffer (MDSInputBuffer)
+│   └── WallCheckL, WallCheckR, LedgeCheck, CeilingCheck, InteractArea
+├── RoomCamera (MDSRoomCamera), Music (MDSMusic)
+└── UI
+    ├── Map (MDSWorldMapView), AreaTitle, ObjectiveBanner     (MDS's own)
+    ├── Hud (MDSHud)                health masks, mana, currency, boss bar
+    ├── Toast (MDSToast)            "Red Key", "Requires Dash", "Map updated"
+    ├── AbilityPopup (MDSAbilityPopup)
+    ├── PauseMenu (MDSPauseMenu)    Map, Inventory, Equipment, Journal, Bestiary, Options, Quit
+    ├── DialogueBox (MDSDialogueBox)
+    └── ShopScreen (MDSShopScreen)
+```
+
+### Quick start
+
+1. Open a world in the MetDevSys tab.
+2. **Scenes > Create game scene...** With **Include gameplay kit** on (the default), the scene gets `MDSPlayer` (`gameplay/player/mds_player.tscn`), `MDSGameplay` and the kit's UI, and `enforce_requirements` is turned on. Turn it off for the old placeholder `CharacterBody2D`.
+3. Press **F6** in the game scene, or use **Play from here**.
+
+When the plugin starts it adds the input actions and collision layer names the project lacks (it never removes or changes yours):
+
+| Action | Keys | Gamepad |
+| --- | --- | --- |
+| `move_left` / `move_right` / `move_up` / `move_down` | Arrows, WASD | D-pad, left stick |
+| `jump` | Z, Space | A |
+| `attack` | X | X |
+| `dash` | C | RB |
+| `special` (spell) | V | Y |
+| `interact` | Up, W | D-pad up |
+| `grapple` | F | LB |
+| `map` / `pause` | Tab / Escape | Back / Start |
+| `menu_prev` / `menu_next` (pause menu tabs) | Q / E | LB / RB |
+
+Collision layers: 1 world, 3 player, 4 enemy, 5 player_hitbox, 6 enemy_hitbox, 7 player_hurtbox, 8 enemy_hurtbox, 9 interact (the numbers are project settings under `metroidvania_developer_system/gameplay/layers/`).
+
+### Player movement and feel
+
+`MDSPlayer` moves by an **`MDSMovementConfig`** resource: run speed and acceleration, gravity and a heavier fall, a jump cut short on release, coyote time (0.10 s), a jump buffer (0.12 s), lighter gravity at the apex, corner correction, wall slide and wall jump, dash, slide, climb, swim, glide, grapple and ground pound. It walks slopes up to 45°, rides moving platforms and drops through one-way platforms with down + jump. Selecting an `MDSMovementConfig` in the Inspector previews its jump arc (height and distance) beside a 1152 × 648 room.
+
+With `MDSWorldGame` it keeps its velocity through gates, is `Locked` while the game changes rooms (no input, no gravity, velocity untouched), sits on benches (`mds_bench_rest()`) and is healed by them (`heal_full()`). MDS's environment effects hurt it through `mds_environment_hurt()`; lava also sends it back to safe ground.
+
+### Abilities and pickups
+
+Each movement ability is a player state that can only be entered while the game has the ability (`MDSWorldGame.has_ability()`, or equipment worn that lends it). Built in (`gameplay/data/*.tres`): `double_jump`, `wall_jump`, `dash`, `air_dash`, `slide` (down + dash), `ledge_grab`, `climb` (`MDSClimbable`), `swim` (`MDSWater` with `swimmable` on), `glide` (jump held while falling), `grapple` (`MDSGrapplePoint`), `ground_pound` (down + dash in the air; breaks `cracked_floor`), `super_attack` (attacks break `reinforced` walls), plus `charge_attack` and `parry` for the attack controller.
+
+Room objects:
+
+- **`MDSAbilityPickup`** (`ability`: an `MDSAbilityData`): grants it, shows `MDSAbilityPopup`, and stays gone (`store_object()`).
+- **`MDSPickup`** (`item`: an `MDSItemData`, `amount`), and `MDSHealthUpgrade` (fragments), `MDSManaUpgrade`, `MDSSlotUpgrade`, `MDSCurrencyPickup`.
+- **`MDSBreakable`** (`kind`: `wall`, `cracked_floor`, `reinforced` or your own; `hits`; `requires`) and **`MDSSwitch`** (sets a flag; ONE_SHOT, TOGGLE or TIMED; on a hit, an interact or a step).
+- **`MDSHazard`** (spikes; DAMAGE or RESPAWN) and **`MDSCheckpoint`** (where RESPAWN hazards send the player in that room).
+
+They set the `mds_grants` / `mds_requires` metadata the scanner reads, so the Progress and Issues tabs see them. All of them are in the Room view's **Effects** tool under **Gameplay Objects**, with an entry per enemy template, the boss arena and an NPC.
+
+#### Adding an ability
+
+1. Make an `MDSAbilityData` resource: `id = "wall_run"`, a display name, a description, an icon, and the `input_action` the popup shows.
+2. Write its state, extending `MDSPlayerState`:
+
+   ```gdscript
+   class_name WallRunState
+   extends MDSPlayerState
+
+   func _init() -> void:
+   	required_ability = "wall_run"   # only enterable while the game has it
+   	trigger = Trigger.AIR           # tried by the player's air moves (GROUND, AIR or ANY)
+   	priority = 50                   # higher is tried first
+
+   func can_enter() -> bool:
+   	return super() and player.wall_side() != 0 and player.held(&"dash")
+
+   func physics_update(_delta: float) -> void:
+   	player.velocity = Vector2(0, -player.config.climb_speed)
+   	player.move()
+   	if not player.held(&"dash") or player.wall_side() == 0:
+   		go(&"Fall")
+   ```
+
+3. Add a node with that script under the player's `StateMachine` (in your copy of `mds_player.tscn`), named after the state.
+4. Grant it with an `MDSAbilityPickup`, and gate rooms with `wall_run` in `requires`. List the resource in `MDSGameplay.abilities_database` so popups and "Requires …" notices use its name.
+
+### Conditions
+
+Gate `requires`, `MDSGateBarrier.requires`, area `objective_done_when`, dialogue lines' `condition` and shop entries' `condition` all take the same strings:
+
+| String | Met when |
+| --- | --- |
+| `dash`, `ability:dash` | the ability is granted (or lent by equipment worn) |
+| `item:red_key` | at least one `red_key` is carried |
+| `item:health_fragment>=4` | at least 4 are carried |
+| `flag:bridge_lowered` | the flag is set (an `MDSSwitch`, a dialogue line, your code) |
+| `boss:Warden` | the boss was defeated |
+| `object:Crypt_01/Chest` | the object was stored |
+
+A barrier with `consume_items` uses up the items it requires. A map gate whose requirement isn't met yet (with `enforce_requirements`) shows "Requires Dash" in the toast. The Progress tab treats `item:` and `flag:` grants like abilities, and `item:x>=n` needs `n` pickups.
+
+### Combat and hazards
+
+- **Components:** `MDSHitbox` (an attack; team PLAYER, ENEMY or HAZARD), `MDSHurtbox` (where hits land; a team never hurts itself), `MDSHealth` (0.8 s of invulnerability, a hit flash) and `MDSKnockback`. Damage is `max(1, round(amount × resistance × multiplier) − defense)`.
+- **Attacks (`MDSAttackController`):** a 3-hit ground combo and a 2-hit air combo by frame data, up and down attacks, a pogo bounce off enemies, breakables and hazards, a charged attack (`charge_attack`), a spell on `special` (an `MDSProjectile`, costing mana) and a parry (`parry`).
+- **Feel:** hit-stop, `MDSRoomCamera.shake()` (skipped with the *Cut, never glide* camera motion), a white hit flash, gamepad rumble, and floating damage numbers (`MDSDamageNumber`, off by default). Each is a setting under `metroidvania_developer_system/gameplay/feel/`.
+- **Hazards:** `MDSHazard` RESPAWN spikes and MDS's `MDSLava` hurt the player and put it back on its last safe ground (or the room's `MDSCheckpoint`); DAMAGE hazards and other environment effects hurt and knock back.
+
+### Enemies and bosses
+
+`MDSEnemy` is a `CharacterBody2D` in the `enemy` group with health, a hurtbox, a contact hitbox, knockback, an `MDSPlayerDetector` and its own state machine. Its `respawn` decides whether it comes back: on every room load, after a rest on a bench (the default), or never (`mark_defeated()`). A defeat rolls its `MDSEnemyData` drops and currency, and counts in the Bestiary.
+
+Templates (`gameplay/enemies/templates/`, each a scene): **`MDSWalker`** (patrols, turns at walls and ledges, chases on sight), **`MDSFlyer`** (hovers and swoops), **`MDSTurret`** (aims and fires projectiles), **`MDSCharger`** (telegraphs, charges, is stunned by walls) and **`MDSAmbusher`** (hides, bursts out near the player). `MDSSpawner` sends waves for arenas.
+
+#### Adding an enemy
+
+Instance a template scene and change its exports, or extend `MDSEnemy` and give it states:
+
+```gdscript
+@tool
+class_name Hopper
+extends MDSEnemy
+
+@export var hop := Vector2(120, -420)
+
+func _make_states() -> Array[Node]:
+	var wait := Wait.new()
+	wait.name = "Wait"
+	var jump := Hop.new()
+	jump.name = "Hop"
+	return [wait, jump]          # Hurt and Dead are added for you
+
+class Wait extends MDSEnemyState:
+	func physics_update(delta: float) -> void:
+		enemy.fall(delta)
+		enemy.halt(delta)
+		enemy.move()
+		if elapsed() > 1.0 and enemy.sees_player():
+			go(&"Hop")
+
+class Hop extends MDSEnemyState:
+	func enter(_previous: StringName, _data: Dictionary) -> void:
+		enemy.face_player()
+		var h := (enemy as Hopper).hop
+		enemy.velocity = Vector2(h.x * enemy.facing, h.y)
+
+	func physics_update(delta: float) -> void:
+		enemy.fall(delta)
+		enemy.move()
+		if enemy.is_on_floor() and elapsed() > 0.1:
+			go(&"Wait")
+```
+
+Give it an `MDSEnemyData` (stats, drops, currency) and place it in a room scene.
+
+**Bosses:** `MDSBoss` (an `MDSEnemy` in the `boss` group; `boss_name` is also its `mds_boss_name` metadata) fights in phases (`MDSBossPhase`: a health threshold, its attack states and speed). An **`MDSBossArena`** starts the fight when the player walks in: its `MDSArenaDoor`s shut, `MDSMusic.play_boss()` plays, the camera director frames the fight, and the HUD shows the boss bar. When the boss falls it is recorded (`is_boss_defeated()`, `boss:<name>`), the music ends, the doors open and the arena can grant an ability. If the player dies, the fight starts over on the next visit. Doors that stay shut until the boss is beaten are ordinary `MDSGateBarrier`s with `requires = ["boss:<name>"]`.
+
+### Items, equipment, economy and NPCs
+
+- **Items:** `MDSItemData` (KEY, CONSUMABLE, EQUIPMENT, UPGRADE or COLLECTIBLE, with an optional `MDSItemEffect` such as `MDSHealEffect`), counted by `MDSGameplay` (`add_item()`, `remove_item()`, `use_item()`).
+- **Equipment:** `MDSEquipmentData` charms cost slots (3 to start; `MDSSlotUpgrade` adds one), add their `stat_mods` to the player's stats and movement, and lend their `grants` abilities only while worn. By default they can only be changed while resting on a bench (`equip_at_bench_only`).
+- **Shops:** `MDSShop` (an NPC with an `MDSShopInventory`: a price, stock and condition per entry; stock is saved) opens `MDSShopScreen`.
+- **NPCs and lore:** `MDSNPC` talks through `MDSDialogueBox` (`MDSDialogueData` lines with a speaker, a portrait, a condition, a flag to set and choices; `alt_dialogues` pick another conversation by condition). `MDSLoreTablet` adds a Journal entry.
+
+### Death, saving and settings
+
+When the player dies it goes back to its last bench (`return_to_save_point()`), its health and mana fill, and the setting `death_penalty` decides the cost: NONE, LOSE_PERCENT, or CORPSE (the default: the currency is left in an `MDSCorpse` where the player died; touching it gets it back, dying again first loses it). `death_reverts_to_save` loads the save instead. `progression` is UPGRADES (the default) or LEVELS (XP from enemies, `MDSLevelCurve`).
+
+The kit's progress is saved in MDS's save file under `ext.gameplay`: items, currency, equipment, flags, health, mana, the enemies defeated since a rest, shop stock, the corpse, play time and deaths. A save made before the kit loads with the kit's defaults, and the data carries a version (`MDSGameplay.MIGRATIONS`). `MDSTitleScreen` offers three save slots.
+
+**Options** (`MDSOptionsMenu`, saved in `user://mds_options.cfg`): volume per bus, rebinding for keyboard and gamepad, fullscreen and VSync, game speed 50–100%, assist mode (damage taken ×1, ×0.5 or ×0), screen shake and flash intensity, camera motion (*Cut, never glide*), text size 100/125/150%, keyboard or gamepad glyphs, and a glide toggled by a press instead of held. The screens are navigated with the focus (a keyboard or a gamepad), and they share `gameplay/ui/mds_gameplay_theme.tres`.
+
+### Runtime debug keys
+
+In debug builds, with the setting `metroidvania_developer_system/gameplay/debug_keys` on (`MDSGameplayDebug`):
+
+| Key | Does |
+| --- | --- |
+| F1 | Overlay: the player's state, velocity, position and health, with every hitbox and hurtbox outlined |
+| F2 | Grants every ability the world file names |
+| F3 | Invulnerable on / off |
+| F4 | Noclip on / off (move with the arrows or WASD) |
+| F6 | Prints `get_save_data()` |
+| F7 | 25% game speed on / off |
+
+Teleporting is MDS's **Play from here**.
+
+### Gameplay demo
+
+`examples/gameplay_demo/` is a 12-room, two-area world (Mossgrove and Sunken Gardens) with its game scene, `game.tscn`: get `double_jump` in Grove_03, beat the Warden in Grove_05, get `dash` in Grove_06 and the `red_key` in Gardens_02, pull the switch that lowers the bridge in Gardens_03, get `wall_jump` in Gardens_04 and reach the end of Gardens_05. Open `game.tscn` and press **F6**.
+
+![Grove_02, Grove_07, Gardens_02 and Gardens_05](docs/gameplay_demo.png)
+
+Its rooms were made with MDS's own tools: blocked out with straight-edged freeform shapes, then **Convert to freeform** and **Decorate freeform** with the Mossgrove pack (the Grove rooms) and the Sunken Gardens pack (the Gardens rooms). `build_gameplay_demo.gd` builds them again:
+
+```
+godot --headless --path . --script res://examples/gameplay_demo/build_gameplay_demo.gd
+```
+
+Every gate is reached by playing: Grove_02's high ledge needs the double jump, Grove_07's lava cavern is too low to jump in and needs the dash, and Gardens_05's shaft needs the wall jump. `tests/test_gameplay_demo.gd` plays the whole route with simulated input, the Warden fight included, and checks each of those obstacles can't be passed without its ability.
 
 ---
 

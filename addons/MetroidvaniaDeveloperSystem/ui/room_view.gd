@@ -264,17 +264,62 @@ func _init() -> void:
 	controls.add_child(_select_hint)
 	_effect_box = VBoxContainer.new()
 	controls.add_child(_effect_box)
+
+	var effect_category := OptionButton.new()
+	effect_category.add_item("Environment Effects")
+	effect_category.add_item("Gameplay Objects")
+	_effect_box.add_child(effect_category)
+
 	effect_list = EffectList.new()
 	effect_list.custom_minimum_size.y = 230 * MDSUi.editor_scale()
 	effect_list.fixed_icon_size = Vector2i(16, 16) * int(maxf(1.0, MDSUi.editor_scale()))
 	effect_list.tooltip_text = "Drag an effect onto the room, or pick one and click in the room: it is placed, and clicks then select, move and resize effects again (the new one too). Ctrl+click keeps it picked, to place several. Click a selected effect again for the next one under it"
-	effect_list.add_item("No effect (select and move)")
-	effect_list.set_item_metadata(0, "")
-	effect_list.set_item_tooltip(0, "Place nothing: click an effect in the room to select it, drag it to move it, drag the handles on its sides and corners to resize it")
-	for id in MDSEnvironment.EFFECTS:
-		effect_list.add_item(MDSEnvironment.display_name(id), MDSEnvironment.icon(id))
-		effect_list.set_item_metadata(effect_list.item_count - 1, id)
-		effect_list.set_item_tooltip(effect_list.item_count - 1, MDSEnvironment.describe(id))
+
+	var fill_effect_list := func(cat: int) -> void:
+		effect_list.clear()
+		if cat == 0:
+			effect_list.add_item("No effect (select and move)")
+			effect_list.set_item_metadata(0, "")
+			effect_list.set_item_tooltip(0, "Place nothing: click an effect in the room to select it, drag it to move it, drag the handles on its sides and corners to resize it")
+			for id in MDSEnvironment.EFFECTS:
+				effect_list.add_item(MDSEnvironment.display_name(id), MDSEnvironment.icon(id))
+				effect_list.set_item_metadata(effect_list.item_count - 1, id)
+				effect_list.set_item_tooltip(effect_list.item_count - 1, MDSEnvironment.describe(id))
+		else:
+			effect_list.add_item("No object (select and move)")
+			effect_list.set_item_metadata(0, "")
+			effect_list.set_item_tooltip(0, "Place nothing: click an object in the room to select it, drag it to move it, drag the handles on its sides and corners to resize it")
+			const GAMEPLAY_ITEMS: Array = [
+				["Ability pickup", "gameplay:ability_pickup", "mds_ability_pickup.svg", "MDSAbilityPickup: grants an ability on touch and persists"],
+				["Item pickup", "gameplay:item_pickup", "mds_pickup.svg", "MDSPickup: item or collectible"],
+				["Health fragment", "gameplay:health_fragment", "mds_health_upgrade.svg", "MDSPickup: health fragment"],
+				["Breakable wall", "gameplay:breakable_wall", "mds_breakable.svg", "MDSBreakable: wall that breaks on attack"],
+				["Cracked floor", "gameplay:cracked_floor", "mds_breakable.svg", "MDSBreakable: floor that breaks on ground pound"],
+				["Switch", "gameplay:switch", "mds_switch.svg", "MDSSwitch: sets a flag on hit or interact"],
+				["Hazard (spikes)", "gameplay:hazard", "mds_hazard.svg", "MDSHazard: spikes/thorns that hurt and respawn"],
+				["Checkpoint", "gameplay:checkpoint", "mds_checkpoint.svg", "MDSCheckpoint: respawn point in hazard rooms"],
+				["Grapple point", "gameplay:grapple_point", "mds_grapple_point.svg", "MDSGrapplePoint: anchor for the grapple hook"],
+				["Enemy (Walker)", "gameplay:enemy_walker", "mds_walker.svg", "Walker template enemy"],
+				["Enemy (Flyer)", "gameplay:enemy_flyer", "mds_flyer.svg", "Flyer template enemy"],
+				["Enemy (Turret)", "gameplay:enemy_turret", "mds_turret.svg", "Turret template enemy"],
+				["Enemy (Charger)", "gameplay:enemy_charger", "mds_charger.svg", "Charger template enemy"],
+				["Enemy (Ambusher)", "gameplay:enemy_ambusher", "mds_ambusher.svg", "Ambusher template enemy"],
+				["Boss arena", "gameplay:boss_arena", "mds_boss_arena.svg", "MDSBossArena: locks doors during boss fight"],
+				["NPC", "gameplay:npc", "mds_npc.svg", "MDSNPC: dialogue and interaction"],
+			]
+			for item in GAMEPLAY_ITEMS:
+				var icon_path: String = "res://addons/MetroidvaniaDeveloperSystem/icons/gameplay/" + str(item[2])
+				var icon: Texture2D = load(icon_path) if ResourceLoader.exists(icon_path) else null
+				effect_list.add_item(item[0], icon)
+				effect_list.set_item_metadata(effect_list.item_count - 1, item[1])
+				effect_list.set_item_tooltip(effect_list.item_count - 1, item[3])
+		effect_list.select(0)
+		if canvas:
+			canvas.effect_id = ""
+
+	effect_category.item_selected.connect(fill_effect_list)
+	fill_effect_list.call(0)
+
 	# Clicking an entry picks it, the one already selected too (to place another).
 	effect_list.item_clicked.connect(func(i: int, _at: Vector2, button: int) -> void:
 		if button != MOUSE_BUTTON_LEFT:
@@ -286,7 +331,6 @@ func _init() -> void:
 			status_message.emit("Click in the room to place %s, then drag it into place (Ctrl+click to place several)." % effect_list.get_item_text(i)))
 	effect_list.item_selected.connect(func(i: int) -> void:
 		canvas.effect_id = str(effect_list.get_item_metadata(i)))
-	effect_list.select(0)
 	_effect_box.add_child(effect_list)
 	var clear_effects := MDSUi.button("Remove all", "Remove every effect placed in this room (Ctrl+Z undoes it)")
 	clear_effects.pressed.connect(remove_all_effects)

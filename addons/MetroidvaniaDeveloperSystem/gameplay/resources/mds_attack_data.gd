@@ -1,0 +1,56 @@
+@tool
+@icon("res://addons/MetroidvaniaDeveloperSystem/icons/gameplay/mds_attack_data.svg")
+class_name MDSAttackData
+extends Resource
+## One attack: its damage, its timing in frames at 60 fps (startup, then the hitbox is active,
+## then recovery) and what it can follow into ([member cancel_into]: attack ids, for combos).
+## [member breaks] lists the [MDSBreakable] kinds it breaks ([code]wall[/code],
+## [code]cracked_floor[/code], [code]reinforced[/code]...).
+
+enum Direction { FORWARD, UP, DOWN }
+
+@export var id := "slash"
+@export var damage := 1
+## physical, fire, ice, shock, void, environment (or any name resistances use).
+@export var damage_type := "physical"
+## Push given to what it hits: x away from the attacker, y up (negative).
+@export var knockback := Vector2(220, -140)
+## How long the game freezes when it lands (ms; see the hit-stop feel setting).
+@export var hitstop_ms := 60
+@export var startup_frames := 3
+@export var active_frames := 5
+@export var recovery_frames := 10
+## Attacks it can be cancelled into during its recovery, for combos.
+@export var cancel_into: PackedStringArray = []
+## Breakable kinds it breaks.
+@export var breaks: PackedStringArray = ["wall"]
+@export var direction: Direction = Direction.FORWARD
+## The hitbox, from the attacker's middle, facing right (mirrored when facing left).
+@export var hitbox_size := Vector2(56, 40)
+@export var hitbox_offset := Vector2(40, 0)
+## Mana it costs (spells).
+@export var mana_cost := 0
+## Fired as well as the hitbox (spells, sub-weapons): an [MDSProjectile] scene.
+@export var projectile: PackedScene
+## Hits each target once per swing.
+@export var one_hit_per_target := true
+
+func startup_time() -> float:
+	return startup_frames / 60.0
+
+func active_time() -> float:
+	return active_frames / 60.0
+
+func recovery_time() -> float:
+	return recovery_frames / 60.0
+
+func total_time() -> float:
+	return (startup_frames + active_frames + recovery_frames) / 60.0
+
+## An attack of [param p_damage] (for code and tests).
+static func make(p_id: String, p_damage := 1, p_breaks: PackedStringArray = ["wall"]) -> MDSAttackData:
+	var a := MDSAttackData.new()
+	a.id = p_id
+	a.damage = p_damage
+	a.breaks = p_breaks
+	return a

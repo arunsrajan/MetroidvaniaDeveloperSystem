@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MDSAbilityData" format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_ability_data.gd" id="1_cc0qu"]
+
+[resource]
+script = ExtResource("1_cc0qu")
+id = "super_attack"
+display_name = "Super Attack"
+description = "Your attacks break reinforced walls."
+category = 1
+requires = PackedStringArray()
+input_action = &"attack"

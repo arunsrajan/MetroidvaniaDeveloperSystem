@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MDSAbilityData" format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_ability_data.gd" id="1_megw3"]
+
+[resource]
+script = ExtResource("1_megw3")
+id = "slide"
+display_name = "Slide"
+description = "Hold down and dash to slide under low gaps."
+requires = PackedStringArray()
+input_action = &"dash"

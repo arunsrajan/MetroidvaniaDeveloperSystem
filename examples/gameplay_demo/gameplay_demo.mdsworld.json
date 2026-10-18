@@ -1,0 +1,506 @@
+{
+	"areas": {
+		"Mossgrove": {
+			"background": "forest_canopy",
+			"color": "#4d784e",
+			"objective": "Defeat the Warden",
+			"objective_done_when": "boss:Warden",
+			"subtitle": "The ancient tangled forest",
+			"title": "Mossgrove",
+			"weather": "rain"
+		},
+		"Sunken Gardens": {
+			"background": "deep_water",
+			"color": "#3d6b7d",
+			"objective": "Find the Wall Jump",
+			"objective_done_when": "ability:wall_jump",
+			"subtitle": "Ruins beneath the canopy",
+			"title": "The Sunken Gardens",
+			"weather": "cave_mist"
+		}
+	},
+	"format": "mds_world",
+	"layers": [
+		"Main"
+	],
+	"links": [],
+	"name": "Gameplay Demo",
+	"pins": [],
+	"rooms": {
+		"Gardens_01": {
+			"area": "Sunken Gardens",
+			"gates": {
+				"bot1": {
+					"pos": [
+						576,
+						648
+					],
+					"side": "bot",
+					"to": "Gardens_02",
+					"to_gate": "top1"
+				},
+				"left1": {
+					"pos": [
+						0,
+						500
+					],
+					"side": "left",
+					"to": "Grove_07",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1152,
+						500
+					],
+					"requires": [
+						"item:red_key"
+					],
+					"side": "right",
+					"to": "Gardens_03",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				6912.0,
+				648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/gardens_01.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/gardens_01.tscn"
+		},
+		"Gardens_02": {
+			"area": "Sunken Gardens",
+			"gates": {
+				"top1": {
+					"pos": [
+						576,
+						0
+					],
+					"side": "top",
+					"to": "Gardens_01",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				6912.0,
+				1296.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/gardens_02.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/gardens_02.tscn"
+		},
+		"Gardens_03": {
+			"area": "Sunken Gardens",
+			"gates": {
+				"left1": {
+					"pos": [
+						0,
+						500
+					],
+					"side": "left",
+					"to": "Gardens_01",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1152,
+						500
+					],
+					"requires": [
+						"flag:bridge_lowered"
+					],
+					"side": "right",
+					"to": "Gardens_04",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				8064.0,
+				648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/gardens_03.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/gardens_03.tscn"
+		},
+		"Gardens_04": {
+			"area": "Sunken Gardens",
+			"gates": {
+				"left1": {
+					"pos": [
+						0,
+						500
+					],
+					"side": "left",
+					"to": "Gardens_03",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1152,
+						500
+					],
+					"side": "right",
+					"to": "Gardens_05",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				9216.0,
+				648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/gardens_04.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/gardens_04.tscn"
+		},
+		"Gardens_05": {
+			"area": "Sunken Gardens",
+			"gates": {
+				"left1": {
+					"pos": [
+						0,
+						500
+					],
+					"side": "left",
+					"to": "Gardens_04",
+					"to_gate": "right1"
+				},
+				"top1": {
+					"pos": [
+						576,
+						0
+					],
+					"requires": [
+						"wall_jump"
+					],
+					"side": "top"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				10368.0,
+				648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/gardens_05.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/gardens_05.tscn"
+		},
+		"Grove_01": {
+			"area": "Mossgrove",
+			"gates": {
+				"right1": {
+					"pos": [
+						1152,
+						500
+					],
+					"side": "right",
+					"to": "Grove_02",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				0.0,
+				648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/grove_01.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/grove_01.tscn"
+		},
+		"Grove_02": {
+			"area": "Mossgrove",
+			"gates": {
+				"left1": {
+					"pos": [
+						0,
+						500
+					],
+					"side": "left",
+					"to": "Grove_01",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1152,
+						200
+					],
+					"requires": [
+						"double_jump"
+					],
+					"side": "right",
+					"to": "Grove_04",
+					"to_gate": "left1"
+				},
+				"top1": {
+					"pos": [
+						576,
+						0
+					],
+					"side": "top",
+					"to": "Grove_03",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1152.0,
+				648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/grove_02.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/grove_02.tscn"
+		},
+		"Grove_03": {
+			"area": "Mossgrove",
+			"gates": {
+				"bot1": {
+					"pos": [
+						576,
+						648
+					],
+					"side": "bot",
+					"to": "Grove_02",
+					"to_gate": "top1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1152.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/grove_03.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/grove_03.tscn"
+		},
+		"Grove_04": {
+			"area": "Mossgrove",
+			"gates": {
+				"left1": {
+					"pos": [
+						0,
+						200
+					],
+					"side": "left",
+					"to": "Grove_02",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1152,
+						500
+					],
+					"side": "right",
+					"to": "Grove_05",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				2304.0,
+				648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/grove_04.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/grove_04.tscn"
+		},
+		"Grove_05": {
+			"area": "Mossgrove",
+			"boss": "Warden",
+			"gates": {
+				"left1": {
+					"pos": [
+						0,
+						500
+					],
+					"side": "left",
+					"to": "Grove_04",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1152,
+						500
+					],
+					"requires": [
+						"boss:Warden"
+					],
+					"side": "right",
+					"to": "Grove_06",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				3456.0,
+				648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/grove_05.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/grove_05.tscn",
+			"type": "boss"
+		},
+		"Grove_06": {
+			"area": "Mossgrove",
+			"gates": {
+				"left1": {
+					"pos": [
+						0,
+						500
+					],
+					"side": "left",
+					"to": "Grove_05",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1152,
+						500
+					],
+					"side": "right",
+					"to": "Grove_07",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				4608.0,
+				648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/grove_06.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/grove_06.tscn"
+		},
+		"Grove_07": {
+			"area": "Mossgrove",
+			"gates": {
+				"left1": {
+					"pos": [
+						0,
+						500
+					],
+					"side": "left",
+					"to": "Grove_06",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1152,
+						500
+					],
+					"requires": [
+						"dash"
+					],
+					"side": "right",
+					"to": "Gardens_01",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				5760.0,
+				648.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1152.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/gameplay_demo/rooms/grove_07.tscn",
+			"scene_path": "res://examples/gameplay_demo/rooms/grove_07.tscn"
+		}
+	},
+	"settings": {
+		"default_room_size": [
+			1152,
+			648
+		],
+		"grid": 64,
+		"save_distance_warn": 4
+	},
+	"start_room": "Grove_01",
+	"version": 1
+}

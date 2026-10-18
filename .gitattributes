@@ -9,3 +9,4 @@
 /addons/**         !export-ignore
 /asset_packs       !export-ignore
 /asset_packs/**    !export-ignore
+graphify-out/graph.json merge=graphify

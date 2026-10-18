@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MDSAbilityData" format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_ability_data.gd" id="1_yewao"]
+
+[resource]
+script = ExtResource("1_yewao")
+id = "charge_attack"
+display_name = "Charge Attack"
+description = "Hold attack, then let go for a heavy blow."
+category = 1
+requires = PackedStringArray()
+input_action = &"attack"

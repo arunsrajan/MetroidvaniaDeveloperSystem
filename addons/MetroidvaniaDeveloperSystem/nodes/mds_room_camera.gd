@@ -134,6 +134,13 @@ var _rest := Vector2.ONE ## the zoom the camera rests at in the current zone
 var _pcams: Array[Node2D] = []
 var _old_pcams: Array[Node2D] = []
 var _busy := false
+## Screen shake (see [method shake]): px now, seconds left, of how many, the camera's own offset.
+var _shake_strength := 0.0
+var _shake_left := 0.0
+var _shake_total := 0.0
+var _shake_base := Vector2.ZERO
+## Every shake is scaled by this (an options slider; 0 turns shakes off).
+static var shake_scale := 1.0
 
 func _ready() -> void:
 	top_level = true
@@ -243,9 +250,34 @@ func _ensure_host() -> void:
 	host.name = "PhantomCameraHost"
 	camera.add_child(host)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not using_phantom and target and camera and (camera.get_parent() == self or camera.top_level) and not _busy and not directed:
 		camera.global_position = target.global_position + follow_offset
+	if _shake_left > 0.0 and is_instance_valid(camera):
+		_shake_left = maxf(0.0, _shake_left - delta)
+		var k := _shake_left / maxf(_shake_total, 0.001)
+		camera.offset = _shake_base + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _shake_strength * k
+		if _shake_left <= 0.0:
+			camera.offset = _shake_base
+
+## Shakes the camera: a jolt of [param intensity] px fading out over [param duration] s (hits,
+## slams, a boss's fall), added to the camera's offset. Skipped when the camera motion is CUT
+## ([member transition_style]: for players sensitive to motion), when the Gameplay Kit's
+## [code]feel/screen_shake[/code] setting is off, and when [member shake_scale] is 0.
+func shake(intensity: float, duration: float) -> void:
+	if is_cut() or not is_instance_valid(camera) or intensity <= 0.0 or duration <= 0.0 or shake_scale <= 0.0:
+		return
+	if not bool(ProjectSettings.get_setting("metroidvania_developer_system/gameplay/feel/screen_shake", true)):
+		return
+	if _shake_left <= 0.0:
+		_shake_base = camera.offset
+	_shake_strength = maxf(_shake_strength if _shake_left > 0.0 else 0.0, intensity * shake_scale)
+	_shake_left = maxf(_shake_left, duration)
+	_shake_total = maxf(_shake_left, duration)
+
+## Whether a shake is going on.
+func is_shaking() -> bool:
+	return _shake_left > 0.0
 
 func _physics_process(_delta: float) -> void:
 	# Not while the game changes rooms: these are the old room's zones.

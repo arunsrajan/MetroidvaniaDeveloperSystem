@@ -1,0 +1,173 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_freeform.gd" id="1_cbgfp"]
+[ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/styles/mossy_rock.freeform.tres" id="2_0gcuk"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/combat/mds_hazard.gd" id="3_vqo60"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_checkpoint.gd" id="4_dvrwt"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_breakable.gd" id="5_6l78f"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_health_upgrade.gd" id="6_43ivr"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/resources/mds_item_data.gd" id="7_u3f16"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="8_27a3t"]
+[ext_resource type="Resource" path="res://asset_packs/mossgrove/freeform/styles/jungle_foliage.freeform.tres" id="9_vqo60"]
+[ext_resource type="Texture2D" path="res://asset_packs/mossgrove/freeform/clumps.png" id="10_dvrwt"]
+
+[sub_resource type="Resource" id="Resource_vfogs"]
+script = ExtResource("7_u3f16")
+id = "health_fragment"
+display_name = "Health Fragment"
+description = "Four make one more health."
+category = 3
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_imc6y"]
+size = Vector2(48, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_q54lm"]
+size = Vector2(48, 128)
+
+[node name="Grove04" type="Node2D" unique_id=1663465063]
+
+[node name="MapBounds" type="Node2D" parent="." unique_id=1290934141]
+
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=2104895607]
+offset_right = 1152.0
+offset_bottom = 648.0
+
+[node name="Freeform" type="Node2D" parent="." unique_id=1289471581]
+z_index = 1
+
+[node name="Ground" type="Node2D" parent="Freeform" unique_id=1128015416]
+script = ExtResource("1_cbgfp")
+points = PackedVector2Array(260, 560, 314, 560, 368, 560, 422, 560, 440, 578, 440, 633.3333, 440, 688.6667, 440, 744, 380.44446, 744, 320.8889, 744, 261.3333, 744, 201.77777, 744, 142.2222, 744, 82.66666, 744, 23.111115, 744, -36.444458, 744, -96, 744, -96, 679.75, -96, 615.5, -96, 551.25, -96, 487, -96, 422.75, -96, 358.5, -96, 294.25, -96, 230, -28.400002, 230, 39.199997, 230, 106.8, 230, 174.4, 230, 242, 230, 260, 248, 260, 310.4, 283.49164, 372.8, 260, 435.2, 260, 497.6)
+style = ExtResource("2_0gcuk")
+seed_value = 28094
+
+[node name="Ground2" type="Node2D" parent="Freeform" unique_id=1378732428]
+script = ExtResource("1_cbgfp")
+points = PackedVector2Array(620, 578, 638, 560, 705.7778, 560, 773.55554, 555.3455, 841.3334, 556.9857, 909.1111, 560, 976.8889, 560, 1044.6667, 560, 1112.4445, 560, 1180.2222, 560, 1248, 560, 1248, 621.3333, 1248, 682.6667, 1248, 744, 1185.2, 744, 1122.4, 744, 1059.6, 744, 996.8, 744, 934, 744, 871.19995, 744, 808.4, 744, 745.6, 744, 682.8, 744, 620, 744, 620, 688.6667, 620, 633.3333)
+style = ExtResource("2_0gcuk")
+seed_value = 17930
+
+[node name="Ceiling" type="Node2D" parent="Freeform" unique_id=1789732511]
+script = ExtResource("1_cbgfp")
+points = PackedVector2Array(1248, 450, 1186.3334, 450, 1124.6666, 450, 1063, 450, 1001.3333, 450, 939.6667, 450, 878, 450, 860, 432, 860, 371.2, 850.75854, 310.4, 853.3464, 249.59999, 852.20667, 188.8, 860, 128, 839.2, 84.8, 796, 64, 737.26666, 86.07356, 678.5333, 75.892296, 619.8, 109.79402, 561.06665, 70.457504, 502.33334, 79.966255, 443.6, 80.73277, 384.8667, 84.33518, 326.13333, 81.45208, 267.40002, 77.15969, 208.66669, 71.747406, 149.93335, 75.87054, 91.2, 64, 72.84, 72.84, 64, 91.2, 64, 114, 46, 132, -1.3333359, 132, -48.66667, 132, -96, 132, -96, 75, -96, 18, -96, -39, -96, -96, -25.26316, -96, 45.47368, -96, 116.21051, -96, 186.94736, -96, 257.68423, -96, 328.42102, -96, 399.1579, -96, 469.8947, -96, 540.6316, -96, 611.36847, -96, 682.1053, -96, 752.84204, -96, 823.579, -96, 894.3158, -96, 965.0526, -96, 1035.7894, -96, 1106.5262, -96, 1177.2632, -96, 1248, -96, 1248, -27.75, 1248, 40.5, 1248, 108.75, 1248, 177, 1248, 245.25, 1248, 313.5, 1248, 381.75)
+style = ExtResource("2_0gcuk")
+seed_value = 83197
+
+[node name="KeepClear" type="Node2D" parent="." unique_id=1503296219]
+
+[node name="Area1" type="ReferenceRect" parent="KeepClear" unique_id=928510128 groups=["mds_protected"]]
+offset_left = 420.0
+offset_top = 470.0
+offset_right = 640.0
+offset_bottom = 560.0
+border_color = Color(0.4, 0.9, 1, 0.6)
+
+[node name="Area2" type="ReferenceRect" parent="KeepClear" unique_id=1844589195 groups=["mds_protected"]]
+offset_left = 860.0
+offset_top = 450.0
+offset_right = 1152.0
+offset_bottom = 560.0
+border_color = Color(0.4, 0.9, 1, 0.6)
+
+[node name="Spikes" type="Area2D" parent="." unique_id=2112325144]
+position = Vector2(530, 620)
+script = ExtResource("3_vqo60")
+size = Vector2(180, 40)
+
+[node name="Checkpoint" type="Area2D" parent="." unique_id=651476047]
+position = Vector2(340, 560)
+script = ExtResource("4_dvrwt")
+
+[node name="BreakableWall" type="StaticBody2D" parent="." unique_id=1123873736]
+position = Vector2(900, 505)
+script = ExtResource("5_6l78f")
+requires = PackedStringArray()
+size = Vector2(40, 110)
+
+[node name="HealthFragment" type="Area2D" parent="." unique_id=2042241452]
+position = Vector2(1010, 530)
+script = ExtResource("6_43ivr")
+item = SubResource("Resource_vfogs")
+color = Color(0.95, 0.45, 0.5, 1)
+metadata/mds_grants = PackedStringArray("item:health_fragment")
+
+[node name="Gates" type="Node2D" parent="." unique_id=1695770324]
+
+[node name="left1" type="Area2D" parent="Gates" unique_id=1107402046]
+position = Vector2(0, 200)
+collision_layer = 0
+script = ExtResource("8_27a3t")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=1181690712]
+shape = SubResource("RectangleShape2D_imc6y")
+
+[node name="right1" type="Area2D" parent="Gates" unique_id=1092633585]
+position = Vector2(1152, 500)
+collision_layer = 0
+script = ExtResource("8_27a3t")
+
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=901401342]
+shape = SubResource("RectangleShape2D_q54lm")
+
+[node name="FreeformBack" type="Node2D" parent="." unique_id=954536726]
+z_index = -8
+
+[node name="Stalactite1" type="Node2D" parent="FreeformBack" unique_id=1061354022]
+script = ExtResource("1_cbgfp")
+points = PackedVector2Array(644.74774, 50, 338.43344, 50, 338.43344, 86, 342.2646, 86, 363.9745, 138.4027, 385.68436, 86, 397.12885, 86, 412.63196, 138.60445, 428.13507, 86, 437.0627, 86, 455.53314, 128.12883, 474.00354, 86, 487.25082, 86, 501.1505, 135.88579, 515.05023, 86, 527.979, 86, 543.75116, 133.01709, 559.5233, 86, 575.72754, 86, 592.3209, 108.08344, 608.91425, 86, 644.74774, 86)
+style = ExtResource("9_vqo60")
+solid = false
+smooth = false
+seed_value = 64113
+metadata/mds_decor = true
+
+[node name="StampsBack" type="Node2D" parent="." unique_id=766600550]
+z_index = -6
+
+[node name="Stamp1" type="Sprite2D" parent="StampsBack" unique_id=623204405]
+position = Vector2(525.4934, 70.85769)
+rotation = 0.019316396
+scale = Vector2(0.67907685, 0.67907685)
+texture = ExtResource("10_dvrwt")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(384, 128, 128, 128)
+metadata/mds_stamp = 11
+metadata/mds_decor = true
+
+[node name="Stamp2" type="Sprite2D" parent="StampsBack" unique_id=1555010022]
+position = Vector2(666.57513, 77.00621)
+rotation = -0.018377673
+scale = Vector2(0.78302824, 0.78302824)
+texture = ExtResource("10_dvrwt")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(384, 128, 128, 128)
+metadata/mds_stamp = 11
+metadata/mds_decor = true
+
+[node name="Stamp3" type="Sprite2D" parent="StampsBack" unique_id=1777929250]
+position = Vector2(756.2188, 75.82588)
+rotation = -3.1358557
+scale = Vector2(0.6987384, -0.6987384)
+texture = ExtResource("10_dvrwt")
+centered = false
+offset = Vector2(-64, -2.56)
+region_enabled = true
+region_rect = Rect2(640, 128, 128, 128)
+metadata/mds_stamp = 13
+metadata/mds_decor = true
+
+[node name="Stamp4" type="Sprite2D" parent="StampsBack" unique_id=1929097891]
+position = Vector2(758.5564, 560.0701)
+rotation = 3.1296492
+scale = Vector2(0.8075612, -0.8075612)
+texture = ExtResource("10_dvrwt")
+centered = false
+offset = Vector2(-64, -125.44)
+region_enabled = true
+region_rect = Rect2(256, 128, 128, 128)
+metadata/mds_stamp = 10
+metadata/mds_decor = true

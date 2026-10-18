@@ -22,6 +22,9 @@ signal opened
 @export var gate: MDSGate
 ## Requirements instead of the gate's: ability names, "object:<id>" or "boss:<name>".
 @export var requires: PackedStringArray = []
+## Opening takes the items it requires ([code]item:red_key[/code] uses the key up; see
+## [MDSGameplay]).
+@export var consume_items := false
 ## Seconds the opening takes.
 @export var open_time := 0.6
 ## How far (px) the look slides up as it opens (0: its collision's height).
@@ -42,6 +45,14 @@ func _ready() -> void:
 	if _game:
 		_game.ability_gained.connect(func(_a: String) -> void: _check())
 		_game.room_loaded.connect(func(_r: String) -> void: _check())
+		# A boss: barrier opens when the boss falls, not on the next room load.
+		_game.defeated.connect(func(_id: String, _boss: String) -> void: _check())
+		# Items and flags (the Gameplay Kit) can open it too.
+		var kit := MDSGameplay.find(_game)
+		if kit:
+			kit.item_changed.connect(func(_id: String, _n: int) -> void: _check())
+			kit.flag_changed.connect(func(_f: String, _v: Variant) -> void: _check())
+			kit.equipment_changed.connect(_check)
 		if _game.is_object_stored(_id()):
 			_set_open(true, false)
 			return
@@ -75,6 +86,13 @@ func _check() -> void:
 func open() -> void:
 	if is_open:
 		return
+	if consume_items and _game:
+		var kit := MDSGameplay.find(_game)
+		for r in get_requirements():
+			var c := MDSAnnotations.parse_condition(r)
+			if kit and c[0] == "item":
+				var req := MDSAnnotations.parse_item_requirement(str(c[1]))
+				kit.remove_item(req[0], int(req[1]))
 	if _game:
 		_game.store_object(_id())
 	_set_open(true, true)

@@ -79,15 +79,24 @@ func _collect_room_info() -> void:
 			elif meta.get("has_teleporter", false):
 				type = "fast_travel"
 		var grants := PackedStringArray(ann.get("grants", []))
+		var grant_counts: Dictionary = {}
+		for g in grants:
+			grant_counts[g] = 1
 		for g in meta.get("grants", PackedStringArray()):
 			if not g in grants:
 				grants.append(g)
+			# How many nodes of the scene grant it (item pickups: four health fragments).
+			grant_counts[g] = maxi(int(grant_counts.get(g, 0)), int(meta.get("grant_counts", {}).get(g, 1)))
 		var boss_names: PackedStringArray = []
 		if not str(ann.get("boss", "")).is_empty():
 			boss_names.append(ann.boss)
 		else:
 			for b in meta.get("bosses", []):
 				boss_names.append(b.name)
+		for b in boss_names:
+			var bg := "boss:" + b
+			if not bg in grants:
+				grants.append(bg)
 		var groups := room.group_names
 		var area: String = ann.get("area", "")
 		if area.is_empty() and not groups.is_empty():
@@ -98,6 +107,7 @@ func _collect_room_info() -> void:
 			"area": area,
 			"status": ann.get("status", ""),
 			"grants": grants,
+			"grant_counts": grant_counts,
 			"is_save": type == "save" or not meta.get("save_points", []).is_empty(),
 			"is_boss": type in ["boss", "mini_boss"] or meta.get("has_boss", false),
 			"is_shop": type == "shop" or meta.get("has_shopkeeper", false),
@@ -163,9 +173,45 @@ func _can_pass(from_id: String, edge: Dictionary, have: Dictionary) -> bool:
 		if not one_way.is_empty() and one_way != from_id:
 			return false
 	for r in _edge_requires(edge):
-		if not have.has(r):
+		if not requirement_met(r, have):
 			return false
 	return true
+
+## Whether requirement [param r] is met by the grants in [param have] (grant -> how many):
+## [code]dash[/code] or [code]ability:dash[/code] by a [code]dash[/code] grant,
+## [code]item:red_key[/code] by an [code]item:red_key[/code] grant,
+## [code]item:health_fragment>=4[/code] by four of them, [code]flag:x[/code] by a
+## [code]flag:x[/code] grant (a switch).
+static func requirement_met(r: String, have: Dictionary) -> bool:
+	if have.has(r):
+		return true
+	var c := MDSAnnotations.parse_condition(r)
+	match c[0]:
+		"ability":
+			return have.has(str(c[1])) or have.has("ability:" + str(c[1]))
+		"item":
+			var req := MDSAnnotations.parse_item_requirement(str(c[1]))
+			return int(have.get("item:" + str(req[0]), 0)) >= int(req[1])
+		"flag":
+			return have.has("flag:" + MDSGameplay.normalize_id(str(c[1])))
+		"boss":
+			return have.has("boss:" + str(c[1])) or have.has(str(c[1]))
+	return false
+
+## The grant that satisfies requirement [param r]: "ability:dash" -> "dash",
+## "item:health_fragment>=4" -> "item:health_fragment"; others are themselves.
+static func grant_key(r: String) -> String:
+	var c := MDSAnnotations.parse_condition(r)
+	match c[0]:
+		"ability":
+			return str(c[1])
+		"item":
+			return "item:" + str(MDSAnnotations.parse_item_requirement(str(c[1]))[0])
+		"flag":
+			return "flag:" + MDSGameplay.normalize_id(str(c[1]))
+		"boss":
+			return "boss:" + str(c[1])
+	return r
 
 ## Room id a door can only be passed from ("" when two-way): set in the panel, or built
 ## into the graph (world transitions that do not lead back).
@@ -219,7 +265,9 @@ func _compute_spheres() -> void:
 	if start_room_id.is_empty():
 		return
 
+	# Grant -> how many were found (item:health_fragment>=4 needs four).
 	var have: Dictionary = {}
+	var counted: Dictionary = {}
 	var sphere := 0
 	sphere_of[start_room_id] = 0
 	while true:
@@ -240,15 +288,28 @@ func _compute_spheres() -> void:
 		for id in sphere_of:
 			if sphere_of[id] == sphere:
 				rooms_here.append(id)
+		if rooms_here.is_empty() and sphere > 0:
+			break
+		# What the rooms reached now grant (counted once per room).
+		var more: Dictionary = {}
+		var counts_grew := false
 		for id in sphere_of:
+			if counted.has(id):
+				continue
+			counted[id] = true
+			var counts: Dictionary = room_info[id].get("grant_counts", {})
 			for g in room_info[id].grants:
 				if not have.has(g) and not g in gained:
 					gained.append(g)
+				more[g] = int(more.get(g, 0)) + int(counts.get(g, 1))
+				if str(g).begins_with("item:"):
+					counts_grew = true
 		spheres.append({"index": sphere, "rooms": rooms_here, "gained": gained, "entries": entries})
-		if gained.is_empty():
+		for g in more:
+			have[g] = int(have.get(g, 0)) + int(more[g])
+		# More of an item can open an item:x>=n door even when nothing new was found.
+		if gained.is_empty() and not counts_grew:
 			break
-		for g in gained:
-			have[g] = true
 		sphere += 1
 
 	var connected := distances_from([start_room_id])
@@ -425,6 +486,23 @@ func get_objectives() -> Array:
 						rooms.append(room_id)
 					else:
 						o.problem = "the object's room '%s' doesn't exist" % room_id
+			"item":
+				var req := MDSAnnotations.parse_item_requirement(str(c[1]))
+				var item_id := str(req[0])
+				var needed: int = int(req[1])
+				rooms = get_ability_sources("item:" + item_id)
+				var count := 0
+				for id in rooms:
+					count += int(room_info[id].grant_counts.get("item:" + item_id, 1))
+				if rooms.is_empty():
+					o.problem = "no room grants item '%s'" % item_id
+				elif count < needed:
+					o.problem = "requires %d of '%s' but only %d are granted across the world" % [needed, item_id, count]
+			"flag":
+				var flag_id: String = MDSGameplay.normalize_id(str(c[1]))
+				rooms = get_ability_sources("flag:" + flag_id)
+				if rooms.is_empty():
+					o.problem = "no room grants flag '%s'" % flag_id
 		o.rooms = rooms
 		if o.problem.is_empty() and not rooms.is_empty() and not start_room_id.is_empty():
 			var best := -1

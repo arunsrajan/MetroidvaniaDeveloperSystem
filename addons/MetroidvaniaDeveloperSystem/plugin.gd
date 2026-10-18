@@ -23,6 +23,7 @@ var _main_visible := false ## the MetDevSys tab is the current main screen
 var _window: Window
 var _placeholder: Control
 var _metsys_check_timer: Timer
+var _movement_inspector: EditorInspectorPlugin
 
 func _enter_tree() -> void:
 	# Settings saved before 3.1 (interactive_dev_panel/...) move to their new names.
@@ -37,6 +38,12 @@ func _enter_tree() -> void:
 		ProjectSettings.set_setting(MDSPlayHere.SETTING_PLAY_SCENE, "")
 	ProjectSettings.set_initial_value(MDSPlayHere.SETTING_PLAY_SCENE, "")
 	ProjectSettings.add_property_info({"name": MDSPlayHere.SETTING_PLAY_SCENE, "type": TYPE_STRING, "hint": PROPERTY_HINT_FILE, "hint_string": "*.tscn,*.scn"})
+	# The Gameplay Kit's input actions, collision layer names and settings: only those the
+	# project lacks are added, and none is ever removed.
+	MDSGameplaySetup.ensure_input_actions()
+	MDSGameplaySetup.ensure_layer_names()
+	_movement_inspector = MDSMovementInspectorPlugin.new()
+	add_inspector_plugin(_movement_inspector)
 	_init_plugin()
 	scene_saved.connect(_on_scene_saved)
 
@@ -253,6 +260,9 @@ func _check_metsys() -> void:
 
 func _clean_plugin() -> void:
 	_clear_check_timer()
+	if _movement_inspector:
+		remove_inspector_plugin(_movement_inspector)
+		_movement_inspector = null
 	if dock_instance:
 		_detach()
 		dock_instance.free()
