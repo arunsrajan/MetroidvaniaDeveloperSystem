@@ -15,36 +15,36 @@ size = Vector2(128, 48)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_yuv2k"]
 size = Vector2(48, 128)
 
-[node name="Grove02" type="Node2D" unique_id=29635487]
+[node name="Grove02" type="Node2D" unique_id=316588980]
 
-[node name="MapBounds" type="Node2D" parent="." unique_id=77916763]
+[node name="MapBounds" type="Node2D" parent="." unique_id=256824310]
 
-[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=851359607]
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1790079194]
 offset_right = 1152.0
 offset_bottom = 648.0
 
-[node name="Freeform" type="Node2D" parent="." unique_id=2013288178]
+[node name="Freeform" type="Node2D" parent="." unique_id=587741724]
 z_index = 1
 
-[node name="Ceiling" type="Node2D" parent="Freeform" unique_id=1351119275]
+[node name="Ceiling" type="Node2D" parent="Freeform" unique_id=858327370]
 script = ExtResource("1_xgrxd")
 points = PackedVector2Array(512, -96, 512, 22, 494, 40, 434.85715, 40, 375.7143, 40, 316.5714, 40, 257.42856, 40, 198.2857, 40, 139.14285, 40, 80, 40, 58.4, 50.4, 48, 72, 52.8, 138, 61.947468, 204, 69.80671, 270, 57.73022, 336, 48, 402, 30, 420, -96, 420, -96, 355.5, -96, 291, -96, 226.5, -96, 162, -96, 97.5, -96, 33, -96, -31.5, -96, -96, -28.444443, -96, 39.111115, -96, 106.66667, -96, 174.22223, -96, 241.7778, -96, 309.33334, -96, 376.8889, -96, 444.44446, -96)
 style = ExtResource("2_itrnl")
 seed_value = 28094
 
-[node name="Ground" type="Node2D" parent="Freeform" unique_id=1476679746]
+[node name="Ground" type="Node2D" parent="Freeform" unique_id=184517764]
 script = ExtResource("1_xgrxd")
 points = PackedVector2Array(1248, 744, 1186.909, 744, 1125.8181, 744, 1064.7273, 744, 1003.63635, 744, 942.5454, 744, 881.4545, 744, 820.36365, 744, 759.2727, 744, 698.1818, 744, 637.0909, 744, 576, 744, 514.90906, 744, 453.81824, 744, 392.7273, 744, 331.63635, 744, 270.5454, 744, 209.45459, 744, 148.36365, 744, 87.272705, 744, 26.181763, 744, -34.909058, 744, -96, 744, -96, 682.6667, -96, 621.3333, -96, 560, -24.923073, 560, 46.153854, 560, 117.230774, 560, 188.30771, 560, 259.3846, 560, 330.46155, 560, 401.53848, 560, 472.61542, 560, 543.6923, 560, 614.7692, 560, 685.8462, 560, 756.9231, 560, 828, 560, 849.6, 549.6, 860, 528, 836, 458, 860, 388, 860, 318, 878, 300, 939.6667, 300, 1001.3333, 300, 1063, 300, 1124.6666, 300, 1186.3333, 300, 1248, 300, 1248, 363.4286, 1248, 426.85715, 1248, 490.2857, 1248, 553.7143, 1248, 617.1428, 1248, 680.5714)
 style = ExtResource("2_itrnl")
 seed_value = 17930
 
-[node name="Ceiling2" type="Node2D" parent="Freeform" unique_id=2130875708]
+[node name="Ceiling2" type="Node2D" parent="Freeform" unique_id=17056309]
 script = ExtResource("1_xgrxd")
 points = PackedVector2Array(1248, -96, 1248, -39, 1248, 18, 1248, 75, 1248, 132, 1200.6666, 132, 1153.3334, 132, 1106, 132, 1088, 114, 1088, 96, 1080.2, 79.8, 1064, 72, 1006, 88.7472, 948, 82.19823, 890, 78.44165, 832, 83.006454, 774, 87.658844, 716, 94.10556, 658, 72, 640, 54, 640, 4, 640, -46, 640, -96, 707.55554, -96, 775.1111, -96, 842.6667, -96, 910.2222, -96, 977.77783, -96, 1045.3334, -96, 1112.8889, -96, 1180.4445, -96)
 style = ExtResource("2_itrnl")
 seed_value = 83197
 
-[node name="Ledge7" type="Node2D" parent="Freeform" unique_id=1491923073]
+[node name="Ledge7" type="Node2D" parent="Freeform" unique_id=59029306]
 position = Vector2(710, 420)
 script = ExtResource("1_xgrxd")
 points = PackedVector2Array(-70, 0, -60, 0, 0, 0, 60, 0, 70, 0, 73, 15.2, 44.868504, 37.022343, 17.271626, 43.10829, -24.278833, 40.14199, -52.07534, 34.228394, -73, 15.2)
@@ -54,7 +54,7 @@ override_collision = true
 role = 1
 one_way = true
 
-[node name="Ledge6" type="Node2D" parent="Freeform" unique_id=689958484]
+[node name="Ledge6" type="Node2D" parent="Freeform" unique_id=1229643515]
 position = Vector2(435, 140)
 script = ExtResource("1_xgrxd")
 points = PackedVector2Array(-105, 0, -95, 0, -31.666666, 0, 31.666666, 0, 95, 0, 105, 0, 108, 15.2, 69.69804, 32.87435, 27.00969, 39.439217, -33.162865, 40.877525, -78.5471, 34.663387, -108, 15.2)
@@ -64,7 +64,7 @@ override_collision = true
 role = 1
 one_way = true
 
-[node name="Ledge5" type="Node2D" parent="Freeform" unique_id=2129937840]
+[node name="Ledge5" type="Node2D" parent="Freeform" unique_id=1352639340]
 position = Vector2(210, 210)
 script = ExtResource("1_xgrxd")
 points = PackedVector2Array(-80, 0, -70, 0, 0, 0, 70, 0, 80, 0, 83, 15.2, 50.22469, 37.069305, 20.775272, 41.455074, -26.192308, 38.526924, -55.65188, 30.51266, -83, 15.2)
@@ -74,7 +74,7 @@ override_collision = true
 role = 1
 one_way = true
 
-[node name="Ledge4" type="Node2D" parent="Freeform" unique_id=721425693]
+[node name="Ledge4" type="Node2D" parent="Freeform" unique_id=1636862503]
 position = Vector2(395, 280)
 script = ExtResource("1_xgrxd")
 points = PackedVector2Array(-75, 0, -65, 0, 0, 0, 65, 0, 75, 0, 78, 15.2, 48.21605, 32.095802, 10.198399, 41.018814, -27.975084, 36.451485, -47.294712, 33.941097, -78, 15.2)
@@ -84,7 +84,7 @@ override_collision = true
 role = 1
 one_way = true
 
-[node name="Ledge3" type="Node2D" parent="Freeform" unique_id=749314785]
+[node name="Ledge3" type="Node2D" parent="Freeform" unique_id=1189974673]
 position = Vector2(210, 350)
 script = ExtResource("1_xgrxd")
 points = PackedVector2Array(-80, 0, -70, 0, 0, 0, 70, 0, 80, 0, 83, 15.2, 57.184864, 37.02232, 19.494186, 38.774986, -35.665905, 40.99823, -56.121887, 31.230993, -83, 15.2)
@@ -94,7 +94,7 @@ override_collision = true
 role = 1
 one_way = true
 
-[node name="Ledge2" type="Node2D" parent="Freeform" unique_id=279069341]
+[node name="Ledge2" type="Node2D" parent="Freeform" unique_id=218206719]
 position = Vector2(395, 420)
 script = ExtResource("1_xgrxd")
 points = PackedVector2Array(-75, 0, -65, 0, 0, 0, 65, 0, 75, 0, 78, 15.2, 44.383904, 32.069164, 21.111397, 39.908844, -33.249104, 39.341244, -52.269844, 33.02626, -78, 15.2)
@@ -104,7 +104,7 @@ override_collision = true
 role = 1
 one_way = true
 
-[node name="Ledge1" type="Node2D" parent="Freeform" unique_id=1333139876]
+[node name="Ledge1" type="Node2D" parent="Freeform" unique_id=1004393999]
 position = Vector2(210, 490)
 script = ExtResource("1_xgrxd")
 points = PackedVector2Array(-80, 0, -70, 0, 0, 0, 70, 0, 80, 0, 83, 15.2, 57.155926, 37.326015, 11.120901, 38.24908, -24.325108, 38.225834, -52.125053, 35.926785, -83, 15.2)
@@ -114,23 +114,23 @@ override_collision = true
 role = 1
 one_way = true
 
-[node name="KeepClear" type="Node2D" parent="." unique_id=1541295726]
+[node name="KeepClear" type="Node2D" parent="." unique_id=153921343]
 
-[node name="Area1" type="ReferenceRect" parent="KeepClear" unique_id=18267951 groups=["mds_protected"]]
+[node name="Area1" type="ReferenceRect" parent="KeepClear" unique_id=59745170 groups=["mds_protected"]]
 offset_left = 100.0
 offset_top = 40.0
 offset_right = 512.0
 offset_bottom = 140.0
 border_color = Color(0.4, 0.9, 1, 0.6)
 
-[node name="Area2" type="ReferenceRect" parent="KeepClear" unique_id=732448052 groups=["mds_protected"]]
+[node name="Area2" type="ReferenceRect" parent="KeepClear" unique_id=2085795155 groups=["mds_protected"]]
 offset_left = 780.0
 offset_top = 220.0
 offset_right = 860.0
 offset_bottom = 420.0
 border_color = Color(0.4, 0.9, 1, 0.6)
 
-[node name="Area3" type="ReferenceRect" parent="KeepClear" unique_id=1464636016 groups=["mds_protected"]]
+[node name="Area3" type="ReferenceRect" parent="KeepClear" unique_id=939894478 groups=["mds_protected"]]
 offset_left = 860.0
 offset_top = 232.0
 offset_right = 1088.0
@@ -140,39 +140,39 @@ border_color = Color(0.4, 0.9, 1, 0.6)
 [node name="Walker" parent="." unique_id=1762961769 instance=ExtResource("3_1rtdy")]
 position = Vector2(560, 542)
 
-[node name="Walker2" parent="." unique_id=681574107 instance=ExtResource("3_1rtdy")]
+[node name="Walker2" parent="." unique_id=621886905 instance=ExtResource("3_1rtdy")]
 position = Vector2(760, 542)
 
-[node name="Gates" type="Node2D" parent="." unique_id=2017388213]
+[node name="Gates" type="Node2D" parent="." unique_id=31397859]
 
-[node name="left1" type="Area2D" parent="Gates" unique_id=2016098353]
+[node name="left1" type="Area2D" parent="Gates" unique_id=2053339448]
 position = Vector2(0, 500)
 collision_layer = 0
 script = ExtResource("5_f0lci")
 
-[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=561113214]
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=86469688]
 shape = SubResource("RectangleShape2D_0bqf8")
 
-[node name="top1" type="Area2D" parent="Gates" unique_id=2035766974]
+[node name="top1" type="Area2D" parent="Gates" unique_id=2077050705]
 position = Vector2(576, 0)
 collision_layer = 0
 script = ExtResource("5_f0lci")
 
-[node name="Shape" type="CollisionShape2D" parent="Gates/top1" unique_id=1450301888]
+[node name="Shape" type="CollisionShape2D" parent="Gates/top1" unique_id=561546154]
 shape = SubResource("RectangleShape2D_6pgx8")
 
-[node name="right1" type="Area2D" parent="Gates" unique_id=1051066466]
+[node name="right1" type="Area2D" parent="Gates" unique_id=1143060725]
 position = Vector2(1152, 200)
 collision_layer = 0
 script = ExtResource("5_f0lci")
 
-[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=1843070819]
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=192589761]
 shape = SubResource("RectangleShape2D_yuv2k")
 
-[node name="StampsBack" type="Node2D" parent="." unique_id=1167943575]
+[node name="StampsBack" type="Node2D" parent="." unique_id=1900450541]
 z_index = -6
 
-[node name="Stamp1" type="Sprite2D" parent="StampsBack" unique_id=527411973]
+[node name="Stamp1" type="Sprite2D" parent="StampsBack" unique_id=1627253102]
 position = Vector2(429.3461, 452.2472)
 rotation = 0.0058085807
 scale = Vector2(0.973023, 0.973023)

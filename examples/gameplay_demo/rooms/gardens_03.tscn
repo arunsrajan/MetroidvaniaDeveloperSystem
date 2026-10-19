@@ -5,7 +5,8 @@
 [ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_switch.gd" id="3_cdlts"]
 [ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate_barrier.gd" id="4_3gm7w"]
 [ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="5_oveet"]
-[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/clumps.png" id="6_mdmdj"]
+[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/clumps.png" id="6_cdlts"]
+[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/garden_foreground.freeform.tres" id="7_3gm7w"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_40koa"]
 size = Vector2(30, 124)
@@ -16,75 +17,75 @@ size = Vector2(48, 128)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_u6eds"]
 size = Vector2(48, 128)
 
-[node name="Gardens03" type="Node2D" unique_id=503727449]
+[node name="Gardens03" type="Node2D" unique_id=845628083]
 
-[node name="MapBounds" type="Node2D" parent="." unique_id=1902802362]
+[node name="MapBounds" type="Node2D" parent="." unique_id=635638299]
 
-[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1284633815]
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1573151999]
 offset_right = 1152.0
 offset_bottom = 648.0
 
-[node name="Freeform" type="Node2D" parent="." unique_id=1864138872]
+[node name="Freeform" type="Node2D" parent="." unique_id=953770659]
 z_index = 1
 
-[node name="Ground" type="Node2D" parent="Freeform" unique_id=1819135098]
+[node name="Ground" type="Node2D" parent="Freeform" unique_id=480606502]
 script = ExtResource("1_n44l1")
 points = PackedVector2Array(450, 744, 389.33334, 744, 328.66666, 744, 268, 744, 207.33333, 744, 146.66666, 744, 86, 744, 25.333313, 744, -35.333344, 744, -96, 744, -96, 682.6667, -96, 621.3333, -96, 560, -30, 560, 36, 560, 102, 560, 168, 560, 234, 560, 300, 560, 366, 560, 432, 560, 450, 578, 450, 633.3333, 450, 688.6667)
 style = ExtResource("2_mdmdj")
 seed_value = 28094
 
-[node name="Ground2" type="Node2D" parent="Freeform" unique_id=1795753611]
+[node name="Ground2" type="Node2D" parent="Freeform" unique_id=2079085794]
 script = ExtResource("1_n44l1")
 points = PackedVector2Array(700, 578, 718, 560, 784.25, 560, 850.5, 555.50336, 916.75, 560, 983, 560, 1049.25, 560, 1115.5, 560, 1181.75, 560, 1248, 560, 1248, 621.3333, 1248, 682.6667, 1248, 744, 1187.1111, 744, 1126.2222, 744, 1065.3334, 744, 1004.44446, 744, 943.55554, 744, 882.6666, 744, 821.7778, 744, 760.8889, 744, 700, 744, 700, 688.6667, 700, 633.3333)
 style = ExtResource("2_mdmdj")
 seed_value = 17930
 
-[node name="Ceiling" type="Node2D" parent="Freeform" unique_id=1471761792]
+[node name="Ceiling" type="Node2D" parent="Freeform" unique_id=323272535]
 script = ExtResource("1_n44l1")
 points = PackedVector2Array(1248, -96, 1248, -31.5, 1248, 33, 1248, 97.5, 1248, 162, 1248, 226.5, 1248, 291, 1248, 355.5, 1248, 420, 1200.6666, 420, 1153.3334, 420, 1106, 420, 1088, 402, 1088, 342.5, 1073.0746, 283, 1080.4957, 223.5, 1088, 164, 1067.2, 120.8, 1024, 100, 964.26666, 115.07408, 904.5333, 115.47168, 844.8, 121.288086, 785.06665, 117.09454, 725.3333, 114.663864, 665.6, 107.143486, 605.8667, 111.23328, 546.1333, 121.15009, 486.39996, 119.63171, 426.66663, 124, 366.93335, 112.55485, 307.2, 113.345726, 247.46667, 110.73833, 187.73334, 108.71386, 128, 100, 84.8, 120.8, 64, 164, 87.31618, 223.5, 74.18321, 283, 70.225525, 342.5, 64, 402, 46, 420, -1.3333359, 420, -48.66667, 420, -96, 420, -96, 355.5, -96, 291, -96, 226.5, -96, 162, -96, 97.5, -96, 33, -96, -31.5, -96, -96, -25.26316, -96, 45.47368, -96, 116.21051, -96, 186.94736, -96, 257.68423, -96, 328.42102, -96, 399.1579, -96, 469.8947, -96, 540.6316, -96, 611.36847, -96, 682.1053, -96, 752.84204, -96, 823.579, -96, 894.3158, -96, 965.0526, -96, 1035.7894, -96, 1106.5262, -96, 1177.2632, -96)
 style = ExtResource("2_mdmdj")
 seed_value = 83197
 
-[node name="BridgeSwitch" type="Area2D" parent="." unique_id=1690071581]
+[node name="BridgeSwitch" type="Area2D" parent="." unique_id=1221608125]
 position = Vector2(350, 536)
 script = ExtResource("3_cdlts")
 flag = "bridge_lowered"
 metadata/mds_grants = PackedStringArray("flag:bridge_lowered")
 
-[node name="BridgeBarrier" type="StaticBody2D" parent="." unique_id=354877556]
+[node name="BridgeBarrier" type="StaticBody2D" parent="." unique_id=1065464329]
 position = Vector2(1110, 498)
 script = ExtResource("4_3gm7w")
 requires = PackedStringArray("flag:bridge_lowered")
 
-[node name="@CollisionShape2D@4" type="CollisionShape2D" parent="BridgeBarrier" unique_id=944462502]
+[node name="@CollisionShape2D@4" type="CollisionShape2D" parent="BridgeBarrier" unique_id=215846547]
 shape = SubResource("RectangleShape2D_40koa")
 
-[node name="Gates" type="Node2D" parent="." unique_id=173851512]
+[node name="Gates" type="Node2D" parent="." unique_id=1493132205]
 
-[node name="left1" type="Area2D" parent="Gates" unique_id=1637858573]
+[node name="left1" type="Area2D" parent="Gates" unique_id=568700359]
 position = Vector2(0, 500)
 collision_layer = 0
 script = ExtResource("5_oveet")
 
-[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=1532438854]
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=1663905824]
 shape = SubResource("RectangleShape2D_occq8")
 
-[node name="right1" type="Area2D" parent="Gates" unique_id=106655005]
+[node name="right1" type="Area2D" parent="Gates" unique_id=335722208]
 position = Vector2(1152, 500)
 collision_layer = 0
 script = ExtResource("5_oveet")
 
-[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=432271305]
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=1544853293]
 shape = SubResource("RectangleShape2D_u6eds")
 
-[node name="StampsBack" type="Node2D" parent="." unique_id=1929519369]
+[node name="StampsBack" type="Node2D" parent="." unique_id=71722480]
 z_index = -6
 
-[node name="Stamp1" type="Sprite2D" parent="StampsBack" unique_id=255208606]
+[node name="Stamp1" type="Sprite2D" parent="StampsBack" unique_id=582298400]
 position = Vector2(186.64456, 104.556946)
 rotation = -0.022828344
 scale = Vector2(0.64276767, 0.64276767)
-texture = ExtResource("6_mdmdj")
+texture = ExtResource("6_cdlts")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -92,11 +93,11 @@ region_rect = Rect2(896, 128, 128, 128)
 metadata/mds_stamp = 15
 metadata/mds_decor = true
 
-[node name="Stamp2" type="Sprite2D" parent="StampsBack" unique_id=1637137027]
+[node name="Stamp2" type="Sprite2D" parent="StampsBack" unique_id=548284164]
 position = Vector2(350.12848, 108.06401)
 rotation = -0.032010157
 scale = Vector2(0.72018105, 0.72018105)
-texture = ExtResource("6_mdmdj")
+texture = ExtResource("6_cdlts")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -104,11 +105,11 @@ region_rect = Rect2(896, 128, 128, 128)
 metadata/mds_stamp = 15
 metadata/mds_decor = true
 
-[node name="Stamp3" type="Sprite2D" parent="StampsBack" unique_id=959319715]
+[node name="Stamp3" type="Sprite2D" parent="StampsBack" unique_id=981314125]
 position = Vector2(442.08148, 119.76017)
 rotation = -3.1305847
 scale = Vector2(0.9538552, -0.9538552)
-texture = ExtResource("6_mdmdj")
+texture = ExtResource("6_cdlts")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -116,11 +117,11 @@ region_rect = Rect2(896, 128, 128, 128)
 metadata/mds_stamp = 15
 metadata/mds_decor = true
 
-[node name="Stamp4" type="Sprite2D" parent="StampsBack" unique_id=1402521155]
+[node name="Stamp4" type="Sprite2D" parent="StampsBack" unique_id=162659030]
 position = Vector2(574.5756, 112.82341)
 rotation = 0.036472734
 scale = Vector2(0.5805048, 0.5805048)
-texture = ExtResource("6_mdmdj")
+texture = ExtResource("6_cdlts")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -128,11 +129,11 @@ region_rect = Rect2(768, 128, 128, 128)
 metadata/mds_stamp = 14
 metadata/mds_decor = true
 
-[node name="Stamp5" type="Sprite2D" parent="StampsBack" unique_id=2047140273]
+[node name="Stamp5" type="Sprite2D" parent="StampsBack" unique_id=965791192]
 position = Vector2(702.78345, 107.67797)
 rotation = 0.041501332
 scale = Vector2(0.77278125, 0.77278125)
-texture = ExtResource("6_mdmdj")
+texture = ExtResource("6_cdlts")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -140,11 +141,11 @@ region_rect = Rect2(896, 128, 128, 128)
 metadata/mds_stamp = 15
 metadata/mds_decor = true
 
-[node name="Stamp6" type="Sprite2D" parent="StampsBack" unique_id=1888663345]
+[node name="Stamp6" type="Sprite2D" parent="StampsBack" unique_id=1285378208]
 position = Vector2(843.2643, 117.25889)
 rotation = -3.0965965
 scale = Vector2(0.79678214, -0.79678214)
-texture = ExtResource("6_mdmdj")
+texture = ExtResource("6_cdlts")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -152,14 +153,33 @@ region_rect = Rect2(896, 128, 128, 128)
 metadata/mds_stamp = 15
 metadata/mds_decor = true
 
-[node name="Stamp7" type="Sprite2D" parent="StampsBack" unique_id=969061434]
+[node name="Stamp7" type="Sprite2D" parent="StampsBack" unique_id=475680287]
 position = Vector2(1025.9442, 96.39492)
 rotation = -0.002814781
 scale = Vector2(0.7714747, 0.7714747)
-texture = ExtResource("6_mdmdj")
+texture = ExtResource("6_cdlts")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
 region_rect = Rect2(768, 128, 128, 128)
 metadata/mds_stamp = 14
+metadata/mds_decor = true
+
+[node name="FreeformFront" type="Node2D" parent="." unique_id=136287918]
+z_index = 22
+
+[node name="Leaves1" type="Node2D" parent="FreeformFront" unique_id=1396181719]
+script = ExtResource("1_n44l1")
+points = PackedVector2Array(-96, -96, 272, -96, 272, 112, 248, 112, 224, 123.56061, 200, 121.98819, 176, 125.41244, 152, 140.12509, 128, 144.16235, 104, 158.45096, 80, 201.32674, -96, 189.10562)
+style = ExtResource("7_3gm7w")
+solid = false
+seed_value = 2783
+metadata/mds_decor = true
+
+[node name="Leaves2" type="Node2D" parent="FreeformFront" unique_id=357586013]
+script = ExtResource("1_n44l1")
+points = PackedVector2Array(1248, -96, 928, -96, 928, 116, 952, 116, 976, 120.29525, 1000, 125.09855, 1024, 118.27071, 1048, 140.31764, 1072, 176.93556, 1248, 168.77963)
+style = ExtResource("7_3gm7w")
+solid = false
+seed_value = 86563
 metadata/mds_decor = true

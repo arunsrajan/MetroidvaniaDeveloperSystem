@@ -48,6 +48,10 @@ var keep_out: Array[Rect2] = []
 
 var rect := Rect2()
 var _rock: Array[PackedVector2Array] = []
+## The rock without the platforms (a ledge is not a ceiling).
+var _solid: Array[PackedVector2Array] = []
+## The platforms' bounds.
+var _platforms: Array[Rect2] = []
 var _rng := RandomNumberGenerator.new()
 
 func use_world_room(world: MDSWorld, id: String) -> void:
@@ -66,6 +70,8 @@ func decorate(painter: MDSRoomPainter) -> Dictionary:
 				painter.remove_item(item)
 				report.removed += 1
 	_rock.clear()
+	_solid.clear()
+	_platforms.clear()
 	var platforms: Array = []
 	for f in MDSFreeform.shapes_in(painter.items_root):
 		if f.is_collider() and f.points.size() >= 3:
@@ -73,9 +79,14 @@ func decorate(painter: MDSRoomPainter) -> Dictionary:
 			_rock.append(poly)
 			if f.is_platform():
 				platforms.append(poly)
-	_rock.append_array(_tile_rock(painter.layers["Terrain"]))
+				_platforms.append(MDSGeometry.bounds(poly))
+			else:
+				_solid.append(poly)
+	var tiles := _tile_rock(painter.layers["Terrain"])
 	for piece in painter.tile_pieces("Terrain"):
-		_rock.append_array(_tile_rock(piece))
+		tiles.append_array(_tile_rock(piece))
+	_rock.append_array(tiles)
+	_solid.append_array(tiles)
 	if room_rects.is_empty():
 		var b := Rect2()
 		for i in _rock.size():
@@ -123,6 +134,9 @@ func _tile_rock(layer: TileMapLayer) -> Array[PackedVector2Array]:
 
 func _in_rock(p: Vector2) -> bool:
 	return MDSGeometry.point_in_any(_rock, p)
+
+func _in_solid(p: Vector2) -> bool:
+	return MDSGeometry.point_in_any(_solid, p)
 
 func _in_room(p: Vector2, inset := 8.0) -> bool:
 	for r in room_rects:
@@ -329,20 +343,72 @@ func _foreground(painter: MDSRoomPainter) -> int:
 					pts.append(Vector2(edge_x - side * w * t, fy - h * (1.0 - t * t) + _rng.randf_range(-12.0, 8.0)))
 				pts.append(Vector2(edge_x - side * w, fy + 80.0))
 				count += _front_shape(painter, pts, st, area, count)
-		# Ceiling corner: where the rock above that side ends.
-		var cy := _ceiling(x, rect.position.y + REGION.y * 0.5, rect.position.y - margin)
-		if cy > rect.position.y - margin + 1.0 and _in_room(Vector2(x, cy + 20.0)):
-			var w := _rng.randf_range(220.0, 340.0)
-			var droop := _rng.randf_range(30.0, 70.0)
-			var area := Rect2(minf(edge_x, edge_x - side * w), cy, w, droop)
-			if not _blocked(area):
-				var pts := PackedVector2Array([Vector2(edge_x + side * margin, rect.position.y - margin), Vector2(edge_x - side * w, rect.position.y - margin)])
-				for j in range(5, -1, -1):
-					var t := float(j) / 5.0
-					pts.append(Vector2(edge_x - side * w * t, cy + droop * (1.0 - t) * (1.0 - t) * 1.2 + _rng.randf_range(-6.0, 10.0)))
-				pts.append(Vector2(edge_x + side * margin, cy + droop))
-				count += _front_shape(painter, pts, st, area, count)
+		count += _ceiling_corner(painter, st, edge_x, side, margin, count)
 	return count
+
+## Where the ceiling above column [param x] ends: going down from the room's top, the first open
+## air under solid rock (a ledge is not a ceiling). -1 when the column is open at the top (no
+## ceiling there), or rock down to [param limit] (a wall, not a ceiling).
+func _underside(x: float, limit: float) -> float:
+	var y := rect.position.y + 2.0
+	if not _in_solid(Vector2(x + 0.071, y + 0.137)):
+		return -1.0
+	while y < limit:
+		y += 2.0
+		if not _in_solid(Vector2(x + 0.071, y + 0.137)):
+			return y
+	return -1.0
+
+## A mass of leaves where the ceiling meets the room's side ([param side] -1 left, 1 right):
+## from above the room down to the ceiling's underside, following it, and hanging a little below
+## it, deepest by the wall. It goes in from the wall only as far as there is ceiling (it stops
+## where the ceiling ends or steps), and short of a doorway, an object, a ledge or the room above
+## one. Returns 1 when it was placed.
+func _ceiling_corner(painter: MDSRoomPainter, st: MDSFreeformStyle, edge_x: float, side: int, margin: float, count: int) -> int:
+	const STEP := 24.0
+	var w := _rng.randf_range(220.0, 340.0)
+	var droop := _rng.randf_range(30.0, 70.0)
+	var limit := rect.position.y + REGION.y * 0.5
+	var deepest := droop * 1.2 + 10.0
+	# The ceiling's underside every STEP px in from the wall (wall columns skipped).
+	var under: Array[Vector2] = []
+	var k := 0
+	while 8.0 + k * STEP <= w:
+		var x := edge_x - side * (8.0 + k * STEP)
+		k += 1
+		var y := _underside(x, limit)
+		if y < 0.0:
+			if under.is_empty() and _in_solid(Vector2(x + 0.071, rect.position.y + 2.137)):
+				continue # the wall
+			break
+		if not _in_room(Vector2(x, y + 4.0)) or (not under.is_empty() and absf(y - under[under.size() - 1].y) > 40.0):
+			break
+		# Its strip from the last sample, hanging as deep as the mass may: clear of everything.
+		var last: Vector2 = under[under.size() - 1] if not under.is_empty() else Vector2(x, y)
+		var strip := Rect2(minf(last.x, x), minf(last.y, y), maxf(absf(x - last.x), 1.0), maxf(last.y, y) + deepest - minf(last.y, y))
+		if _blocked(strip) or _platforms.any(func(r: Rect2) -> bool: return r.grow(8.0).intersects(strip)):
+			break
+		under.append(Vector2(x, y))
+	if under.size() < 3:
+		return 0
+	# Between the wall and the first sample it hangs over the wall's face.
+	var face := Rect2(minf(edge_x, under[0].x), under[0].y, absf(under[0].x - edge_x), deepest)
+	if _blocked(face) or _platforms.any(func(r: Rect2) -> bool: return r.grow(8.0).intersects(face)):
+		return 0
+	var n := under.size()
+	var inner_x := under[n - 1].x
+	var top := rect.position.y - margin
+	var pts := PackedVector2Array([Vector2(edge_x + side * margin, top), Vector2(inner_x, top)])
+	var area := Rect2()
+	for i in range(n - 1, -1, -1):
+		var t := float(i) / float(n - 1)
+		var drop := droop * (1.0 - t) * (1.0 - t) * 1.2 + (_rng.randf_range(-6.0, 10.0) if i > 0 and i < n - 1 else 0.0)
+		var p := Vector2(under[i].x, under[i].y + maxf(drop, 0.0))
+		pts.append(p)
+		var below := Rect2(p.x, under[i].y, 0.0, p.y - under[i].y)
+		area = below if i == n - 1 else area.merge(below)
+	pts.append(Vector2(edge_x + side * margin, under[0].y + droop))
+	return _front_shape(painter, pts, st, area.merge(face), count)
 
 func _front_shape(painter: MDSRoomPainter, pts: PackedVector2Array, st: MDSFreeformStyle, area: Rect2, count: int) -> int:
 	if not MDSGeometry.is_simple(MDSFreeform.outline_of(pts, true)):

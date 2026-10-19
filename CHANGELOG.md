@@ -93,6 +93,7 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 - **A barrier that needs `boss:<name>` opens when the boss falls.** It opened only when its room loaded again.
 - **The camera director no longer reports a negative `Rect2`** when the view is smaller than its on-screen inset (a headless run framing a boss).
+- **Decorate freeform's ceiling corners hang from the ceiling.** The foreground mass looked for the ceiling upward from the middle of the room, 200 px in from each side: starting inside rock (a column, a thick wall) or under a ledge, it took that for the ceiling and hung from above the room all the way down to it, over doorways, ledges and open room. It now finds the ceiling's underside going down from the room's top (ledges aren't ceilings), follows it, and stops where the ceiling ends or steps, and short of doorways, objects, ledges and the room above them.
 - **Generate caves for an area from the map works again.** With the Room view closed, it stopped before generating anything.
 - **Saving one room in the Room view says it saved.** It went on to say "Could not save … (error 0)".
 - **Rooms shown together no longer hide each other.** Generate cave fills an L, T or U room's whole box with rock, and its rock in the notches covered the rooms there. Such a room's tiles now show only inside its rectangles, and the rest of it goes under the other rooms.
