@@ -189,9 +189,7 @@ itself, closest to how MDS already behaves. Newest at the bottom of each section
   Mossgrove pack (Grove_*: Mossy rock, the Mossgrove stamps, Jungle foliage mounds) or the Sunken
   Gardens pack (Gardens_*: Garden limestone, Garden ledges, the garden stamps, Sunken ruin
   structures), with fixed seeds, so running it again builds the same rooms. `KeepClear` rectangles
-  (`mds_protected`) keep the converted rock out of the spaces the moves need. The decorator's
-  foreground framing is off: it hangs a mass from the room's top down to the first rock 200 px in
-  from each side, which in these one-screen rooms covered doorways and ledges.
+  (`mds_protected`) keep the converted rock out of the spaces the moves need.
 - **The demo's obstacles are sized from the default `MDSMovementConfig`**: a jump of about 90 px, a
   double jump of about 180, a dash of 96 px that only starts on the ground. Grove_02's high ledge is
   120 px over a hanging ledge 140 px over the floor (double jumps). Grove_07 is a lava cavern 72 px

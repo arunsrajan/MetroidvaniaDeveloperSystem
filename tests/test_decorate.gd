@@ -8,6 +8,7 @@ const DOOR := Rect2(0, 456, 260, 120)
 func _run() -> void:
 	_generators()
 	_decorate()
+	_foreground_corners()
 	_freeform_tool()
 
 func _generators() -> void:
@@ -115,6 +116,57 @@ func _decorate() -> void:
 	var tagged := scene.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n.has_meta(MDSFreeformDecorator.META))
 	check(tagged.size() == first.size(), "the saved scene keeps the decoration and its tags (%d)" % tagged.size())
 	scene.free()
+
+## Foreground framing in a one-screen room with a thick column of rock by the left wall (open air
+## between it and the ceiling, where a doorway would be) and a one-way ledge just under the
+## ceiling on the right: the ceiling corners hang from the ceiling itself, never down over the
+## open air, the ledge or the room above it.
+func _foreground_corners() -> void:
+	var path := TMP + "/foreground_corners.tscn"
+	var root := Node2D.new()
+	root.name = "Corners"
+	var g := Node2D.new()
+	g.name = "Freeform"
+	root.add_child(g)
+	_rock(g, Rect2(-96, 560, 1344, 184), "Floor")
+	_rock(g, Rect2(-96, -96, 1344, 160), "Ceiling")
+	_rock(g, Rect2(-96, 0, 160, 744), "LeftWall")
+	_rock(g, Rect2(-96, 230, 380, 514), "Column")
+	_rock(g, Rect2(1088, 0, 160, 744), "RightWall")
+	var ledge := Rect2(800, 180, 200, 24)
+	var f := MDSFreeform.new()
+	f.name = "Ledge"
+	f.points = rect_points(ledge)
+	f.smooth = false
+	f.set_collision_override(MDSFreeformStyle.Role.PLATFORM, true)
+	g.add_child(f)
+	check(save_scene(root, path) == OK, "the corners room saves")
+	root.free()
+	var painter := MDSRoomPainter.open(path, TileSet.new())
+	var d := MDSFreeformDecorator.new()
+	d.hanging = false
+	d.floor_plants = false
+	d.structures = false
+	d.room_rects = [Rect2(0, 0, 1152, 648)]
+	# The ceiling corners: masses that start above the room (the floor corners are bushes on floors).
+	var masses: Array[PackedVector2Array] = []
+	for seed_value in 6:
+		d.seed_value = seed_value
+		d.decorate(painter)
+		for p in d.placed:
+			if p.node is MDSFreeform:
+				var m := MDSRoomObjects.local_transform(p.node, painter.items_root) * (p.node as MDSFreeform).get_outline()
+				if MDSGeometry.bounds(m).position.y < 0.0:
+					masses.append(m)
+	var over_air := masses.filter(func(m: PackedVector2Array) -> bool: return Geometry2D.is_point_in_polygon(Vector2(170, 200), m))
+	check(masses.size() >= 6, "the ceiling corners get masses (%d in 6 seeds)" % masses.size())
+	check(over_air.is_empty(), "no mass covers the open air over the column, 136 px under the ceiling (%d of %d do)" % [over_air.size(), masses.size()])
+	var hung := masses.filter(func(m: PackedVector2Array) -> bool: return Geometry2D.is_point_in_polygon(Vector2(120, 70), m))
+	check(not hung.is_empty(), "the left corner hangs from the ceiling over the column (%d of %d masses)" % [hung.size(), masses.size()])
+	var ledge_zone := rect_points(Rect2(ledge.position.x - 36, ledge.position.y - 200, ledge.size.x + 72, 200 + 64))
+	var on_ledge := masses.filter(func(m: PackedVector2Array) -> bool: return not Geometry2D.intersect_polygons(m, ledge_zone).is_empty())
+	check(on_ledge.is_empty(), "no mass covers the ledge under the ceiling or the room above it (%d of %d do)" % [on_ledge.size(), masses.size()])
+	painter.free_instance()
 
 ## The Freeform tool draws a generator's shape from a dragged box.
 func _freeform_tool() -> void:

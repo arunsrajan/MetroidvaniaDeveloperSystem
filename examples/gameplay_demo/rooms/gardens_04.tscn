@@ -6,8 +6,9 @@
 [ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/world/mds_ability_pickup.gd" id="4_lg0qo"]
 [ext_resource type="Resource" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/data/wall_jump.tres" id="5_be2wq"]
 [ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_gate.gd" id="6_mf10n"]
-[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/sunken_ruin.freeform.tres" id="7_yx77b"]
-[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/clumps.png" id="8_lg0qo"]
+[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/sunken_ruin.freeform.tres" id="7_lg0qo"]
+[ext_resource type="Texture2D" path="res://asset_packs/sunken_gardens/freeform/clumps.png" id="8_be2wq"]
+[ext_resource type="Resource" path="res://asset_packs/sunken_gardens/freeform/styles/garden_foreground.freeform.tres" id="9_mf10n"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_pq018"]
 size = Vector2(48, 128)
@@ -15,30 +16,30 @@ size = Vector2(48, 128)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_f4mhy"]
 size = Vector2(48, 128)
 
-[node name="Gardens04" type="Node2D" unique_id=2001193315]
+[node name="Gardens04" type="Node2D" unique_id=87972680]
 
-[node name="MapBounds" type="Node2D" parent="." unique_id=1097573707]
+[node name="MapBounds" type="Node2D" parent="." unique_id=1033787008]
 
-[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=1803140590]
+[node name="Rect1" type="ReferenceRect" parent="MapBounds" unique_id=742754647]
 offset_right = 1152.0
 offset_bottom = 648.0
 
-[node name="Freeform" type="Node2D" parent="." unique_id=1671860993]
+[node name="Freeform" type="Node2D" parent="." unique_id=661108833]
 z_index = 1
 
-[node name="Ground" type="Node2D" parent="Freeform" unique_id=2113585936]
+[node name="Ground" type="Node2D" parent="Freeform" unique_id=876103395]
 script = ExtResource("1_ls2ip")
 points = PackedVector2Array(-96, 560, -25.26316, 560, 45.47368, 560, 116.21051, 560, 186.94736, 560, 257.68423, 560, 328.42102, 560, 399.1579, 560, 469.8947, 560, 540.6316, 560, 611.36847, 554.53406, 682.1053, 560, 752.84204, 560, 823.579, 560, 894.3158, 560, 965.0526, 560, 1035.7894, 560, 1106.5262, 560, 1177.2632, 560, 1248, 560, 1248, 621.3333, 1248, 682.6667, 1248, 744, 1186.909, 744, 1125.8181, 744, 1064.7273, 744, 1003.63635, 744, 942.5454, 744, 881.4545, 744, 820.36365, 744, 759.2727, 744, 698.1818, 744, 637.0909, 744, 576, 744, 514.90906, 744, 453.81824, 744, 392.7273, 744, 331.63635, 744, 270.5454, 744, 209.45459, 744, 148.36365, 744, 87.272705, 744, 26.181763, 744, -34.909058, 744, -96, 744, -96, 682.6667, -96, 621.3333)
 style = ExtResource("2_j21u4")
 seed_value = 28094
 
-[node name="Ceiling" type="Node2D" parent="Freeform" unique_id=2007151687]
+[node name="Ceiling" type="Node2D" parent="Freeform" unique_id=1232693800]
 script = ExtResource("1_ls2ip")
 points = PackedVector2Array(1248, -96, 1248, -31.5, 1248, 33, 1248, 97.5, 1248, 162, 1248, 226.5, 1248, 291, 1248, 355.5, 1248, 420, 1200.6666, 420, 1153.3334, 420, 1106, 420, 1088, 402, 1088, 340, 1074.5707, 278, 1080.055, 216, 1088, 154, 1067.2, 110.8, 1024, 90, 964.26666, 105.918884, 904.5333, 106.60303, 844.8, 110.32699, 785.06665, 107.4964, 725.3333, 102.75184, 665.6, 98.080414, 605.8667, 102.447464, 546.1333, 111.27923, 486.39996, 110.49743, 426.66663, 114, 366.93335, 100.71197, 307.2, 103.62812, 247.46667, 100.18993, 187.73334, 99.18028, 128, 90, 84.8, 110.8, 64, 154, 85.809326, 216, 72.09321, 278, 71.7046, 340, 64, 402, 46, 420, -1.3333359, 420, -48.66667, 420, -96, 420, -96, 355.5, -96, 291, -96, 226.5, -96, 162, -96, 97.5, -96, 33, -96, -31.5, -96, -96, -25.26316, -96, 45.47368, -96, 116.21051, -96, 186.94736, -96, 257.68423, -96, 328.42102, -96, 399.1579, -96, 469.8947, -96, 540.6316, -96, 611.36847, -96, 682.1053, -96, 752.84204, -96, 823.579, -96, 894.3158, -96, 965.0526, -96, 1035.7894, -96, 1106.5262, -96, 1177.2632, -96)
 style = ExtResource("2_j21u4")
 seed_value = 17930
 
-[node name="Bench" type="Node2D" parent="." unique_id=741732964]
+[node name="Bench" type="Node2D" parent="." unique_id=2035619125]
 z_index = -1
 position = Vector2(300, 560)
 script = ExtResource("3_yx77b")
@@ -47,50 +48,50 @@ leave_actions = PackedStringArray("ui_left", "ui_right", "ui_down", "move_left",
 size = Vector2(300, 240)
 affect_groups = PackedStringArray("player")
 
-[node name="AbilityPickup_WallJump" type="Area2D" parent="." unique_id=561202354]
+[node name="AbilityPickup_WallJump" type="Area2D" parent="." unique_id=440059018]
 position = Vector2(700, 516)
 script = ExtResource("4_lg0qo")
 ability = ExtResource("5_be2wq")
 metadata/mds_grants = PackedStringArray("wall_jump")
 
-[node name="Gates" type="Node2D" parent="." unique_id=1486169444]
+[node name="Gates" type="Node2D" parent="." unique_id=1994040503]
 
-[node name="left1" type="Area2D" parent="Gates" unique_id=1983694242]
+[node name="left1" type="Area2D" parent="Gates" unique_id=1537421622]
 position = Vector2(0, 500)
 collision_layer = 0
 script = ExtResource("6_mf10n")
 
-[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=1051244642]
+[node name="Shape" type="CollisionShape2D" parent="Gates/left1" unique_id=152374597]
 shape = SubResource("RectangleShape2D_pq018")
 
-[node name="right1" type="Area2D" parent="Gates" unique_id=1991671535]
+[node name="right1" type="Area2D" parent="Gates" unique_id=71155492]
 position = Vector2(1152, 500)
 collision_layer = 0
 script = ExtResource("6_mf10n")
 
-[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=742927694]
+[node name="Shape" type="CollisionShape2D" parent="Gates/right1" unique_id=1890661352]
 shape = SubResource("RectangleShape2D_f4mhy")
 
-[node name="FreeformBack" type="Node2D" parent="." unique_id=918276209]
+[node name="FreeformBack" type="Node2D" parent="." unique_id=1873738192]
 z_index = -8
 
-[node name="Column1" type="Node2D" parent="FreeformBack" unique_id=1909812083]
+[node name="Column1" type="Node2D" parent="FreeformBack" unique_id=1171369121]
 script = ExtResource("1_ls2ip")
 points = PackedVector2Array(460.44608, 588, 460.44608, 544, 472.44608, 532, 474.44608, 421.5819, 477.44608, 311.16382, 477.44608, 307.27948, 504.4747, 282.60928, 531.5033, 321.789, 558.5319, 283.6249, 561.5319, 421.5819, 563.5319, 532, 575.5319, 544, 575.5319, 588)
-style = ExtResource("7_yx77b")
+style = ExtResource("7_lg0qo")
 solid = false
 smooth = false
 seed_value = 14139
 metadata/mds_decor = true
 
-[node name="StampsBack" type="Node2D" parent="." unique_id=515078986]
+[node name="StampsBack" type="Node2D" parent="." unique_id=124465979]
 z_index = -6
 
-[node name="Stamp1" type="Sprite2D" parent="StampsBack" unique_id=1315126538]
+[node name="Stamp1" type="Sprite2D" parent="StampsBack" unique_id=1042655227]
 position = Vector2(186.61252, 95.01908)
 rotation = -3.1368623
 scale = Vector2(0.68939364, -0.68939364)
-texture = ExtResource("8_lg0qo")
+texture = ExtResource("8_be2wq")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -98,11 +99,11 @@ region_rect = Rect2(896, 128, 128, 128)
 metadata/mds_stamp = 15
 metadata/mds_decor = true
 
-[node name="Stamp2" type="Sprite2D" parent="StampsBack" unique_id=1280127181]
+[node name="Stamp2" type="Sprite2D" parent="StampsBack" unique_id=2117841327]
 position = Vector2(349.97784, 96.654106)
 rotation = -0.051689196
 scale = Vector2(0.65496194, 0.65496194)
-texture = ExtResource("8_lg0qo")
+texture = ExtResource("8_be2wq")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -110,11 +111,11 @@ region_rect = Rect2(896, 128, 128, 128)
 metadata/mds_stamp = 15
 metadata/mds_decor = true
 
-[node name="Stamp3" type="Sprite2D" parent="StampsBack" unique_id=439673424]
+[node name="Stamp3" type="Sprite2D" parent="StampsBack" unique_id=2073414906]
 position = Vector2(441.53693, 110.114784)
 rotation = -3.0842333
 scale = Vector2(0.8162799, -0.8162799)
-texture = ExtResource("8_lg0qo")
+texture = ExtResource("8_be2wq")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -122,11 +123,11 @@ region_rect = Rect2(768, 128, 128, 128)
 metadata/mds_stamp = 14
 metadata/mds_decor = true
 
-[node name="Stamp4" type="Sprite2D" parent="StampsBack" unique_id=2057779178]
+[node name="Stamp4" type="Sprite2D" parent="StampsBack" unique_id=1055044812]
 position = Vector2(574.1819, 103.49862)
 rotation = -3.1011498
 scale = Vector2(0.91177267, -0.91177267)
-texture = ExtResource("8_lg0qo")
+texture = ExtResource("8_be2wq")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -134,11 +135,11 @@ region_rect = Rect2(0, 256, 128, 128)
 metadata/mds_stamp = 16
 metadata/mds_decor = true
 
-[node name="Stamp5" type="Sprite2D" parent="StampsBack" unique_id=2131316931]
+[node name="Stamp5" type="Sprite2D" parent="StampsBack" unique_id=814045960]
 position = Vector2(702.69366, 96.57249)
 rotation = 0.010573338
 scale = Vector2(0.93062997, 0.93062997)
-texture = ExtResource("8_lg0qo")
+texture = ExtResource("8_be2wq")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -146,11 +147,11 @@ region_rect = Rect2(0, 256, 128, 128)
 metadata/mds_stamp = 16
 metadata/mds_decor = true
 
-[node name="Stamp6" type="Sprite2D" parent="StampsBack" unique_id=1837726131]
+[node name="Stamp6" type="Sprite2D" parent="StampsBack" unique_id=45866238]
 position = Vector2(843.226, 106.31166)
 rotation = 3.137309
 scale = Vector2(0.94373524, -0.94373524)
-texture = ExtResource("8_lg0qo")
+texture = ExtResource("8_be2wq")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -158,11 +159,11 @@ region_rect = Rect2(0, 256, 128, 128)
 metadata/mds_stamp = 16
 metadata/mds_decor = true
 
-[node name="Stamp7" type="Sprite2D" parent="StampsBack" unique_id=370347596]
+[node name="Stamp7" type="Sprite2D" parent="StampsBack" unique_id=1203228963]
 position = Vector2(1025.86, 86.37095)
 rotation = -3.1338644
 scale = Vector2(0.7644446, -0.7644446)
-texture = ExtResource("8_lg0qo")
+texture = ExtResource("8_be2wq")
 centered = false
 offset = Vector2(-64, -2.56)
 region_enabled = true
@@ -170,11 +171,11 @@ region_rect = Rect2(896, 128, 128, 128)
 metadata/mds_stamp = 15
 metadata/mds_decor = true
 
-[node name="Stamp8" type="Sprite2D" parent="StampsBack" unique_id=825215341]
+[node name="Stamp8" type="Sprite2D" parent="StampsBack" unique_id=1205908860]
 position = Vector2(500.2287, 564.28644)
 rotation = 0.007120132
 scale = Vector2(0.7581925, 0.7581925)
-texture = ExtResource("8_lg0qo")
+texture = ExtResource("8_be2wq")
 centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
@@ -182,11 +183,11 @@ region_rect = Rect2(128, 0, 128, 128)
 metadata/mds_stamp = 1
 metadata/mds_decor = true
 
-[node name="Stamp9" type="Sprite2D" parent="StampsBack" unique_id=1398494769]
+[node name="Stamp9" type="Sprite2D" parent="StampsBack" unique_id=1017266874]
 position = Vector2(556.23157, 562.9259)
 rotation = 3.0990322
 scale = Vector2(0.7633327, -0.7633327)
-texture = ExtResource("8_lg0qo")
+texture = ExtResource("8_be2wq")
 centered = false
 offset = Vector2(-64, -125.44)
 region_enabled = true
@@ -194,14 +195,33 @@ region_rect = Rect2(512, 0, 128, 128)
 metadata/mds_stamp = 4
 metadata/mds_decor = true
 
-[node name="Stamp10" type="Sprite2D" parent="StampsBack" unique_id=754309514]
+[node name="Stamp10" type="Sprite2D" parent="StampsBack" unique_id=1454391313]
 position = Vector2(512.203, 302.58813)
 rotation = -3.1415927
 scale = Vector2(0.70787907, -0.70787907)
-texture = ExtResource("8_lg0qo")
+texture = ExtResource("8_be2wq")
 centered = false
 offset = Vector2(-64, -64)
 region_enabled = true
 region_rect = Rect2(128, 256, 128, 128)
 metadata/mds_stamp = 17
+metadata/mds_decor = true
+
+[node name="FreeformFront" type="Node2D" parent="." unique_id=1967161317]
+z_index = 22
+
+[node name="Leaves1" type="Node2D" parent="FreeformFront" unique_id=1159463259]
+script = ExtResource("1_ls2ip")
+points = PackedVector2Array(-96, -96, 272, -96, 272, 102, 248, 105.38329, 224, 101.361084, 200, 117.96261, 176, 123.61747, 152, 112.4267, 128, 124.82398, 104, 148.74054, 80, 182.3906, -96, 171.65883)
+style = ExtResource("9_mf10n")
+solid = false
+seed_value = 18909
+metadata/mds_decor = true
+
+[node name="Leaves2" type="Node2D" parent="FreeformFront" unique_id=668554175]
+script = ExtResource("1_ls2ip")
+points = PackedVector2Array(1248, -96, 832, -96, 832, 112, 856, 110, 880, 113.55655, 904, 122.281845, 928, 113.58582, 952, 120.30006, 976, 120.19706, 1000, 127.37235, 1024, 122.99786, 1048, 135.94173, 1072, 166.10352, 1248, 158.08627)
+style = ExtResource("9_mf10n")
+solid = false
+seed_value = 41428
 metadata/mds_decor = true

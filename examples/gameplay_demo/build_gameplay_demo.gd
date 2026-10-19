@@ -237,9 +237,6 @@ static func _dress_room(world: MDSWorld, id: String, path: String) -> Error:
 	deco.structure_kinds.assign(pack.structure_kinds)
 	deco.leaf_category = pack.leaf
 	deco.foreground_style = load(pack.front)
-	# Foreground framing hangs a mass from the room's top down to the first rock it finds 200 px
-	# in from each side; in these small rooms that hides doorways and ledges.
-	deco.foreground = false
 	deco.seed_value = SEED
 	deco.use_world_room(world, id)
 	deco.decorate(painter)
