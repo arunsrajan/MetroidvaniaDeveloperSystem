@@ -43,10 +43,16 @@ const EXTENSION := ".mdsworld.json"
 const SIDES: PackedStringArray = ["left", "right", "top", "bot", "door"]
 const UNDO_LIMIT := 100
 
+## How long (msec, and up to a second more) whether a room's scene file is there is taken as known
+## (see [method scene_file_exists]).
+const SCENE_RECHECK_MSEC := 2000
+
 static var _cache: Dictionary = {}
 
 var _undo: Array = []
 var _redo: Array = []
+## Scene path -> [whether its file is there, msec when to ask again] (see [method scene_file_exists]).
+var _scene_files: Dictionary = {}
 
 func clear() -> void:
 	data = {
@@ -602,7 +608,22 @@ func get_scene_path(id: String) -> String:
 		if uid != ResourceUID.INVALID_ID and ResourceUID.has_id(uid):
 			return ResourceUID.get_id_path(uid)
 	var p: String = room.get("scene_path", scene)
-	return p if not p.is_empty() and ResourceLoader.exists(p) else ""
+	return p if not p.is_empty() and scene_file_exists(p) else ""
+
+## Whether the scene file at [param p] is there. Views ask for every room's scene every frame and
+## each answer is a file system call, so it is asked again only every [constant SCENE_RECHECK_MSEC]
+## (staggered over a second) and after the world changes.
+func scene_file_exists(p: String) -> bool:
+	var now := Time.get_ticks_msec()
+	var e: Array = _scene_files.get(p, [])
+	if e.is_empty() or now >= int(e[1]):
+		e = [ResourceLoader.exists(p), now + SCENE_RECHECK_MSEC + absi(hash(p)) % 1000]
+		_scene_files[p] = e
+	return e[0]
+
+func _touch() -> void:
+	_scene_files.clear()
+	super()
 
 func has_scene_reference(id: String) -> bool:
 	var room: Dictionary = data.rooms.get(id, {})

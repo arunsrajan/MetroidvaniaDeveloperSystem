@@ -47,6 +47,9 @@ uniform sampler2D picture : source_color, filter_linear, repeat_enable;
 uniform vec2 picture_size = vec2(1.0);
 uniform float picture_scale = 1.0;
 uniform bool repeat_x = true;
+/// Hangs from base_y instead of standing on it (mirrored; a picture's top edge on it): foliage
+/// hanging into a foreground's top edge, stalactites.
+uniform bool hang = false;
 
 void vertex() {
 	px = VERTEX - rect_origin;
@@ -78,6 +81,9 @@ void fragment() {
 	vec2 local = px + rect_origin;
 	vec2 c = local - offset;
 	c.x += TIME * autoscroll;
+	if (hang && kind != TEXTURE_LAYER) {
+		c.y = 2.0 * base_y - c.y;
+	}
 	vec3 col = color.rgb;
 	float a = 0.0;
 	float depth_in = 0.0; // 0 at the top edge of the silhouette, 1 at its base
@@ -178,9 +184,9 @@ void fragment() {
 		float len = height * 1.3 * pow(max(spike - 0.3, 0.0) / 0.7, 2.0);
 		float rise_spike = env_hash(vec2(sid + 31.0, seed + 5.0));
 		float rise_len = height * 0.9 * pow(max(rise_spike - 0.45, 0.0) / 0.55, 2.0);
-		float hang = 1.0 - below_line(c.y, ceiling + len * shape);
+		float from_top = 1.0 - below_line(c.y, ceiling + len * shape);
 		float rise = below_line(c.y, floor_y - rise_len * shape);
-		a = max(hang, rise);
+		a = max(from_top, rise);
 		float upper = step(c.y, (ceiling + floor_y) * 0.5);
 		float from_ceiling = clamp((ceiling + len - c.y) / max(len + height * 0.3, 1.0), 0.0, 1.0);
 		float from_floor = clamp((c.y - floor_y + rise_len) / max(rise_len + height * 0.3, 1.0), 0.0, 1.0);
@@ -207,15 +213,17 @@ void fragment() {
 		a *= 1.0 - smoothstep(base_y - height, base_y, c.y);
 	} else if (kind == TEXTURE_LAYER) {
 		vec2 size = picture_size * picture_scale;
-		vec2 uv = vec2(c.x / max(size.x, 1.0), (c.y - (base_y - size.y)) / max(size.y, 1.0));
+		// Standing: its bottom edge on base_y. Hanging: its top edge on it.
+		float top_y = hang ? base_y : base_y - size.y;
+		vec2 uv = vec2(c.x / max(size.x, 1.0), (c.y - top_y) / max(size.y, 1.0));
 		if ((repeat_x || (uv.x >= 0.0 && uv.x <= 1.0)) && uv.y >= 0.0 && uv.y <= 1.0) {
 			vec4 t = texture(picture, vec2(fract(uv.x), uv.y));
 			col = t.rgb * color.rgb;
 			a = t.a;
-		} else if (fill_below && uv.y > 1.0) {
+		} else if (fill_below && ((!hang && uv.y > 1.0) || (hang && uv.y < 0.0))) {
 			a = 1.0;
 		}
-		depth_in = clamp(uv.y, 0.0, 1.0);
+		depth_in = clamp(hang ? 1.0 - uv.y : uv.y, 0.0, 1.0);
 	}
 
 	if (kind != SKY && kind != STARS && kind != CLOUDS) {

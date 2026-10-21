@@ -13,13 +13,33 @@ extends MDSEnvironmentEffect
 ## the world) one in the Areas tab's Parallax field: [MDSWorldGame] adds it to every room of the
 ## area as the room loads.
 ##
-## It draws at z_index -100: behind the room's background tiles (-10) and everything else.
+## [b]Foreground.[/b] [member foreground_layers] are drawn in front of the room and the player,
+## moving faster than it ([member MDSParallaxLayer.scroll_scale] above 1): leaves, rocks or mist
+## passing close to the camera. Pick a [member foreground] preset (foliage, cave rocks, ruins,
+## mist) or set the layers yourself; a layer that [member MDSParallaxLayer.hang]s comes down from
+## its line (foliage along the top edge). Their [member MDSParallaxLayer.horizon] is a share of the
+## room's height (1: its bottom edge). In the editor they are see-through, so the room under them
+## can still be painted. In a Parallax field: [code]parallax(preset=misty_forest,
+## foreground=foliage)[/code], or [code]parallax(preset=none, foreground=mist)[/code] for a
+## foreground alone (see [method with_foreground]).
+##
+## It draws at z_index -100: behind the room's background tiles (-10) and everything else; its
+## foreground layers at [constant FOREGROUND_Z], over the room's foreground tiles and shapes.
 
-## Starting points; CUSTOM keeps the layers as they are.
-enum Preset { CUSTOM, DUSK_MOUNTAINS, MISTY_FOREST, RUINED_CITY, DESERT_DUNES, DEEP_CAVERN, SNOWY_PEAKS, VOLCANIC, NIGHT_SKY, SUNKEN_GARDEN, DUSTY_WASTES }
+## Starting points; CUSTOM keeps the layers as they are, NONE has none (a foreground alone).
+enum Preset { CUSTOM, DUSK_MOUNTAINS, MISTY_FOREST, RUINED_CITY, DESERT_DUNES, DEEP_CAVERN, SNOWY_PEAKS, VOLCANIC, NIGHT_SKY, SUNKEN_GARDEN, DUSTY_WASTES, NONE }
 ## Ids of the presets (as the Parallax fields write them), in [enum Preset] order.
-const PRESET_IDS: PackedStringArray = ["custom", "dusk_mountains", "misty_forest", "ruined_city", "desert_dunes", "deep_cavern", "snowy_peaks", "volcanic", "night_sky", "sunken_garden", "dusty_wastes"]
-const PRESET_NAMES: PackedStringArray = ["Custom", "Dusk mountains", "Misty forest", "Ruined city at night", "Desert dunes", "Deep cavern", "Snowy peaks", "Volcanic", "Night sky", "Sunken garden", "Dusty wastes"]
+const PRESET_IDS: PackedStringArray = ["custom", "dusk_mountains", "misty_forest", "ruined_city", "desert_dunes", "deep_cavern", "snowy_peaks", "volcanic", "night_sky", "sunken_garden", "dusty_wastes", "none"]
+const PRESET_NAMES: PackedStringArray = ["Custom", "Dusk mountains", "Misty forest", "Ruined city at night", "Desert dunes", "Deep cavern", "Snowy peaks", "Volcanic", "Night sky", "Sunken garden", "Dusty wastes", "None"]
+## Foreground starting points; CUSTOM keeps the foreground layers as they are.
+enum Foreground { NONE, CUSTOM, FOLIAGE, CAVE_ROCKS, RUINS, MIST }
+const FOREGROUND_IDS: PackedStringArray = ["none", "custom", "foliage", "cave_rocks", "ruins", "mist"]
+const FOREGROUND_NAMES: PackedStringArray = ["None", "Custom", "Foliage", "Cave rocks", "Ruins", "Mist"]
+## The z the foreground layers draw at (not relative to the background's): over the room's
+## foreground tiles (20), shapes (22) and stamps (24).
+const FOREGROUND_Z := 60
+## How see-through foreground layers are in the editor.
+const EDITOR_FOREGROUND_ALPHA := 0.4
 
 @export var preset: Preset = Preset.DUSK_MOUNTAINS:
 	set(v):
@@ -34,6 +54,24 @@ const PRESET_NAMES: PackedStringArray = ["Custom", "Dusk mountains", "Misty fore
 				l.changed.disconnect(_changed)
 		layers = v
 		for l in layers:
+			if l and not l.changed.is_connected(_changed):
+				l.changed.connect(_changed)
+		_queue_rebuild()
+## What passes in front of the room: a [enum Foreground] preset (CUSTOM keeps
+## [member foreground_layers] as they are).
+@export var foreground: Foreground = Foreground.NONE:
+	set(v):
+		foreground = v
+		if v != Foreground.CUSTOM:
+			foreground_layers = foreground_layers_of(v)
+## Layers in front of the room, nearest last (see the class description).
+@export var foreground_layers: Array[MDSParallaxLayer] = []:
+	set(v):
+		for l in foreground_layers:
+			if l and l.changed.is_connected(_changed):
+				l.changed.disconnect(_changed)
+		foreground_layers = v
+		for l in foreground_layers:
 			if l and not l.changed.is_connected(_changed):
 				l.changed.connect(_changed)
 		_queue_rebuild()
@@ -74,29 +112,56 @@ func add_picture(texture: Texture2D, scroll := Vector2(0.4, 0.2)) -> MDSParallax
 	layers = list
 	return l
 
+## Every layer: the background's (farthest first), then the foreground's (nearest last).
+func all_layers() -> Array[MDSParallaxLayer]:
+	var out: Array[MDSParallaxLayer] = layers.duplicate()
+	out.append_array(foreground_layers)
+	return out
+
+## Whether layer [param index] of [method all_layers] is a foreground layer.
+func is_foreground_index(index: int) -> bool:
+	return index >= layers.size()
+
+## The room the foreground layers' horizons are shares of: the rectangle without the margin MDS
+## fits around a room's effects ([member MDSEnvironmentEffect.fit_room]), else the rectangle.
+func room_rect() -> Rect2:
+	var r := get_effect_rect()
+	var m := MDSEnvironment.ROOM_MARGIN
+	if fit_room and r.size.x > m * 2.0 and r.size.y > m * 2.0:
+		return r.grow(-m)
+	return r
+
 func _build() -> void:
 	_layer_mats.clear()
 	_layer_quads.clear()
 	var sh := shader("parallax_layer")
-	for i in layers.size():
-		var m := add_quad(sh, get_effect_rect(), i, float(i) * 3.7)
+	var all := all_layers()
+	for i in all.size():
+		var front := is_foreground_index(i)
+		var m := add_quad(sh, get_effect_rect(), FOREGROUND_Z + i if front else i, float(i) * 3.7, front)
+		var q := _quads[_quads.size() - 1] as Polygon2D
+		if front and Engine.is_editor_hint():
+			q.modulate.a = EDITOR_FOREGROUND_ALPHA
 		_layer_mats.append(m)
-		_layer_quads.append(_quads[_quads.size() - 1] as Polygon2D)
+		_layer_quads.append(q)
 	_tick(0.0)
 
 func _update_params() -> void:
 	var r := get_effect_rect()
-	for i in mini(layers.size(), _layer_mats.size()):
-		var l := layers[i]
+	var room := room_rect()
+	var all := all_layers()
+	for i in mini(all.size(), _layer_mats.size()):
+		var l := all[i]
 		var m := _layer_mats[i]
 		if not l:
 			m.set_shader_parameter("alpha", 0.0)
 			continue
+		var base := room if is_foreground_index(i) else r
 		m.set_shader_parameter("kind", int(l.kind))
 		m.set_shader_parameter("color", l.color)
 		m.set_shader_parameter("color_top", l.color_top)
 		m.set_shader_parameter("color_bottom", l.color_bottom)
-		m.set_shader_parameter("base_y", r.position.y + l.horizon * r.size.y)
+		m.set_shader_parameter("base_y", base.position.y + l.horizon * base.size.y)
 		m.set_shader_parameter("height", l.height)
 		m.set_shader_parameter("feature_size", l.feature_size)
 		m.set_shader_parameter("roughness", l.roughness)
@@ -109,6 +174,7 @@ func _update_params() -> void:
 		m.set_shader_parameter("picture_size", Vector2(l.picture.get_size()) if l.picture else Vector2.ONE)
 		m.set_shader_parameter("picture_scale", l.picture_scale)
 		m.set_shader_parameter("repeat_x", l.repeat_x)
+		m.set_shader_parameter("hang", l.hang)
 
 ## What the camera sees, in this node's coordinates (its rectangle when there is no viewport).
 func view_rect() -> Rect2:
@@ -137,7 +203,8 @@ func _tick(_delta: float) -> void:
 	# rectangle (they would cover the whole 2D view otherwise).
 	var cover := view.grow(4.0) if follow_camera and not Engine.is_editor_hint() else get_effect_rect()
 	var poly := PackedVector2Array([cover.position, Vector2(cover.end.x, cover.position.y), cover.end, Vector2(cover.position.x, cover.end.y)])
-	for i in mini(layers.size(), _layer_quads.size()):
+	var all := all_layers()
+	for i in mini(all.size(), _layer_quads.size()):
 		var q := _layer_quads[i]
 		if q.polygon != poly:
 			q.polygon = poly
@@ -145,8 +212,69 @@ func _tick(_delta: float) -> void:
 		m.set_shader_parameter("rect_origin", cover.position)
 		m.set_shader_parameter("rect_size", cover.size)
 		m.set_shader_parameter("view_rect", Vector4(frame.position.x, frame.position.y, frame.size.x, frame.size.y))
-		if layers[i]:
-			m.set_shader_parameter("offset", layer_offset(layers[i], cam))
+		if all[i]:
+			m.set_shader_parameter("offset", layer_offset(all[i], cam))
+
+## Starts the foreground from [param id] (see [constant FOREGROUND_IDS]). Returns false for an
+## unknown one.
+func use_foreground(id: String) -> bool:
+	var i := FOREGROUND_IDS.find(id.strip_edges().to_lower())
+	if i < 0:
+		return false
+	foreground = i as Foreground
+	return true
+
+## A Parallax field's [param value] (a preset id, a [code]parallax(...)[/code] spec, a scene, or
+## empty) with the foreground [param fg] (a [constant FOREGROUND_IDS] id; "none" takes it away):
+## [code]parallax(preset=misty_forest, foreground=foliage)[/code].
+static func with_foreground(value: String, fg: String) -> String:
+	var v := value.strip_edges()
+	var want := fg.strip_edges().to_lower()
+	var args: Array[String] = []
+	var scene := ""
+	if v.is_empty() or MDSEnvironment.is_none(v):
+		args.append("preset=none")
+	elif PRESET_IDS.has(v.to_lower().replace(" ", "_")):
+		args.append("preset=" + v.to_lower().replace(" ", "_"))
+	elif v.to_lower().begins_with("parallax(") and v.ends_with(")"):
+		for a in MDSEnvironment.split_list(v.substr(9, v.length() - 10)):
+			if not a.strip_edges().to_lower().begins_with("foreground="):
+				args.append(a.strip_edges())
+	else:
+		scene = v
+		args.append("preset=none")
+	if want != "none":
+		args.append("foreground=" + want)
+	var spec := "parallax(%s)" % ", ".join(args)
+	if args.size() == 1 and args[0].begins_with("preset="):
+		# No foreground left: the plain preset id.
+		spec = args[0].trim_prefix("preset=")
+		if spec == "none" and not scene.is_empty():
+			return scene
+	return spec if scene.is_empty() else "%s, %s" % [scene, spec]
+
+## The foreground id a Parallax field's [param value] asks for ("" when none).
+static func foreground_of(value: String) -> String:
+	var m := RegEx.create_from_string("foreground\\s*=\\s*([A-Za-z_]+)").search(value)
+	return m.get_string(1).to_lower() if m else ""
+
+## The foreground layers of [param f], farthest first (in front of the room: they scroll faster
+## than it). Dark silhouettes along the room's bottom and top edges, or a mist band.
+static func foreground_layers_of(f: Foreground) -> Array[MDSParallaxLayer]:
+	var K := MDSParallaxLayer.Kind
+	var out: Array[MDSParallaxLayer] = []
+	match f:
+		Foreground.FOLIAGE:
+			out.append(MDSParallaxLayer.make(K.FOREST, {"color": Color("#0b140e"), "color_top": Color("#1c2c1f"), "color_bottom": Color("#0b140e"), "horizon": 1.02, "height": 150.0, "feature_size": 3400.0, "roughness": 0.1, "haze": 0.0, "scroll_scale": Vector2(1.3, 1.12), "seed_value": 2}))
+			out.append(MDSParallaxLayer.make(K.FOREST, {"color": Color("#0b140e"), "color_top": Color("#1c2c1f"), "color_bottom": Color("#0b140e"), "horizon": -0.03, "height": 140.0, "feature_size": 2800.0, "roughness": 0.15, "haze": 0.0, "hang": true, "scroll_scale": Vector2(1.22, 1.1), "seed_value": 7}))
+		Foreground.CAVE_ROCKS:
+			out.append(MDSParallaxLayer.make(K.MOUNTAINS, {"color": Color("#07080a"), "color_top": Color("#07080a"), "color_bottom": Color("#07080a"), "horizon": 1.02, "height": 160.0, "feature_size": 340.0, "roughness": 0.9, "haze": 0.0, "scroll_scale": Vector2(1.28, 1.12), "seed_value": 4}))
+			out.append(MDSParallaxLayer.make(K.MOUNTAINS, {"color": Color("#07080a"), "color_top": Color("#07080a"), "color_bottom": Color("#07080a"), "horizon": -0.03, "height": 210.0, "feature_size": 260.0, "roughness": 0.9, "haze": 0.0, "hang": true, "scroll_scale": Vector2(1.2, 1.1), "seed_value": 9}))
+		Foreground.RUINS:
+			out.append(MDSParallaxLayer.make(K.RUINS, {"color": Color("#0c0b10"), "color_top": Color("#0c0b10"), "color_bottom": Color("#0c0b10"), "horizon": 1.03, "height": 200.0, "feature_size": 1500.0, "haze": 0.0, "scroll_scale": Vector2(1.3, 1.12), "seed_value": 5}))
+		Foreground.MIST:
+			out.append(MDSParallaxLayer.make(K.FOG, {"color": Color("#d6dee2"), "horizon": 0.93, "height": 120.0, "feature_size": 650.0, "alpha": 0.32, "autoscroll": 14.0, "scroll_scale": Vector2(1.15, 1.05), "seed_value": 3}))
+	return out
 
 ## The layers of [param p], farthest first.
 static func layers_of(p: Preset) -> Array[MDSParallaxLayer]:

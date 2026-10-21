@@ -306,6 +306,7 @@ func _init() -> void:
 				["Enemy (Ambusher)", "gameplay:enemy_ambusher", "mds_ambusher.svg", "Ambusher template enemy"],
 				["Boss arena", "gameplay:boss_arena", "mds_boss_arena.svg", "MDSBossArena: locks doors during boss fight"],
 				["NPC", "gameplay:npc", "mds_npc.svg", "MDSNPC: dialogue and interaction"],
+				["Dialogue trigger", "gameplay:dialogue_trigger", "mds_dialogue_trigger.svg", "MDSDialogueTrigger: a conversation with anything (a door, a sign, a statue), on interact or on touch"],
 			]
 			for item in GAMEPLAY_ITEMS:
 				var icon_path: String = "res://addons/MetroidvaniaDeveloperSystem/icons/gameplay/" + str(item[2])

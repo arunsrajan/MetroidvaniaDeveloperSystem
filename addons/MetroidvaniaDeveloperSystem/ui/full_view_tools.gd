@@ -592,6 +592,8 @@ func draw_under(ci: CanvasItem, font: Font) -> void:
 		if not lines.is_empty():
 			ci.draw_multiline(lines, Color(1, 1, 1, 0.05))
 	var areas: Dictionary = {}
+	# World px to screen px, for whole outlines at once (a world shows hundreds).
+	var xf := Transform2D(0.0, Vector2(canvas.zoom, canvas.zoom), 0.0, to_screen(Vector2.ZERO))
 	for id in w.get_room_ids():
 		if w.get_room_layer(id) != _layer():
 			continue
@@ -605,9 +607,7 @@ func draw_under(ci: CanvasItem, font: Font) -> void:
 		var edited: bool = canvas.is_editing() and id == canvas.room_id
 		var no_scene := w.get_scene_path(id).is_empty()
 		for poly in w.get_room_outline(id):
-			var pts := PackedVector2Array()
-			for q in poly:
-				pts.append(to_screen(q))
+			var pts := xf * poly
 			if no_scene and pts.size() >= 3:
 				ci.draw_colored_polygon(pts, Color(color, 0.2))
 			pts.append(pts[0])

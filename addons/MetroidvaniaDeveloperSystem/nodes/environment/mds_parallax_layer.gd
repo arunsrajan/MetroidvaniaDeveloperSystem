@@ -33,7 +33,9 @@ enum Kind { SKY, MOUNTAINS, HILLS, FOREST, CITY, RUINS, CAVE, DUNES, CLOUDS, FOG
 	set(v):
 		scroll_scale = v
 		emit_changed()
-## Where its features stand, as a share of the background's height (0 top, 1 bottom).
+## Where its features stand, as a share of the background's height (0 top, 1 bottom). A
+## foreground layer's ([member MDSParallaxBackground.foreground_layers]) is a share of the room's
+## height: 1 is the room's bottom edge, 0 its top.
 @export_range(-1.0, 2.0) var horizon := 0.75:
 	set(v):
 		horizon = v
@@ -66,6 +68,13 @@ enum Kind { SKY, MOUNTAINS, HILLS, FOREST, CITY, RUINS, CAVE, DUNES, CLOUDS, FOG
 @export_range(0.0, 1.0) var alpha := 1.0:
 	set(v):
 		alpha = v
+		emit_changed()
+## Hangs from [member horizon] instead of standing on it: the silhouette mirrored (a picture's top
+## edge on it, the picture the right way up), [member fill_below] filling above. For a
+## foreground's top edge: foliage, roots, stalactites.
+@export var hang := false:
+	set(v):
+		hang = v
 		emit_changed()
 ## Drift (px/s): clouds sailing by.
 @export_range(-400.0, 400.0) var autoscroll := 0.0:

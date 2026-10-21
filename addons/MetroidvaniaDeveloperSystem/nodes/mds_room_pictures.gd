@@ -44,10 +44,11 @@ static var bake_scale := 0.35
 @export var bake_gap := 1.0
 
 static var _textures: Dictionary = {} ## scene path -> {key, texture}
-static var _saves: Array[int] = []
+static var _saves: Array = [] ## of [task id, the Image it saves] (kept until it is saved)
 
 var _queue: Array = [] ## of {id, path, rect}
 var _running := false
+var _reading := -1 ## the task reading a picture from disk
 
 # --- The cache ----------------------------------------------------------------------------------
 
@@ -55,14 +56,16 @@ var _running := false
 static func cache_key(path: String) -> String:
 	return ("%s_%d" % [path, FileAccess.get_modified_time(path)]).md5_text()
 
-static func cache_file(path: String) -> String:
-	return CACHE_DIR + cache_key(path) + ".png"
+## The picture's file in the disk cache ([param key]: its [method cache_key], when known).
+static func cache_file(path: String, key := "") -> String:
+	return CACHE_DIR + (key if not key.is_empty() else cache_key(path)) + ".png"
 
 ## The picture of the scene at [param path] if one is in memory and the scene hasn't changed
-## since, else null. Never reads files: cheap enough for any frame.
-static func picture(path: String) -> Texture2D:
+## since, else null ([param key]: its [method cache_key], when known). Never reads files (it asks
+## only when the scene was saved).
+static func picture(path: String, key := "") -> Texture2D:
 	var e: Dictionary = _textures.get(path, {})
-	return e.texture if not e.is_empty() and e.key == cache_key(path) else null
+	return e.texture if not e.is_empty() and e.key == (key if not key.is_empty() else cache_key(path)) else null
 
 ## The picture of the scene at [param path]: from memory, else from the disk cache (read now),
 ## else null.
@@ -87,14 +90,20 @@ static func store(path: String, image: Image, save := true) -> Texture2D:
 	_textures[path] = {"key": cache_key(path), "texture": tex}
 	if save:
 		DirAccess.make_dir_recursive_absolute(CACHE_DIR)
-		var file := ProjectSettings.globalize_path(cache_file(path))
-		_saves.append(WorkerThreadPool.add_task(func() -> void: image.save_png(file)))
+		# Saves done are let go. The other thread runs a method of the engine's own (a script's
+		# function left running as the program quits would crash it), and the image is kept
+		# until it is saved.
+		for done in _saves.filter(func(s: Array) -> bool: return WorkerThreadPool.is_task_completed(s[0])):
+			WorkerThreadPool.wait_for_task_completion(done[0])
+			_saves.erase(done)
+		_saves.append([WorkerThreadPool.add_task(image.save_png.bind(ProjectSettings.globalize_path(cache_file(path)))), image])
 	return tex
 
-## Waits for the pictures being saved to disk.
+## Waits for the pictures being saved to disk (the Room view and the node call it as they leave
+## the tree).
 static func flush() -> void:
-	for t in _saves:
-		WorkerThreadPool.wait_for_task_completion(t)
+	for s: Array in _saves:
+		WorkerThreadPool.wait_for_task_completion(s[0])
 	_saves.clear()
 
 ## Forgets the picture of [param path] in memory (all of them with ""). The disk cache stays.
@@ -234,6 +243,12 @@ func _ready() -> void:
 		return
 	_connect.call_deferred()
 
+func _exit_tree() -> void:
+	if _reading >= 0:
+		WorkerThreadPool.wait_for_task_completion(_reading)
+		_reading = -1
+	flush()
+
 func _connect() -> void:
 	if not game:
 		game = MDSWorldGame.instance
@@ -283,14 +298,16 @@ func _work() -> void:
 			return
 		if picture(q.path) or not FileAccess.file_exists(cache_file(q.path)):
 			continue
-		var file := ProjectSettings.globalize_path(cache_file(q.path))
-		var result: Array = []
-		var task := WorkerThreadPool.add_task(func() -> void: result.append(Image.load_from_file(file)))
-		while not WorkerThreadPool.is_task_completed(task):
+		var img := Image.new()
+		var task := WorkerThreadPool.add_task(img.load.bind(ProjectSettings.globalize_path(cache_file(q.path))))
+		_reading = task
+		while _reading == task and not WorkerThreadPool.is_task_completed(task):
 			await tree.process_frame
-		WorkerThreadPool.wait_for_task_completion(task)
-		var img: Image = result[0] if not result.is_empty() else null
-		if img and not img.is_empty():
+		# Leaving the tree waits for it too.
+		if _reading == task:
+			WorkerThreadPool.wait_for_task_completion(task)
+			_reading = -1
+		if not img.is_empty():
 			picture_ready.emit(q.path, store(q.path, img, false))
 			_queue.erase(q)
 		await tree.process_frame

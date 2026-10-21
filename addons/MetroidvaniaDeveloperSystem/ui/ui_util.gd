@@ -237,20 +237,37 @@ static func parallax_field(grid: GridContainer, text: String, value: String, pla
 	edit.text = value
 	edit.placeholder_text = placeholder
 	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	edit.tooltip_text = "Parallax background: a preset (dusk_mountains, misty_forest, ruined_city...), or a .tscn holding an MDSParallaxBackground with your layers. none: no background"
+	edit.tooltip_text = "Parallax background: a preset (dusk_mountains, misty_forest, ruined_city...), with a foreground in front of the room if you like (parallax(preset=misty_forest, foreground=foliage); foreground alone: parallax(preset=none, foreground=mist)), or a .tscn holding an MDSParallaxBackground with your layers. none: no background"
 	row.add_child(edit)
 	var menu := menu_button("+", "Pick a parallax background preset")
 	var popup := menu.get_popup()
 	for i in range(1, MDSParallaxBackground.PRESET_IDS.size()):
+		if MDSParallaxBackground.PRESET_IDS[i] == "none":
+			continue
 		popup.add_icon_item(MDSEnvironment.icon("parallax"), MDSParallaxBackground.PRESET_NAMES[i])
 		popup.set_item_metadata(popup.item_count - 1, MDSParallaxBackground.PRESET_IDS[i])
+	# A foreground in front of the room, with the background picked (or alone).
+	popup.add_separator("In front of the room")
+	for i in range(2, MDSParallaxBackground.FOREGROUND_IDS.size()):
+		popup.add_icon_item(MDSEnvironment.icon("parallax"), "Foreground: " + MDSParallaxBackground.FOREGROUND_NAMES[i])
+		popup.set_item_metadata(popup.item_count - 1, "fg:" + MDSParallaxBackground.FOREGROUND_IDS[i])
+	popup.add_item("No foreground")
+	popup.set_item_metadata(popup.item_count - 1, "fg:none")
 	popup.add_separator()
 	popup.add_item("None (no background here)")
 	popup.set_item_metadata(popup.item_count - 1, "none")
 	popup.add_item("Clear")
 	popup.set_item_metadata(popup.item_count - 1, "")
 	popup.index_pressed.connect(func(i: int) -> void:
-		edit.text = str(popup.get_item_metadata(i))
+		var picked := str(popup.get_item_metadata(i))
+		if picked.begins_with("fg:"):
+			edit.text = MDSParallaxBackground.with_foreground(edit.text, picked.trim_prefix("fg:"))
+		elif picked.is_empty() or picked == "none":
+			edit.text = picked
+		else:
+			# A background keeps the foreground already there.
+			var fg := MDSParallaxBackground.foreground_of(edit.text)
+			edit.text = MDSParallaxBackground.with_foreground(picked, fg) if not fg.is_empty() else picked
 		edit.text_submitted.emit(edit.text))
 	row.add_child(menu)
 	grid.add_child(row)

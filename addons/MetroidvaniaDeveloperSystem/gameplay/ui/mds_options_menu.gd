@@ -48,6 +48,7 @@ func refresh() -> void:
 	for s in MDSOptions.TEXT_SCALES:
 		sizes.append("%d%%" % int(round(s * 100.0)))
 	_cycle("text_size", "Text size", sizes, MDSOptions.text_size, func(i: int) -> void: MDSOptions.text_size = i)
+	_cycle("text_speed", "Text speed", MDSOptions.TEXT_SPEED_NAMES, MDSOptions.text_speed, func(i: int) -> void: MDSOptions.text_speed = i)
 	_cycle("glyphs", "Button prompts", MDSOptions.GLYPH_NAMES, int(MDSOptions.glyphs), func(i: int) -> void: MDSOptions.glyphs = i as MDSOptions.Glyphs)
 	_toggle("toggle_glide", "Glide: press to toggle", MDSOptions.toggle_glide, func(on: bool) -> void: MDSOptions.toggle_glide = on)
 	_heading("Controls")
