@@ -147,6 +147,11 @@ func _run() -> void:
 	view.refresh_full()
 	check(MDSRoomCanvas.has_notches(world, l_room) and not MDSRoomCanvas.has_notches(world, "InTheNotch"), "an L room has a notch, a rectangle none")
 	check((canvas._context[l_room] as Node2D).z_index == MDSRoomCanvas.NOTCHED_Z and (canvas._context["InTheNotch"] as Node2D).z_index == 0, "the L room is drawn under the room in its notch")
+	# Its scene comes in a frame or so later (see test_full_view_loading).
+	for i in 120:
+		if canvas.is_room_live(l_room) and not canvas.is_full_loading():
+			break
+		await get_tree().process_frame
 	var ell_layers: Array[Node] = (canvas._context[l_room] as Node2D).find_children("*", "TileMapLayer", true, false)
 	check(not ell_layers.is_empty() and ell_layers.all(func(l: Node) -> bool: return (l as TileMapLayer).material is ShaderMaterial and ((l as TileMapLayer).material as ShaderMaterial).shader == MDSRoomCanvas.ROOM_MASK), "and its tiles show only inside its rectangles")
 	world.undo()

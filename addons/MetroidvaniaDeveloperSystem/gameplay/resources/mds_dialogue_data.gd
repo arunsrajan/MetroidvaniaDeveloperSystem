@@ -6,6 +6,9 @@ extends Resource
 
 @export var id := ""
 @export var lines: Array[MDSDialogueLine] = []
+## How its lines come onto the screen (a line's own [member MDSDialogueLine.reveal] wins). Empty:
+## the dialogue box's.
+@export var reveal: MDSTextReveal
 
 ## A conversation of plain lines by [param speaker] (for code and tests).
 static func make(p_id: String, speaker: String, texts: PackedStringArray) -> MDSDialogueData:

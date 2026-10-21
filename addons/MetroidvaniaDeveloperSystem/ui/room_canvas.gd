@@ -93,6 +93,17 @@ const HANDLE_GAP := 6.0
 const NOTCHED_Z := -64
 const ROOM_MASK := preload("res://addons/MetroidvaniaDeveloperSystem/ui/room_mask.gdshader")
 const MASK_RECTS := 16
+## The Full view shows rooms' scenes (every node, as edited) only zoomed in at least this far;
+## further out, their pictures (see [MDSRoomPictures], drawn sharper than this), and their
+## outlines until those are drawn.
+const FULL_LIVE_ZOOM := 0.2
+## At most this many rooms' scenes in the Full view at once (the nearest the view's middle).
+const FULL_MAX_LIVE := 40
+## Microseconds a frame of the Full view spends bringing in scenes and pictures; the rest comes
+## the next frames.
+const FULL_FRAME_BUDGET := 8000
+## Rooms the Full view draws pictures of at once.
+const FULL_BAKES := 2
 enum FreeformMode { DRAW, EDIT }
 
 var painter: MDSRoomPainter
@@ -114,7 +125,13 @@ var full_layer := 0
 var full_tools: MDSFullViewTools
 ## Where on the map the view's (0, 0) is while no room is edited (see [method frame_origin]).
 var _frame := Vector2.ZERO
-var _context_pending := false
+## The Full view brings in what it shows a little each frame (see [method _full_step]).
+var _full_busy := false
+var _full_reads: Dictionary = {} ## scene path -> [task id, Image]: its picture read off the main thread
+var _full_bakes: Dictionary = {} ## scene path -> true: its picture being drawn
+var _full_to_draw: Dictionary = {} ## scene path -> room id: no picture of it yet, to be drawn
+var _full_tex: Dictionary = {} ## scene path -> its picture (null: none comes), as looked for
+var _full_skip: Dictionary = {} ## scene path -> true: it doesn't load
 var tool: int = Tool.TERRAIN
 ## Fill painted by each tool (see [method MDSRoomPainter.paint_fill]).
 var fills: Dictionary = {
@@ -472,15 +489,8 @@ func _apply_view() -> void:
 	_update_masks()
 	queue_redraw()
 	_overlay.queue_redraw()
-	if full and not _context_pending:
-		_context_pending = true
-		_load_shown_context.call_deferred()
-
-## The Full view: the scenes of the rooms come in as the view reaches them.
-func _load_shown_context() -> void:
-	_context_pending = false
 	if full:
-		refresh_context()
+		_full_schedule()
 
 func screen_to_local(p: Vector2) -> Vector2:
 	return (p - pan) / zoom
@@ -545,17 +555,26 @@ func other_room_at(local: Vector2) -> String:
 
 ## Shows the other rooms shown together around the edited one, dimmed, where they are on the
 ## map: the tiles and items of the ones with a painter open (their changes not saved yet too),
-## the scenes of the others.
+## the scenes of the others. The Full view brings the scenes in as the view reaches them, and
+## pictures of the rooms zoomed out (see [method _full_step]).
 func refresh_context() -> void:
-	_order_room(_room_node, room_id)
+	_order_room(_room_node, room_id, false)
+	# Scenes made or mended since are tried again, pictures looked for again.
+	_full_skip.clear()
+	_full_tex.clear()
+	_full_to_draw.clear()
+	var shown: Dictionary = {}
+	for id in session:
+		shown[id] = true
 	for id: String in _context.keys():
-		if not world or not session.has(id) or (id == room_id and is_editing()) or not world.has_room(id) or _context_painter.get(id) != session_painters.get(id) or _context[id].get_meta(&"mds_scene", "") != world.get_scene_path(id):
+		if not world or not shown.has(id) or (id == room_id and is_editing()) or not world.has_room(id) or _context_painter.get(id) != session_painters.get(id) or _context[id].get_meta(&"mds_scene", "") != world.get_scene_path(id):
 			_drop_context(id)
 	if not _together() or not world or (not full and not world.has_room(room_id)):
+		# Leaving the Full view: the pictures being read are taken in still.
+		if not full and not _full_reads.is_empty():
+			_full_schedule()
 		return
 	var here := frame_origin()
-	# The Full view loads the scenes of the rooms in view (and a screen around it) only.
-	var in_view := Rect2(screen_to_local(-size), size * 3.0 / zoom) if full and zoom > 0.0 and size.x > 0.0 else Rect2()
 	for id in session:
 		if (id == room_id and is_editing()) or not world.has_room(id):
 			continue
@@ -570,53 +589,247 @@ func refresh_context() -> void:
 			_view.move_child(box, 0)
 			_context[id] = box
 		box.position = world.get_origin(id) - here
-		_order_room(box, id)
-		if box.get_child_count() > 0:
-			continue
-		var p: MDSRoomPainter = session_painters.get(id)
-		if not p and in_view.has_area():
-			var b := world.get_room_bounds(id)
-			if not Rect2(b.position - here, b.size).intersects(in_view):
-				continue
-		var packed: PackedScene = p.packed_scene if p and p.packed_scene else null
-		if not packed:
-			var path := world.get_scene_path(id)
-			packed = load(path) as PackedScene if not path.is_empty() else null
-		if packed:
-			var shown := packed.instantiate(PackedScene.GEN_EDIT_STATE_DISABLED)
-			shown.set_meta(&"fake_map", true)
-			shown.process_mode = Node.PROCESS_MODE_DISABLED
-			if shown is Node2D:
-				(shown as Node2D).transform = Transform2D.IDENTITY
-			if p:
-				for l in shown.find_children("*", "", true, false):
-					if l is TileMapLayer or MDSRoomPainter.is_item(l, shown):
-						l.visible = false
-			box.add_child(shown)
+		_order_room(box, id, false)
+		# Rooms with a painter show its tiles (their changes not saved yet); the Full view brings
+		# the others in a little at a time.
+		if not box.has_meta(&"mds_live") and (session_painters.has(id) or not full):
+			_show_live(box, id)
+	if full:
+		_full_schedule()
+
+## Shows room [param id]'s scene in [param box] ([param packed]: already loaded), and over it the
+## tiles and items of its painter if it has one open.
+func _show_live(box: Node2D, id: String, packed: PackedScene = null) -> void:
+	_clear_box(box)
+	var p: MDSRoomPainter = session_painters.get(id)
+	if not packed and p and p.packed_scene:
+		packed = p.packed_scene
+	if not packed:
+		var path := world.get_scene_path(id)
+		packed = load(path) as PackedScene if not path.is_empty() and ResourceLoader.exists(path) else null
+	if packed:
+		var shown := packed.instantiate(PackedScene.GEN_EDIT_STATE_DISABLED)
+		shown.set_meta(&"fake_map", true)
+		shown.process_mode = Node.PROCESS_MODE_DISABLED
+		if shown is Node2D:
+			(shown as Node2D).transform = Transform2D.IDENTITY
 		if p:
-			for n in MDSRoomPainter.LAYER_ORDER:
-				var l: TileMapLayer = p.layers[n]
-				if l.get_parent():
-					l.get_parent().remove_child(l)
-				box.add_child(l)
-			if p.items_root.get_parent():
-				p.items_root.get_parent().remove_child(p.items_root)
-			box.add_child(p.items_root)
-			_context_painter[id] = p
-		# Its layers just came in.
-		_order_room(box, id)
+			for l in shown.find_children("*", "", true, false):
+				if l is TileMapLayer or MDSRoomPainter.is_item(l, shown):
+					l.visible = false
+		box.add_child(shown)
+	if p:
+		for n in MDSRoomPainter.LAYER_ORDER:
+			var l: TileMapLayer = p.layers[n]
+			if l.get_parent():
+				l.get_parent().remove_child(l)
+			box.add_child(l)
+		if p.items_root.get_parent():
+			p.items_root.get_parent().remove_child(p.items_root)
+		box.add_child(p.items_root)
+		_context_painter[id] = p
+	box.set_meta(&"mds_live", true)
+	# Its layers just came in.
+	_order_room(box, id)
+
+## Shows picture [param tex] of room [param id] in [param box], where the room is (a sprite named
+## Picture), in place of its scene.
+func _show_picture(box: Node2D, id: String, tex: Texture2D) -> void:
+	_clear_box(box)
+	var r := MDSRoomPictures.room_rect(world, id)
+	var s := Sprite2D.new()
+	s.name = "Picture"
+	s.texture = tex
+	s.centered = false
+	s.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	s.position = r.position
+	s.scale = r.size / Vector2(tex.get_size()).maxf(1.0)
+	box.add_child(s)
+	_order_room(box, id)
+
+## Empties [param box] (a room without a painter): its outline alone shows.
+func _clear_box(box: Node2D) -> void:
+	for c in box.get_children():
+		box.remove_child(c)
+		c.queue_free()
+	box.remove_meta(&"mds_live")
+
+## The picture shown in room [param id]'s box, if any.
+func shown_picture(id: String) -> Sprite2D:
+	var box: Node2D = _context.get(id)
+	return box.get_node_or_null(^"Picture") as Sprite2D if box else null
+
+## Whether room [param id]'s scene shows in the view (not only its picture or outline).
+func is_room_live(id: String) -> bool:
+	var box: Node2D = _context.get(id)
+	return box != null and box.has_meta(&"mds_live")
+
+## Whether the Full view is still bringing in scenes or pictures for the view as it is.
+func is_full_loading() -> bool:
+	return full and _full_busy
+
+# --- The Full view's loading ---------------------------------------------------------------------
+
+## The Full view brings in what it shows from the end of this frame on, a little each frame.
+func _full_schedule() -> void:
+	if not _full_busy and is_inside_tree():
+		_full_busy = true
+		_full_run.call_deferred()
+
+func _full_run() -> void:
+	while is_inside_tree() and _full_step():
+		await get_tree().process_frame
+	_full_busy = false
+
+## One frame of the Full view's loading; returns whether there is more to do. The rooms nearest
+## the view's middle come first: zoomed in (at least [constant FULL_LIVE_ZOOM]), the scenes of the
+## rooms in view and a quarter of a screen around it, a few a frame (within
+## [constant FULL_FRAME_BUDGET], one at least); around them, and zoomed out, the rooms' pictures,
+## read from the cache off the main thread, else drawn ([constant FULL_BAKES] at a time). Rooms
+## three quarters of a screen out of view let go of their scenes for their pictures (or
+## outlines); zoomed out, a scene stays until its room's picture is there. Rooms with a painter
+## always show its tiles.
+func _full_step() -> bool:
+	var more := _full_collect()
+	if not full or not world or zoom <= 0.0 or size.x <= 0.0:
+		return more
+	var t0 := Time.get_ticks_usec()
+	var here := frame_origin()
+	var view := Rect2(screen_to_local(Vector2.ZERO), size / zoom)
+	var reach := maxf(view.size.x, view.size.y)
+	var near := view.grow(reach * 0.25)
+	var keep := view.grow(reach * 0.75)
+	var live := zoom >= FULL_LIVE_ZOOM
+	var center := view.get_center()
+	var order: Array = []
+	for id: String in _context:
+		var box: Node2D = _context[id]
+		var path: String = box.get_meta(&"mds_scene", "")
+		if path.is_empty() or session_painters.has(id) or _full_skip.has(path) or not world.has_room(id):
+			continue
+		var b := world.get_room_bounds(id)
+		b.position -= here
+		order.append([(center.clamp(b.position, b.end) - center).length_squared(), id, b, box, path])
+	order.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+	var lives := 0
+	var loaded := false
+	for e: Array in order:
+		# The frame's time spent: only what costs nothing goes on.
+		var spent := Time.get_ticks_usec() - t0 > FULL_FRAME_BUDGET
+		var id: String = e[1]
+		var b: Rect2 = e[2]
+		var box: Node2D = e[3]
+		var path: String = e[4]
+		var is_live := box.has_meta(&"mds_live")
+		if live and lives < FULL_MAX_LIVE and b.intersects(keep if is_live else near):
+			lives += 1
+			if is_live:
+				continue
+			if spent and loaded:
+				more = true
+				continue
+			var packed := load(path) as PackedScene if ResourceLoader.exists(path) else null
+			if packed:
+				_show_live(box, id, packed)
+			else:
+				_full_skip[path] = true
+			loaded = true
+			continue
+		var tex: Texture2D = _full_tex.get(path)
+		if not b.intersects(keep):
+			if is_live:
+				if not _full_tex.has(path):
+					_full_find_picture(id, path)
+					tex = _full_tex.get(path)
+				if tex:
+					_show_picture(box, id, tex)
+				else:
+					_clear_box(box)
+			continue
+		if box.has_node(^"Picture"):
+			continue
+		if not _full_tex.has(path) and not spent:
+			_full_find_picture(id, path)
+			tex = _full_tex.get(path)
+		if tex:
+			if spent:
+				more = true
+			else:
+				_show_picture(box, id, tex)
+			continue
+		var coming := not _full_tex.has(path)
+		if coming:
+			more = true
+			if _full_to_draw.has(path) and not spent and _full_bakes.size() < FULL_BAKES:
+				_full_to_draw.erase(path)
+				_full_bake(id, path)
+		if is_live:
+			# Zoomed out (or past the most scenes): its scene stays until its picture is there.
+			if coming and lives < FULL_MAX_LIVE:
+				lives += 1
+			else:
+				_clear_box(box)
+	if not _full_bakes.is_empty():
+		# The pictures being drawn are drawn only as the editor draws.
+		queue_redraw()
+	return more
+
+## Looks for room [param id]'s picture: in memory, else on disk (read off the main thread), else
+## it is to be drawn. Known at once ([member _full_tex]) when in memory, or when none can be drawn
+## (no renderer: headless runs).
+func _full_find_picture(id: String, path: String) -> void:
+	if _full_reads.has(path) or _full_bakes.has(path) or _full_to_draw.has(path):
+		return
+	var key := MDSRoomPictures.cache_key(path)
+	var tex := MDSRoomPictures.picture(path, key)
+	if tex:
+		_full_tex[path] = tex
+		return
+	var file := MDSRoomPictures.cache_file(path, key)
+	if FileAccess.file_exists(file):
+		# A method of the engine's own (no script function) runs on the other thread.
+		var img := Image.new()
+		_full_reads[path] = [WorkerThreadPool.add_task(img.load.bind(ProjectSettings.globalize_path(file))), img]
+	elif DisplayServer.get_name() == "headless":
+		_full_tex[path] = null
+	else:
+		_full_to_draw[path] = id
+
+func _full_bake(id: String, path: String) -> void:
+	_full_bakes[path] = true
+	var tex: Texture2D = await MDSRoomPictures.bake(self, path, MDSRoomPictures.room_rect(world, id))
+	_full_bakes.erase(path)
+	_full_tex[path] = tex
+
+## Takes in the pictures read off the main thread. Returns whether more are on their way (read
+## or drawn).
+func _full_collect() -> bool:
+	for path: String in _full_reads.keys():
+		var task: int = _full_reads[path][0]
+		if not WorkerThreadPool.is_task_completed(task):
+			continue
+		WorkerThreadPool.wait_for_task_completion(task)
+		var img: Image = _full_reads[path][1]
+		_full_reads.erase(path)
+		_full_tex[path] = MDSRoomPictures.store(path, img, false) if not img.is_empty() else null
+	return not _full_reads.is_empty() or not _full_bakes.is_empty()
 
 ## Draws [param node] (room [param id]'s display) under the other rooms shown when its rectangles
-## leave notches in its box, and its tile layers only inside its rectangles: Generate cave fills a
-## room's whole box with rock, and in its notches are other rooms. Its layers keep their own depths
-## (-10 to 21) within it. The mask is the layers' material while it lasts (a painter saves their
-## tiles only); a material of their own comes back after.
-func _order_room(node: Node2D, id: String) -> void:
+## leave notches in its box, and its tile layers (and picture) only inside its rectangles: Generate
+## cave fills a room's whole box with rock, and in its notches are other rooms. Its layers keep
+## their own depths (-10 to 21) within it. The mask is the layers' material while it lasts (a
+## painter saves their tiles only); a material of their own comes back after. Without
+## [param again], nothing is done when its rectangles are as they were the last time.
+func _order_room(node: Node2D, id: String, again := true) -> void:
 	var on := _together() and world != null and world.has_room(id) and has_notches(world, id)
-	node.z_index = NOTCHED_Z if on else 0
 	var rects: Array[Rect2] = []
 	if on:
 		rects = world.get_local_rects(id)
+	var key := hash([on, id, rects])
+	if not again and node.get_meta(&"mds_order", 0) == key:
+		return
+	node.set_meta(&"mds_order", key)
+	node.z_index = NOTCHED_Z if on else 0
 	var mask: ShaderMaterial = null
 	if on and rects.size() <= MASK_RECTS:
 		mask = _masks.get(id)
@@ -633,8 +846,11 @@ func _order_room(node: Node2D, id: String) -> void:
 		_update_mask(node, mask)
 	elif node.has_meta(&"mds_mask"):
 		node.remove_meta(&"mds_mask")
-	for l: Node in node.find_children("*", "TileMapLayer", true, false):
-		var layer := l as TileMapLayer
+	var masked := node.find_children("*", "TileMapLayer", true, false)
+	if node.has_node(^"Picture"):
+		masked.append(node.get_node(^"Picture"))
+	for l: Node in masked:
+		var layer := l as CanvasItem
 		if mask:
 			if not layer.has_meta(&"mds_own_material"):
 				layer.set_meta(&"mds_own_material", layer.material)
@@ -2088,6 +2304,10 @@ func place_gameplay_object(gameplay_type: String, p: Vector2) -> Node2D:
 			node = MDSNPC.new()
 			node.name = "NPC"
 			node.position = Vector2(p.x, floor_y)
+		"dialogue_trigger":
+			node = MDSDialogueTrigger.new()
+			node.name = "DialogueTrigger"
+			node.position = Vector2(p.x, floor_y)
 
 	if not node:
 		return null
@@ -2703,3 +2923,8 @@ func _notification(what: int) -> void:
 		var w := get_window()
 		if w and w.files_dropped.is_connected(_on_files_dropped):
 			w.files_dropped.disconnect(_on_files_dropped)
+		# Work left on other threads is finished before the editor (or the game) quits.
+		for path: String in _full_reads:
+			WorkerThreadPool.wait_for_task_completion(_full_reads[path][0])
+		_full_reads.clear()
+		MDSRoomPictures.flush()

@@ -157,6 +157,32 @@ itself, closest to how MDS already behaves. Newest at the bottom of each section
   makes it optional; with a time and an `MDSLevelOverview` child of the game, it pulls back for
   that long (skippable) instead of `death_delay`.
 
+## Dialogue
+
+- **How text comes in is a resource (`MDSTextReveal`), not an enum on the box.** A style answers one
+  question, how many characters show after a time (`visible_characters(text, elapsed)`), so a
+  style of one's own is a few lines, and a line, a conversation or a box can each have one. The
+  line's wins, then the conversation's, then the box's. With none set the box types letters at
+  `chars_per_second`, as it did before, so existing boxes look the same.
+- **Word by word never shows part of a word.** A word comes in with the spaces after it; the
+  beat after punctuation goes by the word's last character. Letter by letter has no beat after
+  the line's last character, so a line is done as soon as its last letter shows.
+- **The Text speed option scales time, not the style.** Slow, Normal and Fast multiply the time
+  a style is given (0.6, 1, 1.8); Instant shows whole lines. A box can ignore it
+  (`use_text_speed_option`), for a scripted scene timed to its text.
+- **The player's lines are a flag on the line (`from_player`)**, not a speaker entry: the player
+  has one name and portrait per box (`player_name`, `player_portrait`), shown on the right, so a
+  conversation is written once whatever the player is called.
+- **The one talked to is named by `get_dialogue_name()`** on whoever started the conversation (an
+  NPC's or shop's `npc_name`, a boss's `boss_name`, a trigger's), else the line's `speaker`.
+  Bosses, triggers and NPCs don't need a speaker typed on every line.
+- **`MDSDialogueTrigger` is its own node (an `Area2D`) put on the object**, not a script the object
+  must have: a door, a chest or a statue keeps its own script, and the trigger takes its parent's
+  name. With `once` it is kept like a collected item (`store_object()`), so it stays quiet after
+  a save and load.
+- **A boss's defeat lines start as it starts dying**; the box pauses the game, so it fades away
+  after them.
+
 ## Editor integration and Demo world
 
 - **`MDSAnalysis` boss grants:** `MDSAnalysis` treats room `boss_names` from room meta as grants

@@ -14,6 +14,9 @@ extends MDSEnemy
 ## phase's [member MDSBossPhase.health_threshold] it staggers (Stagger, its enter animation, a
 ## camera punch-in) and fights on with that phase's attacks at its speed. Without phases it has two:
 ## Swipe and Charge, then from half its health Slam, Volley and Charge, faster.
+##
+## With an [MDSDialogueBox] in the game it speaks: [member intro_dialogue] as the fight starts and
+## [member defeat_dialogue] as it falls, named [member boss_name] (the game waits meanwhile).
 
 signal fight_started
 signal phase_changed(index: int)
@@ -25,8 +28,10 @@ signal phase_changed(index: int)
 @export var phases: Array[MDSBossPhase] = []
 ## Its arena (which starts the fight). Empty: the fight starts when the player comes near.
 @export var arena: Node
-## Shown when the fight starts (with an [MDSDialogueBox] in the game).
+## Said when the fight starts (with an [MDSDialogueBox] in the game).
 @export var intro_dialogue: MDSDialogueData
+## Said when it falls, before it fades away.
+@export var defeat_dialogue: MDSDialogueData
 ## Its fight's music. Empty: the area's boss_music.
 @export var music: AudioStream
 @export var walk_speed := 110.0
@@ -102,12 +107,28 @@ func start_fight() -> void:
 		return
 	fighting = true
 	fight_started.emit()
-	if intro_dialogue and is_inside_tree():
-		for box in get_tree().get_nodes_in_group(&"mds_dialogue_box"):
-			if box.has_method(&"start"):
-				box.call(&"start", intro_dialogue)
-				break
+	say(intro_dialogue)
 	machine.force(&"Idle")
+
+## The name it speaks with in conversations ([member boss_name]).
+func get_dialogue_name() -> String:
+	return boss_name
+
+## Starts [param d] in the game's dialogue box, said by it. Returns whether a box shows it.
+func say(d: MDSDialogueData) -> bool:
+	if not d or not is_inside_tree():
+		return false
+	for box in get_tree().get_nodes_in_group(&"mds_dialogue_box"):
+		if box.has_method(&"start"):
+			box.call(&"start", d, self)
+			return true
+	return false
+
+func _on_died() -> void:
+	var was_dying := dying
+	super()
+	if not was_dying:
+		say(defeat_dialogue)
 
 func get_phase() -> MDSBossPhase:
 	return phases[clampi(phase_index, 0, phases.size() - 1)] if not phases.is_empty() else null

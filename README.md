@@ -307,7 +307,7 @@ The tool panel's View section has three views: **Map view** (the world map), **F
 - **Generate area** drags a box for the Generate area dialog, as the map's tool does.
 - **Painting:** pick a Room painting tool and press in any room. It is edited from then on (a room without a scene gets one), as with [several rooms in the Room view](#room-view-painting-the-room-itself): each keeps its changes and undo, painting stops where another room starts, **Save** saves them all, and **Generate all** / **New variation for all** make caves in the rooms selected, or all of them.
 - **Scenes** dragged from the FileSystem dock or the Scenes tab become rooms where they are dropped, as on the map. Dropped on a room without a scene, a scene becomes that room's.
-- Rooms load their scenes as the view comes to them, so big worlds open fast. Weather and backgrounds are left out here; the Room view shows them.
+- **Big worlds open at once.** The Full view never loads every room's scene. Zoomed out (below 20%), each room shows its picture, or its outline until the picture is there. Pictures come from the cache the World map and `MDSRoomPictures` share: read from disk off the main thread, or drawn in the background two rooms at a time the first time. Zoomed in, the scenes of the rooms in view and a little around it come in a few a frame, nearest the middle first, at most 40 at once. Rooms the view leaves let go of their scenes. A room being edited always shows its tiles. Weather and backgrounds are left out here; the Room view shows them.
 
 ```gdscript
 world.checkpoint()
@@ -1081,6 +1081,7 @@ An **`MDSParallaxBackground`** draws layers behind the room, each moving at its 
   - look: `roughness`, `fill_below`, `haze`, `alpha` and `autoscroll` (drifting clouds);
   - movement: `scroll_scale`. 0 stays on the screen, like the sky; 1 moves with the room. It is usually smaller vertically.
 - **Pictures:** drop an image from the FileSystem dock on a parallax background in the Room view (**Effects** tool), or call `add_picture(texture)`. It becomes the nearest layer, its bottom edge on the horizon, repeated sideways.
+- **Foreground** (`foreground`): layers in front of the room and the player that move faster than the room as the camera moves, so they pass close to the camera. The presets are `foliage` (leaves along the bottom edge and hanging from the top one), `cave_rocks`, `ruins` (pillars and broken arches) and `mist` (a low band of fog). They are kept in `foreground_layers`, and `CUSTOM` keeps your own. A layer's `scroll_scale` above 1 puts it in front, its `horizon` is a share of the room's height (1: the bottom edge), and `hang` hangs it down from its line. Foreground layers draw at `z_index` 60 and up, over the room's foreground tiles, shapes and stamps. In the editor they are see-through, so the room under them can still be painted. In a Parallax field write `parallax(preset=misty_forest, foreground=foliage)`, or `parallax(preset=none, foreground=mist)` for a foreground alone. The field's **+** menu has them under **In front of the room**.
 - **In the game** it covers the whole view and follows the camera (`follow_camera`), its layers scrolling by their `scroll_scale`. In the editor it covers its rectangle; pan the Room view to see the layers move. With `follow_camera` off it is a picture on its rectangle, fixed in the world: the camera moves nothing. It draws at `z_index` -100, behind the room's tiles.
 
 Use one three ways:
@@ -1510,6 +1511,16 @@ Give it an `MDSEnemyData` (stats, drops, currency) and place it in a room scene.
 - **Equipment:** `MDSEquipmentData` charms cost slots (3 to start; `MDSSlotUpgrade` adds one), add their `stat_mods` to the player's stats and movement, and lend their `grants` abilities only while worn. By default they can only be changed while resting on a bench (`equip_at_bench_only`).
 - **Shops:** `MDSShop` (an NPC with an `MDSShopInventory`: a price, stock and condition per entry; stock is saved) opens `MDSShopScreen`.
 - **NPCs and lore:** `MDSNPC` talks through `MDSDialogueBox` (`MDSDialogueData` lines with a speaker, a portrait, a condition, a flag to set and choices; `alt_dialogues` pick another conversation by condition). `MDSLoreTablet` adds a Journal entry.
+- **Talking to anything:** an `MDSDialogueTrigger` (Effects tool > **Gameplay Objects** > **Dialogue trigger**) on a door, a chest, a statue or a sleeping boss starts its conversation. It starts when the player presses **interact** in it, or as the player walks in (`trigger` TOUCH). It speaks with `speaker_name`, else its parent's name. `once` (kept in the save), `condition` and `alt_dialogues` work as on NPCs. A boss says `intro_dialogue` as its fight starts and `defeat_dialogue` as it falls. Shops say their greeting before the shop opens.
+- **How the text comes in:** letter by letter (`MDSTextRevealLetters`: `letters_per_second`, with a beat after commas and a longer one after full stops) or word by word (`MDSTextRevealWords`). Set the style on a line (`MDSDialogueLine.reveal`), on a conversation (`MDSDialogueData.reveal`) or on the box (`MDSDialogueBox.reveal`). The line's style wins, then the conversation's; with none set, the box types letters at `chars_per_second`. For a style of your own, extend `MDSTextReveal` and return how many characters show after a time:
+
+  ```gdscript
+  class_name TextRevealHalves extends MDSTextReveal
+  func visible_characters(text: String, elapsed: float) -> int:
+      return text.length() if elapsed >= 1.0 else text.length() / 2
+  ```
+
+  The player's **Text speed** option (Slow, Normal, Fast, Instant) scales every style (`use_text_speed_option` off ignores it), and `characters_shown` tells a typing sound when to play. Lines with `from_player` are the player's: named `player_name`, with `player_portrait` on the right. The other side is named by whoever started the conversation (`get_dialogue_name()`: an NPC's or shop's `npc_name`, a boss's `boss_name`, a trigger's).
 
 ### Death, saving and settings
 
@@ -1517,7 +1528,7 @@ When the player dies it goes back to its last bench (`return_to_save_point()`), 
 
 The kit's progress is saved in MDS's save file under `ext.gameplay`: items, currency, equipment, flags, health, mana, the enemies defeated since a rest, shop stock, the corpse, play time and deaths. A save made before the kit loads with the kit's defaults, and the data carries a version (`MDSGameplay.MIGRATIONS`). `MDSTitleScreen` offers three save slots.
 
-**Options** (`MDSOptionsMenu`, saved in `user://mds_options.cfg`): volume per bus, rebinding for keyboard and gamepad, fullscreen and VSync, game speed 50–100%, assist mode (damage taken ×1, ×0.5 or ×0), screen shake and flash intensity, camera motion (*Cut, never glide*), text size 100/125/150%, keyboard or gamepad glyphs, and a glide toggled by a press instead of held. The screens are navigated with the focus (a keyboard or a gamepad), and they share `gameplay/ui/mds_gameplay_theme.tres`.
+**Options** (`MDSOptionsMenu`, saved in `user://mds_options.cfg`): volume per bus, rebinding for keyboard and gamepad, fullscreen and VSync, game speed 50–100%, assist mode (damage taken ×1, ×0.5 or ×0), screen shake and flash intensity, camera motion (*Cut, never glide*), text size 100/125/150%, text speed (Slow, Normal, Fast, Instant), keyboard or gamepad glyphs, and a glide toggled by a press instead of held. The screens are navigated with the focus (a keyboard or a gamepad), and they share `gameplay/ui/mds_gameplay_theme.tres`.
 
 ### Runtime debug keys
 

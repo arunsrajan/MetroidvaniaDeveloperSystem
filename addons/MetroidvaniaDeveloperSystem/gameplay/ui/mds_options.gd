@@ -5,13 +5,17 @@ extends RefCounted
 ## when the game starts ([MDSGameplay] loads them) and whenever [MDSOptionsMenu] changes one:
 ## bus volumes, key and button bindings, window mode, and accessibility: game speed, assist mode
 ## (damage taken ×1, ×0.5 or ×0), screen shake and flash intensity (0 turns them off), camera
-## motion (MDS's Glide or Cut, never glide), text size, input glyphs and toggled glide.
+## motion (MDS's Glide or Cut, never glide), text size, how fast dialogue text comes (Slow to
+## Instant), input glyphs and toggled glide.
 
 enum Glyphs { AUTO, KEYBOARD, GAMEPAD }
 
 const ASSIST_LEVELS: PackedFloat32Array = [1.0, 0.5, 0.0]
 const ASSIST_NAMES: PackedStringArray = ["Off", "Half damage", "No damage"]
 const TEXT_SCALES: PackedFloat32Array = [1.0, 1.25, 1.5]
+## How fast dialogue text comes, times its style's own pace ([MDSTextReveal]); 0: whole lines.
+const TEXT_SPEEDS: PackedFloat32Array = [0.6, 1.0, 1.8, 0.0]
+const TEXT_SPEED_NAMES: PackedStringArray = ["Slow", "Normal", "Fast", "Instant"]
 const GLYPH_NAMES: PackedStringArray = ["Auto", "Keyboard", "Gamepad"]
 
 ## Where the options are kept.
@@ -32,6 +36,8 @@ static var flash := 1.0
 static var camera_motion := 0
 ## Index of [constant TEXT_SCALES].
 static var text_size := 0
+## Index of [constant TEXT_SPEEDS].
+static var text_speed := 1
 static var glyphs: Glyphs = Glyphs.AUTO
 ## Glide switched on and off by a jump press instead of held ([member MDSPlayerGlideState.toggled]).
 static var toggle_glide := false
@@ -65,6 +71,7 @@ static func load_options() -> void:
 	flash = clampf(float(cfg.get_value("access", "flash", flash)), 0.0, 1.0)
 	camera_motion = clampi(int(cfg.get_value("access", "camera_motion", camera_motion)), 0, 1)
 	text_size = clampi(int(cfg.get_value("access", "text_size", text_size)), 0, TEXT_SCALES.size() - 1)
+	text_speed = clampi(int(cfg.get_value("access", "text_speed", text_speed)), 0, TEXT_SPEEDS.size() - 1)
 	glyphs = clampi(int(cfg.get_value("access", "glyphs", glyphs)), 0, 2) as Glyphs
 	toggle_glide = bool(cfg.get_value("access", "toggle_glide", toggle_glide))
 	var b: Variant = cfg.get_value("input", "bindings", {})
@@ -81,6 +88,7 @@ static func reset() -> void:
 	flash = 1.0
 	camera_motion = 0
 	text_size = 0
+	text_speed = 1
 	glyphs = Glyphs.AUTO
 	toggle_glide = false
 	bindings = {}
@@ -96,6 +104,7 @@ static func save_options() -> Error:
 	cfg.set_value("access", "flash", flash)
 	cfg.set_value("access", "camera_motion", camera_motion)
 	cfg.set_value("access", "text_size", text_size)
+	cfg.set_value("access", "text_speed", text_speed)
 	cfg.set_value("access", "glyphs", int(glyphs))
 	cfg.set_value("access", "toggle_glide", toggle_glide)
 	cfg.set_value("input", "bindings", bindings)
@@ -146,6 +155,10 @@ static func damage_taken() -> float:
 
 static func text_scale() -> float:
 	return TEXT_SCALES[clampi(text_size, 0, TEXT_SCALES.size() - 1)]
+
+## How fast dialogue text comes, times its style's pace (0: whole lines at once).
+static func text_speed_scale() -> float:
+	return TEXT_SPEEDS[clampi(text_speed, 0, TEXT_SPEEDS.size() - 1)]
 
 ## Whether glyphs show gamepad buttons: the option, or with AUTO whether a gamepad is connected.
 static func use_gamepad_glyphs() -> bool:

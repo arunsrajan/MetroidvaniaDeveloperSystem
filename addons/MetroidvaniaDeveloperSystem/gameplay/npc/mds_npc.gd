@@ -66,6 +66,10 @@ func _ready() -> void:
 func get_gameplay() -> MDSGameplay:
 	return MDSGameplay.find_from(self)
 
+## The name it speaks with in conversations ([member npc_name]).
+func get_dialogue_name() -> String:
+	return npc_name
+
 ## Whether MDS condition [param condition] is met now (empty: yes).
 func condition_met(condition: String) -> bool:
 	if condition.strip_edges().is_empty():

@@ -1,7 +1,8 @@
 extends "res://tests/test_case.gd"
 ## Parallax backgrounds (MDSParallaxBackground, MDSParallaxLayer): presets, layers following the
 ## camera, specs and checks (MDSEnvironment), undo copies, the room's or area's background in
-## MDSWorldGame and the Room view, and pictures dropped on one.
+## MDSWorldGame and the Room view, and pictures dropped on one. Foreground layers: in front of the
+## room, faster than it, along the room's edges (hanging from the top one), from presets and specs.
 
 const Fixture := preload("res://tests/game_fixture.gd")
 const PICTURE := "res://addons/MetroidvaniaDeveloperSystem/assets/environment/parallax.svg"
@@ -13,6 +14,7 @@ func _run() -> void:
 	await _follows_camera()
 	_data()
 	_specs()
+	await _foreground()
 	_validator()
 	await _in_game()
 	await _canvas()
@@ -25,8 +27,11 @@ func _presets() -> void:
 	bg.free()
 	check(MDSParallaxBackground.PRESET_IDS.size() == MDSParallaxBackground.Preset.size() and MDSParallaxBackground.PRESET_NAMES.size() == MDSParallaxBackground.PRESET_IDS.size(), "an id and a name per preset")
 	var real_renderer := DisplayServer.get_name() != "headless"
+	check(MDSParallaxBackground.layers_of(MDSParallaxBackground.Preset.NONE).is_empty(), "the none preset has no background layers (a foreground alone)")
 	for i in range(1, MDSParallaxBackground.PRESET_IDS.size()):
 		var id := MDSParallaxBackground.PRESET_IDS[i]
+		if id == "none":
+			continue
 		var list := MDSParallaxBackground.layers_of(i as MDSParallaxBackground.Preset)
 		check(list.size() >= 3 and list[0].kind == MDSParallaxLayer.Kind.SKY and list[0].scroll_scale == Vector2.ZERO, "%s starts with a sky that stays put (%d layers)" % [id, list.size()])
 		var far_to_near := true
@@ -153,6 +158,65 @@ func _specs() -> void:
 	check(MDSEnvironment.parallax_for_room(world, "Crypt_01") == "deep_cavern", "or its own")
 	world.set_room_value("Crypt_01", "parallax", "")
 	check(MDSEnvironment.parallax_for_room(world, "Crypt_01") == "night_sky", "else the world's")
+
+func _foreground() -> void:
+	check(MDSParallaxBackground.FOREGROUND_IDS.size() == MDSParallaxBackground.Foreground.size() and MDSParallaxBackground.FOREGROUND_NAMES.size() == MDSParallaxBackground.FOREGROUND_IDS.size(), "an id and a name per foreground")
+	check(MDSParallaxBackground.FOREGROUND_Z > 24, "foreground layers draw over the room's foreground stamps (z %d)" % MDSParallaxBackground.FOREGROUND_Z)
+	for i in range(2, MDSParallaxBackground.FOREGROUND_IDS.size()):
+		var id := MDSParallaxBackground.FOREGROUND_IDS[i]
+		var list := MDSParallaxBackground.foreground_layers_of(i as MDSParallaxBackground.Foreground)
+		check(not list.is_empty() and list.all(func(l: MDSParallaxLayer) -> bool: return l.scroll_scale.x > 1.0 and l.scroll_scale.y >= 1.0), "%s: every layer moves faster than the room (%d layers)" % [id, list.size()])
+		var bg := MDSParallaxBackground.new()
+		check(bg.use_foreground(id) and bg.foreground == i and bg.foreground_layers.size() == list.size() and bg.preset == MDSParallaxBackground.Preset.DUSK_MOUNTAINS, "use_foreground(%s) leaves the background as it is" % id)
+		bg.free()
+	check(MDSParallaxBackground.foreground_layers_of(MDSParallaxBackground.Foreground.FOLIAGE).any(func(l: MDSParallaxLayer) -> bool: return l.hang), "foliage hangs along the top edge too")
+	var none := MDSParallaxBackground.new()
+	check(none.foreground == MDSParallaxBackground.Foreground.NONE and none.foreground_layers.is_empty(), "no foreground unless asked")
+	check(not none.use_foreground("bogus"), "an unknown foreground is refused")
+	none.free()
+	# In front of the room, the background behind it.
+	var holder := Node2D.new()
+	add_child(holder)
+	var room := Rect2(0, 0, 1152, 648)
+	var node := MDSEnvironment.build_parallax("parallax(preset=misty_forest, foreground=foliage)", room)
+	holder.add_child(node)
+	await get_tree().process_frame
+	var bg := MDSEnvironment.effects_in(node)[0] as MDSParallaxBackground
+	check(bg.preset == MDSParallaxBackground.Preset.MISTY_FOREST and bg.foreground == MDSParallaxBackground.Foreground.FOLIAGE, "a spec gives a background and a foreground")
+	var back := bg.layers.size()
+	var quads: Array = []
+	for c in bg.get_children(true):
+		if c is Polygon2D:
+			quads.append(c)
+	check(quads.size() == back + bg.foreground_layers.size(), "a quad per layer, foreground ones too (%d)" % quads.size())
+	var behind := quads.slice(0, back).all(func(q: Polygon2D) -> bool: return q.z_as_relative and q.z_index < 50)
+	var in_front := quads.slice(back).all(func(q: Polygon2D) -> bool: return not q.z_as_relative and q.z_index >= MDSParallaxBackground.FOREGROUND_Z)
+	check(behind and in_front, "the background's quads behind the room (z -100 + i), the foreground's in front at z %d and up" % MDSParallaxBackground.FOREGROUND_Z)
+	var local_room := Rect2(bg.to_local(node.to_global(room.position)), room.size)
+	check(bg.fit_room and bg.room_rect().is_equal_approx(local_room), "fitted to a room, the foreground measures from the room, not the margin around it (%s)" % bg.room_rect())
+	var mats := bg.get_materials()
+	var bottom: MDSParallaxLayer = bg.foreground_layers[0]
+	var top: MDSParallaxLayer = bg.foreground_layers[1]
+	check(is_equal_approx(float(mats[back].get_shader_parameter("base_y")), local_room.position.y + bottom.horizon * local_room.size.y), "its bottom layer stands on the room's bottom edge (%.0f)" % float(mats[back].get_shader_parameter("base_y")))
+	check(float(mats[back + 1].get_shader_parameter("base_y")) < local_room.position.y + 10.0 and mats[back + 1].get_shader_parameter("hang") == true and mats[back].get_shader_parameter("hang") == false, "its top layer hangs from the room's top edge")
+	var off := bg.layer_offset(bottom, bg.get_effect_rect().get_center() + Vector2(100, 0))
+	check(is_equal_approx(off.x, 100.0 * (1.0 - bottom.scroll_scale.x)) and off.x < 0.0, "moving the camera right, it slides left past the room: faster than it (%.0f)" % off.x)
+	node.free()
+	# A foreground alone.
+	node = MDSEnvironment.build_parallax("parallax(preset=none, foreground=mist)", room)
+	bg = MDSEnvironment.effects_in(node)[0] as MDSParallaxBackground
+	check(bg.layers.is_empty() and bg.foreground_layers.size() == 1 and bg.all_layers().size() == 1, "preset=none: a foreground alone")
+	node.free()
+	holder.free()
+	# The Parallax field puts a foreground with the background picked.
+	check(MDSParallaxBackground.with_foreground("misty_forest", "foliage") == "parallax(preset=misty_forest, foreground=foliage)", "a foreground with a preset")
+	check(MDSParallaxBackground.with_foreground("parallax(preset=misty_forest, foreground=foliage)", "mist") == "parallax(preset=misty_forest, foreground=mist)", "another foreground replaces it")
+	check(MDSParallaxBackground.with_foreground("parallax(preset=volcanic, seed_value=4, foreground=ruins)", "none") == "parallax(preset=volcanic, seed_value=4)", "none takes it away, settings stay")
+	check(MDSParallaxBackground.with_foreground("parallax(preset=night_sky, foreground=mist)", "none") == "night_sky", "back to the plain preset")
+	check(MDSParallaxBackground.with_foreground("", "cave_rocks") == "parallax(preset=none, foreground=cave_rocks)" and MDSParallaxBackground.with_foreground("none", "mist") == "parallax(preset=none, foreground=mist)", "a foreground alone")
+	check(MDSParallaxBackground.with_foreground("res://bg.tscn", "ruins") == "res://bg.tscn, parallax(preset=none, foreground=ruins)", "beside a background scene")
+	check(MDSParallaxBackground.foreground_of("parallax(preset=volcanic, foreground=Cave_Rocks)") == "cave_rocks" and MDSParallaxBackground.foreground_of("volcanic").is_empty(), "foreground_of reads it back")
+	check(MDSEnvironment.check_parallax(MDSParallaxBackground.with_foreground("misty_forest", "foliage")).is_empty(), "and the field takes it")
 
 func _validator() -> void:
 	var world := Fixture.build()
