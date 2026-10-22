@@ -687,6 +687,11 @@ static func file_uid(path: String) -> int:
 			return ResourceUID.text_to_id(m.get_string(1))
 	return ResourceLoader.get_resource_uid(path)
 
+## The world's name as game files are named after it (its save and exploration files in
+## user://): snake_case, "world" without a name.
+static func file_stem(world: MDSWorld) -> String:
+	return world.get_world_name().to_snake_case().validate_filename() if not world.get_world_name().is_empty() else "world"
+
 ## Creates a ready-to-run game scene for the world: an MDSWorldGame root, a placeholder
 ## player (CharacterBody2D in the "player" group) with a following camera, a room camera with a
 ## camera director, area music, and a UI with a minimap (MDSWorldMapView following the player)
@@ -700,7 +705,7 @@ static func create_game_scene(world: MDSWorld, scene_path: String, include_gamep
 	game.name = world.get_world_name().to_pascal_case() + "Game" if not world.get_world_name().is_empty() else "WorldGame"
 	game.world_file = world.path
 	game.starting_room = world.get_start_room()
-	var stem := world.get_world_name().to_snake_case().validate_filename() if not world.get_world_name().is_empty() else "world"
+	var stem := file_stem(world)
 	game.save_file = "user://%s_save.json" % stem
 	game.exploration_file = "user://%s_exploration.json" % stem
 

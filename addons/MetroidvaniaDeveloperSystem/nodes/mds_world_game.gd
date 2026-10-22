@@ -132,9 +132,11 @@ static var instance: MDSWorldGame
 ## saved at), else start a new game in [member starting_room]. "Play from here" and a save
 ## your own code loads first win.
 @export var load_on_start := true
-## A file of its own that keeps the visited rooms, the map's reveal and the save points found,
-## written as soon as a room is first entered: dying or quitting without saving never forgets
-## the map, and a restarted game shows it as far as the player got. Empty: off.
+## A file of its own that keeps the visited rooms, the map's reveal, the save points found and
+## the room the player is in, written as each room is entered: dying or quitting without saving
+## never forgets the map, and a restarted game shows it as far as the player got. The editor's
+## World map shows it too (Show on map > Explored in the last playtest, see
+## [method read_exploration]). Empty: off.
 @export var exploration_file := "user://mds_exploration.json"
 ## Nodes in this group that are near the gate the player leaves through (a guard giving
 ## chase) come along into the next room, and stay where they end up.
@@ -351,9 +353,8 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 		if gate.room_id.is_empty():
 			gate.room_id = id
 		gate.player_entered.connect(_on_gate_entered)
-	var first_visit := not visited_rooms.has(id)
 	visited_rooms[id] = true
-	var found_save_point := _record_save_points(room_node, id)
+	_record_save_points(room_node, id)
 	_dress_room(room_node, id)
 	_pending_gate = {}
 	if player:
@@ -375,8 +376,8 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 		old_room.queue_free()
 	if map_view:
 		map_view.mark_visited(id)
-	if first_visit or found_save_point:
-		_save_exploration()
+	# Every room entered: the room the player is in is kept too (the editor's map shows it).
+	_save_exploration()
 	_cooldown_until = Time.get_ticks_msec() + int(gate_cooldown * 1000.0)
 	_arrived_frame = Engine.get_physics_frames()
 	changing_room = false
@@ -1074,10 +1075,49 @@ func _load_exploration() -> void:
 func _save_exploration() -> void:
 	if exploration_file.is_empty():
 		return
-	var data := {"visited": visited_rooms.keys(), "save_points": save_points.duplicate(true)}
+	var data := {"world": world_file, "visited": visited_rooms.keys(), "save_points": save_points.duplicate(true)}
 	if map_view:
 		data.map = map_view.get_save_data()
+	if not current_room.is_empty() and player and world and world.has_room(current_room):
+		var at := player.global_position - world.get_origin(current_room)
+		data.last = {"room": current_room, "position": [at.x, at.y]}
 	_write_json(exploration_file, data)
+
+## What a game of [param world] explored last: its exploration file (see [member exploration_file])
+## read, {world, visited, save_points, map, last}, with [code]file[/code] (its path) and
+## [code]time[/code] (when it was written, Unix seconds) added; empty when there is none. The
+## newest file in [param dir] named [code]*exploration.json[/code] that says it is
+## [param world]'s wins; a file written before files said whose they are counts when it is
+## named after the world (as [method MDSWorldSceneTools.create_game_scene] names it), or is the
+## default one.
+static func read_exploration(world: MDSWorld, dir := "user://") -> Dictionary:
+	var best: Dictionary = {}
+	var best_rank := -1
+	if not world or not DirAccess.dir_exists_absolute(dir):
+		return best
+	var named := "%s_exploration.json" % MDSWorldSceneTools.file_stem(world)
+	for f in DirAccess.get_files_at(dir):
+		if not f.ends_with("exploration.json"):
+			continue
+		var path := dir.path_join(f)
+		var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+		if not data is Dictionary:
+			continue
+		var rank := -1
+		if data.has("world"):
+			rank = 2 if str(data.world) == world.path else -1
+		elif f == named:
+			rank = 1
+		elif f == "mds_exploration.json":
+			rank = 0
+		var time := FileAccess.get_modified_time(path)
+		if rank < 0 or rank < best_rank or (rank == best_rank and time <= int(best.get("time", 0))):
+			continue
+		best = data
+		best.file = path
+		best.time = time
+		best_rank = rank
+	return best
 
 ## Writes [param data] to [param path] as JSON, through a ".tmp" file renamed over it: a crash
 ## while writing leaves the old file whole.

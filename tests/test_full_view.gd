@@ -35,6 +35,8 @@ func _run() -> void:
 	check(view.open_full(world, 0).is_empty() and view.is_full() and canvas.full, "the Full view opens on an empty world")
 	check(view.painter == null and view.session_rooms().is_empty(), "no room edited, none shown")
 	check(tools.tool == MDSFullViewTools.Tool.RECTANGLE, "with Rectangle picked, to draw the first room")
+	var tiles := MDSTilesetFactory.get_or_create(DIR + "/tiles.tres")
+	check(view.palette.painter != null and view.palette.painter.tile_set == tiles and view.palette.source_opt.item_count > 0, "the tile palette shows the rooms' tileset and its sheets, no room edited (%d)" % view.palette.source_opt.item_count)
 	canvas.zoom = 0.25
 	canvas.pan = Vector2(40, 40)
 	canvas._apply_view()
@@ -77,6 +79,12 @@ func _run() -> void:
 	# A press in a room with a painting tool: it gets a scene and is painted, the view stays.
 	view.set_tool(MDSRoomCanvas.Tool.TERRAIN)
 	check(tools.tool == -1, "a painting tool takes over from the Full view's tools")
+	var terrains := range(view.fill_opt.item_count).filter(func(i: int) -> bool: return view.fill_opt.get_item_text(i).begins_with("Terrain:"))
+	check(view.painter == null and not view.fill_opt.disabled and not terrains.is_empty(), "its fills list the tileset's terrains before a room is edited (%d)" % view.fill_opt.item_count)
+	view.palette.select_region(Rect2i(0, 0, 1, 1))
+	check(view.palette.has_selection() and canvas.fills[MDSRoomCanvas.Tool.TERRAIN].get("type") == "stamp", "tiles picked in the palette are the brush's fill")
+	view.set_tool(MDSRoomCanvas.Tool.TERRAIN)
+	canvas.fills[MDSRoomCanvas.Tool.TERRAIN] = {"type": "terrain", "set": 0, "terrain": 0}
 	canvas.shape = MDSTerrainShapes.Shape.BRUSH
 	canvas.brush_size = 1
 	var spot := Vector2(300, 150)

@@ -91,6 +91,13 @@ static func open(path: String, default_tile_set: TileSet = null) -> MDSRoomPaint
 		return null
 	return open_packed(packed, path, default_tile_set)
 
+## A painter of [param tiles] alone, with no room: what the tile palette and the brushes' fills
+## need while no room is edited (the Full view's). Only its tileset methods work.
+static func for_tile_set(tiles: TileSet) -> MDSRoomPainter:
+	var p := MDSRoomPainter.new()
+	p.tile_set = tiles
+	return p
+
 ## Opens the room scene [param path] as [param packed] has it: the scene open in the editor, with
 ## the changes made there and not saved yet, packed (see [method rebase_onto]).
 static func open_packed(packed: PackedScene, path: String, default_tile_set: TileSet = null) -> MDSRoomPainter:

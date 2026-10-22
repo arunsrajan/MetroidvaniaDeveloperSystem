@@ -17,7 +17,7 @@ const SECTION_ROOM := "Room painting"
 const SECTION_FULL := "Full view"
 
 enum WorldItem { NEW = 1000, OPEN, IMPORT_METSYS, RELOAD, IMPORT_IMAGE }
-enum ViewItem { LABELS, AREA_LABELS, TERRAIN, PREVIEWS, GATES, MARKERS, PINS, ISSUES, GRID, LEGEND }
+enum ViewItem { LABELS, AREA_LABELS, TERRAIN, PREVIEWS, GATES, MARKERS, PINS, ISSUES, GRID, LEGEND, EXPLORED }
 enum ExportItem { JSON, PNG, DOT, MARKDOWN }
 enum ScenesItem { RESCAN, ADD_SCENES, AUTO_CONNECT, SETTINGS, GAME_SCENE, AUTO_DOORS }
 enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, SET_START, ROUTE, LINK, DUPLICATE, DELETE, ADD_ROOM, ADD_PIN, REMOVE_PIN, ADD_GATE, COPY_ID, PAINT_ROOM, GENERATE_AREA, SELECT_AREA, AREA_CAVES, EDIT_ROOMS, MERGE_ROOMS, EDIT_AREA, MERGE_AREA, IMPORT_IMAGE, FULL_VIEW }
@@ -296,6 +296,7 @@ func _build_ui() -> void:
 		[ViewItem.GATES, "Gates && connections", "gates"], [ViewItem.MARKERS, "Markers", "markers"],
 		[ViewItem.PINS, "Pins", "pins"], [ViewItem.ISSUES, "Issue badges", "issues"],
 		[ViewItem.GRID, "Grid", "grid"], [ViewItem.LEGEND, "Legend", "legend"],
+		[ViewItem.EXPLORED, "Explored in the last playtest", "explored"],
 	]
 	for item in view_items:
 		vp.add_check_item(item[1], item[0])
@@ -303,7 +304,9 @@ func _build_ui() -> void:
 	vp.id_pressed.connect(func(id: int) -> void:
 		var idx := vp.get_item_index(id)
 		vp.set_item_checked(idx, not vp.is_item_checked(idx))
-		canvas.set_show(vp.get_item_metadata(idx), vp.is_item_checked(idx)))
+		canvas.set_show(vp.get_item_metadata(idx), vp.is_item_checked(idx))
+		if vp.get_item_metadata(idx) == "explored" and vp.is_item_checked(idx) and world:
+			_set_status(canvas.explored_summary()))
 	display.add_child(MDSSidePanel.fill(view_menu))
 
 	var zoom_out := MDSUi.button("-", "Zoom out")
