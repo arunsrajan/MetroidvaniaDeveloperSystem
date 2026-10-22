@@ -5,8 +5,10 @@ extends Control
 ## In-game map for non-linear worlds, drawn from the same .mdsworld.json the editor uses.
 ##
 ## Reveal rules follow Hollow Knight: a room shows once it is visited, or dimmed when the
-## player owns the map of its area (Cornifer/Shakra); everything else stays hidden. The save
-## points (benches) found show as bench marks, the one last rested on brighter.
+## player owns the map of its area (Cornifer/Shakra); everything else stays hidden. Each room
+## explored (visited) has a check mark ([member show_explored_marks]); rooms only on a bought map
+## have none. The save points (benches) found show as bench marks, the one last rested on
+## brighter, and a pin marks where the player is.
 ## [codeblock]
 ## map_view.mark_visited(current_room_id)          # on every room change
 ## map_view.map_area("The Greenhouse")             # when the area map is bought
@@ -43,6 +45,11 @@ extends Control
 ## Draw the save points found (benches), the one last rested on brighter.
 @export var show_save_points := true
 @export var save_point_color := Color(1.0, 0.86, 0.55)
+## A check mark on each room explored (visited), when the room is big enough on the map to hold it.
+@export var show_explored_marks := true
+@export var explored_mark_color := Color(0.62, 0.95, 0.55)
+## The pin marking where the player is.
+@export var player_marker_color := Color(1.0, 0.42, 0.32)
 @export_group("Minimap")
 ## A minimap: centred on the player, showing [member view_span] px of the world across its
 ## shorter side, instead of fitting every revealed room.
@@ -58,6 +65,9 @@ extends Control
 		queue_redraw()
 ## A frame around the minimap.
 @export var frame_color := Color(0.85, 0.78, 0.62, 0.8)
+
+## How small a room may be on the map (px across) and still get its explored mark.
+const EXPLORED_MARK_MIN := 18.0
 
 var world: MDSWorld
 var visited_rooms: Dictionary = {}
@@ -249,15 +259,44 @@ func _draw() -> void:
 			for lp: Vector2 in save_points[id]:
 				var here: bool = id == respawn_room and lp.distance_to(respawn_pos) < 48.0
 				draw_bench_mark(self, to_screen.call(world.get_origin(id) + lp), save_point_color if here else save_point_color.darkened(0.25), 1.25 if here else 1.0)
+	if show_explored_marks:
+		for id in shown:
+			if not visited_rooms.has(id):
+				continue
+			var b := world.get_room_bounds(id)
+			if minf(b.size.x, b.size.y) * scale < EXPLORED_MARK_MIN:
+				continue
+			var at: Vector2 = to_screen.call(world.get_room_label_pos(id))
+			if show_room_names:
+				at.y -= 14.0 # over the room's name
+			draw_explored_mark(self, at, explored_mark_color)
 	if world.has_room(current_room) and player_local_pos != Vector2.INF and world.get_room_layer(current_room) == layer:
-		var p: Vector2 = to_screen.call(world.get_origin(current_room) + player_local_pos)
-		draw_circle(p, 5.0, Color.WHITE)
-		draw_circle(p, 5.0, Color.BLACK, false, 1.5)
+		draw_player_mark(self, to_screen.call(world.get_origin(current_room) + player_local_pos), player_marker_color)
 	_draw_frame()
 
 func _draw_frame() -> void:
 	if follow_player and frame_color.a > 0.0:
 		draw_rect(Rect2(Vector2.ZERO, size).grow(-1.0), frame_color, false, 2.0)
+
+## A check mark for a room explored, centred on [param at], on a dark disc.
+static func draw_explored_mark(ci: CanvasItem, at: Vector2, color: Color, k := 1.0) -> void:
+	ci.draw_circle(at, 6.5 * k, Color(0, 0, 0, 0.6))
+	var tick := PackedVector2Array([at + Vector2(-3.4, 0.2) * k, at + Vector2(-1.0, 2.8) * k, at + Vector2(3.6, -2.8) * k])
+	ci.draw_polyline(tick, color, 2.0 * k, true)
+
+## A pin for where the player is, its tip on [param at]: a round head with a white eye, pointing
+## down.
+static func draw_player_mark(ci: CanvasItem, at: Vector2, color: Color, k := 1.0) -> void:
+	var head := at + Vector2(0, -13.0) * k
+	var r := 6.5 * k
+	ci.draw_circle(at, 2.5 * k, Color(0, 0, 0, 0.45)) # its shadow on the map
+	var outline := PackedVector2Array([at, head + Vector2(-r * 0.86, r * 0.5), head + Vector2(r * 0.86, r * 0.5)])
+	ci.draw_colored_polygon(outline, Color.BLACK)
+	ci.draw_circle(head, r + 1.5 * k, Color.BLACK)
+	var body := PackedVector2Array([at + Vector2(0, -1.8) * k, head + Vector2(-r * 0.7, r * 0.45), head + Vector2(r * 0.7, r * 0.45)])
+	ci.draw_colored_polygon(body, color)
+	ci.draw_circle(head, r, color)
+	ci.draw_circle(head, r * 0.42, Color.WHITE)
 
 ## A small bench mark for the map, centred on [param at]: a seat on two legs with a back.
 static func draw_bench_mark(ci: CanvasItem, at: Vector2, color: Color, k := 1.0) -> void:

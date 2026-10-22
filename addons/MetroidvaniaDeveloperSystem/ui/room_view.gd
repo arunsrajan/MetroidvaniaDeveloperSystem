@@ -141,6 +141,9 @@ var _area_opt: OptionButton
 var _full_caves: CheckBox
 var _full_hint: Label
 var _full_refresh_pending := false
+## The Full view with no room edited: a painter of the rooms' tileset alone, so the tile palette
+## and the fills show it (see [method tile_painter]).
+var _tiles_painter: MDSRoomPainter
 ## The path of the scene a room clicked in the Full view gets when it has none (id -> path).
 var scene_path_for: Callable
 
@@ -769,7 +772,8 @@ func open_full(p_world: MDSWorld, layer: int, picked: Array = []) -> String:
 	canvas.session_painters = _painters
 	full_tools.select(picked)
 	_fill_area_picker()
-	palette.set_painter(null)
+	_tiles_painter = null
+	palette.set_painter(tile_painter())
 	set_area("", [])
 	# Nothing on the layer yet: drawing rooms is the first thing to do.
 	set_full_tool(MDSFullViewTools.Tool.ROOMS if not _session.is_empty() else MDSFullViewTools.Tool.RECTANGLE)
@@ -840,7 +844,8 @@ func _let_go() -> void:
 	painter = null
 	room_id = ""
 	canvas.room_id = ""
-	palette.set_painter(null)
+	palette.set_painter(tile_painter())
+	_fill_pickers(true)
 
 ## Makes a scene for room [param id] of the Full view (see [member scene_path_for]). Returns
 ## whether it has one now.
@@ -1179,6 +1184,7 @@ func close_room(auto_save := true) -> void:
 		painter.free_instance()
 	painter = null
 	palette.set_painter(null)
+	_tiles_painter = null
 	# The Full view ends with it: the painting tools are the tools again.
 	if _full:
 		_full = false
@@ -1898,16 +1904,28 @@ func _update_shape_controls() -> void:
 
 # --- Fills ---------------------------------------------------------------------------------------
 
+## The painter whose tileset the palette and the fills show: the room edited's, else (the Full
+## view with no room edited) one of the rooms' tileset alone ([method _room_tiles]).
+func tile_painter() -> MDSRoomPainter:
+	if painter:
+		return painter
+	if not _full or not world:
+		return null
+	if not _tiles_painter:
+		_tiles_painter = MDSRoomPainter.for_tile_set(_room_tiles())
+	return _tiles_painter
+
 ## Fills the current tool can use, as [text, icon, fill].
 func _fill_choices() -> Array:
 	var out: Array = []
-	for t in painter.get_terrains():
+	var tp := tile_painter()
+	for t in tp.get_terrains():
 		var tname := str(t[2]) if not str(t[2]).is_empty() else "Terrain %d/%d" % [t[0], t[1]]
-		out.append(["Terrain: %s" % tname, MDSUi.color_icon(painter.tile_set.get_terrain_color(t[0], t[1])), {"type": "terrain", "set": t[0], "terrain": t[1]}])
-	var kinds := painter.get_decor_tiles()
+		out.append(["Terrain: %s" % tname, MDSUi.color_icon(tp.tile_set.get_terrain_color(t[0], t[1])), {"type": "terrain", "set": t[0], "terrain": t[1]}])
+	var kinds := tp.get_decor_tiles()
 	for kind in kinds:
 		var tile: Array = kinds[kind][0]
-		var src := painter.tile_set.get_source(tile[0]) as TileSetAtlasSource
+		var src := tp.tile_set.get_source(tile[0]) as TileSetAtlasSource
 		var icon := AtlasTexture.new()
 		icon.atlas = src.texture
 		icon.region = src.get_tile_texture_region(tile[1])
@@ -1949,7 +1967,7 @@ func _same_fill(a: Dictionary, b: Dictionary) -> bool:
 
 func _fill_valid(f: Dictionary, choices: Array) -> bool:
 	if f.get("type") == "stamp":
-		return painter.tile_set.has_source(int(f.get("source", -1)))
+		return tile_painter().tile_set.has_source(int(f.get("source", -1)))
 	if f.get("type") == "color":
 		return true
 	for c in choices:
@@ -1960,7 +1978,7 @@ func _fill_valid(f: Dictionary, choices: Array) -> bool:
 ## Rebuilds the fill list for the current tool. With [param validate], fills that no
 ## longer exist in the tileset fall back to defaults.
 func _fill_pickers(validate: bool) -> void:
-	if not painter:
+	if not tile_painter():
 		return
 	var choices := _fill_choices()
 	if validate:

@@ -18,6 +18,9 @@ extends Control
 ## Several rooms: Ctrl+click adds a room to the selection (or takes it out), Ctrl+drag on empty
 ## space selects the rooms in a box. Drag one of them to move them all; the Room view, Merge
 ## and Delete act on all of them. Map images (PNG...) dropped here are imported as rooms.
+## Explored in the last playtest ([member show] "explored"): the rooms the game's exploration file
+## says were visited get a check mark and the others are dimmed, with the benches found and a pin
+## where the player last was (see [method MDSWorldGame.read_exploration]).
 
 signal room_selected(room_id: String)
 signal room_activated(room_id: String)
@@ -63,6 +66,7 @@ const COLOR_GRID := Color(1, 1, 1, 0.04)
 const COLOR_SELECT := Color(1.0, 0.92, 0.35)
 const COLOR_ROUTE := Color(0.3, 0.95, 1.0)
 const COLOR_NO_AREA := Color(0.55, 0.55, 0.6)
+const COLOR_EXPLORED := Color(0.62, 0.95, 0.55)
 const MIN_ZOOM := 0.003
 const MAX_ZOOM := 2.0
 
@@ -74,8 +78,12 @@ var color_mode: int = MDSMapCanvas.ColorMode.AREA
 var tool: int = Tool.SELECT
 var show := {
 	"labels": true, "area_labels": true, "terrain": true, "previews": false, "gates": true,
-	"markers": true, "pins": true, "issues": true, "grid": true, "legend": true,
+	"markers": true, "pins": true, "issues": true, "grid": true, "legend": true, "explored": false,
 }
+## What the last playtest explored (see [method refresh_explored]); empty: nothing found.
+var explored: Dictionary = {}
+## Where the game writes its exploration files (its user://).
+var exploration_dir := "user://"
 var marker_filters: Dictionary = {}
 var issue_rooms: Dictionary = {} ## id -> highest severity
 var selected_room := ""
@@ -156,7 +164,10 @@ func set_data(p_world: MDSWorld, p_analysis: MDSAnalysis, p_scene_db: Dictionary
 	if not is_same(p_scene_db, scene_db) or p_world != world:
 		_silhouettes.clear()
 		_preview_layer = -9999
+	var other := p_world != world
 	world = p_world
+	if other and show.explored:
+		refresh_explored()
 	analysis = p_analysis
 	scene_db = p_scene_db
 	if not world or not world.has_room(selected_room):
@@ -277,7 +288,31 @@ func set_show(key: String, value: bool) -> void:
 	if key == "previews":
 		_preview_layer = -9999
 		_update_previews()
+	if key == "explored" and value:
+		refresh_explored()
 	redraw()
+
+## Reads again what the last playtest explored ([method MDSWorldGame.read_exploration]). Done
+## when Explored is turned on, another world opens, and the editor gets the focus back (after a
+## playtest).
+func refresh_explored() -> void:
+	explored = MDSWorldGame.read_exploration(world, exploration_dir) if world else {}
+	redraw()
+
+## What [member explored] holds, in words (for the status bar).
+func explored_summary() -> String:
+	if explored.is_empty():
+		return "Nothing explored yet: play the game (F5 or Play from here), then come back to the editor."
+	var on_layer := 0
+	var seen := 0
+	for id in world.get_room_ids():
+		if world.get_room_layer(id) == layer:
+			on_layer += 1
+			if id in explored.get("visited", []):
+				seen += 1
+	var last: Dictionary = explored.get("last", {})
+	var where := ", last in %s" % last.room if world.has_room(str(last.get("room", ""))) else ""
+	return "Explored in the last playtest: %d of the layer's %d rooms%s (%s, %s)." % [seen, on_layer, where, str(explored.file).get_file(), Time.get_datetime_string_from_unix_time(int(explored.time) + int(Time.get_time_zone_from_system().bias) * 60, true)]
 
 ## Call after the scene files behind rooms changed (e.g. rescans).
 func refresh_previews() -> void:
@@ -393,6 +428,8 @@ func get_legend() -> Array:
 		MDSMapCanvas.ColorMode.STATUS:
 			for s in MDSMapCanvas.STATUS_COLORS:
 				items.append([s.capitalize() if not s.is_empty() else "No status", MDSMapCanvas.STATUS_COLORS[s]])
+	if show.explored and not explored.is_empty():
+		items.append(["Explored in the last playtest", COLOR_EXPLORED])
 	return items
 
 func _border_px() -> float:
@@ -637,6 +674,8 @@ func _draw_overlay() -> void:
 	if show.gates:
 		_draw_connections(ci, ids)
 	_draw_route(ci)
+	if show.explored:
+		_draw_explored(ci, ids)
 	if show.markers:
 		for id in ids:
 			_draw_markers(ci, id)
@@ -881,6 +920,47 @@ func _draw_route(ci: CanvasItem) -> void:
 		ci.draw_polyline(pts, COLOR_ROUTE, 3.0, true)
 		ci.draw_circle(pts[0], 6.0, COLOR_ROUTE)
 		ci.draw_circle(pts[pts.size() - 1], 6.0, Color(1, 0.4, 0.8))
+
+## Explored in the last playtest: rooms not visited dimmed, a check mark on those visited, the
+## benches found (the one last rested on brighter) and a pin where the player last was.
+func _draw_explored(ci: CanvasItem, ids: Array[String]) -> void:
+	if explored.is_empty():
+		return
+	var visited: Dictionary = {}
+	for id in explored.get("visited", []):
+		visited[str(id)] = true
+	for id in ids:
+		if visited.has(id):
+			continue
+		if world.has_room_shape(id):
+			for poly in MDSMapStyle.room_polygons(world, id):
+				ci.draw_colored_polygon(_poly_on_screen(poly), Color(0, 0, 0, 0.45))
+		else:
+			for r in world.get_world_rects(id):
+				ci.draw_rect(world_rect_to_screen(r), Color(0, 0, 0, 0.45))
+	for id in ids:
+		if not visited.has(id):
+			continue
+		var b := world_rect_to_screen(world.get_room_bounds(id))
+		if minf(b.size.x, b.size.y) >= MDSWorldMapView.EXPLORED_MARK_MIN:
+			MDSWorldMapView.draw_explored_mark(ci, b.position + Vector2(10, 10), COLOR_EXPLORED)
+	var respawn: Dictionary = explored.get("map", {}).get("respawn", {})
+	var points: Variant = explored.get("save_points", {})
+	if points is Dictionary:
+		for id: String in points:
+			if not world.has_room(id) or world.get_room_layer(id) != layer:
+				continue
+			for p in points[id]:
+				if not p is Array or p.size() != 2:
+					continue
+				var lp := Vector2(float(p[0]), float(p[1]))
+				var rested := str(respawn.get("room", "")) == id and (respawn.get("position", []) as Array).size() == 2 and lp.distance_to(Vector2(float(respawn.position[0]), float(respawn.position[1]))) < 48.0
+				MDSWorldMapView.draw_bench_mark(ci, world_to_screen(world.get_origin(id) + lp), Color(1.0, 0.86, 0.55) if rested else Color(1.0, 0.86, 0.55).darkened(0.25), 1.25 if rested else 1.0)
+	var last: Dictionary = explored.get("last", {})
+	var room := str(last.get("room", ""))
+	if world.has_room(room) and world.get_room_layer(room) == layer and (last.get("position", []) as Array).size() == 2:
+		var at := world.get_origin(room) + Vector2(float(last.position[0]), float(last.position[1]))
+		MDSWorldMapView.draw_player_mark(ci, world_to_screen(at), Color(1.0, 0.42, 0.32), 1.2)
 
 func _gate_towards(a: String, b: String) -> String:
 	var gates := world.get_gates(a)
@@ -1755,6 +1835,10 @@ func _notification(what: int) -> void:
 				_overlay.queue_redraw()
 		NOTIFICATION_RESIZED:
 			redraw()
+		NOTIFICATION_APPLICATION_FOCUS_IN:
+			# Back from a playtest: what it explored.
+			if show.explored and world:
+				refresh_explored()
 		NOTIFICATION_ENTER_TREE:
 			if not get_window().files_dropped.is_connected(_on_files_dropped):
 				get_window().files_dropped.connect(_on_files_dropped)
