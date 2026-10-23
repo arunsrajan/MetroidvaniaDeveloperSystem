@@ -28,6 +28,8 @@ extends Node2D
 ##   and bosses, and area objectives, with [method get_save_data] / [method set_save_data].
 ##   An exploration file keeps the map explored (and the save points found) even when the game
 ##   isn't saved, so a restarted game shows the map as far as the player got.
+## - Pins on the map ([method add_map_pin]): the player's own (placed on the pause menu's map), a
+##   quest's, a danger; kept like the explored map and shown on every map of the game.
 ## - Saves the game at save points, like Hollow Knight's benches: [method save_game] writes
 ##   [member save_file] (an [MDSBench] calls it when the player rests on it) and records the
 ##   bench as the place to come back to ([method return_to_save_point], after dying). A game
@@ -51,6 +53,10 @@ signal game_loaded
 ## A node was recorded as defeated ([method mark_defeated]); [param boss] is the boss's name
 ## when it was one.
 signal defeated(id: String, boss: String)
+## Pin [param id] was put on the map (or moved), see [method add_map_pin].
+signal map_pin_added(id: String)
+## Pin [param id] was taken off the map.
+signal map_pin_removed(id: String)
 
 ## The running game (the last one that entered the tree), for nodes that need it: title
 ## cards, music, banners, barriers.
@@ -168,6 +174,10 @@ var respawn: Dictionary = {}
 ## The save points (benches) found so far: room id -> list of [x, y] positions in the room.
 ## Kept in the exploration file and the save, and shown on the map.
 var save_points: Dictionary = {}
+## Pins on the map: id -> {position: [x, y] (world px), layer, kind, label} (see
+## [method add_map_pin]). Kept like the explored map: in the exploration file as soon as they
+## change, and in the save.
+var map_pins: Dictionary = {}
 ## Darkness of the current room (0 = lit).
 var darkness := 0.0
 ## The current room's weather node (null: none), see [method get_weather_spec].
@@ -1071,11 +1081,14 @@ func _load_exploration() -> void:
 	if map_view:
 		for a in data.get("map", {}).get("mapped_areas", []):
 			map_view.map_area(a)
+	if data.get("pins", {}) is Dictionary:
+		map_pins = (data.get("pins", {}) as Dictionary).duplicate(true)
+		_show_map_pins()
 
 func _save_exploration() -> void:
 	if exploration_file.is_empty():
 		return
-	var data := {"world": world_file, "visited": visited_rooms.keys(), "save_points": save_points.duplicate(true)}
+	var data := {"world": world_file, "visited": visited_rooms.keys(), "save_points": save_points.duplicate(true), "pins": map_pins.duplicate(true)}
 	if map_view:
 		data.map = map_view.get_save_data()
 	if not current_room.is_empty() and player and world and world.has_room(current_room):
@@ -1150,10 +1163,66 @@ func _merge_save_points(from: Variant) -> void:
 				if p is Array and p.size() == 2:
 					map_view.mark_save_point(id, Vector2(float(p[0]), float(p[1])))
 
+# --- Pins on the map ------------------------------------------------------------------------------
+
+## Puts a pin on the map at [param world_pos] (world px) and returns its id. [param kind] picks
+## its look on the map ("pin", "quest", "danger", "treasure", "note", or one of your own in
+## [member MDSWorldMapView.pin_colors]), [param label] is written beside it. With [param id] a pin
+## of that id moves there (a quest's marker as the quest goes on); else a new id is made.
+## [param map_layer] -1: the layer of the room the player is in. The pin is kept at once (the
+## exploration file) and saved with the game.
+## [codeblock]
+## game.add_map_pin(game.player.global_position)                   # the player's own pin
+## game.add_map_pin(elder.global_position, "quest", "The elder", "quest_elder")
+## game.remove_map_pin("quest_elder")                              # done
+## [/codeblock]
+func add_map_pin(world_pos: Vector2, kind := "pin", label := "", id := "", map_layer := -1) -> String:
+	if id.is_empty():
+		var n := map_pins.size() + 1
+		while map_pins.has("pin_%d" % n):
+			n += 1
+		id = "pin_%d" % n
+	if map_layer < 0:
+		map_layer = world.get_room_layer(current_room) if world and world.has_room(current_room) else 0
+	map_pins[id] = {"position": [world_pos.x, world_pos.y], "layer": map_layer, "kind": kind, "label": label}
+	if map_view and map_view.has_method(&"set_pin"):
+		map_view.set_pin(id, world_pos, map_layer, kind, label)
+	_save_exploration()
+	map_pin_added.emit(id)
+	return id
+
+## Puts a pin where the player is (see [method add_map_pin]).
+func pin_player_position(kind := "pin", label := "") -> String:
+	if not player:
+		return ""
+	return add_map_pin(player.global_position, kind, label)
+
+## Takes pin [param id] off the map. Returns whether there was one.
+func remove_map_pin(id: String) -> bool:
+	if not map_pins.erase(id):
+		return false
+	if map_view and map_view.has_method(&"remove_pin"):
+		map_view.remove_pin(id)
+	_save_exploration()
+	map_pin_removed.emit(id)
+	return true
+
+## Takes every pin off the map (of [param kind] only, unless empty).
+func clear_map_pins(kind := "") -> void:
+	for id: String in map_pins.keys():
+		if kind.is_empty() or str(map_pins[id].get("kind", "pin")) == kind:
+			remove_map_pin(id)
+
+## Shows [member map_pins] on [member map_view] (after it read a save of its own).
+func _show_map_pins() -> void:
+	if map_view and map_view.has_method(&"set_pins"):
+		map_view.set_pins(map_pins)
+
 ## A new game forgets the explored map (the exploration file is deleted).
 func reset_exploration() -> void:
 	visited_rooms.clear()
 	save_points.clear()
+	map_pins.clear()
 	if map_view:
 		map_view.set_save_data({})
 	if not exploration_file.is_empty() and FileAccess.file_exists(exploration_file):
@@ -1250,6 +1319,7 @@ func get_save_data() -> Dictionary:
 		"moved": moved.duplicate(true),
 		"respawn": respawn.duplicate(true),
 		"save_points": save_points.duplicate(true),
+		"pins": map_pins.duplicate(true),
 	}
 	if map_view:
 		data.map = map_view.get_save_data()
@@ -1312,10 +1382,15 @@ func _apply_save(data: Dictionary) -> void:
 	respawn = (data.get("respawn", {}) as Dictionary).duplicate(true) if data.get("respawn", {}) is Dictionary else {}
 	var known_save_points := save_points.duplicate(true) if not exploration_file.is_empty() else {}
 	save_points.clear()
+	# Pins: the exploration file's when the game keeps one (they are written there as they change,
+	# so a pin taken away after saving stays away), else the save's.
+	if exploration_file.is_empty() and data.get("pins", {}) is Dictionary:
+		map_pins = (data.get("pins", {}) as Dictionary).duplicate(true)
 	if map_view and data.has("map"):
 		map_view.set_save_data(data.map)
 		for id in explored:
 			map_view.mark_visited(id)
+	_show_map_pins()
 	_merge_save_points(data.get("save_points", {}))
 	_merge_save_points(known_save_points)
 	if map_view and map_view.has_method(&"set_respawn") and respawn.has("room") and world.has_room(str(respawn.room)):

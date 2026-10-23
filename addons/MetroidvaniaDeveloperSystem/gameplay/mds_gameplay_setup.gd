@@ -24,7 +24,7 @@ static func button_name(index: int) -> String:
 	return NAMES[index] if index >= 0 and index < NAMES.size() else "Button %d" % index
 
 ## Action -> [keys, gamepad buttons, gamepad axes ([axis, direction])]. menu_prev and menu_next
-## switch the pause menu's tabs.
+## switch the pause menu's tabs; map_zoom_* and map_pan_* zoom and move its map.
 const ACTIONS := {
 	"move_left": [[KEY_LEFT, KEY_A], [JOY_BUTTON_DPAD_LEFT], [[JOY_AXIS_LEFT_X, -1.0]]],
 	"move_right": [[KEY_RIGHT, KEY_D], [JOY_BUTTON_DPAD_RIGHT], [[JOY_AXIS_LEFT_X, 1.0]]],
@@ -40,6 +40,12 @@ const ACTIONS := {
 	"pause": [[KEY_ESCAPE], [JOY_BUTTON_START], []],
 	"menu_prev": [[KEY_Q], [JOY_BUTTON_LEFT_SHOULDER], []],
 	"menu_next": [[KEY_E], [JOY_BUTTON_RIGHT_SHOULDER], []],
+	"map_zoom_in": [[KEY_EQUAL, KEY_KP_ADD], [], [[JOY_AXIS_TRIGGER_RIGHT, 1.0]]],
+	"map_zoom_out": [[KEY_MINUS, KEY_KP_SUBTRACT], [], [[JOY_AXIS_TRIGGER_LEFT, 1.0]]],
+	"map_pan_left": [[KEY_J], [], [[JOY_AXIS_RIGHT_X, -1.0]]],
+	"map_pan_right": [[KEY_L], [], [[JOY_AXIS_RIGHT_X, 1.0]]],
+	"map_pan_up": [[KEY_I], [], [[JOY_AXIS_RIGHT_Y, -1.0]]],
+	"map_pan_down": [[KEY_K], [], [[JOY_AXIS_RIGHT_Y, 1.0]]],
 }
 
 ## Layer name -> default layer number (1 to 32).
