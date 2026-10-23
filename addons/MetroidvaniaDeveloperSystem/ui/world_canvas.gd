@@ -965,13 +965,10 @@ func _draw_explored(ci: CanvasItem, ids: Array[String]) -> void:
 			var wp := MDSWorldMapView.pin_position(pin)
 			if wp == Vector2.INF or int(pin.get("layer", 0)) != layer:
 				continue
-			var color: Color = MDSWorldMapView.PIN_COLORS.get(str(pin.get("kind", "pin")), MDSWorldMapView.PIN_COLORS.pin)
+			var st := MDSWorldMapView.marker_style(pin)
 			var at := world_to_screen(wp)
-			MDSWorldMapView.draw_map_pin(ci, at, color, 1.2)
-			var text := str(pin.get("label", ""))
-			if not text.is_empty():
-				ci.draw_string_outline(font, at + Vector2(14, -8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 4, Color.BLACK)
-				ci.draw_string(font, at + Vector2(14, -8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, color.lightened(0.3))
+			MDSWorldMapView.draw_marker(ci, at, st.icon, st.color, 1.2)
+			MDSWorldMapView.draw_marker_label(ci, font, at, str(pin.get("label", "")), st.color)
 	var last: Dictionary = explored.get("last", {})
 	var room := str(last.get("room", ""))
 	if world.has_room(room) and world.get_room_layer(room) == layer and (last.get("position", []) as Array).size() == 2:

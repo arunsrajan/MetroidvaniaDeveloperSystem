@@ -12,8 +12,9 @@ extends MDSGameplayScreen
 ## On the map the player puts pins of their own ([method MDSWorldGame.add_map_pin], kind "pin"):
 ## a click on the map puts one there, a click on one takes it away, and Pin where I am (a
 ## gamepad's way) puts one where the player stands. Pins of other kinds (a quest's) only show.
-## The map zooms and moves ([member MDSWorldMapView.zoomable]): the wheel or RT / LT zoom, a drag
-## or the right stick moves it, and it opens on the player.
+## The map zooms and moves ([member MDSWorldMapView.zoomable]): the wheel or RT / LT zoom (out
+## below the whole map too), a drag or the right stick moves it, and it opens on the player. A
+## marker pointed at (the mouse over it, or in the middle of the map) shows its description.
 
 enum Tab { MAP, INVENTORY, EQUIPMENT, JOURNAL, BESTIARY, OPTIONS, QUIT }
 const TAB_NAMES: PackedStringArray = ["Map", "Inventory", "Equipment", "Journal", "Bestiary", "Options", "Quit"]
@@ -77,7 +78,7 @@ func _ready() -> void:
 		if game:
 			game.pin_player_position()
 			_refresh_map())
-	MDSGameplayUi.label(pin_row, "Click: put or take a pin   Wheel, LT / RT: zoom   Drag, right stick: move", 14, MDSGameplayUi.DIM)
+	MDSGameplayUi.label(pin_row, "Click: put or take a pin   Point at a marker to read it   Wheel, LT / RT: zoom   Drag, right stick: move", 14, MDSGameplayUi.DIM)
 	map_box.add_child(pin_row)
 	_add_tab(map_box, Tab.MAP)
 	inventory = MDSInventoryScreen.new()

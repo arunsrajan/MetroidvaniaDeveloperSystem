@@ -21,23 +21,30 @@ extends Control
 ## With [member follow_player] it is a minimap: a corner of the screen showing the rooms around
 ## the player ([member view_span] px of the world across), instead of everything revealed.
 ##
-## [b]Pins[/b] mark places on the map: the player's own, a quest's, a danger. [method set_pin]
-## puts one ({position: world px, layer, kind, label}), drawn as a flag in its kind's color
-## ([member pin_colors]) with its label; they are saved with the map. In a game, use
-## [method MDSWorldGame.add_map_pin]: the game keeps them and shows them on its maps. With
+## [b]Markers[/b] (pins) mark places on the map: a boss room, a locked door, a key, a quest's
+## target, the player's own marks. [method set_marker] puts one ({position: world px, layer,
+## kind, label, description, color, icon}): a badge with its kind's icon and color
+## ([member marker_kinds]: pin, boss, locked_door, key, quest, danger, treasure, note, or your own
+## with [method define_marker_kind]), its label (a title) beside it; pointed at (the mouse over
+## it, or the middle of the map on a gamepad), its description shows in a box
+## ([member show_marker_info], [signal marker_focused]). They are saved with the map. In a game,
+## use [method MDSWorldGame.add_map_marker]: the game keeps them and shows them on its maps. With
 ## [member pins_editable] (the pause menu's map), a click on the map asks for a pin there
-## ([signal pin_requested]) and a click on a pin for it to go ([signal pin_clicked]).
+## ([signal pin_requested]) and a click on a marker for it to go ([signal pin_clicked]).
 ##
 ## [b]Zoom.[/b] With [member zoomable] (the pause menu's map) the full map zooms and moves: the
 ## mouse wheel and [code]map_zoom_in[/code] / [code]map_zoom_out[/code] (RT / LT, = / -) zoom,
-## a drag and [code]map_pan_*[/code] (the right stick, I J K L) move it. Marks and pins keep their
-## size on the screen, and clicks put pins where they point at any zoom.
+## from [member min_zoom] (the whole map small in the middle) to [member max_zoom], a drag and
+## [code]map_pan_*[/code] (the right stick, I J K L) move it. Marks and markers keep their size on
+## the screen, and clicks put pins where they point at any zoom.
 
 ## A click on the map, away from any pin, with [member pins_editable]: a pin is wanted at
 ## [param world_pos] (world px) on [param map_layer].
 signal pin_requested(world_pos: Vector2, map_layer: int)
-## A click on pin [param id] with [member pins_editable].
+## A click on marker [param id] with [member pins_editable].
 signal pin_clicked(id: String)
+## The marker pointed at changed (its description shows): [param id], "" for none.
+signal marker_focused(id: String)
 
 @export_file("*.mdsworld.json", "*.idpworld.json") var world_file := "":
 	set(value):
@@ -77,15 +84,19 @@ signal pin_clicked(id: String)
 		queue_redraw()
 ## How far it zooms in: this many times the whole map's fit.
 @export_range(1.0, 32.0) var max_zoom := 8.0
+## How far it zooms out: this share of the whole map's fit (1: no further than every room).
+@export_range(0.05, 1.0) var min_zoom := 0.25
 ## How fast map_pan_* move it, held all the way (screen px a second).
 @export var pan_speed := 700.0
 @export_group("Pins")
-## Draw the pins ([member pins]).
+## Draw the markers ([member pins]).
 @export var show_pins := true
 ## Clicks place pins and take them away (see [signal pin_requested], [signal pin_clicked]).
 @export var pins_editable := false
-## The color of each kind of pin; a kind not listed is drawn in the "pin" color.
-@export var pin_colors: Dictionary = PIN_COLORS.duplicate()
+## The description of the marker pointed at shows in a box beside it.
+@export var show_marker_info := true
+## This map's own colors for kinds of markers (kind -> Color), over [member marker_kinds]'.
+@export var pin_colors: Dictionary = {}
 @export_group("Minimap")
 ## A minimap: centred on the player, showing [member view_span] px of the world across its
 ## shorter side, instead of fitting every revealed room.
@@ -111,11 +122,26 @@ const ZOOM_STEP := 1.25
 const ZOOM_RATE := 3.0
 ## How far (px) the mouse moves, pressed, before it drags the map instead of clicking.
 const DRAG_START := 6.0
-## The kinds of pins and their colors, to start from (see [member pin_colors]).
-const PIN_COLORS := {
-	"pin": Color(0.98, 0.84, 0.32), "quest": Color(0.45, 0.85, 1.0), "danger": Color(1.0, 0.35, 0.3),
-	"treasure": Color(0.75, 1.0, 0.45), "note": Color(0.9, 0.9, 0.95),
+## The kinds of markers to start from: kind -> {name, color, icon} (see [member marker_kinds]).
+const MARKER_KINDS := {
+	"pin": {"name": "Pin", "color": Color(0.98, 0.84, 0.32), "icon": "flag"},
+	"boss": {"name": "Boss", "color": Color(1.0, 0.36, 0.32), "icon": "skull"},
+	"locked_door": {"name": "Locked door", "color": Color(0.96, 0.64, 0.28), "icon": "lock"},
+	"key": {"name": "Key", "color": Color(1.0, 0.88, 0.4), "icon": "key"},
+	"quest": {"name": "Quest", "color": Color(0.45, 0.85, 1.0), "icon": "star"},
+	"danger": {"name": "Danger", "color": Color(1.0, 0.35, 0.3), "icon": "warning"},
+	"treasure": {"name": "Treasure", "color": Color(0.75, 1.0, 0.45), "icon": "gem"},
+	"note": {"name": "Note", "color": Color(0.9, 0.9, 0.95), "icon": "dot"},
 }
+## The icons markers draw themselves (a marker's icon can also be a texture or its path).
+const MARKER_ICONS: PackedStringArray = ["flag", "skull", "lock", "key", "star", "warning", "gem", "dot", "door", "cross"]
+## How far over its point (px) a marker's badge is.
+const MARKER_LIFT := 13.0
+
+## The kinds of markers every map knows: kind -> {name, color, icon}. [method define_marker_kind]
+## adds one (an NPC, a shop, a lever...). A marker of an unknown kind looks like a "pin".
+static var marker_kinds: Dictionary = MARKER_KINDS.duplicate(true)
+static var _icon_cache: Dictionary = {} ## texture path -> Texture2D
 
 var world: MDSWorld
 var visited_rooms: Dictionary = {}
@@ -127,8 +153,11 @@ var respawn_room := ""
 var respawn_pos := Vector2.ZERO
 var current_room := ""
 var player_local_pos := Vector2.INF
-## Pins on the map: id -> {position: [x, y] (world px), layer, kind, label}.
+## Markers on the map: id -> {position: [x, y] (world px), layer, kind, label, description,
+## and color (HTML) and icon (an icon name or a texture's path) of its own when it has them}.
 var pins: Dictionary = {}
+## The marker pointed at, whose description shows ("": none; see [method focus_pin]).
+var focused_pin := ""
 ## How far the full map is zoomed in ([member zoomable]): 1 shows every room revealed, up to
 ## [member max_zoom].
 var zoom := 1.0
@@ -182,16 +211,73 @@ func set_player(room_id: String, local_pos: Vector2) -> void:
 		layer = world.get_room_layer(room_id)
 	queue_redraw()
 
-## Puts pin [param id] at [param world_pos] (world px) on [param map_layer] (-1: the layer
-## shown), replacing a pin of that id. [param kind] picks its color ([member pin_colors]),
-## [param label] is written beside it.
-func set_pin(id: String, world_pos: Vector2, map_layer := -1, kind := "pin", label := "") -> void:
-	pins[id] = {"position": [world_pos.x, world_pos.y], "layer": layer if map_layer < 0 else map_layer, "kind": kind, "label": label}
+## Adds a kind of marker every map knows, or changes one: its [param color], its [param icon]
+## (one of [constant MARKER_ICONS], a Texture2D or its path) and [param name].
+## [codeblock]
+## MDSWorldMapView.define_marker_kind("shop", Color.GOLD, "gem", "Shop")
+## MDSWorldMapView.define_marker_kind("npc", Color.SKY_BLUE, preload("res://ui/npc_icon.png"))
+## [/codeblock]
+static func define_marker_kind(kind: String, color: Color, icon: Variant = "flag", name := "") -> void:
+	marker_kinds[kind] = {"name": name if not name.is_empty() else kind.capitalize(), "color": color, "icon": icon}
+
+## How [param marker] looks: {color, icon (a name of [constant MARKER_ICONS] or a Texture2D),
+## name}: its own color and icon, else its kind's ([param colors]: a map's own colors by kind).
+static func marker_style(marker: Dictionary, colors: Dictionary = {}) -> Dictionary:
+	var kind := str(marker.get("kind", "pin"))
+	var k: Dictionary = marker_kinds.get(kind, marker_kinds.get("pin", MARKER_KINDS.pin))
+	var color: Color = colors.get(kind, k.get("color", Color.WHITE))
+	var own := str(marker.get("color", ""))
+	if not own.is_empty() and Color.html_is_valid(own):
+		color = Color.html(own)
+	var icon: Variant = k.get("icon", "flag")
+	var own_icon := str(marker.get("icon", ""))
+	if not own_icon.is_empty():
+		icon = own_icon
+	return {"color": color, "icon": _icon(icon), "name": str(k.get("name", kind.capitalize()))}
+
+## [param icon] as drawn: an icon name, else a texture (loaded once from its path).
+static func _icon(icon: Variant) -> Variant:
+	if icon is Texture2D:
+		return icon
+	var n := str(icon)
+	if n in MARKER_ICONS:
+		return n
+	if not _icon_cache.has(n):
+		_icon_cache[n] = load(n) as Texture2D if ResourceLoader.exists(n) else null
+	return _icon_cache[n] if _icon_cache[n] else "flag"
+
+## Puts marker [param id] at [param world_pos] (world px) on [param map_layer] (-1: the layer
+## shown), replacing a marker of that id. [param kind] picks its look ([member marker_kinds]),
+## [param label] is written beside it and [param description] shows when it is pointed at.
+## [param style]: {color, icon} of its own.
+func set_pin(id: String, world_pos: Vector2, map_layer := -1, kind := "pin", label := "", description := "", style := {}) -> void:
+	var m := {"position": [world_pos.x, world_pos.y], "layer": layer if map_layer < 0 else map_layer, "kind": kind, "label": label, "description": description}
+	if style.get("color") is Color:
+		m.color = (style.color as Color).to_html()
+	if style.get("icon") is Texture2D:
+		m.icon = (style.icon as Texture2D).resource_path
+	elif style.has("icon"):
+		m.icon = str(style.icon)
+	set_marker(id, m)
+
+## Puts marker [param id] as [param marker] says ({position, layer, kind, label, description,
+## color, icon}; see [member pins]).
+func set_marker(id: String, marker: Dictionary) -> void:
+	pins[id] = marker.duplicate(true)
 	queue_redraw()
 
-## Takes pin [param id] away. Returns whether there was one.
+## Points at marker [param id] (its description shows), "" for none.
+func focus_pin(id: String) -> void:
+	if id != focused_pin:
+		focused_pin = id
+		marker_focused.emit(id)
+		queue_redraw()
+
+## Takes marker [param id] away. Returns whether there was one.
 func remove_pin(id: String) -> bool:
 	var had := pins.erase(id)
+	if id == focused_pin:
+		focus_pin("")
 	queue_redraw()
 	return had
 
@@ -202,9 +288,11 @@ func clear_pins(kind := "") -> void:
 			pins.erase(id)
 	queue_redraw()
 
-## Shows the pins of [param list] (id -> {position, layer, kind, label}) and no others.
+## Shows the markers of [param list] (id -> {position, layer, kind, label...}) and no others.
 func set_pins(list: Dictionary) -> void:
 	pins = list.duplicate(true)
+	if not pins.has(focused_pin):
+		focus_pin("")
 	queue_redraw()
 
 ## Where [param pin] is (world px), INF when it says nowhere.
@@ -217,11 +305,11 @@ static func pin_position(pin: Dictionary) -> Vector2:
 func screen_to_world(at: Vector2) -> Vector2:
 	return (at - _offset) / _scale if _scale > 0.0 else Vector2.INF
 
-## The pin drawn nearest [param at] (on this control), within [constant PIN_GRAB] px of its foot
-## or its flag; "" when none is.
-func pin_at(at: Vector2) -> String:
+## The marker drawn nearest [param at] (on this control), within [param reach] px of its point
+## or its badge; "" when none is.
+func pin_at(at: Vector2, reach := PIN_GRAB) -> String:
 	var best := ""
-	var best_d := PIN_GRAB
+	var best_d := reach
 	if _scale <= 0.0 or not show_pins:
 		return best
 	for id: String in pins:
@@ -230,7 +318,7 @@ func pin_at(at: Vector2) -> String:
 		if int(pin.get("layer", 0)) != layer or wp == Vector2.INF:
 			continue
 		var foot := _offset + wp * _scale
-		var d := minf(at.distance_to(foot), at.distance_to(foot + Vector2(4, -12)))
+		var d := minf(at.distance_to(foot), at.distance_to(foot + Vector2(0, -MARKER_LIFT)))
 		if d < best_d:
 			best_d = d
 			best = id
@@ -238,10 +326,10 @@ func pin_at(at: Vector2) -> String:
 
 # --- Zoom ----------------------------------------------------------------------------------------
 
-## Zooms the full map to [param value] times its fit (1 to [member max_zoom]), keeping the world
-## point under [param at] (on this control; INF: its middle) where it is.
+## Zooms the full map to [param value] times its fit ([member min_zoom] to [member max_zoom]),
+## keeping the world point under [param at] (on this control; INF: its middle) where it is.
 func set_zoom(value: float, at := Vector2.INF) -> void:
-	value = clampf(value, 1.0, maxf(max_zoom, 1.0))
+	value = clampf(value, clampf(min_zoom, 0.01, 1.0), maxf(max_zoom, 1.0))
 	if _fit_scale <= 0.0 or _scale <= 0.0:
 		zoom = value
 		queue_redraw()
@@ -303,6 +391,9 @@ func _process(delta: float) -> void:
 	if pan.length() > 0.1:
 		# The stick looks that way: the map moves the other.
 		pan_by(-pan * pan_speed * delta)
+	if absf(z) > 0.05 or pan.length() > 0.1:
+		# On a gamepad, the marker in the middle of the map is the one pointed at.
+		focus_pin(pin_at(size / 2.0, PIN_GRAB * 4.0))
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -331,10 +422,14 @@ func _gui_input(event: InputEvent) -> void:
 		if _dragged:
 			pan_by(mm.relative)
 			accept_event()
+	elif event is InputEventMouseMotion and show_marker_info:
+		# The mouse over a marker points at it.
+		focus_pin(pin_at((event as InputEventMouseMotion).position))
 
 func _pin_click(at: Vector2) -> void:
 	var id := pin_at(at)
 	if not id.is_empty():
+		focus_pin(id)
 		pin_clicked.emit(id)
 	elif _scale > 0.0:
 		pin_requested.emit(screen_to_world(at), layer)
@@ -396,9 +491,10 @@ func _draw() -> void:
 	var offset := Vector2(padding, padding) + (avail - bounds.size * scale) / 2.0 - bounds.position * scale
 	_fit_scale = scale
 	_bounds = bounds
-	if zoomable and not follow_player and scale > 0.0 and (zoom > 1.0 or view_center != Vector2.INF):
-		# Zoomed: view_center in the middle, the screen kept over the rooms.
-		scale *= clampf(zoom, 1.0, maxf(max_zoom, 1.0))
+	if zoomable and not follow_player and scale > 0.0 and (zoom != 1.0 or view_center != Vector2.INF):
+		# Zoomed: view_center in the middle, the screen kept over the rooms (zoomed out, the
+		# rooms small in the middle).
+		scale *= clampf(zoom, clampf(min_zoom, 0.01, 1.0), maxf(max_zoom, 1.0))
 		var center := _clamped_center(view_center if view_center != Vector2.INF else bounds.get_center(), scale)
 		offset = size / 2.0 - center * scale
 	if follow_player:
@@ -506,15 +602,18 @@ func _draw() -> void:
 			var wp := pin_position(pin)
 			if int(pin.get("layer", 0)) != layer or wp == Vector2.INF:
 				continue
+			var st := marker_style(pin, pin_colors)
 			var at: Vector2 = to_screen.call(wp)
-			var color: Color = pin_colors.get(str(pin.get("kind", "pin")), pin_colors.get("pin", Color.YELLOW))
-			draw_map_pin(self, at, color)
-			var text := str(pin.get("label", ""))
-			if not text.is_empty():
-				draw_string_outline(font, at + Vector2(12, -6), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 4, Color.BLACK)
-				draw_string(font, at + Vector2(12, -6), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, color.lightened(0.3))
+			draw_marker(self, at, st.icon, st.color, 1.2 if id == focused_pin else 1.0)
+			# Zoomed out below the fit the markers crowd: only the one pointed at keeps its title.
+			if not (zoomable and zoom < 1.0) or id == focused_pin:
+				draw_marker_label(self, font, at, str(pin.get("label", "")), st.color)
 	if world.has_room(current_room) and player_local_pos != Vector2.INF and world.get_room_layer(current_room) == layer:
 		draw_player_mark(self, to_screen.call(world.get_origin(current_room) + player_local_pos), player_marker_color)
+	if show_pins and show_marker_info and pins.has(focused_pin) and int(pins[focused_pin].get("layer", 0)) == layer:
+		var wp := pin_position(pins[focused_pin])
+		if wp != Vector2.INF:
+			draw_marker_info(self, font, to_screen.call(wp), pins[focused_pin], marker_style(pins[focused_pin], pin_colors), Rect2(Vector2.ZERO, size))
 	_draw_frame()
 
 func _draw_frame() -> void:
@@ -541,16 +640,102 @@ static func draw_player_mark(ci: CanvasItem, at: Vector2, color: Color, k := 1.0
 	ci.draw_circle(head, r, color)
 	ci.draw_circle(head, r * 0.42, Color.WHITE)
 
-## A pin put on the map, its foot on [param at]: a flag on a pole.
+## A pin put on the map, its point on [param at] (a marker with the flag icon).
 static func draw_map_pin(ci: CanvasItem, at: Vector2, color: Color, k := 1.0) -> void:
-	var top := at + Vector2(0, -15.0) * k
-	ci.draw_circle(at, 2.5 * k, Color(0, 0, 0, 0.5))
-	ci.draw_line(at, top, Color.BLACK, 3.0 * k)
-	ci.draw_line(at, top, color.lightened(0.5), 1.4 * k)
-	var rim := PackedVector2Array([top + Vector2(-1.0, -1.5) * k, top + Vector2(12.5, 3.5) * k, top + Vector2(-1.0, 8.5) * k])
-	var flag := PackedVector2Array([top, top + Vector2(10.0, 3.5) * k, top + Vector2(0, 7.0) * k])
-	ci.draw_colored_polygon(rim, Color.BLACK)
-	ci.draw_colored_polygon(flag, color)
+	draw_marker(ci, at, "flag", color, k)
+
+## A marker, its point on [param at]: a dark badge over it, rimmed in [param color], with
+## [param icon] (one of [constant MARKER_ICONS], or a Texture2D) in it.
+static func draw_marker(ci: CanvasItem, at: Vector2, icon: Variant, color: Color, k := 1.0) -> void:
+	var c := at + Vector2(0, -MARKER_LIFT) * k
+	var r := 8.5 * k
+	ci.draw_circle(at, 2.2 * k, Color(0, 0, 0, 0.5))
+	ci.draw_colored_polygon(PackedVector2Array([at, c + Vector2(-r * 0.62, r * 0.6), c + Vector2(r * 0.62, r * 0.6)]), Color.BLACK)
+	ci.draw_circle(c, r + 1.6 * k, Color.BLACK)
+	ci.draw_circle(c, r, color.darkened(0.55))
+	ci.draw_arc(c, r - 0.6 * k, 0.0, TAU, 20, color, 1.4 * k, true)
+	if icon is Texture2D:
+		var t := icon as Texture2D
+		var side := r * 1.3
+		ci.draw_texture_rect(t, Rect2(c - Vector2(side, side) / 2.0, Vector2(side, side)), false)
+		return
+	_draw_icon(ci, c, str(icon), color, r * 0.62)
+
+## Icon [param icon] centred on [param c], [param s] px from its middle to its edge.
+static func _draw_icon(ci: CanvasItem, c: Vector2, icon: String, color: Color, s: float) -> void:
+	var dark := Color(0.05, 0.04, 0.05)
+	match icon:
+		"skull":
+			ci.draw_circle(c + Vector2(0, -0.15) * s, s * 0.85, color)
+			ci.draw_rect(Rect2(c + Vector2(-0.5, 0.35) * s, Vector2(1.0, 0.6) * s), color)
+			ci.draw_circle(c + Vector2(-0.35, -0.15) * s, s * 0.22, dark)
+			ci.draw_circle(c + Vector2(0.35, -0.15) * s, s * 0.22, dark)
+			ci.draw_line(c + Vector2(-0.15, 0.6) * s, c + Vector2(-0.15, 0.95) * s, dark, maxf(1.0, s * 0.15))
+			ci.draw_line(c + Vector2(0.15, 0.6) * s, c + Vector2(0.15, 0.95) * s, dark, maxf(1.0, s * 0.15))
+		"lock":
+			ci.draw_arc(c + Vector2(0, -0.2) * s, s * 0.5, PI, TAU, 10, color, maxf(1.2, s * 0.28))
+			ci.draw_rect(Rect2(c + Vector2(-0.75, -0.2) * s, Vector2(1.5, 1.15) * s), color)
+			ci.draw_circle(c + Vector2(0, 0.3) * s, s * 0.18, dark)
+		"key":
+			ci.draw_arc(c + Vector2(-0.45, -0.35) * s, s * 0.42, 0.0, TAU, 12, color, maxf(1.2, s * 0.26))
+			ci.draw_line(c + Vector2(-0.15, -0.05) * s, c + Vector2(0.85, 0.85) * s, color, maxf(1.2, s * 0.26))
+			ci.draw_line(c + Vector2(0.45, 0.45) * s, c + Vector2(0.75, 0.2) * s, color, maxf(1.2, s * 0.22))
+		"star":
+			var pts := PackedVector2Array()
+			for i in 10:
+				var a := -PI / 2.0 + i * PI / 5.0
+				pts.append(c + Vector2(cos(a), sin(a)) * s * (1.0 if i % 2 == 0 else 0.45))
+			ci.draw_colored_polygon(pts, color)
+		"warning":
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -1.0) * s, c + Vector2(0.95, 0.75) * s, c + Vector2(-0.95, 0.75) * s]), color)
+			ci.draw_line(c + Vector2(0, -0.45) * s, c + Vector2(0, 0.2) * s, dark, maxf(1.0, s * 0.2))
+			ci.draw_circle(c + Vector2(0, 0.48) * s, maxf(0.8, s * 0.12), dark)
+		"gem":
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -0.95) * s, c + Vector2(0.8, -0.2) * s, c + Vector2(0, 0.95) * s, c + Vector2(-0.8, -0.2) * s]), color)
+			ci.draw_line(c + Vector2(-0.8, -0.2) * s, c + Vector2(0.8, -0.2) * s, dark, maxf(1.0, s * 0.12))
+		"dot":
+			ci.draw_circle(c, s * 0.55, color)
+		"door":
+			ci.draw_rect(Rect2(c + Vector2(-0.6, -0.4) * s, Vector2(1.2, 1.35) * s), color)
+			ci.draw_circle(c + Vector2(0, -0.4) * s, s * 0.6, color)
+			ci.draw_circle(c + Vector2(0.3, 0.35) * s, maxf(0.8, s * 0.12), dark)
+		"cross":
+			ci.draw_line(c + Vector2(-0.75, -0.75) * s, c + Vector2(0.75, 0.75) * s, color, maxf(1.4, s * 0.3))
+			ci.draw_line(c + Vector2(0.75, -0.75) * s, c + Vector2(-0.75, 0.75) * s, color, maxf(1.4, s * 0.3))
+		_: # flag
+			ci.draw_line(c + Vector2(-0.55, 0.95) * s, c + Vector2(-0.55, -0.95) * s, color.lightened(0.4), maxf(1.0, s * 0.2))
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-0.45, -0.95) * s, c + Vector2(0.9, -0.45) * s, c + Vector2(-0.45, 0.1) * s]), color)
+
+## A marker's [param text] (its title) beside it, its point on [param at].
+static func draw_marker_label(ci: CanvasItem, font: Font, at: Vector2, text: String, color: Color) -> void:
+	if text.is_empty():
+		return
+	var p := at + Vector2(13, -MARKER_LIFT + 4)
+	ci.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 4, Color.BLACK)
+	ci.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, color.lightened(0.35))
+
+## The box with [param marker]'s title (its label, else its kind's name) and description, beside
+## its point [param at], kept inside [param bounds].
+static func draw_marker_info(ci: CanvasItem, font: Font, at: Vector2, marker: Dictionary, style: Dictionary, bounds: Rect2) -> void:
+	var title := str(marker.get("label", ""))
+	if title.is_empty():
+		title = str(style.get("name", "Marker"))
+	var text := str(marker.get("description", ""))
+	var w := 230.0
+	var title_size := font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, w, 13)
+	var body := font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, w, 11) if not text.is_empty() else Vector2.ZERO
+	var box := Rect2(at + Vector2(16, -MARKER_LIFT - 8), Vector2(maxf(title_size.x, body.x) + 16.0, 12.0 + title_size.y + (body.y + 4.0 if not text.is_empty() else 0.0)))
+	# Kept on the map: to the left of the marker when there's no room on its right.
+	if box.end.x > bounds.end.x - 4.0:
+		box.position.x = at.x - 16.0 - box.size.x
+	box.position.x = clampf(box.position.x, bounds.position.x + 4.0, maxf(bounds.position.x + 4.0, bounds.end.x - box.size.x - 4.0))
+	box.position.y = clampf(box.position.y, bounds.position.y + 4.0, maxf(bounds.position.y + 4.0, bounds.end.y - box.size.y - 4.0))
+	var color: Color = style.get("color", Color.WHITE)
+	ci.draw_rect(box, Color(0.04, 0.035, 0.04, 0.9))
+	ci.draw_rect(box, color, false, 1.5)
+	ci.draw_string(font, box.position + Vector2(8, 6 + font.get_ascent(13)), title, HORIZONTAL_ALIGNMENT_LEFT, w, 13, color.lightened(0.3))
+	if not text.is_empty():
+		ci.draw_multiline_string(font, box.position + Vector2(8, 10 + title_size.y + font.get_ascent(11)), text, HORIZONTAL_ALIGNMENT_LEFT, w, 11, -1, Color(0.9, 0.88, 0.84))
 
 ## A small bench mark for the map, centred on [param at]: a seat on two legs with a back.
 static func draw_bench_mark(ci: CanvasItem, at: Vector2, color: Color, k := 1.0) -> void:
