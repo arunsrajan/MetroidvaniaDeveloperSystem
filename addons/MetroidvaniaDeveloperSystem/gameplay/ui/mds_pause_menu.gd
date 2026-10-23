@@ -9,9 +9,10 @@ extends MDSGameplayScreen
 ## Bestiary (enemies defeated), Options ([MDSOptionsMenu]) and Quit. The game is paused while it
 ## is open. It opens only while nothing else holds the game (no other screen, not between rooms).
 ##
-## On the map the player puts pins of their own ([method MDSWorldGame.add_map_pin], kind "pin"):
-## a click on the map puts one there, a click on one takes it away, and Pin where I am (a
-## gamepad's way) puts one where the player stands. Pins of other kinds (a quest's) only show.
+## On the map the player writes pins of their own ([member pin_editor], an [MDSMapPinEditor]: a
+## title, a short description, a kind): a click on the map opens it for a pin there, Pin where I am
+## (a gamepad's way) for one where the player stands, and a click on one of their own pins to change
+## it or Remove it. Markers the game put (a boss room, a quest's target) only show.
 ## The map zooms and moves ([member MDSWorldMapView.zoomable]): the wheel or RT / LT zoom (out
 ## below the whole map too), a drag or the right stick moves it, and it opens on the player. A
 ## marker pointed at (the mouse over it, or in the middle of the map) shows its description.
@@ -33,6 +34,8 @@ var _bestiary_list: VBoxContainer
 var _quit_box: VBoxContainer
 ## Pin where I am, under the map.
 var pin_here: Button
+## The box the player writes a pin in, over the map.
+var pin_editor: MDSMapPinEditor
 
 func _init() -> void:
 	super()
@@ -60,25 +63,34 @@ func _ready() -> void:
 	map.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	map.custom_minimum_size = Vector2(200, 120)
 	map.pin_requested.connect(func(at: Vector2, map_layer: int) -> void:
-		var game := MDSGameplayUi.game_for(self)
-		if game:
-			game.add_map_pin(at, "pin", "", "", map_layer)
-			_refresh_map())
+		if not pin_editor.is_open():
+			pin_editor.open_new(at, map_layer)
+			map.pins_editable = false)
 	map.pin_clicked.connect(func(id: String) -> void:
 		var game := MDSGameplayUi.game_for(self)
-		# The player's own pins go; a quest's stays.
-		if game and str(game.map_pins.get(id, {}).get("kind", "")) == "pin":
-			game.remove_map_pin(id)
-			_refresh_map())
+		# The player's own pins open to be changed; the game's markers only show.
+		if game and not pin_editor.is_open() and MDSWorldGame.is_player_marker(game.map_pins.get(id, {})):
+			pin_editor.open_edit(id, game.map_pins[id])
+			map.pins_editable = false)
 	map_box.add_child(map)
+	pin_editor = MDSMapPinEditor.new()
+	pin_editor.confirmed.connect(_on_pin_written)
+	pin_editor.removed.connect(func() -> void:
+		var game := MDSGameplayUi.game_for(self)
+		if game:
+			game.remove_map_pin(pin_editor.pin_id)
+		_pin_editor_closed())
+	pin_editor.cancelled.connect(_pin_editor_closed)
+	map.add_child(pin_editor)
 	var pin_row := HBoxContainer.new()
 	pin_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	pin_here = MDSGameplayUi.button(pin_row, "Pin where I am", func() -> void:
 		var game := MDSGameplayUi.game_for(self)
-		if game:
-			game.pin_player_position()
-			_refresh_map())
-	MDSGameplayUi.label(pin_row, "Click: put or take a pin   Point at a marker to read it   Wheel, LT / RT: zoom   Drag, right stick: move", 14, MDSGameplayUi.DIM)
+		if game and game.player and not pin_editor.is_open():
+			var here := game.world.get_room_layer(game.current_room) if game.world and game.world.has_room(game.current_room) else map.layer
+			pin_editor.open_new(game.player.global_position, here)
+			map.pins_editable = false)
+	MDSGameplayUi.label(pin_row, "Click: write a pin, or change yours   Point at a marker to read it   Wheel, LT / RT: zoom   Drag, right stick: move", 14, MDSGameplayUi.DIM)
 	map_box.add_child(pin_row)
 	_add_tab(map_box, Tab.MAP)
 	inventory = MDSInventoryScreen.new()
@@ -148,6 +160,27 @@ func _focus_tab() -> void:
 func focus_first() -> void:
 	if is_open():
 		_focus_tab()
+
+## The pin written in [member pin_editor]: put on the map as the player's own (a pin being changed
+## keeps its id, place and layer).
+func _on_pin_written(title: String, description: String, kind: String) -> void:
+	var game := MDSGameplayUi.game_for(self)
+	if game:
+		var id := game.add_map_marker(pin_editor.world_pos, kind, title, description, {"id": pin_editor.pin_id, "layer": pin_editor.map_layer, "player": true})
+		_refresh_map()
+		map.focus_pin(id)
+	_pin_editor_closed()
+
+func _on_close() -> void:
+	# A pin being written when the menu closes is let go.
+	if pin_editor and pin_editor.is_open():
+		pin_editor.cancel()
+
+func _pin_editor_closed() -> void:
+	map.pins_editable = true
+	_refresh_map()
+	if is_open() and get_tab() == Tab.MAP:
+		pin_here.grab_focus()
 
 ## The map shows what the game's own map knows.
 func _refresh_map() -> void:
@@ -230,6 +263,18 @@ func can_open() -> bool:
 	return not (game and game.changing_room)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_open() and pin_editor and pin_editor.is_open():
+		# Writing a pin: Esc (B) puts the box away, not the menu; tabs and the map key wait.
+		for a in [&"ui_cancel", &"pause"]:
+			if InputMap.has_action(a) and event.is_action_pressed(a, false, true):
+				get_viewport().set_input_as_handled()
+				pin_editor.cancel()
+				return
+		for a in [&"menu_prev", &"menu_next", &"map"]:
+			if InputMap.has_action(a) and event.is_action_pressed(a, false, true):
+				get_viewport().set_input_as_handled()
+				return
+		return
 	if is_open():
 		if InputMap.has_action(&"menu_prev") and event.is_action_pressed(&"menu_prev", false, true):
 			get_viewport().set_input_as_handled()

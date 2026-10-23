@@ -2,9 +2,11 @@ extends "res://tests/test_case.gd"
 ## Pins on the map while playing. MDSWorldGame.add_map_pin puts one (kind, label, an id to move
 ## it by), remove_map_pin / clear_map_pins take them away, pin_player_position pins where the
 ## player is. The game keeps them like the explored map: in the exploration file at once, in the
-## save, on its maps. The map draws them as flags and, with pins_editable (the pause menu's),
-## asks for one where it is clicked and takes the player's own away when one is clicked; the
-## pause menu's Pin where I am pins the player. The editor's World map shows the playtest's pins.
+## save, on its maps. The map draws them and, with pins_editable (the pause menu's), asks for one
+## where it is clicked. On the pause menu's map the player writes their own pins in a box
+## (MDSMapPinEditor: a title, a description, a kind): a click on the map or Pin where I am opens it
+## for a new one, a click on one of theirs to change it or Remove it, and the game's markers only
+## show; Esc puts the box away, not the menu. The editor's World map shows the playtest's pins.
 ## With zoomable (the pause menu's map) the full map zooms (wheel, map_zoom_in / out) around the
 ## point under the mouse, moves (a drag, map_pan_*) without leaving the rooms, and opens on the
 ## player; a drag is no click, and clicks put pins where they point at any zoom.
@@ -21,6 +23,7 @@ func _run() -> void:
 	MDSGameplaySetup.ensure_runtime_actions()
 	Fixture.build()
 	_map_alone()
+	_pin_box()
 	await _zoom()
 	await _playing()
 	await _kept()
@@ -46,6 +49,31 @@ func _map_alone() -> void:
 	check(kinds.has("quest") and kinds.has("danger") and kinds.pin.color != kinds.quest.color, "each kind has its color")
 	map.free()
 	other.free()
+
+func _pin_box() -> void:
+	var box := MDSMapPinEditor.new()
+	var said: Array = []
+	box.confirmed.connect(func(t: String, d: String, k: String) -> void: said.append([t, d, k]))
+	box.removed.connect(func() -> void: said.append("removed"))
+	box.cancelled.connect(func() -> void: said.append("cancelled"))
+	check(not box.is_open(), "the pin box starts put away")
+	box.open_new(Vector2(10, 20), 1)
+	check(box.is_open() and box.pin_id.is_empty() and box.world_pos == Vector2(10, 20) and box.map_layer == 1 and not box.remove_button.visible and box.get_kind() == "pin", "open_new: an empty pin there, no Remove")
+	box.title_edit.text = "  Secret wall "
+	box.description_edit.text = "Hit it twice."
+	box.kind_option.select(box.kinds.find("danger"))
+	box.title_edit.text_submitted.emit(box.title_edit.text)
+	check(not box.is_open() and said == [["Secret wall", "Hit it twice.", "danger"]], "Enter in the title is OK: its title, description and kind (%s)" % [said])
+	said.clear()
+	box.open_edit("pin_3", {"position": [5, 6], "layer": 0, "kind": "treasure", "label": "Chest", "description": "Locked."})
+	check(box.pin_id == "pin_3" and box.world_pos == Vector2(5, 6) and box.title_edit.text == "Chest" and box.description_edit.text == "Locked." and box.get_kind() == "treasure" and box.remove_button.visible, "open_edit: the pin as it is, with Remove")
+	box.remove_button.pressed.emit()
+	check(said == ["removed"] and not box.is_open(), "Remove")
+	box.open_edit("q", {"position": [0, 0], "kind": "my_kind"})
+	check(box.get_kind() == "my_kind", "a kind not in the list is kept")
+	box.cancel_button.pressed.emit()
+	check(said == ["removed", "cancelled"], "Cancel")
+	box.free()
 
 func _wheel(map: MDSWorldMapView, at: Vector2, up: bool) -> void:
 	var e := InputEventMouseButton.new()
@@ -210,19 +238,50 @@ func _pause_menu() -> void:
 	await get_tree().process_frame
 	var map := menu.map
 	check(map.pins_editable and map.zoomable and map.pins.has("quest_go"), "the pause menu's map shows the game's pins, takes clicks and zooms")
+	var box := menu.pin_editor
 	var at := map.size / 2.0 + Vector2(37, 11)
 	var want := map.screen_to_world(at)
 	_click(map, at)
-	var mine: Array = game.map_pins.keys().filter(func(id: String) -> bool: return game.map_pins[id].kind == "pin")
-	check(mine.size() == 1 and MDSWorldMapView.pin_position(game.map_pins[mine[0]]).is_equal_approx(want) and map.pins.has(mine[0]), "a click on the map puts a pin there")
+	check(box.is_open() and box.world_pos.is_equal_approx(want) and box.pin_id.is_empty() and not map.pins_editable, "a click on the map opens the pin box for a pin there")
+	box.title_edit.text = "Secret wall"
+	box.description_edit.text = "Hit the cracked stones twice."
+	box.kind_option.select(box.kinds.find("note"))
+	box.ok_button.pressed.emit()
+	var mine: Array = game.map_pins.keys().filter(func(id: String) -> bool: return MDSWorldGame.is_player_marker(game.map_pins[id]))
+	var m: Dictionary = game.map_pins.get(mine[0], {}) if mine.size() == 1 else {}
+	check(mine.size() == 1 and MDSWorldMapView.pin_position(m).is_equal_approx(want) and m.label == "Secret wall" and m.description == "Hit the cracked stones twice." and m.kind == "note" and m.player == true, "OK puts it, with its title, description and kind (%s)" % [m])
+	check(map.pins.has(mine[0]) and map.focused_pin == mine[0] and map.pins_editable and not box.is_open(), "on the map, pointed at")
 	await get_tree().process_frame
 	_click(map, map._offset + MDSWorldMapView.pin_position(game.map_pins.quest_go) * map._scale)
-	check(game.map_pins.has("quest_go"), "a click on a quest's pin leaves it")
+	check(not box.is_open() and game.map_pins.has("quest_go"), "a click on the game's quest marker opens nothing")
 	_click(map, at)
-	check(not game.map_pins.has(mine[0]) and not map.pins.has(mine[0]), "a click on the player's own pin takes it away")
+	check(box.is_open() and box.pin_id == mine[0] and box.title_edit.text == "Secret wall" and box.get_kind() == "note", "a click on the player's own pin opens it to be changed")
+	box.title_edit.text = "Breakable wall"
+	box.ok_button.pressed.emit()
+	check(game.map_pins.size() == 2 and game.map_pins[mine[0]].label == "Breakable wall" and MDSWorldMapView.pin_position(game.map_pins[mine[0]]).is_equal_approx(want), "changed in its place")
+	_click(map, at)
+	var tab := menu.get_tab()
+	var next := InputEventAction.new()
+	next.action = &"menu_next"
+	next.pressed = true
+	menu._unhandled_input(next)
+	check(menu.get_tab() == tab, "while a pin is written, the tabs stay")
+	var esc := InputEventAction.new()
+	esc.action = &"ui_cancel"
+	esc.pressed = true
+	menu._unhandled_input(esc)
+	check(not box.is_open() and menu.is_open() and game.map_pins.has(mine[0]), "Esc puts the box away, not the menu, and changes nothing")
+	_click(map, at)
+	box.remove_button.pressed.emit()
+	check(not game.map_pins.has(mine[0]) and not map.pins.has(mine[0]), "Remove takes the player's pin away")
 	menu.pin_here.pressed.emit()
-	var placed: Array = game.map_pins.keys().filter(func(id: String) -> bool: return game.map_pins[id].kind == "pin")
-	check(placed.size() == 1 and MDSWorldMapView.pin_position(game.map_pins[placed[0]]).is_equal_approx(game.player.global_position), "Pin where I am pins the player")
+	check(box.is_open() and box.world_pos.is_equal_approx(game.player.global_position), "Pin where I am opens the box where the player is")
+	box.ok_button.pressed.emit()
+	var placed: Array = game.map_pins.keys().filter(func(id: String) -> bool: return MDSWorldGame.is_player_marker(game.map_pins[id]))
+	check(placed.size() == 1 and MDSWorldMapView.pin_position(game.map_pins[placed[0]]).is_equal_approx(game.player.global_position) and game.map_pins[placed[0]].kind == "pin", "and OK, empty, puts a plain pin there")
+	menu.pin_here.pressed.emit()
+	menu.close()
+	check(not box.is_open(), "a pin being written when the menu closes is let go")
 	# Zoomed in, the map opens on the player.
 	map.set_zoom(4.0)
 	map.center_on(Vector2(-99999, -99999))

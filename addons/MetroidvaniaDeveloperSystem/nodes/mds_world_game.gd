@@ -1173,8 +1173,9 @@ func _merge_save_points(from: Variant) -> void:
 ## [param description] shows when the marker is pointed at on the map. [param options]:
 ## [code]id[/code] (a marker of that id moves there: a quest's target as the quest goes on; else a
 ## new id is made), [code]layer[/code] (else the room's, or the player's), [code]color[/code] and
-## [code]icon[/code] (a Color, and an icon name or a texture, of its own). It is kept at once (the
-## exploration file) and saved with the game.
+## [code]icon[/code] (a Color, and an icon name or a texture, of its own), [code]player[/code]
+## (true: a mark of the player's own, which the pause menu's map lets them change and remove; see
+## [method is_player_marker]). It is kept at once (the exploration file) and saved with the game.
 ## [codeblock]
 ## game.add_map_marker(elder, "quest", "The elder", "Bring him the moss lantern.", {"id": "quest"})
 ## game.add_map_marker("Shrine_01", "note", "Shrine", "A bench, and a merchant on Sundays.")
@@ -1202,6 +1203,8 @@ func add_map_marker(where: Variant, kind := "pin", title := "", description := "
 		m.icon = (options.icon as Texture2D).resource_path
 	elif options.has("icon"):
 		m.icon = str(options.icon)
+	if options.get("player", false):
+		m.player = true
 	map_pins[id] = m
 	if map_view and map_view.has_method(&"set_marker"):
 		map_view.set_marker(id, m)
@@ -1288,11 +1291,16 @@ static func describe_requires(requires: Variant) -> String:
 		return ""
 	return "Needs " + (", ".join(names.slice(0, names.size() - 1)) + " and " + names[names.size() - 1] if names.size() > 1 else names[0])
 
-## Puts a pin where the player is (see [method add_map_pin]).
-func pin_player_position(kind := "pin", label := "") -> String:
+## Puts a pin of the player's own where the player is (see [method add_map_marker]).
+func pin_player_position(kind := "pin", label := "", description := "") -> String:
 	if not player:
 		return ""
-	return add_map_pin(player.global_position, kind, label)
+	return add_map_marker(player.global_position, kind, label, description, {"player": true})
+
+## Whether [param marker] is the player's own (put with [code]player[/code], or a plain "pin"):
+## the pause menu's map lets the player change it and take it away.
+static func is_player_marker(marker: Dictionary) -> bool:
+	return bool(marker.get("player", false)) or str(marker.get("kind", "")) == "pin"
 
 ## Takes marker (or pin) [param id] off the map. Returns whether there was one.
 func remove_map_pin(id: String) -> bool:
