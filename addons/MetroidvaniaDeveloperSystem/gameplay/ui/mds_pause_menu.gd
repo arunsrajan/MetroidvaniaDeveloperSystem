@@ -8,6 +8,10 @@ extends MDSGameplayScreen
 ## Equipment ([MDSEquipmentScreen]), Journal (lore tablets read: flags [code]journal_<id>[/code]),
 ## Bestiary (enemies defeated), Options ([MDSOptionsMenu]) and Quit. The game is paused while it
 ## is open. It opens only while nothing else holds the game (no other screen, not between rooms).
+##
+## On the map the player puts pins of their own ([method MDSWorldGame.add_map_pin], kind "pin"):
+## a click on the map puts one there, a click on one takes it away, and Pin where I am (a
+## gamepad's way) puts one where the player stands. Pins of other kinds (a quest's) only show.
 
 enum Tab { MAP, INVENTORY, EQUIPMENT, JOURNAL, BESTIARY, OPTIONS, QUIT }
 const TAB_NAMES: PackedStringArray = ["Map", "Inventory", "Equipment", "Journal", "Bestiary", "Options", "Quit"]
@@ -24,6 +28,8 @@ var _journal_list: VBoxContainer
 var _journal_text: Label
 var _bestiary_list: VBoxContainer
 var _quit_box: VBoxContainer
+## Pin where I am, under the map.
+var pin_here: Button
 
 func _init() -> void:
 	super()
@@ -43,9 +49,34 @@ func _ready() -> void:
 		tabs.set("offset_" + ["left", "top", "right", "bottom"][side], [40.0, 32.0, -40.0, -32.0][side])
 	tabs.tab_changed.connect(_on_tab_changed)
 	add_child(tabs)
+	var map_box := VBoxContainer.new()
 	map = MDSWorldMapView.new()
 	map.follow_player = false
-	_add_tab(map, Tab.MAP)
+	map.pins_editable = true
+	map.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	map.custom_minimum_size = Vector2(200, 120)
+	map.pin_requested.connect(func(at: Vector2, map_layer: int) -> void:
+		var game := MDSGameplayUi.game_for(self)
+		if game:
+			game.add_map_pin(at, "pin", "", "", map_layer)
+			_refresh_map())
+	map.pin_clicked.connect(func(id: String) -> void:
+		var game := MDSGameplayUi.game_for(self)
+		# The player's own pins go; a quest's stays.
+		if game and str(game.map_pins.get(id, {}).get("kind", "")) == "pin":
+			game.remove_map_pin(id)
+			_refresh_map())
+	map_box.add_child(map)
+	var pin_row := HBoxContainer.new()
+	pin_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	pin_here = MDSGameplayUi.button(pin_row, "Pin where I am", func() -> void:
+		var game := MDSGameplayUi.game_for(self)
+		if game:
+			game.pin_player_position()
+			_refresh_map())
+	MDSGameplayUi.label(pin_row, "Click the map to put a pin, click a pin to take it away", 14, MDSGameplayUi.DIM)
+	map_box.add_child(pin_row)
+	_add_tab(map_box, Tab.MAP)
 	inventory = MDSInventoryScreen.new()
 	_add_tab(inventory, Tab.INVENTORY)
 	equipment = MDSEquipmentScreen.new()
@@ -127,6 +158,7 @@ func _refresh_map() -> void:
 		map.mark_visited(id)
 	if game.player and not game.current_room.is_empty() and game.world:
 		map.set_player(game.current_room, game.player.global_position - game.world.get_origin(game.current_room))
+	map.set_pins(game.map_pins)
 	map.objective = game.get_objective(game.current_area) if game.has_method(&"get_objective") else ""
 	map.objective_done = game.is_objective_complete(game.current_area)
 

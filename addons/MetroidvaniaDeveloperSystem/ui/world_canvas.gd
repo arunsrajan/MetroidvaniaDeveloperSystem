@@ -19,8 +19,8 @@ extends Control
 ## space selects the rooms in a box. Drag one of them to move them all; the Room view, Merge
 ## and Delete act on all of them. Map images (PNG...) dropped here are imported as rooms.
 ## Explored in the last playtest ([member show] "explored"): the rooms the game's exploration file
-## says were visited get a check mark and the others are dimmed, with the benches found and a pin
-## where the player last was (see [method MDSWorldGame.read_exploration]).
+## says were visited get a check mark and the others are dimmed, with the benches found, the pins
+## put on the map and a pin where the player last was (see [method MDSWorldGame.read_exploration]).
 
 signal room_selected(room_id: String)
 signal room_activated(room_id: String)
@@ -922,7 +922,8 @@ func _draw_route(ci: CanvasItem) -> void:
 		ci.draw_circle(pts[pts.size() - 1], 6.0, Color(1, 0.4, 0.8))
 
 ## Explored in the last playtest: rooms not visited dimmed, a check mark on those visited, the
-## benches found (the one last rested on brighter) and a pin where the player last was.
+## benches found (the one last rested on brighter), the pins put on the map (with their labels)
+## and a pin where the player last was.
 func _draw_explored(ci: CanvasItem, ids: Array[String]) -> void:
 	if explored.is_empty():
 		return
@@ -956,6 +957,21 @@ func _draw_explored(ci: CanvasItem, ids: Array[String]) -> void:
 				var lp := Vector2(float(p[0]), float(p[1]))
 				var rested := str(respawn.get("room", "")) == id and (respawn.get("position", []) as Array).size() == 2 and lp.distance_to(Vector2(float(respawn.position[0]), float(respawn.position[1]))) < 48.0
 				MDSWorldMapView.draw_bench_mark(ci, world_to_screen(world.get_origin(id) + lp), Color(1.0, 0.86, 0.55) if rested else Color(1.0, 0.86, 0.55).darkened(0.25), 1.25 if rested else 1.0)
+	var pins: Variant = explored.get("pins", {})
+	if pins is Dictionary:
+		var font := get_theme_default_font()
+		for id: String in pins:
+			var pin: Dictionary = pins[id] if pins[id] is Dictionary else {}
+			var wp := MDSWorldMapView.pin_position(pin)
+			if wp == Vector2.INF or int(pin.get("layer", 0)) != layer:
+				continue
+			var color: Color = MDSWorldMapView.PIN_COLORS.get(str(pin.get("kind", "pin")), MDSWorldMapView.PIN_COLORS.pin)
+			var at := world_to_screen(wp)
+			MDSWorldMapView.draw_map_pin(ci, at, color, 1.2)
+			var text := str(pin.get("label", ""))
+			if not text.is_empty():
+				ci.draw_string_outline(font, at + Vector2(14, -8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 4, Color.BLACK)
+				ci.draw_string(font, at + Vector2(14, -8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, color.lightened(0.3))
 	var last: Dictionary = explored.get("last", {})
 	var room := str(last.get("room", ""))
 	if world.has_room(room) and world.get_room_layer(room) == layer and (last.get("position", []) as Array).size() == 2:

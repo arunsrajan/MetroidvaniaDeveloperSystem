@@ -890,10 +890,23 @@ A save point is any node in the `save_point`, `savepoint`, `save`, `checkpoint` 
 - `save_game(bench)` writes the game to `save_file` (`user://mds_save.json`) as JSON. That is every bit of `get_save_data()`, with the room and position set to the bench's. The bench becomes the place to come back to (`respawn`).
 - **Continuing:** with `load_on_start` (on), a game started again continues from the save, on that bench. Play from here, and a save your own code loads first, win.
 - **The map, as far as the player got:** the exploration file (`exploration_file`, `user://mds_exploration.json`) is written as each room is entered, saved or not. It keeps the rooms visited, the map's reveal, the benches, the world it belongs to and the room the player is in. A restarted game's map shows all of it, rooms explored after the last save too.
-- **Explored, on the editor's World map:** **Show on map... > Explored in the last playtest** reads the exploration file the game wrote last. It marks the rooms explored with a check mark and dims the others, and shows the benches found and a pin where the player was. It reads the file again when the editor gets the focus back after a playtest, and the status bar says how many rooms were explored. In code: `MDSWorldGame.read_exploration(world)`.
+- **Explored, on the editor's World map:** **Show on map... > Explored in the last playtest** reads the exploration file the game wrote last. It marks the rooms explored with a check mark and dims the others, and shows the benches found, the pins put on the map, and a pin where the player was. It reads the file again when the editor gets the focus back after a playtest, and the status bar says how many rooms were explored. In code: `MDSWorldGame.read_exploration(world)`.
 - `return_to_save_point()` takes the player back to the bench last rested on, for when it dies (the starting room if it never rested). `new_game()` starts over, deleting the save and the explored map. `has_save_game()`, `read_save_game()`, `load_game()` and `delete_save_game()` are there for a title screen.
 
 **The map (`MDSWorldMapView`)** marks each room explored with a check mark (`show_explored_marks`, `explored_mark_color`; rooms only on a bought area map have none), the benches found, the one last rested on brighter (`show_save_points`), and the player with a pin (`player_marker_color`). With **`follow_player`** it is a minimap: it follows the player in a corner of the screen, showing `view_span` px of the world (3000 by default) in a frame. **Scenes > Create game scene...** sets this up: a minimap in the top-right corner, and save and exploration files named after the world (`user://<world>_save.json`, `user://<world>_exploration.json`).
+
+**Pins on the map:** mark places on the map while the game runs: the player's own marks, a quest's goal, a danger. Each pin is a flag in its kind's color (`pin`, `quest`, `danger`, `treasure`, `note`, or your own in `MDSWorldMapView.pin_colors`), with its label beside it. The game keeps pins like the explored map: they go into the exploration file as soon as they change and into the save, and every map of the game shows them.
+
+```gdscript
+game.add_map_pin(game.player.global_position)                      # the player's own: "pin_1"
+game.add_map_pin(elder.global_position, "quest", "The elder", "quest_elder")
+game.add_map_pin(cave.global_position, "quest", "The elder", "quest_elder")   # the same id moves it
+game.pin_player_position("danger", "Spikes")
+game.remove_map_pin("quest_elder")
+game.clear_map_pins("pin")                                          # all the player's own
+```
+
+`map_pins` holds them (id -> {position (world px), layer, kind, label}), and `map_pin_added` / `map_pin_removed` tell when they change. On the Gameplay Kit's pause menu map, a click on the map puts a pin there and a click on one of the player's own pins takes it away (a quest's pin stays), and **Pin where I am** pins the player (a gamepad's way). A map of your own takes clicks the same way with `pins_editable`: it emits `pin_requested(world_pos, layer)` and `pin_clicked(id)`. A map used without a game has its own pins (`set_pin()`, `remove_pin()`, `clear_pins()`), saved with it.
 
 ```gdscript
 # A title screen: continue, or start over.
@@ -1363,7 +1376,7 @@ Game (MDSWorldGame)
     ├── Hud (MDSHud)                health masks, mana, currency, boss bar
     ├── Toast (MDSToast)            "Red Key", "Requires Dash", "Map updated"
     ├── AbilityPopup (MDSAbilityPopup)
-    ├── PauseMenu (MDSPauseMenu)    Map, Inventory, Equipment, Journal, Bestiary, Options, Quit
+    ├── PauseMenu (MDSPauseMenu)    Map (with pins), Inventory, Equipment, Journal, Bestiary, Options, Quit
     ├── DialogueBox (MDSDialogueBox)
     └── ShopScreen (MDSShopScreen)
 ```
