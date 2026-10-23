@@ -27,6 +27,11 @@ extends Control
 ## [method MDSWorldGame.add_map_pin]: the game keeps them and shows them on its maps. With
 ## [member pins_editable] (the pause menu's map), a click on the map asks for a pin there
 ## ([signal pin_requested]) and a click on a pin for it to go ([signal pin_clicked]).
+##
+## [b]Zoom.[/b] With [member zoomable] (the pause menu's map) the full map zooms and moves: the
+## mouse wheel and [code]map_zoom_in[/code] / [code]map_zoom_out[/code] (RT / LT, = / -) zoom,
+## a drag and [code]map_pan_*[/code] (the right stick, I J K L) move it. Marks and pins keep their
+## size on the screen, and clicks put pins where they point at any zoom.
 
 ## A click on the map, away from any pin, with [member pins_editable]: a pin is wanted at
 ## [param world_pos] (world px) on [param map_layer].
@@ -63,6 +68,17 @@ signal pin_clicked(id: String)
 @export var explored_mark_color := Color(0.62, 0.95, 0.55)
 ## The pin marking where the player is.
 @export var player_marker_color := Color(1.0, 0.42, 0.32)
+@export_group("Zoom")
+## The full map zooms and moves (see the class description, [member zoom]).
+@export var zoomable := false:
+	set(value):
+		zoomable = value
+		clip_contents = value or follow_player
+		queue_redraw()
+## How far it zooms in: this many times the whole map's fit.
+@export_range(1.0, 32.0) var max_zoom := 8.0
+## How fast map_pan_* move it, held all the way (screen px a second).
+@export var pan_speed := 700.0
 @export_group("Pins")
 ## Draw the pins ([member pins]).
 @export var show_pins := true
@@ -76,7 +92,7 @@ signal pin_clicked(id: String)
 @export var follow_player := false:
 	set(value):
 		follow_player = value
-		clip_contents = value
+		clip_contents = value or zoomable
 		queue_redraw()
 ## How much of the world a minimap shows across its shorter side (px).
 @export_range(200.0, 40000.0) var view_span := 3000.0:
@@ -90,6 +106,11 @@ signal pin_clicked(id: String)
 const EXPLORED_MARK_MIN := 18.0
 ## How near (px) a click must be to a pin to pick it.
 const PIN_GRAB := 12.0
+## A wheel step zooms by this much; map_zoom_in held all the way, this much a second.
+const ZOOM_STEP := 1.25
+const ZOOM_RATE := 3.0
+## How far (px) the mouse moves, pressed, before it drags the map instead of clicking.
+const DRAG_START := 6.0
 ## The kinds of pins and their colors, to start from (see [member pin_colors]).
 const PIN_COLORS := {
 	"pin": Color(0.98, 0.84, 0.32), "quest": Color(0.45, 0.85, 1.0), "danger": Color(1.0, 0.35, 0.3),
@@ -108,8 +129,17 @@ var current_room := ""
 var player_local_pos := Vector2.INF
 ## Pins on the map: id -> {position: [x, y] (world px), layer, kind, label}.
 var pins: Dictionary = {}
+## How far the full map is zoomed in ([member zoomable]): 1 shows every room revealed, up to
+## [member max_zoom].
+var zoom := 1.0
+## The world point (px) in the middle of the zoomed map (INF: the middle of the rooms shown).
+var view_center := Vector2.INF
 var _offset := Vector2.ZERO ## the world as drawn last: world px * _scale + _offset
 var _scale := 0.0
+var _fit_scale := 0.0 ## the scale that shows every room revealed
+var _bounds := Rect2() ## the rooms revealed, as drawn last
+var _press_at := Vector2.INF ## where the mouse was pressed on the map
+var _dragged := false
 ## The current area's objective and whether it is done.
 var objective := "":
 	set(v):
@@ -206,15 +236,108 @@ func pin_at(at: Vector2) -> String:
 			best = id
 	return best
 
-func _gui_input(event: InputEvent) -> void:
-	if not pins_editable or not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+# --- Zoom ----------------------------------------------------------------------------------------
+
+## Zooms the full map to [param value] times its fit (1 to [member max_zoom]), keeping the world
+## point under [param at] (on this control; INF: its middle) where it is.
+func set_zoom(value: float, at := Vector2.INF) -> void:
+	value = clampf(value, 1.0, maxf(max_zoom, 1.0))
+	if _fit_scale <= 0.0 or _scale <= 0.0:
+		zoom = value
+		queue_redraw()
 		return
-	var id := pin_at(event.position)
+	if at == Vector2.INF:
+		at = size / 2.0
+	var w := screen_to_world(at)
+	zoom = value
+	_view_to(w - (at - size / 2.0) / (_fit_scale * zoom), _fit_scale * zoom)
+
+## Moves the full map by [param screen_delta] px, as a drag does.
+func pan_by(screen_delta: Vector2) -> void:
+	if _scale > 0.0:
+		_view_to((size / 2.0 - _offset) / _scale - screen_delta / _scale, _scale)
+
+## Puts [param world_pos] in the middle of the full map (as far as the rooms go).
+func center_on(world_pos: Vector2) -> void:
+	view_center = world_pos
+	if _scale > 0.0:
+		_view_to(world_pos, _scale)
+	queue_redraw()
+
+## Back to every room revealed.
+func reset_view() -> void:
+	zoom = 1.0
+	view_center = Vector2.INF
+	queue_redraw()
+
+func _view_to(center: Vector2, scale: float) -> void:
+	view_center = _clamped_center(center, scale)
+	_scale = scale
+	_offset = size / 2.0 - view_center * scale
+	queue_redraw()
+
+## [param center] kept so the map shows rooms: along a side the rooms fit on the screen, their
+## middle; else the screen stays over them.
+func _clamped_center(center: Vector2, scale: float) -> Vector2:
+	if not _bounds.has_area() or scale <= 0.0:
+		return center
+	var half := size / 2.0 / scale
+	var out := center
+	for axis in 2:
+		if _bounds.size[axis] <= half[axis] * 2.0:
+			out[axis] = _bounds.get_center()[axis]
+		else:
+			out[axis] = clampf(center[axis], _bounds.position[axis] + half[axis], _bounds.end[axis] - half[axis])
+	return out
+
+static func _strength(action: StringName) -> float:
+	return Input.get_action_strength(action) if InputMap.has_action(action) else 0.0
+
+func _process(delta: float) -> void:
+	if not zoomable or follow_player or Engine.is_editor_hint() or not is_visible_in_tree():
+		return
+	var z := _strength(&"map_zoom_in") - _strength(&"map_zoom_out")
+	if absf(z) > 0.05:
+		set_zoom(zoom * pow(ZOOM_RATE, z * delta))
+	var pan := Vector2(_strength(&"map_pan_right") - _strength(&"map_pan_left"), _strength(&"map_pan_down") - _strength(&"map_pan_up"))
+	if pan.length() > 0.1:
+		# The stick looks that way: the map moves the other.
+		pan_by(-pan * pan_speed * delta)
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if zoomable and mb.pressed and mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+			set_zoom(zoom * (ZOOM_STEP if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / ZOOM_STEP), mb.position)
+			accept_event()
+			return
+		var drag_button := mb.button_index in [MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE] and zoomable
+		if mb.button_index != MOUSE_BUTTON_LEFT and not drag_button:
+			return
+		if mb.pressed:
+			_press_at = mb.position
+			_dragged = drag_button
+		else:
+			# A click (pressed and let go without dragging) puts or picks a pin.
+			if mb.button_index == MOUSE_BUTTON_LEFT and not _dragged and _press_at != Vector2.INF and pins_editable:
+				_pin_click(mb.position)
+			_press_at = Vector2.INF
+		if pins_editable or zoomable:
+			accept_event()
+	elif event is InputEventMouseMotion and zoomable and _press_at != Vector2.INF:
+		var mm := event as InputEventMouseMotion
+		if not _dragged and mm.position.distance_to(_press_at) > DRAG_START:
+			_dragged = true
+		if _dragged:
+			pan_by(mm.relative)
+			accept_event()
+
+func _pin_click(at: Vector2) -> void:
+	var id := pin_at(at)
 	if not id.is_empty():
 		pin_clicked.emit(id)
 	elif _scale > 0.0:
-		pin_requested.emit(screen_to_world(event.position), layer)
-	accept_event()
+		pin_requested.emit(screen_to_world(at), layer)
 
 func get_save_data() -> Dictionary:
 	var points: Dictionary = {}
@@ -271,6 +394,13 @@ func _draw() -> void:
 	var avail := size - Vector2(padding, padding) * 2.0
 	var scale := minf(avail.x / bounds.size.x, avail.y / bounds.size.y)
 	var offset := Vector2(padding, padding) + (avail - bounds.size * scale) / 2.0 - bounds.position * scale
+	_fit_scale = scale
+	_bounds = bounds
+	if zoomable and not follow_player and scale > 0.0 and (zoom > 1.0 or view_center != Vector2.INF):
+		# Zoomed: view_center in the middle, the screen kept over the rooms.
+		scale *= clampf(zoom, 1.0, maxf(max_zoom, 1.0))
+		var center := _clamped_center(view_center if view_center != Vector2.INF else bounds.get_center(), scale)
+		offset = size / 2.0 - center * scale
 	if follow_player:
 		# A minimap: the player in the middle, view_span px of the world across.
 		scale = minf(size.x, size.y) / maxf(view_span, 1.0)

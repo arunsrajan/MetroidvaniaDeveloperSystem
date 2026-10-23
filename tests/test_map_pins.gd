@@ -5,6 +5,9 @@ extends "res://tests/test_case.gd"
 ## save, on its maps. The map draws them as flags and, with pins_editable (the pause menu's),
 ## asks for one where it is clicked and takes the player's own away when one is clicked; the
 ## pause menu's Pin where I am pins the player. The editor's World map shows the playtest's pins.
+## With zoomable (the pause menu's map) the full map zooms (wheel, map_zoom_in / out) around the
+## point under the mouse, moves (a drag, map_pan_*) without leaving the rooms, and opens on the
+## player; a drag is no click, and clicks put pins where they point at any zoom.
 
 const Fixture := preload("res://tests/game_fixture.gd")
 const DIR := TMP + "/map_pins"
@@ -18,6 +21,7 @@ func _run() -> void:
 	MDSGameplaySetup.ensure_runtime_actions()
 	Fixture.build()
 	_map_alone()
+	await _zoom()
 	await _playing()
 	await _kept()
 	await _pause_menu()
@@ -41,6 +45,85 @@ func _map_alone() -> void:
 	check(map.pin_colors.has("quest") and map.pin_colors.has("danger") and map.pin_colors.pin != map.pin_colors.quest, "each kind has its color")
 	map.free()
 	other.free()
+
+func _wheel(map: MDSWorldMapView, at: Vector2, up: bool) -> void:
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_WHEEL_UP if up else MOUSE_BUTTON_WHEEL_DOWN
+	e.pressed = true
+	e.position = at
+	map._gui_input(e)
+
+func _zoom() -> void:
+	var map := MDSWorldMapView.new()
+	map.world_file = Fixture.WORLD
+	map.reveal_all = true
+	map.zoomable = true
+	map.size = Vector2(600, 300)
+	add_child(map)
+	await get_tree().process_frame
+	var fit := map._fit_scale
+	check(fit > 0.0 and is_equal_approx(map._scale, fit) and map.clip_contents, "a zoomable map starts showing every room revealed, clipped to itself")
+	# On the middle line: along it the rooms fit, so the map stays centred up and down.
+	var at := map.size / 2.0 + Vector2(40, 0)
+	var under := map.screen_to_world(at)
+	map.set_zoom(2.0, at)
+	check(is_equal_approx(map._scale, fit * 2.0) and map.screen_to_world(at).distance_to(under) < 1.0, "zoomed, the point under the mouse stays put")
+	_wheel(map, at, true)
+	check(is_equal_approx(map.zoom, 2.0 * MDSWorldMapView.ZOOM_STEP), "the wheel zooms (%.2f)" % map.zoom)
+	_wheel(map, at, false)
+	check(is_equal_approx(map.zoom, 2.0), "and back")
+	map.set_zoom(1000.0)
+	check(is_equal_approx(map.zoom, map.max_zoom), "no further than max_zoom")
+	map.set_zoom(3.0)
+	await get_tree().process_frame
+	# A drag moves it, and is no click.
+	var asked: Array = []
+	map.pins_editable = true
+	map.pin_requested.connect(func(wp: Vector2, _l: int) -> void: asked.append(wp))
+	var before := map.screen_to_world(map.size / 2.0)
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = map.size / 2.0
+	map._gui_input(press)
+	var move := InputEventMouseMotion.new()
+	move.position = map.size / 2.0 + Vector2(40, 0)
+	move.relative = Vector2(40, 0)
+	map._gui_input(move)
+	var release := press.duplicate()
+	release.pressed = false
+	release.position = move.position
+	map._gui_input(release)
+	var after := map.screen_to_world(map.size / 2.0)
+	check(asked.is_empty() and is_equal_approx(after.x, before.x - 40.0 / map._scale), "a drag moves the map with the mouse, and puts no pin")
+	map.pan_by(Vector2(-100000, -100000))
+	var b := map._bounds
+	var mid := map.screen_to_world(map.size / 2.0)
+	check(b.grow(1.0).has_point(mid), "it never moves off the rooms (%s in %s)" % [mid, b])
+	_click(map, at)
+	check(asked.size() == 1 and asked[0].distance_to(map.screen_to_world(at)) < 0.5, "zoomed in, a click asks for a pin where it points")
+	# The gamepad's way: map_zoom_in / map_pan_right held.
+	map.set_zoom(2.0)
+	map.center_on(b.get_center())
+	var z := map.zoom
+	Input.action_press(&"map_zoom_in", 1.0)
+	map._process(0.5)
+	Input.action_release(&"map_zoom_in")
+	check(map.zoom > z * 1.5, "map_zoom_in (RT) zooms in (%.2f)" % map.zoom)
+	var x := map.screen_to_world(map.size / 2.0).x
+	Input.action_press(&"map_pan_right", 1.0)
+	map._process(0.1)
+	Input.action_release(&"map_pan_right")
+	check(map.screen_to_world(map.size / 2.0).x > x, "map_pan_right (the right stick) looks right")
+	map.reset_view()
+	await get_tree().process_frame
+	check(map.zoom == 1.0 and is_equal_approx(map._scale, fit), "reset_view shows every room again")
+	map.zoomable = false
+	map.set_zoom(4.0)
+	await get_tree().process_frame
+	check(is_equal_approx(map._scale, fit), "a map that isn't zoomable stays fitted")
+	map.queue_free()
+	await get_tree().process_frame
 
 func _game() -> MDSWorldGame:
 	var game := Fixture.make_game(EXPLORED, SAVE)
@@ -104,11 +187,12 @@ func _kept() -> void:
 	await get_tree().process_frame
 
 func _click(map: MDSWorldMapView, at: Vector2) -> void:
-	var e := InputEventMouseButton.new()
-	e.button_index = MOUSE_BUTTON_LEFT
-	e.pressed = true
-	e.position = at
-	map._gui_input(e)
+	for pressed in [true, false]:
+		var e := InputEventMouseButton.new()
+		e.button_index = MOUSE_BUTTON_LEFT
+		e.pressed = pressed
+		e.position = at
+		map._gui_input(e)
 
 func _pause_menu() -> void:
 	var game := _game()
@@ -124,7 +208,7 @@ func _pause_menu() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var map := menu.map
-	check(map.pins_editable and map.pins.has("quest_go"), "the pause menu's map shows the game's pins, and takes clicks")
+	check(map.pins_editable and map.zoomable and map.pins.has("quest_go"), "the pause menu's map shows the game's pins, takes clicks and zooms")
 	var at := map.size / 2.0 + Vector2(37, 11)
 	var want := map.screen_to_world(at)
 	_click(map, at)
@@ -138,6 +222,15 @@ func _pause_menu() -> void:
 	menu.pin_here.pressed.emit()
 	var placed: Array = game.map_pins.keys().filter(func(id: String) -> bool: return game.map_pins[id].kind == "pin")
 	check(placed.size() == 1 and MDSWorldMapView.pin_position(game.map_pins[placed[0]]).is_equal_approx(game.player.global_position), "Pin where I am pins the player")
+	# Zoomed in, the map opens on the player.
+	map.set_zoom(4.0)
+	map.center_on(Vector2(-99999, -99999))
+	menu.close()
+	menu.open(MDSPauseMenu.Tab.MAP)
+	await get_tree().process_frame
+	var mid := map.screen_to_world(map.size / 2.0)
+	var player_on_screen := map._offset + game.player.global_position * map._scale
+	check(map.zoom == 4.0 and Rect2(Vector2.ZERO, map.size).has_point(player_on_screen), "opened again, it keeps its zoom and shows the player (%s)" % mid)
 	menu.close()
 	game.queue_free()
 	await get_tree().process_frame

@@ -908,6 +908,8 @@ game.clear_map_pins("pin")                                          # all the pl
 
 `map_pins` holds them (id -> {position (world px), layer, kind, label}), and `map_pin_added` / `map_pin_removed` tell when they change. On the Gameplay Kit's pause menu map, a click on the map puts a pin there and a click on one of the player's own pins takes it away (a quest's pin stays), and **Pin where I am** pins the player (a gamepad's way). A map of your own takes clicks the same way with `pins_editable`: it emits `pin_requested(world_pos, layer)` and `pin_clicked(id)`. A map used without a game has its own pins (`set_pin()`, `remove_pin()`, `clear_pins()`), saved with it.
 
+**Zooming the map:** the pause menu's map zooms and moves while the game is paused on it (`zoomable`). The mouse wheel zooms around the point under the mouse, and `map_zoom_in` / `map_zoom_out` (RT / LT, = / -) zoom too, up to `max_zoom` (8 times the whole map). A drag, or `map_pan_*` (the right stick, I J K L, at `pan_speed`), moves the map; it never leaves the rooms. The map opens on the player at the zoom it was left at. Pins, benches, check marks and the player's pin keep their size, and a click puts a pin where it points at any zoom (a drag puts none). In code: `set_zoom(value, at)`, `pan_by(px)`, `center_on(world_pos)`, `reset_view()`, `zoom`.
+
 ```gdscript
 # A title screen: continue, or start over.
 if game.has_save_game():
@@ -1400,6 +1402,8 @@ When the plugin starts it adds the input actions and collision layer names the p
 | `grapple` | F | LB |
 | `map` / `pause` | Tab / Escape | Back / Start |
 | `menu_prev` / `menu_next` (pause menu tabs) | Q / E | LB / RB |
+| `map_zoom_in` / `map_zoom_out` (the pause menu's map) | = / - | RT / LT |
+| `map_pan_left` / `right` / `up` / `down` (the pause menu's map) | J / L / I / K | right stick |
 
 Collision layers: 1 world, 3 player, 4 enemy, 5 player_hitbox, 6 enemy_hitbox, 7 player_hurtbox, 8 enemy_hurtbox, 9 interact (the numbers are project settings under `metroidvania_developer_system/gameplay/layers/`).
 

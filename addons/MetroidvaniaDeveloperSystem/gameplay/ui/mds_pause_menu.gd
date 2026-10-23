@@ -12,6 +12,8 @@ extends MDSGameplayScreen
 ## On the map the player puts pins of their own ([method MDSWorldGame.add_map_pin], kind "pin"):
 ## a click on the map puts one there, a click on one takes it away, and Pin where I am (a
 ## gamepad's way) puts one where the player stands. Pins of other kinds (a quest's) only show.
+## The map zooms and moves ([member MDSWorldMapView.zoomable]): the wheel or RT / LT zoom, a drag
+## or the right stick moves it, and it opens on the player.
 
 enum Tab { MAP, INVENTORY, EQUIPMENT, JOURNAL, BESTIARY, OPTIONS, QUIT }
 const TAB_NAMES: PackedStringArray = ["Map", "Inventory", "Equipment", "Journal", "Bestiary", "Options", "Quit"]
@@ -53,6 +55,7 @@ func _ready() -> void:
 	map = MDSWorldMapView.new()
 	map.follow_player = false
 	map.pins_editable = true
+	map.zoomable = true
 	map.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	map.custom_minimum_size = Vector2(200, 120)
 	map.pin_requested.connect(func(at: Vector2, map_layer: int) -> void:
@@ -74,7 +77,7 @@ func _ready() -> void:
 		if game:
 			game.pin_player_position()
 			_refresh_map())
-	MDSGameplayUi.label(pin_row, "Click the map to put a pin, click a pin to take it away", 14, MDSGameplayUi.DIM)
+	MDSGameplayUi.label(pin_row, "Click: put or take a pin   Wheel, LT / RT: zoom   Drag, right stick: move", 14, MDSGameplayUi.DIM)
 	map_box.add_child(pin_row)
 	_add_tab(map_box, Tab.MAP)
 	inventory = MDSInventoryScreen.new()
@@ -158,6 +161,8 @@ func _refresh_map() -> void:
 		map.mark_visited(id)
 	if game.player and not game.current_room.is_empty() and game.world:
 		map.set_player(game.current_room, game.player.global_position - game.world.get_origin(game.current_room))
+		# Zoomed in, it opens on the player.
+		map.center_on(game.player.global_position)
 	map.set_pins(game.map_pins)
 	map.objective = game.get_objective(game.current_area) if game.has_method(&"get_objective") else ""
 	map.objective_done = game.is_objective_complete(game.current_area)
