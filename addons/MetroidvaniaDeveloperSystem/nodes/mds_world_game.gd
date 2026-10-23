@@ -28,8 +28,9 @@ extends Node2D
 ##   and bosses, and area objectives, with [method get_save_data] / [method set_save_data].
 ##   An exploration file keeps the map explored (and the save points found) even when the game
 ##   isn't saved, so a restarted game shows the map as far as the player got.
-## - Pins on the map ([method add_map_pin]): the player's own (placed on the pause menu's map), a
-##   quest's, a danger; kept like the explored map and shown on every map of the game.
+## - Markers on the map ([method add_map_marker]): a boss room, a locked door, a key, a quest's
+##   target, the player's own pins (placed on the pause menu's map), each with a title and a
+##   description; kept like the explored map and shown on every map of the game.
 ## - Saves the game at save points, like Hollow Knight's benches: [method save_game] writes
 ##   [member save_file] (an [MDSBench] calls it when the player rests on it) and records the
 ##   bench as the place to come back to ([method return_to_save_point], after dying). A game
@@ -53,9 +54,9 @@ signal game_loaded
 ## A node was recorded as defeated ([method mark_defeated]); [param boss] is the boss's name
 ## when it was one.
 signal defeated(id: String, boss: String)
-## Pin [param id] was put on the map (or moved), see [method add_map_pin].
+## Marker [param id] was put on the map (or moved), see [method add_map_marker].
 signal map_pin_added(id: String)
-## Pin [param id] was taken off the map.
+## Marker [param id] was taken off the map.
 signal map_pin_removed(id: String)
 
 ## The running game (the last one that entered the tree), for nodes that need it: title
@@ -174,9 +175,9 @@ var respawn: Dictionary = {}
 ## The save points (benches) found so far: room id -> list of [x, y] positions in the room.
 ## Kept in the exploration file and the save, and shown on the map.
 var save_points: Dictionary = {}
-## Pins on the map: id -> {position: [x, y] (world px), layer, kind, label} (see
-## [method add_map_pin]). Kept like the explored map: in the exploration file as soon as they
-## change, and in the save.
+## Markers on the map: id -> {position: [x, y] (world px), layer, kind, label (its title),
+## description, color, icon} (see [method add_map_marker]). Kept like the explored map: in the
+## exploration file as soon as they change, and in the save.
 var map_pins: Dictionary = {}
 ## Darkness of the current room (0 = lit).
 var darkness := 0.0
@@ -1163,33 +1164,129 @@ func _merge_save_points(from: Variant) -> void:
 				if p is Array and p.size() == 2:
 					map_view.mark_save_point(id, Vector2(float(p[0]), float(p[1])))
 
-# --- Pins on the map ------------------------------------------------------------------------------
+# --- Markers on the map ---------------------------------------------------------------------------
 
-## Puts a pin on the map at [param world_pos] (world px) and returns its id. [param kind] picks
-## its look on the map ("pin", "quest", "danger", "treasure", "note", or one of your own in
-## [member MDSWorldMapView.pin_colors]), [param label] is written beside it. With [param id] a pin
-## of that id moves there (a quest's marker as the quest goes on); else a new id is made.
-## [param map_layer] -1: the layer of the room the player is in. The pin is kept at once (the
+## Puts a marker on the map and returns its id. [param where]: a world position (px), a node (where
+## it is) or a room id (the room's middle, on its layer). [param kind] picks its icon and color
+## (pin, boss, locked_door, key, quest, danger, treasure, note, or one of
+## [method MDSWorldMapView.define_marker_kind]); [param title] is written beside it and
+## [param description] shows when the marker is pointed at on the map. [param options]:
+## [code]id[/code] (a marker of that id moves there: a quest's target as the quest goes on; else a
+## new id is made), [code]layer[/code] (else the room's, or the player's), [code]color[/code] and
+## [code]icon[/code] (a Color, and an icon name or a texture, of its own). It is kept at once (the
 ## exploration file) and saved with the game.
+## [codeblock]
+## game.add_map_marker(elder, "quest", "The elder", "Bring him the moss lantern.", {"id": "quest"})
+## game.add_map_marker("Shrine_01", "note", "Shrine", "A bench, and a merchant on Sundays.")
+## game.add_map_marker(Vector2(4200, 900), "danger", "Thorns", "", {"color": Color.ORANGE})
+## [/codeblock]
+## For the usual ones: [method mark_boss_room], [method mark_locked_door], [method mark_key],
+## [method mark_quest_target].
+func add_map_marker(where: Variant, kind := "pin", title := "", description := "", options := {}) -> String:
+	var at := _marker_place(where)
+	if at.x == INF:
+		return ""
+	var id := str(options.get("id", ""))
+	if id.is_empty():
+		var n := map_pins.size() + 1
+		while map_pins.has("pin_%d" % n):
+			n += 1
+		id = "pin_%d" % n
+	var map_layer := int(options.get("layer", -1))
+	if map_layer < 0:
+		map_layer = int(at.z)
+	var m := {"position": [at.x, at.y], "layer": map_layer, "kind": kind, "label": title, "description": description}
+	if options.get("color") is Color:
+		m.color = (options.color as Color).to_html()
+	if options.get("icon") is Texture2D:
+		m.icon = (options.icon as Texture2D).resource_path
+	elif options.has("icon"):
+		m.icon = str(options.icon)
+	map_pins[id] = m
+	if map_view and map_view.has_method(&"set_marker"):
+		map_view.set_marker(id, m)
+	_save_exploration()
+	map_pin_added.emit(id)
+	return id
+
+## Where a marker goes: [param where] (a world position, a node, a room id) as x, y (world px)
+## and z (its layer); x is INF when it says nowhere.
+func _marker_place(where: Variant) -> Vector3:
+	var here := world.get_room_layer(current_room) if world and world.has_room(current_room) else 0
+	if where is Vector2:
+		return Vector3(where.x, where.y, here)
+	if where is Node2D and is_instance_valid(where):
+		var p: Vector2 = (where as Node2D).global_position
+		return Vector3(p.x, p.y, here)
+	if (where is String or where is StringName) and world and world.has_room(str(where)):
+		var p := world.get_room_label_pos(str(where))
+		return Vector3(p.x, p.y, world.get_room_layer(str(where)))
+	return Vector3(INF, INF, here)
+
+## Puts a pin on the map at [param world_pos] (world px) and returns its id (see
+## [method add_map_marker], with [param label] as its title).
 ## [codeblock]
 ## game.add_map_pin(game.player.global_position)                   # the player's own pin
 ## game.add_map_pin(elder.global_position, "quest", "The elder", "quest_elder")
 ## game.remove_map_pin("quest_elder")                              # done
 ## [/codeblock]
 func add_map_pin(world_pos: Vector2, kind := "pin", label := "", id := "", map_layer := -1) -> String:
-	if id.is_empty():
-		var n := map_pins.size() + 1
-		while map_pins.has("pin_%d" % n):
-			n += 1
-		id = "pin_%d" % n
-	if map_layer < 0:
-		map_layer = world.get_room_layer(current_room) if world and world.has_room(current_room) else 0
-	map_pins[id] = {"position": [world_pos.x, world_pos.y], "layer": map_layer, "kind": kind, "label": label}
-	if map_view and map_view.has_method(&"set_pin"):
-		map_view.set_pin(id, world_pos, map_layer, kind, label)
-	_save_exploration()
-	map_pin_added.emit(id)
-	return id
+	return add_map_marker(world_pos, kind, label, "", {"id": id, "layer": map_layer})
+
+## Marks boss room [param room_id] (a skull in its middle). [param title]: else the room's boss
+## (its "boss" on the map), else "Boss". Its id is [code]boss_<room>[/code], so marking it again
+## changes it.
+func mark_boss_room(room_id: String, title := "", description := "") -> String:
+	if not world or not world.has_room(room_id):
+		return ""
+	if title.is_empty():
+		title = str(world.get_room_value(room_id, "boss", ""))
+	if title.is_empty():
+		title = "Boss"
+	return add_map_marker(room_id, "boss", title, description, {"id": "boss_" + room_id})
+
+## Marks door [param gate_name] of room [param room_id] as locked (a padlock on the gate).
+## [param description]: else what the gate needs (its "requires" on the map: "Needs Red Key").
+## Its id is [code]door_<room>_<gate>[/code]; take it away as the door opens
+## ([method remove_map_pin]).
+func mark_locked_door(room_id: String, gate_name: String, title := "Locked door", description := "") -> String:
+	if not world or not world.has_gate(room_id, gate_name):
+		return ""
+	if description.is_empty():
+		description = describe_requires(world.get_gate(room_id, gate_name).get("requires", []))
+	var at := world.get_gate_world_pos(room_id, gate_name)
+	return add_map_marker(at, "locked_door", title, description, {"id": "door_%s_%s" % [room_id, gate_name], "layer": world.get_room_layer(room_id)})
+
+## Marks a key (or any item to fetch) at [param where] (see [method add_map_marker]).
+func mark_key(where: Variant, title := "Key", description := "", id := "") -> String:
+	return add_map_marker(where, "key", title, description, {"id": id})
+
+## Marks a quest's target at [param where] (see [method add_map_marker]). Its id is
+## [param id] ("quest"), so the next target of the quest moves it.
+func mark_quest_target(where: Variant, title: String, description := "", id := "quest") -> String:
+	return add_map_marker(where, "quest", title, description, {"id": id})
+
+## Marker [param id] ({position, layer, kind, label, description...}), {} when there is none.
+func get_map_marker(id: String) -> Dictionary:
+	return map_pins.get(id, {})
+
+## What a gate needing [param requires] needs, in words: "Needs Red Key and Dash" ("" for
+## nothing).
+static func describe_requires(requires: Variant) -> String:
+	var names: PackedStringArray = []
+	for r in requires if requires is Array or requires is PackedStringArray else []:
+		var c := MDSAnnotations.parse_condition(str(r))
+		var what := str(c[1])
+		match str(c[0]):
+			"item":
+				what = str(MDSAnnotations.parse_item_requirement(what)[0])
+			"boss":
+				names.append("defeating " + what)
+				continue
+		names.append(what.get_file().capitalize())
+	if names.is_empty():
+		return ""
+	return "Needs " + (", ".join(names.slice(0, names.size() - 1)) + " and " + names[names.size() - 1] if names.size() > 1 else names[0])
 
 ## Puts a pin where the player is (see [method add_map_pin]).
 func pin_player_position(kind := "pin", label := "") -> String:
@@ -1197,7 +1294,7 @@ func pin_player_position(kind := "pin", label := "") -> String:
 		return ""
 	return add_map_pin(player.global_position, kind, label)
 
-## Takes pin [param id] off the map. Returns whether there was one.
+## Takes marker (or pin) [param id] off the map. Returns whether there was one.
 func remove_map_pin(id: String) -> bool:
 	if not map_pins.erase(id):
 		return false
@@ -1207,7 +1304,7 @@ func remove_map_pin(id: String) -> bool:
 	map_pin_removed.emit(id)
 	return true
 
-## Takes every pin off the map (of [param kind] only, unless empty).
+## Takes every marker off the map (of [param kind] only, unless empty).
 func clear_map_pins(kind := "") -> void:
 	for id: String in map_pins.keys():
 		if kind.is_empty() or str(map_pins[id].get("kind", "pin")) == kind:

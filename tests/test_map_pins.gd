@@ -42,7 +42,8 @@ func _map_alone() -> void:
 	map.clear_pins("pin")
 	check(map.pins.keys() == ["a"], "clear_pins(kind) takes that kind away")
 	check(map.remove_pin("a") and map.pins.is_empty() and not map.remove_pin("a"), "remove_pin")
-	check(map.pin_colors.has("quest") and map.pin_colors.has("danger") and map.pin_colors.pin != map.pin_colors.quest, "each kind has its color")
+	var kinds := MDSWorldMapView.marker_kinds
+	check(kinds.has("quest") and kinds.has("danger") and kinds.pin.color != kinds.quest.color, "each kind has its color")
 	map.free()
 	other.free()
 

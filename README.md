@@ -895,20 +895,35 @@ A save point is any node in the `save_point`, `savepoint`, `save`, `checkpoint` 
 
 **The map (`MDSWorldMapView`)** marks each room explored with a check mark (`show_explored_marks`, `explored_mark_color`; rooms only on a bought area map have none), the benches found, the one last rested on brighter (`show_save_points`), and the player with a pin (`player_marker_color`). With **`follow_player`** it is a minimap: it follows the player in a corner of the screen, showing `view_span` px of the world (3000 by default) in a frame. **Scenes > Create game scene...** sets this up: a minimap in the top-right corner, and save and exploration files named after the world (`user://<world>_save.json`, `user://<world>_exploration.json`).
 
-**Pins on the map:** mark places on the map while the game runs: the player's own marks, a quest's goal, a danger. Each pin is a flag in its kind's color (`pin`, `quest`, `danger`, `treasure`, `note`, or your own in `MDSWorldMapView.pin_colors`), with its label beside it. The game keeps pins like the explored map: they go into the exploration file as soon as they change and into the save, and every map of the game shows them.
+**Markers on the map:** mark places on the map while the game runs, each with a title and a short description: a boss room, a locked door, a key, a quest's target, the player's own pins. Each marker is a small badge with its kind's icon and color, its title beside it. Pointed at (the mouse over it, or in the middle of the map on a gamepad), its description shows in a box. The game keeps markers like the explored map: they go into the exploration file as soon as they change and into the save, and every map of the game shows them.
+
+| Kind | Icon | For |
+|---|---|---|
+| `pin` | flag | the player's own marks (the default) |
+| `boss` | skull | a boss room |
+| `locked_door` | padlock | a door that needs something |
+| `key` | key | a key, or any item to fetch |
+| `quest` | star | a quest's target |
+| `danger` | warning sign | spikes, a hard enemy |
+| `treasure` | gem | a chest, loot |
+| `note` | dot | anything else |
 
 ```gdscript
-game.add_map_pin(game.player.global_position)                      # the player's own: "pin_1"
-game.add_map_pin(elder.global_position, "quest", "The elder", "quest_elder")
-game.add_map_pin(cave.global_position, "quest", "The elder", "quest_elder")   # the same id moves it
-game.pin_player_position("danger", "Spikes")
-game.remove_map_pin("quest_elder")
-game.clear_map_pins("pin")                                          # all the player's own
+game.mark_boss_room("Crypt_01", "", "It guards the old lift.")       # titled by the room's boss
+game.mark_locked_door("Garden_02", "right1")                         # "Needs Crypt Key and Dash"
+game.mark_key(key_node, "Crypt key", "Under the old roots.")
+game.mark_quest_target(elder, "The elder", "Bring him the moss lantern.")
+game.mark_quest_target("Crypt_01", "The lift", "Ride it down.")      # the quest's target moves on
+game.add_map_marker(Vector2(4200, 900), "danger", "Thorns", "Mind your step.",
+		{"color": Color.ORANGE, "icon": "cross"})                       # a look of its own
+game.add_map_pin(game.player.global_position)                        # the player's own: "pin_1"
+game.remove_map_pin("door_Garden_02_right1")                         # the door opened
+game.clear_map_pins("pin")                                           # all the player's own
 ```
 
-`map_pins` holds them (id -> {position (world px), layer, kind, label}), and `map_pin_added` / `map_pin_removed` tell when they change. On the Gameplay Kit's pause menu map, a click on the map puts a pin there and a click on one of the player's own pins takes it away (a quest's pin stays), and **Pin where I am** pins the player (a gamepad's way). A map of your own takes clicks the same way with `pins_editable`: it emits `pin_requested(world_pos, layer)` and `pin_clicked(id)`. A map used without a game has its own pins (`set_pin()`, `remove_pin()`, `clear_pins()`), saved with it.
+`add_map_marker(where, kind, title, description, options)` takes a world position, a node (where it is) or a room id (its middle, on its layer); `options` has `id` (a marker of that id moves: a quest's target), `layer`, `color` and `icon` (an icon name, a texture, or a texture's path). `mark_boss_room` titles the marker with the room's boss (its `boss` on the map) and `mark_locked_door` describes what the gate's `requires` asks for (`describe_requires()`); their ids are `boss_<room>` and `door_<room>_<gate>`. Your own kinds join every map: `MDSWorldMapView.define_marker_kind("shop", Color.GOLD, "gem", "Shop")`, or with a texture as its icon (icons: `flag`, `skull`, `lock`, `key`, `star`, `warning`, `gem`, `dot`, `door`, `cross`). `map_pins` holds them all (id -> {position (world px), layer, kind, label, description, color, icon}), `get_map_marker(id)` reads one, and `map_pin_added` / `map_pin_removed` tell when they change. On the Gameplay Kit's pause menu map, a click on the map puts a pin there and a click on one of the player's own pins takes it away (other markers stay), and **Pin where I am** pins the player (a gamepad's way). A map of your own takes clicks the same way with `pins_editable`: it emits `pin_requested(world_pos, layer)` and `pin_clicked(id)`, and `marker_focused(id)` as a marker is pointed at (`show_marker_info` shows its description; `focus_pin(id)` points at one). A map used without a game has its own markers (`set_pin(id, pos, layer, kind, title, description)`, `set_marker()`, `remove_pin()`, `clear_pins()`), saved with it.
 
-**Zooming the map:** the pause menu's map zooms and moves while the game is paused on it (`zoomable`). The mouse wheel zooms around the point under the mouse, and `map_zoom_in` / `map_zoom_out` (RT / LT, = / -) zoom too, up to `max_zoom` (8 times the whole map). A drag, or `map_pan_*` (the right stick, I J K L, at `pan_speed`), moves the map; it never leaves the rooms. The map opens on the player at the zoom it was left at. Pins, benches, check marks and the player's pin keep their size, and a click puts a pin where it points at any zoom (a drag puts none). In code: `set_zoom(value, at)`, `pan_by(px)`, `center_on(world_pos)`, `reset_view()`, `zoom`.
+**Zooming the map:** the pause menu's map zooms and moves while the game is paused on it (`zoomable`). The mouse wheel zooms around the point under the mouse, and `map_zoom_in` / `map_zoom_out` (RT / LT, = / -) zoom too, in up to `max_zoom` (8 times the whole map) and out down to `min_zoom` (a quarter of it: the whole map small in the middle, the markers' titles hidden but the one pointed at). A drag, or `map_pan_*` (the right stick, I J K L, at `pan_speed`), moves the map; it never leaves the rooms. The map opens on the player at the zoom it was left at. Pins, benches, check marks and the player's pin keep their size, and a click puts a pin where it points at any zoom (a drag puts none). In code: `set_zoom(value, at)`, `pan_by(px)`, `center_on(world_pos)`, `reset_view()`, `zoom`.
 
 ```gdscript
 # A title screen: continue, or start over.
