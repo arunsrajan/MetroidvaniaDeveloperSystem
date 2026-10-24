@@ -31,6 +31,7 @@ var _fill: SpinBox
 var _mode: OptionButton
 var _doors: CheckBox
 var _connect: CheckBox
+var _across: SpinBox
 var _scale_x: SpinBox
 var _scale_y: SpinBox
 var _place: OptionButton
@@ -47,7 +48,7 @@ func _init() -> void:
 	title = "Import map image"
 	ok_button_text = "Import"
 	var content := VBoxContainer.new()
-	content.add_child(MDSUi.hint("A picture of a map becomes rooms on the map: its grid's cells are paint cells, its colors areas, cells parted by a wall line separate rooms, a gap in a wall or a gate marker on it a door. Cells other rooms have are left out. One undo takes it back."))
+	content.add_child(MDSUi.hint("A picture of a map becomes rooms on the map: its grid's cells are paint cells, its colors areas, cells parted by a wall line separate rooms, a gap in a wall or a gate marker on it a door. A map drawn with no grid (Hollow Knight, Silksong) is read as a shape per area, each split into rooms with doors. Cells other rooms have are left out. One undo takes it back."))
 	var file_row := HBoxContainer.new()
 	_path = LineEdit.new()
 	_path.editable = false
@@ -96,13 +97,18 @@ func _init() -> void:
 	_mode.add_item("Parted by walls", MDSMapImageImporter.RoomMode.WALLS)
 	_mode.add_item("One per color region", MDSMapImageImporter.RoomMode.COLOR_REGIONS)
 	_mode.add_item("One per cell", MDSMapImageImporter.RoomMode.CELLS)
-	_mode.tooltip_text = "Parted by walls: cells of one area with no wall line between them are one room. One per color region: the cells of one area that touch. One per cell: every cell its own room"
+	_mode.add_item("Drawn map: a shape per area", MDSMapImageImporter.RoomMode.SHAPES)
+	_mode.tooltip_text = "Parted by walls: cells of one area with no wall line between them are one room. One per color region: the cells of one area that touch. One per cell: every cell its own room. Drawn map: a map with no grid (Hollow Knight, Silksong), each area a shape filled with its color: each shape is split into rooms with doors, keeping its outline (used too when no grid is found)"
 	_mode.item_selected.connect(func(_i: int) -> void: _changed())
 	grid.add_child(_mode)
 	_scale_x = _spin(1, 16, 1)
 	_scale_y = _spin(1, 16, 1)
 	_scale_x.value = 1
 	_scale_y.value = 1
+	_across = _spin(10, 1000, 1)
+	_across.value = importer.shape_cells_across
+	_row(grid, "Drawn map: cells across", _across, "A map drawn with no grid: how many paint cells its width takes on the world (more: bigger rooms on the map, more of them, thin corridors kept)")
+	_across.value_changed.connect(func(_v: float) -> void: _changed())
 	_pair(grid, "Paint cells per cell", _scale_x, _scale_y, "How many paint cells of the world one cell of the picture's grid covers, across and down (a MetSys map's cell is a whole screen: 4 x 4 by default)")
 	grid.add_child(MDSUi.label("Place"))
 	_place = OptionButton.new()
@@ -235,6 +241,8 @@ func refresh() -> void:
 		_areas_box.add_child(row)
 		_area_names.append(name)
 	var text := "%d rooms, %d areas, %d doors; grid %.1f x %.1f px%s." % [found.rooms.size(), found.areas.size(), found.doors.size(), found.cell_size.x, found.cell_size.y, " (found)" if found.grid_found else (" (sidecar)" if not importer.sidecar.is_empty() else "")]
+	if found.get("shapes", false):
+		text = "A drawn map: %d areas, %d rooms, %d doors, one paint cell every %.1f x %.1f px of it." % [found.areas.size(), found.rooms.size(), found.doors.size(), found.cell_size.x, found.cell_size.y]
 	if not found.warnings.is_empty():
 		text += " " + " ".join(found.warnings)
 	_info.text = text
@@ -253,6 +261,7 @@ func _read() -> void:
 	importer.detect_doors = _doors.button_pressed
 	importer.connect_unreached = _connect.button_pressed
 	importer.cells_per_map_cell = Vector2i(int(_scale_x.value), int(_scale_y.value))
+	importer.shape_cells_across = int(_across.value)
 
 ## The names typed for the areas, in their order ("" for none).
 func area_names() -> Array:
@@ -321,8 +330,15 @@ func _draw_preview() -> void:
 	for i in found.rooms.size():
 		for c: Vector2i in found.rooms[i].cells:
 			room_of[c] = i
+	# Lines and doors no bigger than the cells are (a drawn map's are a few px here).
+	var small := minf(cell.x, cell.y)
+	var wall := clampf(small * 0.2, 0.5, 1.5)
+	var dot := clampf(small * 0.35, 1.0, 3.5)
 	for c: Vector2i in cells:
 		var col: Color = found.areas[cells[c]].color
+		# Dark fills (a drawn map's) shown lighter, to be seen over the picture.
+		if col.get_luminance() < 0.35:
+			col = col.lightened(0.45)
 		var r := Rect2(off + Vector2(c) * cell, cell)
 		_preview.draw_rect(r, Color(col, 0.55))
 		# Walls: where the next cell is another room's, or none.
@@ -330,9 +346,9 @@ func _draw_preview() -> void:
 			if room_of.get(c + d, -1) != room_of[c]:
 				var a := r.position + (Vector2(r.size.x, 0) if d == Vector2i.RIGHT else Vector2.ZERO) + (Vector2(0, r.size.y) if d == Vector2i.DOWN else Vector2.ZERO)
 				var b := a + (Vector2(0, r.size.y) if d.x != 0 else Vector2(r.size.x, 0))
-				_preview.draw_line(a, b, Color.WHITE, 1.5)
+				_preview.draw_line(a, b, Color.WHITE, wall)
 	for d: Dictionary in found.doors:
 		var c: Vector2i = d.cell
 		var r := Rect2(off + Vector2(c) * cell, cell)
 		var p: Vector2 = r.position + (Vector2(r.size.x, r.size.y * d.t) if d.side == "right" else Vector2(r.size.x * d.t, r.size.y))
-		_preview.draw_circle(p, 3.5, Color(1, 0.85, 0.2))
+		_preview.draw_circle(p, dot, Color(1, 0.85, 0.2))

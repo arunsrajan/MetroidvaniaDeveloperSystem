@@ -259,6 +259,11 @@ gen.fill(world, painted_cells, 0, "The Ashen Depths")   # cells you painted beco
 - **Rooms:** cells of one area with no wall line between them are one room. A wall line is ink (dark lines) or any line unlike both rooms' colors, the lines MDS's map styles draw. Other choices are one room per color region, or one per cell.
 - **Doors:** a gap in a wall, or a gate marker on it (the squares MDS draws), is a door: a pair of connected gates. Rooms no door reaches get a door to a room they touch.
 - **Paint cells per cell** makes each cell of the picture several paint cells. A MetSys map's cell is a whole screen: 4 x 4 by default.
+- **A map drawn with no grid** (a Hollow Knight or Silksong map: each area one shape, filled with a dark color and outlined in a lighter one, areas touching, names written beside them) is read as shapes when no grid is found, or with **Rooms: Drawn map: a shape per area**:
+  - Each flat fill is found, with its outline, blends and the icons drawn on it. Fills that touch and are nearly the same color are one area, so two areas a shade apart stay two. Names written on the background are left out.
+  - Each area lies on the paint cells it covers (**Drawn map: cells across** sets the scale, 120 by default), thin corridors kept. It is split into rooms like a generated area (rectangles, L and T shapes, shafts), with doors between them. Each room keeps the part of the area's outline it holds, so curves and slants show on the map.
+  - Two areas that touch get a door between them. A part of the map apart from the rest (a gap in the drawing) gets a short passage to the nearest room, so every room can be walked to.
+  - Areas are named "Imported N" (the picture's writing isn't read): name them in the dialog. Code: `MDSMapShapes`, `MDSMapImageImporter.RoomMode.SHAPES`, `shape_cells_across`.
 - The preview shows the grid, the rooms in their area colors and the doors. Cells other rooms already have are left out, and one undo takes the import back.
 
 ```gdscript
