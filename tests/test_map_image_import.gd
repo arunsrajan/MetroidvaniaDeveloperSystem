@@ -4,6 +4,10 @@ extends "res://tests/test_case.gd"
 ## found by itself (x and y on their own), or read from the sidecar MDS writes with its map
 ## images. Colors are areas, outlined cells are rooms, a gate marker on a wall or a gap in it
 ## is a door; rooms no door reaches get one to a room they touch.
+## A map drawn freely (Hollow Knight, Silksong: no grid, each area a shape filled with a dark
+## color and outlined in a light one, areas touching, names written beside them) is read as
+## shapes: each area split into rooms on the paint cells, keeping its outline, a door where two
+## areas touch, a passage to a part apart, the names left out.
 
 const DIR := TMP + "/map_import"
 const CELL := Vector2i(40, 24)
@@ -61,6 +65,7 @@ func _run() -> void:
 	imp.analyze()
 	_apply(imp)
 	_sidecar(img)
+	_drawn_map()
 
 func _apply(imp: MDSMapImageImporter) -> void:
 	var world := MDSWorld.new()
@@ -152,3 +157,61 @@ func _gap(img: Image, at: Vector2i, upright: bool, a: Color, b: Color) -> void:
 	else:
 		img.fill_rect(Rect2i(at.x - 5, at.y - 2, 10, 2), a)
 		img.fill_rect(Rect2i(at.x - 5, at.y, 10, 2), b)
+
+## A drawn map: an L of green with a hole and a thin corridor, a blue shape touching it, a red one
+## apart, and a name written on the background.
+func _drawn_map() -> void:
+	var img := Image.create(640, 420, false, Image.FORMAT_RGBA8)
+	img.fill(Color.BLACK)
+	var green := [Color(0.16, 0.23, 0.14), Color(0.45, 0.55, 0.4)]
+	var blue := [Color(0.13, 0.14, 0.2), Color(0.36, 0.37, 0.43)]
+	var red := [Color(0.25, 0.12, 0.1), Color(0.6, 0.35, 0.3)]
+	for r in [Rect2i(40, 40, 260, 90), Rect2i(40, 130, 34, 200), Rect2i(74, 300, 190, 10)]:
+		_shape(img, r, green)
+	img.fill_rect(Rect2i(120, 70, 60, 30), Color.BLACK)
+	_shape(img, Rect2i(298, 60, 220, 140), blue)
+	_shape(img, Rect2i(420, 240, 150, 60), red)
+	# A name: thin strokes, no fill.
+	for k in 6:
+		img.fill_rect(Rect2i(120 + k * 12, 370, 2, 14), Color(0.6, 0.6, 0.5))
+		img.fill_rect(Rect2i(120 + k * 12, 370, 8, 2), Color(0.6, 0.6, 0.5))
+	var imp := MDSMapImageImporter.new()
+	imp.set_image(img)
+	imp.room_mode = MDSMapImageImporter.RoomMode.SHAPES
+	imp.shape_cells_across = 40
+	var found := imp.analyze()
+	check(found.get("shapes", false) and found.areas.size() == 3, "a drawn map: three areas, its three shapes, the name left out (%d %s)" % [found.areas.size(), found.warnings])
+	var green_area := -1
+	for a in found.areas.size():
+		var col: Color = found.areas[a].color
+		if col.g > col.r and col.g > col.b:
+			green_area = a
+	check(green_area >= 0 and absf(found.areas[green_area].color.g - 0.23) < 0.04, "an area's color is its fill's")
+	var green_cells: Dictionary = {}
+	for c: Vector2i in found.areas[green_area].cells:
+		green_cells[c] = true
+	check(MDSAreaGenerator.components(green_cells).size() == 1 and green_cells.size() >= 20, "the L's thin corridor is kept: one piece (%d cells)" % green_cells.size())
+	var hole := Vector2i(((Vector2(150, 85) - found.grid_offset) / found.cell_size).floor())
+	check(not green_cells.has(hole), "its hole isn't a room's")
+	check(not (found.areas[green_area].outline as Array).is_empty(), "and its outline is traced")
+	var rooms_of: Dictionary = {}
+	for r: Dictionary in found.rooms:
+		rooms_of[r.area] = int(rooms_of.get(r.area, 0)) + 1
+	check(rooms_of.size() == 3 and int(rooms_of[green_area]) >= 2, "each area split into rooms (%s)" % [rooms_of])
+	var across := false
+	for d: Dictionary in found.doors:
+		across = across or found.rooms[d.a].area != found.rooms[d.b].area
+	check(across, "a door where two areas touch")
+	var world := MDSWorld.new()
+	var made := imp.apply(world, 0)
+	check(made.areas.size() == 3 and made.rooms.size() == found.rooms.size() + made.get("passages", []).size(), "imported: its areas and rooms on the map")
+	check(not made.get("passages", []).is_empty() and MDSAreaTools.pieces(world, world.get_room_ids()) == 1, "the part apart joined by a passage: every room reached (%s)" % [made.get("passages", [])])
+	var shaped := world.get_room_ids().filter(func(id: String) -> bool: return world.has_room_shape(id))
+	check(not shaped.is_empty(), "rooms keep the shape's outline where it doesn't fill their cells (%d)" % shaped.size())
+	# Read again with the same settings: the same.
+	check(imp.analyze().rooms.size() == found.rooms.size(), "read again, the same")
+
+## A shape of [param r] filled with [param look][0], outlined in [param look][1].
+func _shape(img: Image, r: Rect2i, look: Array) -> void:
+	img.fill_rect(r, look[1])
+	img.fill_rect(r.grow(-2), look[0])

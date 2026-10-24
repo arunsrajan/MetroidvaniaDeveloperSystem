@@ -25,12 +25,18 @@ extends RefCounted
 ## - Two cells side by side are one room when nothing parts them (no wall line, the same area);
 ##   a wall with a gap, or a gate marker on it (the squares MDS draws), is a door between two
 ##   rooms ([member room_mode] can also make one room of each color region, or of each cell).
+## - A map drawn freely, with no grid (a Hollow Knight or Silksong map: each area one shape, a
+##   dark fill outlined in a lighter color), is read as shapes ([constant RoomMode.SHAPES], also
+##   when no grid is found): each area's shape lies on [member shape_cells_across] paint cells
+##   across, is split into rooms with doors between them, and keeps its outline on the map (see
+##   [MDSMapShapes]).
 
 ## How cells become rooms.
 enum RoomMode {
 	WALLS, ## cells not parted by a wall line, of one area, are one room
 	COLOR_REGIONS, ## the cells of one area that touch are one room
 	CELLS, ## each cell is a room
+	SHAPES, ## a map drawn freely: each area a shape, split into rooms (see [MDSMapShapes])
 }
 
 const SIDECAR_SUFFIX := ".mdsmap.json"
@@ -68,13 +74,20 @@ var min_fill := 0.45
 var room_mode: int = RoomMode.WALLS
 ## Find doors: gaps in the walls between rooms, gate markers on them.
 var detect_doors := true
-## Rooms no door reaches get one to a room they touch, so the whole map can be walked.
+## Rooms no door reaches get one to a room they touch, so the whole map can be walked. In a map
+## drawn freely, parts apart from the rest (a gap in the drawing) get a passage to the nearest
+## room, of up to [member passage_cells] paint cells.
 var connect_unreached := true
+var passage_cells := 12
 ## The shape (width / height) the map's cells are likely to have, to choose between periods
 ## that fit as well: the world's paint cell (0: the biggest are taken).
 var cell_aspect := 0.0
 ## Paint cells of the world each cell of the picture's grid covers, across and down.
 var cells_per_map_cell := Vector2i.ONE
+## A map drawn freely ([constant RoomMode.SHAPES]): paint cells across its width.
+var shape_cells_across := 120
+## Reads maps drawn freely (see [constant RoomMode.SHAPES]).
+var shapes := MDSMapShapes.new()
 ## Sidecar found with the picture: {cell_px, grid_origin_px, paint_cell, layer}.
 var sidecar: Dictionary = {}
 ## What [method analyze] found last.
@@ -88,6 +101,8 @@ var _bg_tol := 0
 var _ink := 0
 var _grid_key := ""
 var _grid_found: Dictionary = {}
+var _shapes_key := ""
+var _shapes_found: Dictionary = {}
 
 ## Loads a picture from a file (res://, user:// or anywhere on disk), with its sidecar if it has
 ## one. Returns the error.
@@ -162,8 +177,18 @@ func analyze() -> Dictionary:
 		warnings.append("No picture.")
 		return found
 	_prepare_labels()
+	if room_mode == RoomMode.SHAPES:
+		found = _analyze_shapes()
+		return found
 	if auto_grid:
 		var g := _find_grid()
+		# No grid: a map drawn freely, read as shapes when it is one.
+		if g.is_empty():
+			var drawn := _analyze_shapes()
+			if not drawn.rooms.is_empty():
+				drawn.warnings.insert(0, "No grid found: read as a map drawn freely (Rooms: one shape per area).")
+				found = drawn
+				return found
 		if g.is_empty():
 			warnings.append("No grid found in the picture: set the cell size (and where a cell starts) by hand.")
 		else:
@@ -298,6 +323,20 @@ func analyze() -> Dictionary:
 	found.rooms = rooms
 	found.doors = doors
 	return found
+
+## [method analyze] for a map drawn freely ([MDSMapShapes]); the same picture and settings are
+## read once.
+func _analyze_shapes() -> Dictionary:
+	shapes.cells_across = shape_cells_across
+	var bg := background if background.a > 0.0 else frame_color()
+	var aspect := cell_aspect if cell_aspect > 0.0 else 288.0 / 162.0
+	var key := "%d|%s|%s|%s" % [image.get_instance_id(), bg, aspect, [shapes.cells_across, shapes.min_cover, shapes.flat, shapes.fill_tolerance, shapes.same_area, shapes.background_tolerance, shapes.room_min, shapes.room_max]]
+	if key != _shapes_key or _shapes_found.is_empty():
+		_shapes_key = key
+		_shapes_found = shapes.analyze(image, bg, Vector2(aspect, 1.0))
+	var out := _shapes_found.duplicate()
+	out.warnings = (_shapes_found.warnings as PackedStringArray).duplicate()
+	return out
 
 ## Pixel labels' settings from the background (found on the frame) and the levels.
 func _prepare_labels() -> void:
@@ -795,19 +834,21 @@ static func free_cell(world: MDSWorld, layer: int) -> Vector2i:
 ## [param at_cell] (default [method free_cell]); with [param keep_cells], each grid cell lands
 ## on the paint cell of the same number (a picture MDS exported, with its sidecar: where the
 ## rooms were). Cells other rooms have are left out. No checkpoint: the caller takes one.
-## Returns {areas, rooms: names made; doors: gate pairs made; skipped_cells}.
+## Returns {areas, rooms: names made; doors: gate pairs made; skipped_cells; passages: rooms made
+## to join parts apart}.
 func apply(world: MDSWorld, layer := 0, at_cell := Vector2i.MAX, area_names: Array = [], keep_cells := false) -> Dictionary:
 	var out := {"areas": [], "rooms": [], "doors": 0, "skipped_cells": 0}
 	if found.is_empty():
 		analyze()
 	if found.rooms.is_empty():
 		return out
-	var k := Vector2i(maxi(1, cells_per_map_cell.x), maxi(1, cells_per_map_cell.y))
+	var drawn := bool(found.get("shapes", false))
+	var k := Vector2i.ONE if drawn else Vector2i(maxi(1, cells_per_map_cell.x), maxi(1, cells_per_map_cell.y))
 	var first := Vector2i(1 << 30, 1 << 30)
 	for c: Vector2i in found.cells:
 		first = Vector2i(mini(first.x, c.x), mini(first.y, c.y))
 	var shift := Vector2i.ZERO
-	if not keep_cells:
+	if not keep_cells or drawn:
 		var at := at_cell if at_cell != Vector2i.MAX else free_cell(world, layer)
 		shift = at - first * k
 	var taken := MDSAreaTools.occupied(world, layer)
@@ -826,6 +867,20 @@ func apply(world: MDSWorld, layer := 0, at_cell := Vector2i.MAX, area_names: Arr
 			world.add_area(name, found.areas[g].color as Color)
 			out.areas.append(name)
 		area_of.append(name)
+	# A drawn map's areas' outlines (world px), which their rooms keep as theirs on the map.
+	var s := world.get_paint_cell()
+	var outlines: Array = []
+	if drawn:
+		var cell_px: Vector2 = found.cell_size
+		var origin: Vector2 = found.grid_offset
+		for g in found.areas.size():
+			var polys: Array = []
+			for poly: PackedVector2Array in found.areas[g].get("outline", []):
+				var world_poly := PackedVector2Array()
+				for p in poly:
+					world_poly.append(((p - origin) / cell_px + Vector2(shift)) * s)
+				polys.append(world_poly)
+			outlines.append(polys)
 	# Rooms.
 	var ids: Array[String] = []
 	var room_cells: Array = [] # per room: {paint cell: true}
@@ -848,6 +903,8 @@ func apply(world: MDSWorld, layer := 0, at_cell := Vector2i.MAX, area_names: Arr
 		cells.sort()
 		var id := world.add_room(MDSAreaGenerator.room_base(area), world.cell_to_world_rect(cells[0]), layer, area)
 		world.set_room_cells(id, paint)
+		if drawn and room.area >= 0 and room.area < outlines.size():
+			_shape_room(world, id, room.cells, paint, outlines[room.area], found.cover, s)
 		for pc in paint:
 			taken[pc] = id
 		ids.append(id)
@@ -875,7 +932,27 @@ func apply(world: MDSWorld, layer := 0, at_cell := Vector2i.MAX, area_names: Arr
 			if not id.is_empty():
 				made.append(id)
 		out.doors += _connect_all(world, made, layer)
+		if drawn and passage_cells > 0 and MDSAreaTools.pieces(world, made) > 1:
+			var joined_up := MDSAreaTools.link_apart(world, made, passage_cells)
+			out.doors += joined_up.doors.size()
+			out.rooms.append_array(joined_up.rooms)
+			out["passages"] = joined_up.rooms
 	return out
+
+## Room [param id] of a drawn map keeps the part of its area's outline ([param polys], world px)
+## its cells hold, when the outline doesn't cover them all ([param cover]: picture cell -> share).
+static func _shape_room(world: MDSWorld, id: String, cells: Array, paint: Dictionary, polys: Array, cover: Dictionary, s: Vector2) -> void:
+	var weight := 0.0
+	for c: Vector2i in cells:
+		weight += float(cover.get(c, 1.0))
+	if weight >= cells.size() - 0.001 or polys.is_empty():
+		return
+	var shape: Array[PackedVector2Array] = []
+	for poly: PackedVector2Array in polys:
+		if MDSGeometry.bounds(poly).intersects(world.get_room_bounds(id)):
+			shape.append_array(MDSAreaGenerator.room_outline(paint, poly, s))
+	if not shape.is_empty():
+		world.set_room_shape(id, shape)
 
 ## A pair of connected gates between rooms [param a] and [param b] at [param pos] (world px, on
 ## their shared edge; [param side]: a's side there).
