@@ -19,6 +19,8 @@ It has two modes, switched from the first drop-down in the tool panel:
 
 Both modes share the analysis: progression spheres, backtracking, save distance, routes, topology, validation, stats and exports.
 
+**Objects guide:** every MDS object you use in a game, from the most important to the least, with how to add it in the Godot editor, how to use it, and every Inspector property with its default: [Markdown](docs/MDS_Objects_Guide.md) · [PDF](docs/MDS_Objects_Guide.pdf).
+
 ## Requirements
 
 - Godot 4.6 or newer (tested on 4.6.1 and 4.7.2; older 4.x versions are untested)
@@ -1734,7 +1736,7 @@ addons/MetroidvaniaDeveloperSystem/  # the plugin (all you need)
 asset_packs/mossgrove/               # optional art pack: tiles, characters, freeform styles, demos
 asset_packs/sunken_gardens/          # optional art pack: freeform styles and stamps, a demo room
 examples/                            # a sample .mdsworld.json
-docs/                                # screenshots for this README and the store icon (not imported: .gdignore)
+docs/                                # screenshots for this README, the store icon and the objects guide (not imported: .gdignore)
 tests/                               # headless tests (not needed in your project)
 .github/workflows/tests.yml          # CI: the tests on Godot 4.6.1 and 4.7.2, for every push and pull request
 CHANGELOG.md                         # what changed in each version
