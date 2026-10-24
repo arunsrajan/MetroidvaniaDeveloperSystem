@@ -55,6 +55,8 @@ const FREEFORM_LAYERS: PackedStringArray = ["Terrain (solid)", "Background", "Fo
 const FREEFORM_GROUPS: PackedStringArray = ["Freeform", "FreeformBack", "FreeformFront"]
 const STAMP_LAYERS: PackedStringArray = ["Behind terrain", "In front of terrain", "Foreground"]
 const STAMP_GROUPS: PackedStringArray = ["StampsBack", "StampsFront", "StampsForeground"]
+## The most paint cells a passage Generate all makes between rooms far apart may take.
+const PASSAGE_CELLS := 16
 
 var canvas: MDSRoomCanvas
 var palette: MDSTilePalette
@@ -1045,12 +1047,22 @@ func generate_all(new_variation: bool, ids: Array[String] = []) -> int:
 	var fills := generation_fills()
 	var done := 0
 	var failed: PackedStringArray = []
+	var stuck: PackedStringArray = []
 	# The Full view: the rooms selected, else all of them; rooms without a scene get one.
 	var targets: Array[String] = ids.duplicate()
 	if targets.is_empty() and _full:
 		targets = full_tools.selected_rooms()
 	if targets.is_empty():
 		targets = _session.duplicate()
+	# Rooms (areas) no door joins are joined first, by a door where they touch or a passage where
+	# they don't, so the caves can be crossed and backtracked from one end to the other.
+	var joins: Dictionary = {"doors": [], "rooms": []}
+	if targets.size() >= 2 and MDSAreaTools.pieces(world, targets) > 1:
+		world.checkpoint()
+		joins = MDSAreaTools.link_apart(world, targets, PASSAGE_CELLS)
+		if not joins.rooms.is_empty():
+			targets.append_array(joins.rooms)
+			refresh_full()
 	for id in targets:
 		if _full and world.has_room(id) and world.get_scene_path(id).is_empty() and not _make_scene(id):
 			failed.append(id)
@@ -1073,12 +1085,21 @@ func generate_all(new_variation: bool, ids: Array[String] = []) -> int:
 			terrain = Vector2i(int(rock.get("set", 0)), int(rock.get("terrain", 0)))
 		p.checkpoint()
 		p.generate_cave(world, id, hash(id) + _variation * 7919, terrain.x, terrain.y, {}, room_fills)
+		if not p.paths_joined:
+			stuck.append(id)
 		done += 1
 	canvas.refresh_context()
 	_update_session_bar()
 	var text := "Generated caves in %d of %d rooms, joined at their doors. Ctrl+Z undoes it in the room edited; Save writes them all." % [done, targets.size()]
+	if not joins.doors.is_empty():
+		text += " Joined the rooms no door led to: %d door(s)%s." % [joins.doors.size(), " and passage(s) %s" % ", ".join(joins.rooms) if not joins.rooms.is_empty() else ""]
+	var apart := MDSAreaTools.pieces(world, targets)
+	if apart > 1:
+		text += " The rooms are still in %d pieces no door joins (too far apart): draw a room between them." % apart
 	if not failed.is_empty():
 		text += " Not in %s (no terrains in its tileset: pick palette tiles or a color as the Terrain fill)." % ", ".join(failed)
+	if not stuck.is_empty():
+		text += " %s: not every gate could be joined to the others (too thin on the map for a path to climb): make it taller or wider there, or move its gates, then New variation." % ", ".join(stuck)
 	_changed(text)
 	return done
 
@@ -1712,6 +1733,13 @@ func _refresh_outside_fill() -> void:
 	status_message.emit("%s's shape changed on the map: its outside fill was redone (%d shape(s)). Ctrl+Z undoes it." % [room_id, n])
 
 func generate(new_variation: bool) -> void:
+	# The Full view: the rooms selected (Rooms tool), else the room edited.
+	if _full and (not painter or not full_tools.selected_rooms().is_empty()):
+		if full_tools.selected_rooms().is_empty():
+			status_message.emit("Click a room to edit it, or select rooms with the Rooms tool (click, Ctrl+click, a box), then Generate cave. Generate all does every room.")
+			return
+		generate_all(new_variation, full_tools.selected_rooms())
+		return
 	if not painter:
 		return
 	var fills := generation_fills()
@@ -1736,6 +1764,8 @@ func generate(new_variation: bool) -> void:
 	var gates := "%d gate(s) joined both ways, their gate nodes on the new openings" % world.get_gates(room_id).size()
 	if not missing.is_empty():
 		gates += "; no gate node for %s yet (Inspect > Write to scene adds it)" % ", ".join(missing)
+	if not painter.paths_joined:
+		gates += "; not every gate could be joined to the others (the room is too thin on the map for a path to climb there: make it taller or wider, or move its gates)"
 	_changed("Generated a cave from %s's shape on the map (%s; %s). Paint over it, then Save." % [room_id, ", ".join(made), gates])
 
 ## What Generate cave makes, from the fills picked for each layer and the options (see

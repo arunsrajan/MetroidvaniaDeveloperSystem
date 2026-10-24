@@ -44,6 +44,11 @@ const DRAWING_LAYER_META := &"mds_layer"
 ## Metadata of a tile layer: the cells the last Trace drawing painted on it (Replace the last
 ## trace erases them).
 const TRACED_CELLS := &"mds_traced_cells"
+## How deep into the room a gate's doorway is cleared, in tiles.
+const DOOR_DEPTH := 7
+## Generate cave's fills key: how many tiles a room's shape is widened (generated again wider
+## when its paths couldn't be made in it).
+const WIDEN_KEY := "_widen"
 ## The alternative-tile bits that flip and turn a cell's tile.
 const TRANSFORM_FLAGS := TileSetAtlasSource.TRANSFORM_FLIP_H | TileSetAtlasSource.TRANSFORM_FLIP_V | TileSetAtlasSource.TRANSFORM_TRANSPOSE
 ## Metadata of the stamps Generate cave scattered (New variation replaces them).
@@ -73,6 +78,9 @@ var _base: Dictionary = {} ## the room as its scene had it last (see [method bas
 ## The doorways the last Generate cave carved: gate name -> its box (scene-local), on the room's
 ## edge across the opening, where the gate nodes were put (see [method fit_gate_nodes]).
 var gate_openings: Dictionary = {}
+## Whether the last Generate cave joined every gate to every other one and back (false: the room
+## is too thin on the map somewhere for a path a player can climb).
+var paths_joined := true
 
 const COLOR_SOURCE_NAME := "MDS colors"
 const MAX_UNDO := 60
@@ -1746,6 +1754,7 @@ func clear_layer(layer_name: String) -> void:
 ##   its old rooms met, with openings where their doors were, each old room reached through
 ##   them, instead of one big open cave.
 func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 0, terrain := 0, background: Dictionary = {}, fills: Dictionary = {}) -> void:
+	paths_joined = true
 	var rock: Dictionary = fills.get("terrain", {})
 	if not has_terrains() and (rock.is_empty() or str(rock.get("type", "")) == "terrain"):
 		return
@@ -1757,6 +1766,16 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 		inside = box
 	if inside.is_empty():
 		return
+	# An outline on the map in pieces (two shapes, or one pinched apart on the tile grid): the
+	# pieces are joined through the room's rectangles, so its gates can reach each other.
+	inside = joined_pieces(inside, box, int(climb_params(world).tall) + 1)
+	# Generated again wider when its paths couldn't be made (see below).
+	var widen := int(fills.get(WIDEN_KEY, 0))
+	for i in widen:
+		for c in inside.keys():
+			for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				if box.has(c + d):
+					inside[c + d] = true
 	# A merged room: walls where its old rooms met (see MDSWorld.merge_rooms).
 	var part_of := part_cells(world, id, inside) if bool(fills.get("parts", true)) else {}
 	# The whole box of its rectangles is filled: rock wherever the cave doesn't reach.
@@ -1802,7 +1821,7 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 			"top", "bot":
 				gate_openings[g] = Rect2(Vector2(mouth.position.x, gp.y - MDSWorldSceneTools.GATE_SIZE_ACROSS * 0.5), Vector2(mouth.size.x, MDSWorldSceneTools.GATE_SIZE_ACROSS))
 		for a in range(-2, 2):
-			for depth in 7:
+			for depth in DOOR_DEPTH:
 				var c: Vector2i
 				match side:
 					"left":
@@ -1920,12 +1939,33 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 		var side := world.get_gate_side(id, g)
 		if side == "left" or side == "right":
 			var gc := cell_at("Terrain", world.get_gate_local_pos(id, g))
-			for depth in 7:
+			for depth in DOOR_DEPTH:
 				var c := gc + Vector2i(depth if side == "left" else -depth, 2)
-				if inside.has(c):
+				# Not across another gate's doorway (one in the floor next to it).
+				if inside.has(c) and not open.has(c):
 					solid[c] = true
+	# Doorways cleared past the room's outline are open in the game too: part of the cave.
+	for c in box:
+		if not solid.has(c):
+			inside[c] = true
+	# Doors in the floor or the ceiling: a ladder of ledges up the doorway (see [method door_ledges]).
+	var ladder := door_ledges(world, id, inside)
+	for c in ladder:
+		solid[c] = true
 	if bool(fills.get("paths", true)):
-		connect_gates(world, id, inside, solid, open, part_ends)
+		# A room too narrow on the map for its paths (a neck two tiles wide to climb): again, its
+		# shape widened into its rectangles.
+		var joined := connect_gates(world, id, inside, solid, open, part_ends)
+		for g in world.get_gates(id):
+			joined = joined and not gate_end(world, id, g, inside).is_empty()
+		if not joined and widen < 4 and inside.size() < box.size():
+			var wider := fills.duplicate()
+			wider[WIDEN_KEY] = widen + 2
+			generate_cave(world, id, seed_value, terrain_set, terrain, background, wider)
+			return
+		paths_joined = joined
+		for c in ladder:
+			solid[c] = true
 	# The gate nodes go where their doorways now are, their collision across them.
 	fit_gate_nodes(gate_openings)
 	var terrain_fill: Dictionary = fills.get("terrain", {})
@@ -2032,23 +2072,24 @@ func _generate_stamps(inside: Dictionary, solid: Dictionary, stamps: Dictionary,
 ## gate through the room's own cells (off its edges, in long straight runs): tunnels as tall as
 ## the player, floored over drops too deep to climb out of, and shafts with ledges to climb.
 ## [param extra_ends] are more places to join ({cell, side, mouth}, like [method gate_end]'s),
-## such as the doors between a merged room's parts.
-func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dictionary, keep: Dictionary = {}, extra_ends: Array = []) -> void:
-	var ts := tile_size()
-	var player := MDSRoomCheck.PLAYER_DEFAULTS.duplicate()
-	player.merge(world.get_setting("player", {}), true)
-	var tall := clampi(ceili(float(player.size[1]) / ts.y) + 1, 3, 8)
-	var jump_px := MDSRoomCheck.max_jump_height(float(player.jump_velocity), float(player.gravity))
-	var reach := clampi(floori(jump_px * 0.8 / ts.y), 2, 10)
-	var step := clampi(floori(jump_px * 0.55 / ts.y), 2, mini(reach, 5))
+## such as the doors between a merged room's parts. Returns whether they all are, in the end.
+func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dictionary, keep: Dictionary = {}, extra_ends: Array = []) -> bool:
+	var climb := climb_params(world)
+	var tall: int = climb.tall
+	var reach: int = climb.reach
+	var step: int = climb.step
 	var ends: Array = []
 	for g in world.get_gates(id):
 		var e := gate_end(world, id, g, inside)
 		if not e.is_empty():
 			ends.append(e)
 	ends.append_array(extra_ends)
-	if ends.size() < 2:
-		return
+	if ends.is_empty():
+		return true
+	# Where the player stands at each end: no shaft's ledge there.
+	var spots: Dictionary = {}
+	for e in ends:
+		spots[e.cell] = true
 	var clearance := _clearance(inside)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([id, "paths"])
@@ -2075,10 +2116,147 @@ func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dicti
 				var e := k + 1
 				while e + 1 < path.size() and path[e + 1] - path[e] == d:
 					e += 1
-				_carve_leg(path[k], path[e], inside, solid, keep, tall, step, reach)
+				_carve_leg(path[k], path[e], inside, solid, keep, tall, step, reach, spots)
 				k = e
+		# Dropped in through a top gate (a dead end's too), the player climbs back out of it: a
+		# shaft with ledges from where they land up to it.
+		for e in ends:
+			if e.side != "top":
+				continue
+			if reached.is_empty():
+				var open_cells := _open_cells(inside, solid)
+				var land := land_map(open_cells)
+				reached = {"open": open_cells, "land": land}
+			var from_e := climb_reach(reached.open, e.cell, reach, 3, reached.land)
+			if _arrives(from_e, e, reached.open, reached.land, reach):
+				continue
+			all_ok = false
+			var down: Vector2i = reached.land.get(e.cell, e.cell)
+			reached = {}
+			_carve_leg(down, e.cell, inside, solid, keep, tall, step, reach, spots)
+			# And a ledge beside where it ends, to jump out of the gate from.
+			for dx in [1, 2]:
+				var c: Vector2i = e.cell + Vector2i(dx, 1)
+				if inside.has(c) and not spots.has(c):
+					solid[c] = true
 		if all_ok:
+			return true
+	return gates_joined(inside, solid, ends, reach)
+
+## Whether gate ends [param ends] (see [method gate_end]) reach each other both ways in the cave
+## ([param inside]'s cells but [param solid]), and a top gate's from where the player lands under
+## it, jumping [param reach] rows.
+func gates_joined(inside: Dictionary, solid: Dictionary, ends: Array, reach: int) -> bool:
+	if ends.is_empty():
+		return true
+	var open_cells := _open_cells(inside, solid)
+	var land := land_map(open_cells)
+	var from0 := climb_reach(open_cells, ends[0].cell, reach, 3, land)
+	for i in ends.size():
+		var from_i := from0 if i == 0 else climb_reach(open_cells, ends[i].cell, reach, 3, land)
+		if not _arrives(from0, ends[i], open_cells, land, reach) or not _arrives(from_i, ends[0], open_cells, land, reach):
+			return false
+		if ends[i].side == "top" and not _arrives(from_i, ends[i], open_cells, land, reach):
+			return false
+	return true
+
+## [param inside] with its pieces (cells not touching each other) joined through [param box] by
+## the shortest ways between them, [param width] cells high (across, for a way up or down).
+static func joined_pieces(inside: Dictionary, box: Dictionary, width := 4) -> Dictionary:
+	var pieces := MDSAreaGenerator.components(inside)
+	if pieces.size() < 2:
+		return inside
+	var out := inside.duplicate()
+	var main: Dictionary = pieces[0].duplicate()
+	var rest: Array = pieces.slice(1)
+	while not rest.is_empty():
+		# From the main piece through the box, to the nearest cell of another piece.
+		var prev: Dictionary = {}
+		var queue: Array[Vector2i] = []
+		for c: Vector2i in main:
+			prev[c] = c
+			queue.append(c)
+		var found := Vector2i(1 << 30, 0)
+		var head := 0
+		while head < queue.size() and found.x == 1 << 30:
+			var c: Vector2i = queue[head]
+			head += 1
+			for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+				var n: Vector2i = c + d
+				if prev.has(n) or not box.has(n):
+					continue
+				prev[n] = c
+				if out.has(n):
+					found = n
+					break
+				queue.append(n)
+		if found.x == 1 << 30:
 			break
+		var at: Vector2i = prev[found]
+		while not main.has(at):
+			var step: Vector2i = at - prev[at]
+			for k in width:
+				for side in [0, 1]:
+					var c: Vector2i = at + (Vector2i(side, -k) if step.y == 0 else Vector2i(k - width / 2, side))
+					if box.has(c):
+						out[c] = true
+						main[c] = true
+			at = prev[at]
+		# The piece reached is part of the main one now.
+		for i in rest.size():
+			if rest[i].has(found):
+				main.merge(rest[i])
+				rest.remove_at(i)
+				break
+	return out
+
+## The world's player in tiles of this room: {tall (a tunnel's height), reach (rows a jump
+## climbs), step (rows between the ledges of a shaft)}.
+func climb_params(world: MDSWorld) -> Dictionary:
+	var ts := tile_size()
+	var player := MDSRoomCheck.PLAYER_DEFAULTS.duplicate()
+	player.merge(world.get_setting("player", {}), true)
+	var jump_px := MDSRoomCheck.max_jump_height(float(player.jump_velocity), float(player.gravity))
+	var reach := clampi(floori(jump_px * 0.8 / ts.y), 2, 10)
+	return {"tall": clampi(ceili(float(player.size[1]) / ts.y) + 1, 3, 8), "reach": reach, "step": clampi(floori(jump_px * 0.55 / ts.y), 2, mini(reach, 5))}
+
+## The ledges up the doorways of room [param id]'s top and bottom gates (cells of
+## [param inside]): half the doorway wide, on alternate sides, every [code]step[/code] rows
+## (see [method climb_params]). Their rows and sides are fixed on the world's grid, not the
+## room's, so the ledges of the room above and of the room below a door, generated each on its
+## own, make one climb through it: a door can be gone down and come back up.
+func door_ledges(world: MDSWorld, id: String, inside: Dictionary) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var ts := tile_size()
+	var step: int = climb_params(world).step
+	var off := Vector2i((world.get_origin(id) / ts).round())
+	# Not where the player arrives through any gate.
+	var spots: Dictionary = {}
+	for g in world.get_gates(id):
+		spots[gate_end(world, id, g, inside).get("cell", Vector2i(1 << 30, 0))] = true
+	for g in world.get_gates(id):
+		var side := world.get_gate_side(id, g)
+		if side != "top" and side != "bot":
+			continue
+		var gp := world.get_gate_local_pos(id, g)
+		var gc := cell_at("Terrain", gp + Vector2(0, ts.y if side == "top" else -ts.y) * 0.5)
+		for depth in DOOR_DEPTH:
+			var wy := gc.y + (depth if side == "top" else -depth) + off.y
+			if posmod(wy, step) != 0:
+				continue
+			var left := posmod(floori(float(wy) / step), 2) == 0
+			# Not on the edge's row, where the gate's box is: a row further in.
+			var y := gc.y + (maxi(depth, 1) if side == "top" else -maxi(depth, 1))
+			var x0 := gc.x - 2 + (0 if left else 2)
+			var x1 := gc.x - 2 + (2 if left else 0)
+			# Only where the doorway's other half is open to climb past it.
+			if not (inside.has(Vector2i(x1, y)) and inside.has(Vector2i(x1 + 1, y))):
+				continue
+			for dx in 2:
+				var c := Vector2i(x0 + dx, y)
+				if inside.has(c) and not spots.has(c):
+					out.append(c)
+	return out
 
 ## How far each of [param inside]'s cells is from the room's edge (1: on it), up to 4.
 static func _clearance(inside: Dictionary) -> Dictionary:
@@ -2178,12 +2356,16 @@ func gate_end(world: MDSWorld, id: String, gate_name: String, inside: Dictionary
 	var side := world.get_gate_side(id, gate_name)
 	var inward: Vector2i = {"left": Vector2i.RIGHT, "right": Vector2i.LEFT, "top": Vector2i.DOWN, "bot": Vector2i.UP}.get(side, Vector2i.ZERO)
 	var gc := cell_at("Terrain", world.get_gate_local_pos(id, gate_name) + Vector2(inward) * ts * 0.5)
-	var cell := gc + inward * 4
-	if side == "left" or side == "right":
-		cell.y += 1
-	if not inside.has(cell):
-		return {}
-	return {"cell": cell, "side": side, "mouth": gc}
+	var across := Vector2i(absi(inward.y), absi(inward.x))
+	# Four tiles in; less, or a little to the side, where a slanted or curved outline is near.
+	for depth in [4, 3, 5, 2, 6]:
+		for shift in [0, -1, 1, -2, 2]:
+			var cell: Vector2i = gc + inward * depth + across * shift
+			if side == "left" or side == "right":
+				cell.y += 1
+			if inside.has(cell):
+				return {"cell": cell, "side": side, "mouth": gc}
+	return {}
 
 func _open_cells(inside: Dictionary, solid: Dictionary) -> Dictionary:
 	var open: Dictionary = {}
@@ -2214,8 +2396,8 @@ static func _arrives(reached: Dictionary, e: Dictionary, open: Dictionary, land:
 ## Carves a straight leg from [param p] to [param q]: across, a tunnel [param tall] tiles high,
 ## floored where it crosses a drop deeper than [param reach] rows (that a player falling in
 ## couldn't climb out of); up or down, a shaft four tiles wide with ledges every [param step]
-## rows, on alternate sides, to climb back up.
-func _carve_leg(p: Vector2i, q: Vector2i, inside: Dictionary, solid: Dictionary, keep: Dictionary, tall: int, step: int, reach := 6) -> void:
+## rows, on alternate sides, to climb back up; none on [param spots].
+func _carve_leg(p: Vector2i, q: Vector2i, inside: Dictionary, solid: Dictionary, keep: Dictionary, tall: int, step: int, reach := 6, spots: Dictionary = {}) -> void:
 	var clear := func(c: Vector2i) -> void:
 		if inside.has(c):
 			solid.erase(c)
@@ -2250,7 +2432,7 @@ func _carve_leg(p: Vector2i, q: Vector2i, inside: Dictionary, solid: Dictionary,
 	while y > top + 1:
 		for dx in 2:
 			var c := Vector2i(x0 + dx + (0 if left else 2), y)
-			if inside.has(c):
+			if inside.has(c) and not spots.has(c):
 				solid[c] = true
 		left = not left
 		y -= step

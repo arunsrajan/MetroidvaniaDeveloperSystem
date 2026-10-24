@@ -1953,18 +1953,28 @@ func _on_scenes_dropped(files: PackedStringArray, world_pos: Vector2) -> void:
 	var scanner := MDSSceneScanner.new(world.get_default_room_size())
 	var pos := world_pos
 	var created: Array[String] = []
+	var joined := 0
+	var apart: PackedStringArray = []
 	for f in files:
 		var meta := scanner.analyze_scene_any(f)
 		scene_database[f] = meta
-		var id := MDSWorldSceneTools.place_scene(world, f, meta, pos, canvas.layer, canvas.new_room_area)
+		# Where it was dropped (the Full view shows where), else the nearest place free.
+		var id := MDSWorldSceneTools.place_scene(world, f, meta, pos, canvas.layer, canvas.new_room_area, true)
 		created.append(id)
-		pos.x = world.get_room_bounds(id).end.x + world.get_grid() * 2
+		var j := MDSWorldSceneTools.join_placed(world, id)
+		joined += j.connected.size()
+		for other in j.apart:
+			apart.append("%s-%s" % [id, other])
+		pos = Vector2(world.get_room_bounds(id).end.x + world.get_paint_cell().x, pos.y)
 	scene_database = scene_database.duplicate()
 	if not created.is_empty():
 		canvas.selected_room = created[-1]
 	_refresh()
 	_refresh_palette()
-	_set_status("Placed %d scene(s): %s. Gates found in the scenes were added." % [created.size(), ", ".join(created)])
+	var text := "Placed %d scene(s): %s, each the shape its terrain covers. Gates found in the scenes were added%s." % [created.size(), ", ".join(created), " (%d joined to the rooms they touch)" % joined if joined > 0 else ""]
+	if not apart.is_empty():
+		text += " Touching with no door between: %s (add a gate on both with the Gate tool, or Generate cave)." % ", ".join(apart)
+	_set_status(text)
 
 # --- Inspector --------------------------------------------------------------------------------
 
