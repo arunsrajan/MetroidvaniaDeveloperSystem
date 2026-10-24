@@ -459,24 +459,42 @@ func set_zoom(value: float, anchor := Vector2(-1, -1)) -> void:
 	_apply_view()
 
 ## Turns the 2.5D preview on or off: the room's terrain extruded toward the middle of the view,
-## lit like in the game (see MDSDepth25D).
+## lit like in the game (see MDSDepth25D). In the Full view, every room's shown.
 func set_depth_preview(on: bool) -> void:
 	depth_preview = on
-	if on and not is_instance_valid(_depth) and painter:
+	if on and not is_instance_valid(_depth) and (painter or full):
 		_depth = MDSDepth25D.new()
 		_depth.name = "DepthPreview"
 		_depth.preview_in_editor = true
-		var srcs: Array[Node] = [painter.items_root]
+		_depth.sources = _depth_sources()
+		_view.add_child(_depth)
+		_update_depth_view()
+	elif on and is_instance_valid(_depth):
+		_sync_depth_sources()
+	elif not on and is_instance_valid(_depth):
+		_depth.queue_free()
+		_depth = null
+
+## What the 2.5D preview extrudes: the room edited's layers and items, and in the Full view the
+## rooms shown around it (their scenes come in as the view reaches them).
+func _depth_sources() -> Array[Node]:
+	var srcs: Array[Node] = []
+	if painter:
+		srcs.append(painter.items_root)
 		for l in painter.layers.values():
 			srcs.append(l)
 		if is_instance_valid(_display_scene):
 			srcs.append(_display_scene)
+	if full:
+		for box: Node2D in _context.values():
+			srcs.append(box)
+	return srcs
+
+func _sync_depth_sources() -> void:
+	var srcs := _depth_sources()
+	if srcs != _depth.sources:
 		_depth.sources = srcs
-		_view.add_child(_depth)
-		_update_depth_view()
-	elif not on and is_instance_valid(_depth):
-		_depth.queue_free()
-		_depth = null
+		_depth.rescan()
 
 func _update_depth_view() -> void:
 	if is_instance_valid(_depth) and zoom > 0.0:
@@ -596,6 +614,9 @@ func refresh_context() -> void:
 			_show_live(box, id)
 	if full:
 		_full_schedule()
+	# The 2.5D preview takes in the rooms shown now.
+	if depth_preview:
+		set_depth_preview(true)
 
 ## Shows room [param id]'s scene in [param box] ([param packed]: already loaded), and over it the
 ## tiles and items of its painter if it has one open.
@@ -2591,11 +2612,14 @@ func set_weather_preview(on: bool) -> void:
 
 # --- Dropping ----------------------------------------------------------------------------------
 
-func _can_drop_data(_at: Vector2, data: Variant) -> bool:
+func _can_drop_data(at: Vector2, data: Variant) -> bool:
 	if full and world and data is Dictionary and data.get("type", "") == "files":
-		for f in data.get("files", []):
-			if str(f).get_extension().to_lower() in ["tscn", "scn"]:
-				return true
+		var scenes := _scenes_in(data)
+		if not scenes.is_empty():
+			# Where they would go, shown while dragged (see MDSFullViewTools.drop_preview).
+			if full_tools:
+				full_tools.drop_preview(scenes, local_to_world(screen_to_local(at)))
+			return true
 	if not painter or not data is Dictionary:
 		return false
 	if data.get("type", "") == DRAG_EFFECT:
@@ -2619,17 +2643,25 @@ func _background_at(at: Vector2) -> MDSEnvironmentEffect:
 			return hit
 	return null
 
+static func _scenes_in(data: Dictionary) -> PackedStringArray:
+	var scenes := PackedStringArray()
+	for f in data.get("files", []):
+		if str(f).get_extension().to_lower() in ["tscn", "scn"]:
+			scenes.append(str(f))
+	return scenes
+
 func _drop_data(at: Vector2, data: Variant) -> void:
 	if not data is Dictionary:
 		return
-	# The Full view: scenes become rooms where they are dropped.
+	# The Full view: scenes become rooms where they were shown while dragged.
 	if full and world:
-		var scenes := PackedStringArray()
-		for f in data.get("files", []):
-			if str(f).get_extension().to_lower() in ["tscn", "scn"]:
-				scenes.append(str(f))
+		var scenes := _scenes_in(data)
 		if not scenes.is_empty():
-			scenes_dropped.emit(scenes, local_to_world(screen_to_local(at)))
+			var p := local_to_world(screen_to_local(at))
+			if full_tools:
+				p = full_tools.drop_preview(scenes, p)
+				full_tools.drop_end()
+			scenes_dropped.emit(scenes, p)
 			return
 	if not painter:
 		return
@@ -2916,6 +2948,8 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED and _overlay:
 		_overlay.queue_redraw()
 		_update_depth_view()
+	elif (what == NOTIFICATION_DRAG_END or what == NOTIFICATION_MOUSE_EXIT) and full_tools:
+		full_tools.drop_end()
 	elif what == NOTIFICATION_ENTER_TREE:
 		if not get_window().files_dropped.is_connected(_on_files_dropped):
 			get_window().files_dropped.connect(_on_files_dropped)

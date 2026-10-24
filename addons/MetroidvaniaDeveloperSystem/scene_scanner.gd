@@ -146,6 +146,11 @@ func analyze_scene(scene_path: String, require_room := true) -> Dictionary:
 		"silhouette_rect": Rect2(),
 		"content_rect": Rect2(),
 		"occupied_cells": [],
+		# The room's rectangles on the map the scene was made with (its MapBounds guides).
+		"map_bounds": [],
+		# What the scene's pictures and shapes cover (Sprite2D, Polygon2D), not parallax layers:
+		# the room's size when it has no terrain.
+		"visual_rect": Rect2(),
 		# One-way bodies and freeform shapes with the Platform role: {name, path, rect, one_way}.
 		"platforms": [],
 		# Outlines that cross themselves (no fill, no collision): {path, kind, position}.
@@ -303,8 +308,34 @@ func _scan_node(node: Node, root: Node, metadata: Dictionary, solids: Array[Rect
 	if MDSLegacy.has_meta_key(node, &"mds_blockout"):
 		return
 	_collect_solids(node, root, metadata, solids, polygons)
+	_collect_bounds(node, root, metadata)
 	for child in node.get_children():
 		_scan_node(child, root, metadata, solids, polygons)
+
+## The scene's map guides and what its pictures cover (see [code]map_bounds[/code] and
+## [code]visual_rect[/code]).
+func _collect_bounds(node: Node, root: Node, metadata: Dictionary) -> void:
+	var parent := node.get_parent()
+	if node is ReferenceRect and parent and String(parent.name) == "MapBounds":
+		var guide := node as ReferenceRect
+		metadata.map_bounds.append(_local_transform(parent, root) * Rect2(guide.position, guide.size))
+		return
+	var r := Rect2()
+	if node is Sprite2D and (node as Sprite2D).texture:
+		r = (node as Sprite2D).get_rect()
+	elif node is Polygon2D and (node as Polygon2D).polygon.size() >= 3:
+		r = MDSGeometry.bounds((node as Polygon2D).polygon)
+	if not r.has_area():
+		return
+	# Parallax layers scroll with the camera: not where the room is.
+	var n := parent
+	while n and n != root:
+		if n is CanvasLayer or n is MDSEnvironmentEffect or n.get_class() in ["Parallax2D", "ParallaxLayer"]:
+			return
+		n = n.get_parent()
+	r = _local_transform(node, root) * r
+	var had: Rect2 = metadata.visual_rect
+	metadata.visual_rect = r if not had.has_area() else had.merge(r)
 
 ## Records Hollow Knight-style transition gates. Returns true when [param node] is one.
 func _scan_transition(node: Node, root: Node, metadata: Dictionary) -> bool:

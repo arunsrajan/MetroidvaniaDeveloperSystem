@@ -270,6 +270,126 @@ static func link_touching(world: MDSWorld, ids: Array[String], layer: int) -> Ar
 			made.append([pair[0], gates[0], pair[1], gates[1]])
 	return made
 
+## Joins rooms [param ids] (of one layer) into one piece a player can cross: while some of them
+## can't be reached from the others through doors, a door is made between the two touching rooms
+## of the part reached and of another part that share the most ([constant AUTO_LINK]). With
+## [param bridge] (the most paint cells a passage may take), parts touching none of the others
+## are joined by a passage: a new room, straight or L-shaped, through the free cells between
+## the two nearest rooms, with a door at each end. Returns {doors: [[room, gate, other room,
+## other gate], ...], rooms: [passage ids]}.
+static func link_apart(world: MDSWorld, ids: Array[String], bridge := 0) -> Dictionary:
+	var made: Array = []
+	var passages: Array[String] = []
+	var rooms := ids.duplicate()
+	var part := _parts(world, rooms)
+	var cells: Dictionary = {}
+	for id in rooms:
+		for c in world.get_room_cells(id):
+			cells[c] = id
+	while not rooms.is_empty():
+		var main: int = part[rooms[0]]
+		var own: Dictionary = {}
+		var others: Dictionary = {}
+		for c in cells:
+			if part[cells[c]] == main:
+				own[c] = cells[c]
+			else:
+				others[c] = cells[c]
+		if others.is_empty():
+			break
+		var counts := contacts(own, others)
+		var best: Array = []
+		for pair in counts:
+			if best.is_empty() or counts[pair] > counts[best]:
+				best = pair
+		if best.is_empty():
+			if bridge <= 0:
+				break
+			var path := passage(world, own, others, world.get_room_layer(rooms[0]), bridge)
+			if path.is_empty():
+				break
+			var a: String = own[path[0]]
+			var b: String = others[path[-1]]
+			var id := world.add_room_from_cells(path.slice(1, path.size() - 1), world.get_room_layer(a), world.get_room_area(a), "Passage_01")
+			if id.is_empty():
+				break
+			passages.append(id)
+			rooms.append(id)
+			part[id] = main
+			for c in world.get_room_cells(id):
+				cells[c] = id
+			var g1 := add_door(world, a, id, true)
+			if not g1.is_empty():
+				made.append([a, g1[0], id, g1[1]])
+			best = [id, b]
+		var gates := add_door(world, best[0], best[1], true)
+		if gates.is_empty():
+			break
+		made.append([best[0], gates[0], best[1], gates[1]])
+		var joined: int = part[best[1]]
+		for id in part:
+			if part[id] == joined:
+				part[id] = main
+	return {"doors": made, "rooms": passages}
+
+## The paint cells of a passage from a cell of [param own] to one of [param others] (cell ->
+## room), through cells no room on [param layer] has: [from, the passage's cells..., to], straight
+## or L-shaped, the shortest found of at most [param longest] cells; [] when there is none.
+static func passage(world: MDSWorld, own: Dictionary, others: Dictionary, layer: int, longest: int) -> Array:
+	var taken := occupied(world, layer)
+	var pairs: Array = []
+	for a: Vector2i in own:
+		for b: Vector2i in others:
+			var d := absi(a.x - b.x) + absi(a.y - b.y)
+			if d >= 2 and d <= longest + 1:
+				pairs.append([d, a, b])
+	pairs.sort_custom(func(p: Array, q: Array) -> bool: return p[0] < q[0] or (p[0] == q[0] and (p[1].y > q[1].y or (p[1].y == q[1].y and p[1].x < q[1].x))))
+	for pq in pairs:
+		var a: Vector2i = pq[1]
+		var b: Vector2i = pq[2]
+		for across_first in [true, false]:
+			var path: Array = [a]
+			var at := a
+			var turns: Array = [Vector2i(b.x, a.y), b] if across_first else [Vector2i(a.x, b.y), b]
+			for t in turns:
+				while at != t:
+					at += Vector2i(signi(t.x - at.x), signi(t.y - at.y))
+					path.append(at)
+			var free := true
+			for k in range(1, path.size() - 1):
+				if taken.has(path[k]):
+					free = false
+					break
+			if free:
+				return path
+	return []
+
+## How many pieces rooms [param ids] make, joined by doors (1: a player can reach them all).
+static func pieces(world: MDSWorld, ids: Array[String]) -> int:
+	var seen: Dictionary = {}
+	for n in _parts(world, ids).values():
+		seen[n] = true
+	return seen.size()
+
+## Rooms [param ids] by the piece they are in, joined by doors: room -> piece number.
+static func _parts(world: MDSWorld, ids: Array[String]) -> Dictionary:
+	var part: Dictionary = {}
+	var n := 0
+	for id in ids:
+		if part.has(id):
+			continue
+		part[id] = n
+		var todo: Array[String] = [id]
+		while not todo.is_empty():
+			var at: String = todo.pop_back()
+			for g in world.get_gates(at).values():
+				var to := str(g.get("to", ""))
+				if ids.has(to) and not part.has(to):
+					part[to] = n
+					todo.append(to)
+		n += 1
+	return part
+
 static func _groups_connected(world: MDSWorld, ids: Array[String], group: String) -> bool:
 	for id in ids:
 		for g in world.get_gates(id).values():

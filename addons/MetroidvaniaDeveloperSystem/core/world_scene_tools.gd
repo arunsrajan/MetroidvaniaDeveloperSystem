@@ -3,8 +3,9 @@ class_name MDSWorldSceneTools
 extends RefCounted
 ## Keeps rooms on the world map and their scenes in sync (non-linear mode).
 ##
-## - [method place_scene]: a scene dropped on the map becomes a room sized to its terrain,
-##   with its gate nodes as map gates.
+## - [method place_scene]: a scene dropped on the map becomes a room of the paint cells its
+##   terrain covers ([method footprint]), with its gate nodes as map gates
+##   ([method join_placed] connects them to the rooms it touches).
 ## - [method create_scene_for_room]: a room drawn on the map becomes a new scene with
 ##   bounds guides and one [MDSGate] per map gate.
 ## - [method import_gates] / [method write_gates]: sync gates in either direction.
@@ -15,14 +16,144 @@ extends RefCounted
 const GATE_SIZE_ALONG := 128.0
 const GATE_SIZE_ACROSS := 48.0
 
-## Adds a room for [param scene_path] with its content's top-left at [param world_pos].
-## [param meta] is the scanner result for the scene. Returns the new room id.
-static func place_scene(world: MDSWorld, scene_path: String, meta: Dictionary, world_pos: Vector2, layer: int, area := "") -> String:
-	var local := _content_rect(world, meta)
-	var origin := world.snap(world_pos) - local.position
-	var id := world.add_room(scene_path.get_file().get_basename(), Rect2(origin + local.position, local.size), layer, area, scene_path, origin)
+## Adds a room for [param scene_path], the paint cells of its [method footprint], the top-left
+## one at [param world_pos] (to the nearest paint cell). [param meta] is the scanner result for
+## the scene. With [param free_spot], it goes to the nearest place no room on [param layer] is
+## in. Returns the new room id.
+static func place_scene(world: MDSWorld, scene_path: String, meta: Dictionary, world_pos: Vector2, layer: int, area := "", free_spot := false) -> String:
+	var s := world.get_paint_cell()
+	var cells := footprint(world, meta)
+	var first := footprint_corner(cells)
+	# The scene's origin on a paint cell's corner, so its cells are the map's.
+	var at := Vector2i((world_pos / s - Vector2(first)).round())
+	if free_spot:
+		at = nearest_free(cells, MDSAreaTools.occupied(world, layer), at)
+	var origin := Vector2(at) * s
+	var id := world.add_room(scene_path.get_file().get_basename(), Rect2(origin + Vector2(first) * s, s), layer, area, scene_path, origin)
+	var placed: Dictionary = {}
+	for c: Vector2i in cells:
+		placed[c + at] = true
+	world.set_room_cells(id, placed)
 	import_gates(world, id, meta)
 	return id
+
+## The paint cells a scene's room covers on the map, scene-local (cell (0, 0) starts at the
+## scene's (0, 0)), from what [MDSSceneScanner] found in it ([param meta]): the rectangles it
+## was made with (its MapBounds guides); else the cells its terrain is in and those it closes in
+## (a cave's hollow), not the empty corners of its box, so an L or a T stays one; else what its
+## pictures cover; else the world's default room size.
+static func footprint(world: MDSWorld, meta: Dictionary) -> Dictionary:
+	var s := world.get_paint_cell()
+	var out: Dictionary = {}
+	for r: Rect2 in meta.get("map_bounds", []):
+		_cells_of_rect(r, s, out)
+	if not out.is_empty():
+		return out
+	var content: Rect2 = meta.get("content_rect", Rect2())
+	var img: Image = meta.get("silhouette") as Image
+	var sil: Rect2 = meta.get("silhouette_rect", Rect2())
+	if content.has_area() and img and sil.has_area():
+		var filled: Dictionary = {}
+		var px := sil.size.x / float(img.get_width())
+		for y in img.get_height():
+			for x in img.get_width():
+				if img.get_pixel(x, y).r > 0.5:
+					filled[Vector2i(((sil.position + (Vector2(x, y) + Vector2(0.5, 0.5)) * px) / s).floor())] = true
+		var c0 := Vector2i((content.position / s).floor())
+		var c1 := Vector2i((content.end / s).ceil()) - Vector2i.ONE
+		# The empty cells the box's edge reaches through empty cells are outside the room.
+		var outside: Dictionary = {}
+		var todo: Array[Vector2i] = []
+		for y in range(c0.y, c1.y + 1):
+			for x in range(c0.x, c1.x + 1):
+				var c := Vector2i(x, y)
+				if (x == c0.x or x == c1.x or y == c0.y or y == c1.y) and not filled.has(c):
+					outside[c] = true
+					todo.append(c)
+		while not todo.is_empty():
+			var c: Vector2i = todo.pop_back()
+			for d in MDSAreaTools.DIRS:
+				var n: Vector2i = c + d
+				if n.x >= c0.x and n.x <= c1.x and n.y >= c0.y and n.y <= c1.y and not filled.has(n) and not outside.has(n):
+					outside[n] = true
+					todo.append(n)
+		for y in range(c0.y, c1.y + 1):
+			for x in range(c0.x, c1.x + 1):
+				if not outside.has(Vector2i(x, y)):
+					out[Vector2i(x, y)] = true
+		if not out.is_empty():
+			return out
+	var art: Rect2 = meta.get("visual_rect", Rect2())
+	_cells_of_rect(art if art.has_area() else Rect2(Vector2.ZERO, world.get_default_room_size()), s, out)
+	return out
+
+## The offset nearest [param at] (in cells) where [param cells] land on none of [param taken]
+## ([param at] itself when it is free; searched up to [param radius] cells away).
+static func nearest_free(cells: Dictionary, taken: Dictionary, at: Vector2i, radius := 40) -> Vector2i:
+	if MDSAreaTools.fits(cells, at, taken):
+		return at
+	for r in range(1, radius + 1):
+		var best := Vector2i(1 << 30, 0)
+		for dy in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dy)) != r:
+					continue
+				var d := Vector2i(dx, dy)
+				if MDSAreaTools.fits(cells, at + d, taken) and (best.x == 1 << 30 or d.length_squared() < best.length_squared()):
+					best = d
+		if best.x != 1 << 30:
+			return at + best
+	return at
+
+## The top-left corner of [param cells] (the smallest x and y).
+static func footprint_corner(cells: Dictionary) -> Vector2i:
+	var first := Vector2i(1 << 30, 1 << 30)
+	for c: Vector2i in cells:
+		first = Vector2i(mini(first.x, c.x), mini(first.y, c.y))
+	return first if not cells.is_empty() else Vector2i.ZERO
+
+## The paint cells (of size [param s]) rectangle [param r] covers more than a sliver of, into
+## [param out].
+static func _cells_of_rect(r: Rect2, s: Vector2, out: Dictionary) -> void:
+	var c0 := Vector2i(((r.position + s * 0.25) / s).floor())
+	var c1 := Vector2i(((r.end - s * 0.25) / s).ceil()) - Vector2i.ONE
+	for y in range(c0.y, maxi(c0.y, c1.y) + 1):
+		for x in range(c0.x, maxi(c0.x, c1.x) + 1):
+			out[Vector2i(x, y)] = true
+
+## A room just placed ([param id]) joined to the rooms it touches: each of its gates not connected
+## yet to the nearest one facing it within a paint cell (a room it touches, there). Returns
+## {connected: [[gate, room, gate], ...], apart: [rooms it touches with no door to them]}.
+static func join_placed(world: MDSWorld, id: String) -> Dictionary:
+	var s := world.get_paint_cell()
+	var opposite := {"left": "right", "right": "left", "top": "bot", "bot": "top"}
+	var layer := world.get_room_layer(id)
+	var connected: Array = []
+	for g in world.get_gates(id).keys():
+		if not str(world.get_gate(id, g).get("to", "")).is_empty():
+			continue
+		var at := world.get_gate_world_pos(id, g)
+		var best: Array = []
+		var best_d := s.x
+		for other in world.get_room_ids():
+			if other == id or world.get_room_layer(other) != layer:
+				continue
+			for h in world.get_gates(other).keys():
+				if not str(world.get_gate(other, h).get("to", "")).is_empty() or opposite.get(world.get_gate_side(id, g), "") != world.get_gate_side(other, h):
+					continue
+				var d := at.distance_to(world.get_gate_world_pos(other, h))
+				if d <= best_d:
+					best_d = d
+					best = [other, h]
+		if not best.is_empty():
+			world.connect_gates(id, g, best[0], best[1])
+			connected.append([g, best[0], best[1]])
+	var one: Array[String] = [id]
+	var apart: Array[String] = []
+	for pair in MDSAreaTools.contacts(MDSAreaTools.cells_of(world, one), MDSAreaTools.occupied(world, layer, one)):
+		if not apart.has(pair[1]) and not MDSAreaTools.rooms_connected(world, id, pair[1]):
+			apart.append(pair[1])
+	return {"connected": connected, "apart": apart}
 
 ## Scene content rounded outwards to the grid, in scene-local pixels. Falls back to the
 ## world's default room size when the scene has no terrain yet.

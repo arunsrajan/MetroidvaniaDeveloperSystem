@@ -4,8 +4,8 @@ extends "res://tests/test_case.gd"
 ## Polygon, Curvy), Generate map makes them rooms; a press in a room paints it (one without a
 ## scene gets one) and the view stays where it is; the Rooms tool selects, moves (Ctrl+Z on the
 ## map takes it back) and deletes rooms, a double-click asks for the Room view; scenes dropped on
-## it are asked to be placed where they were dropped; Generate all makes caves in every room;
-## Save saves them all.
+## it are asked to be placed where they were dropped; Generate all makes caves in every room (rooms
+## drawn apart joined by passages first); Save saves them all.
 
 const DIR := TMP + "/full_view"
 
@@ -140,7 +140,12 @@ func _run() -> void:
 	var at := _screen(Vector2(3000, 200))
 	check(canvas._can_drop_data(at, data), "scenes can be dropped on the Full view")
 	canvas._drop_data(at, data)
-	check(dropped.size() == 1 and (dropped[0][1] as Vector2).distance_to(Vector2(3000, 200)) < 1.0, "placed where they were dropped, in world px")
+	# Its shape under the mouse, on the paint cells (see MDSFullViewTools.drop_preview).
+	var cells: Dictionary = tools._footprints.get(world.get_scene_path(rect_room), {})
+	var drop_at: Vector2 = dropped[0][1] if dropped.size() == 1 else Vector2.INF
+	var shape := Rect2(drop_at, Vector2(MDSAreaTools.bounds_of(world, [rect_room] as Array[String]).size))
+	check(dropped.size() == 1 and not cells.is_empty() and shape.grow(1.0).has_point(Vector2(3000, 200)) and is_zero_approx(fmod(drop_at.x, s.x)) and is_zero_approx(fmod(drop_at.y, s.y)), "placed where they were dropped: its shape under the mouse, on the paint cells (%s)" % drop_at)
+	check(tools._drop.is_empty(), "nothing shown once dropped")
 
 	# A room whose rectangles leave a notch in its box goes under the others: Generate cave fills
 	# its whole box with rock, and in the notch is another room.
@@ -168,10 +173,14 @@ func _run() -> void:
 
 	# Generate all: a cave in every room (scenes made for those without), Save saves them all.
 	tools.clear_selection()
-	check(view.generate_all(false) == 4, "Generate all makes a cave in each of the 4 rooms")
+	# The rooms drawn apart are joined first: a passage through the free cells between them.
+	var made := view.generate_all(false)
+	var passages := view.session_rooms().filter(func(id: String) -> bool: return id.begins_with("Passage"))
+	check(made == 4 + passages.size() and not passages.is_empty(), "Generate all makes a cave in each of the 4 rooms, and in the passages joining those apart (%d, %s)" % [made, passages])
+	check(MDSAreaTools.pieces(world, world.get_room_ids()) == 1, "so a player can go from any room to any other and back")
 	for id in view.session_rooms():
 		var p: MDSRoomPainter = view._painters.get(id)
-		check(p != null and p.dirty and p.layers.Terrain.get_used_cells().size() > 30, "%s has its cave" % id)
+		check(p != null and p.dirty and p.layers.Terrain.get_used_cells().size() > (0 if passages.has(id) else 30), "%s has its cave" % id)
 	check(view.save() == OK and not view.has_unsaved(), "Save saves them all")
 	# Leaving: back to one room at a time.
 	view.close_room(false)

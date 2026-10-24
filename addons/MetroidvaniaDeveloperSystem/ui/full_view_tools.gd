@@ -67,6 +67,12 @@ var _delta := Vector2i.ZERO
 var _mouse := Vector2.INF ## world px
 var _preview: Array = []
 var _preview_key := 0
+## Scenes dragged over the view from the FileSystem dock (see [method drop_preview]): {files,
+## cells (the first one's footprint, scene-local), at (its origin, in paint cells), touch}, or
+## {files, fill (the room without a scene it would fill)}.
+var _drop: Dictionary = {}
+## Scene path -> its footprint (see [method MDSWorldSceneTools.footprint]).
+var _footprints: Dictionary = {}
 var _runs := 0
 
 func _init(p_canvas: MDSRoomCanvas) -> void:
@@ -674,8 +680,97 @@ func _draw_outlines(ci: CanvasItem, font: Font) -> void:
 			ci.draw_string_outline(font, at, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 4, Color.BLACK)
 			ci.draw_string(font, at, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, color)
 
-## Over everything: the shape being drawn, the selection box.
+## Where scenes [param files] dragged to [param p] (world px) would go, shown until
+## [method drop_end]: the first one's shape on the map (its [method MDSWorldSceneTools.footprint])
+## under the mouse, on the paint cells; over rooms it stays against them, sliding along them
+## (never over one), and a cell away from one it goes against it. Over a room without a scene
+## (one scene): that room, which it fills. Returns where to drop them (world px, the top-left of
+## the shape: see [method MDSWorldSceneTools.place_scene]).
+func drop_preview(files: PackedStringArray, p: Vector2) -> Vector2:
+	var w := _world()
+	var s := w.get_paint_cell()
+	var under := w.room_at(p, _layer(), true)
+	if files.size() == 1 and not under.is_empty() and not w.has_scene_reference(under):
+		if _drop.get("fill", "") != under:
+			_drop = {"files": files, "fill": under}
+			canvas._overlay.queue_redraw()
+		return p
+	var path := files[0]
+	if not _footprints.has(path):
+		var meta := MDSSceneScanner.new(w.get_default_room_size()).analyze_scene_any(path)
+		_footprints[path] = MDSWorldSceneTools.footprint(w, meta)
+	var cells: Dictionary = _footprints[path]
+	var first := MDSWorldSceneTools.footprint_corner(cells)
+	var last := first
+	for c: Vector2i in cells:
+		last = Vector2i(maxi(last.x, c.x), maxi(last.y, c.y))
+	var want := Vector2i((p / s).floor()) - (first + last) / 2
+	var taken := MDSAreaTools.occupied(w, _layer())
+	var at := want
+	if not MDSAreaTools.fits(cells, want, taken):
+		# Over rooms: from where it was, as far as it goes towards the mouse.
+		var was: Vector2i = _drop.get("at", Vector2i.MAX)
+		if _drop.get("files") == files and was != Vector2i.MAX and MDSAreaTools.fits(cells, was, taken):
+			at = MDSAreaTools.slide(cells, taken, was, want)
+		else:
+			at = MDSWorldSceneTools.nearest_free(cells, taken, want)
+	if not _touches(cells, at, taken):
+		for d in MDSAreaTools.DIRS:
+			if MDSAreaTools.fits(cells, at + d, taken) and _touches(cells, at + d, taken):
+				at += d
+				break
+	if _drop.get("at", Vector2i.MAX) != at or _drop.get("files") != files:
+		_drop = {"files": files, "cells": cells, "at": at, "touch": _touches(cells, at, taken)}
+		canvas._overlay.queue_redraw()
+	return Vector2(at + first) * s
+
+## Whether [param cells] moved by [param at] touch one of [param taken] (side by side).
+static func _touches(cells: Dictionary, at: Vector2i, taken: Dictionary) -> bool:
+	for c: Vector2i in cells:
+		for d in MDSAreaTools.DIRS:
+			if taken.has(c + at + d) and not cells.has(c + d):
+				return true
+	return false
+
+## The scenes dragged left the view, or were dropped: nothing more shown.
+func drop_end() -> void:
+	if not _drop.is_empty():
+		_drop = {}
+		canvas._overlay.queue_redraw()
+
+func _draw_drop(ci: CanvasItem) -> void:
+	var w := _world()
+	var s := w.get_paint_cell()
+	var color := Color(0.55, 1.0, 0.6)
+	var xf := Transform2D(0.0, Vector2(canvas.zoom, canvas.zoom), 0.0, to_screen(Vector2.ZERO))
+	var label := ""
+	var at_px := Vector2.ZERO
+	if _drop.has("fill"):
+		for poly in w.get_room_outline(str(_drop.fill)):
+			var pts := xf * poly
+			ci.draw_colored_polygon(pts, Color(color, 0.18))
+			pts.append(pts[0])
+			ci.draw_polyline(pts, color, 3.0)
+		label = "Fills %s" % _drop.fill
+		at_px = w.get_room_bounds(str(_drop.fill)).position
+	else:
+		var placed: Dictionary = {}
+		for c: Vector2i in _drop.cells:
+			placed[c + _drop.at] = true
+			ci.draw_rect(Rect2(to_screen(Vector2(c + _drop.at) * s), s * canvas.zoom), Color(color, 0.16))
+		ci.draw_multiline(xf * MDSAreaTools.outline(placed, s), color, 3.0)
+		at_px = Vector2(MDSWorldSceneTools.footprint_corner(placed)) * s
+		label = "%s%s" % [(_drop.files[0] as String).get_file().get_basename(), ", against its neighbour" if _drop.touch else ""]
+		if _drop.files.size() > 1:
+			label += " (+%d more to its right)" % (_drop.files.size() - 1)
+	var font := canvas.get_theme_default_font()
+	ci.draw_string_outline(font, to_screen(at_px) + Vector2(8, -8), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, Color.BLACK)
+	ci.draw_string(font, to_screen(at_px) + Vector2(8, -8), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, color)
+
+## Over everything: the shape being drawn, the selection box, scenes dragged in.
 func draw_over(ci: CanvasItem, _font: Font) -> void:
+	if not _drop.is_empty():
+		_draw_drop(ci)
 	var color := COLOR_SKETCH
 	match _drag:
 		Drag.BOX:
