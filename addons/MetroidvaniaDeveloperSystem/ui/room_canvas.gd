@@ -612,6 +612,9 @@ func refresh_context() -> void:
 		# the others in a little at a time.
 		if not box.has_meta(&"mds_live") and (session_painters.has(id) or not full):
 			_show_live(box, id)
+	# A room moved: an L, T or U room's mask goes with it (else its tiles stay cut where it was,
+	# only its outline moving).
+	_update_masks()
 	if full:
 		_full_schedule()
 	# The 2.5D preview takes in the rooms shown now.

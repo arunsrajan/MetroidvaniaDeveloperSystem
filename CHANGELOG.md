@@ -85,6 +85,7 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - The Room view's items are changed in place and never leave the tree. The Inspector keeps what it shows, its sections unfolded as they were, and a change in the editor never takes it over. A click on the selected effect shows it in the Inspector again.
   - In code: `MDSRoomView.sync_from_scene()`, `MDSRoomPainter.open_packed()`, `rebase_onto()` and `merge_states()`.
 - **Machinery backgrounds follow the camera when asked:** `scroll_scale` (1 by default: fixed in the world; less is farther away; 0 stays on the screen) and `follow_camera` (cover the whole view in the game; off by default), as on the other backgrounds.
+- **Caves of shapes.** Generate cave, New variation, Generate all and New variation for all (Room view and Full view, and Generate caves for an area) can carve the cave's open space as one or more shapes instead of growing it from the room's outline: **Cave shape** T, U, H, L, Cross, Ring, S, Freeform or Mixed, turned 0°, 90°, 180°, 270° or at random, several to a room (joined by tunnels), as wide as asked. Their edges are rough rock, their tall parts get ledges to climb, and the room's gates still reach each other both ways (`MDSCaveShapes`, the fills' `cave`).
 
 ### Changed
 
@@ -93,6 +94,7 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 ### Fixed
 
+- **A room dragged in the Full view takes its tiles along.** An L, T or U room's tiles show only inside its rectangles (a mask), and the mask stayed where the room was: dragged, only its outline moved and its tiles were cut away. The mask now moves with the room.
 - **Extend works on several rooms at once.** With rooms selected (Ctrl+click, also in the Extend tool), the box drawn is shared out among them: each extends with the part nearest to it, shown while dragged, in one undo step (`MDSAreaTools.split_extension()`, `MDSWorldCanvas.extend_rooms()`). It extended only the room clicked last.
 - **Merge rooms from the map's tool panel or Ctrl+M**, not only the right-click menu. One room selected merges with the rooms it touches (of its area); rooms that touch none of the others selected are named and not merged (`MDSAreaTools.apart_from()`, `touching()`, `rooms_touch()`; `MDSWorldCanvas.merge_selection()`, `merge_requested`).
 - **Rooms and scenes drag smoothly in the Full view.** Rooms moved with the Rooms tool, and scenes dragged in from the FileSystem dock, jumped from paint cell to paint cell. They now follow the mouse to the pixel, stop flush against other rooms and slide along them (`MDSAreaTools.slide_rects()`), and a scene dropped lands where it was shown (`MDSWorldSceneTools.place_scene(..., exact)`).
