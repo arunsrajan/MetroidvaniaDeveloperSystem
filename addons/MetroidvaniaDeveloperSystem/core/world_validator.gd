@@ -139,19 +139,39 @@ static func run(world: MDSWorld, analysis: MDSAnalysis, scene_db: Dictionary) ->
 			MDSValidator._add(issues, W, CATEGORY_ROOMS, "%s is used by %d rooms: %s" % [path.get_file(), scene_users[path].size(), ", ".join(scene_users[path])], scene_users[path][0])
 
 	# --- Overlaps ---
-	for i in ids.size():
-		for j in range(i + 1, ids.size()):
-			var a := ids[i]
-			var b := ids[j]
-			if world.get_room_layer(a) != world.get_room_layer(b) or not world.get_room_bounds(a).intersects(world.get_room_bounds(b)):
+	# Each room's bounds once, the rooms from left to right: a room is held against the ones that
+	# start before it ends only (a world of hundreds of rooms is checked in a few ms).
+	var bounds: Dictionary = {}
+	for id in ids:
+		bounds[id] = world.get_room_bounds(id)
+	var by_x := ids.duplicate()
+	by_x.sort_custom(func(p: String, q: String) -> bool: return (bounds[p] as Rect2).position.x < (bounds[q] as Rect2).position.x)
+	var rects_of: Dictionary = {}
+	var pairs: Array = []
+	for i in by_x.size():
+		var a: String = by_x[i]
+		var ba: Rect2 = bounds[a]
+		for j in range(i + 1, by_x.size()):
+			var b: String = by_x[j]
+			var bb: Rect2 = bounds[b]
+			if bb.position.x >= ba.end.x:
+				break
+			if not ba.intersects(bb) or world.get_room_layer(a) != world.get_room_layer(b):
 				continue
+			for id in [a, b]:
+				if not rects_of.has(id):
+					rects_of[id] = world.get_world_rects(id)
 			var overlap := false
-			for ra in world.get_world_rects(a):
-				for rb in world.get_world_rects(b):
+			for ra: Rect2 in rects_of[a]:
+				for rb: Rect2 in rects_of[b]:
 					if ra.intersection(rb).get_area() > 1.0:
 						overlap = true
 			if overlap:
-				MDSValidator._add(issues, W, CATEGORY_LAYOUT, "%s overlaps %s" % [analysis.get_room_name(a), analysis.get_room_name(b)], a, Vector3i.MAX, world.get_room_label_pos(a), world.get_room_layer(a))
+				# In the order the rooms are listed, as before.
+				pairs.append([a, b] if ids.find(a) < ids.find(b) else [b, a])
+	pairs.sort_custom(func(p: Array, q: Array) -> bool: return ids.find(p[0]) < ids.find(q[0]) or (p[0] == q[0] and ids.find(p[1]) < ids.find(q[1])))
+	for pair: Array in pairs:
+		MDSValidator._add(issues, W, CATEGORY_LAYOUT, "%s overlaps %s" % [analysis.get_room_name(pair[0]), analysis.get_room_name(pair[1])], pair[0], Vector3i.MAX, world.get_room_label_pos(pair[0]), world.get_room_layer(pair[0]))
 
 	var pin_locator := func(pin: Dictionary) -> Dictionary:
 		var pos := Vector2(float(pin.x), float(pin.y))

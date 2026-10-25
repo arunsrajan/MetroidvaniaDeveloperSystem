@@ -85,7 +85,10 @@ func analyze(image: Image, background: Color, paint_cell := Vector2(288, 162)) -
 	var sizes: Array[int] = []
 	var inner: Array[int] = []
 	var sums: Array = []
+	# A pixel's neighbours, as offsets (no array made per pixel: this runs for every pixel).
+	var nb := PackedInt32Array([-1, 1, -w, w])
 	var stack := PackedInt32Array()
+	stack.resize(n)
 	for start in n:
 		if map[start] == 0 or region[start] >= 0:
 			continue
@@ -96,33 +99,46 @@ func analyze(image: Image, background: Color, paint_cell := Vector2(288, 162)) -
 		var sg := 0
 		var sb := 0
 		var s0 := start * 4
-		var seed := [data[s0], data[s0 + 1], data[s0 + 2]]
+		var r0: int = data[s0]
+		var g0: int = data[s0 + 1]
+		var b0: int = data[s0 + 2]
 		region[start] = id
-		stack.clear()
-		stack.append(start)
-		while not stack.is_empty():
-			var p: int = stack[stack.size() - 1]
-			stack.resize(stack.size() - 1)
+		var top := 0
+		stack[0] = start
+		top = 1
+		while top > 0:
+			top -= 1
+			var p: int = stack[top]
 			count += 1
 			var o := p * 4
-			sr += data[o]
-			sg += data[o + 1]
-			sb += data[o + 2]
+			var pr: int = data[o]
+			var pg: int = data[o + 1]
+			var pb: int = data[o + 2]
+			sr += pr
+			sg += pg
+			sb += pb
 			var x := p % w
 			var all_in := x > 0 and x < w - 1 and p >= w and p < n - w
-			for q in [p - 1, p + 1, p - w, p + w]:
-				if q < 0 or q >= n or (q == p - 1 and x == 0) or (q == p + 1 and x == w - 1):
+			for k in 4:
+				if (k == 0 and x == 0) or (k == 1 and x == w - 1):
+					continue
+				var q: int = p + nb[k]
+				if q < 0 or q >= n:
 					continue
 				if map[q] == 0:
 					all_in = false
 					continue
 				var oq: int = q * 4
-				if maxi(maxi(absi(data[oq] - data[o]), absi(data[oq + 1] - data[o + 1])), absi(data[oq + 2] - data[o + 2])) > flat_8 or maxi(maxi(absi(data[oq] - seed[0]), absi(data[oq + 1] - seed[1])), absi(data[oq + 2] - seed[2])) > fill_8:
+				var qr: int = data[oq]
+				var qg: int = data[oq + 1]
+				var qb: int = data[oq + 2]
+				if absi(qr - pr) > flat_8 or absi(qg - pg) > flat_8 or absi(qb - pb) > flat_8 or absi(qr - r0) > fill_8 or absi(qg - g0) > fill_8 or absi(qb - b0) > fill_8:
 					all_in = false
 					continue
 				if region[q] < 0:
 					region[q] = id
-					stack.append(q)
+					stack[top] = q
+					top += 1
 			if all_in:
 				inside += 1
 		sizes.append(count)
@@ -159,8 +175,11 @@ func analyze(image: Image, background: Color, paint_cell := Vector2(288, 162)) -
 		var p: int = queue[head]
 		head += 1
 		var x := p % w
-		for q in [p - 1, p + 1, p - w, p + w]:
-			if q < 0 or q >= n or (q == p - 1 and x == 0) or (q == p + 1 and x == w - 1) or map[q] == 0:
+		for k in 4:
+			if (k == 0 and x == 0) or (k == 1 and x == w - 1):
+				continue
+			var q: int = p + nb[k]
+			if q < 0 or q >= n or map[q] == 0:
 				continue
 			if owner[q] >= 0:
 				if owner[q] != owner[p]:
@@ -192,49 +211,77 @@ func analyze(image: Image, background: Color, paint_cell := Vector2(288, 162)) -
 			area_index[r] = area_index.size()
 		area_of_fill.append(area_index[r])
 	var area_count := area_index.size()
-	var area_px: Array[int] = []
-	area_px.resize(area_count)
-	var area_col: Array = []
-	for a in area_count:
-		area_col.append(Vector3.ZERO)
-	for i in n:
-		var o: int = owner[i]
-		if o >= 0 and region[i] >= 0 and fill_of[region[i]] == o:
-			var a: int = area_of_fill[o]
-			area_px[a] += 1
-			area_col[a] += Vector3(data[i * 4], data[i * 4 + 1], data[i * 4 + 2])
-	# The paint cells: the map's scale from its width (what the areas take of it).
+	# Each pixel's area (-1: none), and where the map is (rows and columns with any of it).
+	var area_at := PackedInt32Array()
+	area_at.resize(n)
+	area_at.fill(-1)
 	var lo := Vector2i(w, h)
 	var hi := Vector2i(-1, -1)
 	for i in n:
-		if owner[i] >= 0:
-			lo = Vector2i(mini(lo.x, i % w), mini(lo.y, i / w))
-			hi = Vector2i(maxi(hi.x, i % w), maxi(hi.y, i / w))
+		var o: int = owner[i]
+		if o >= 0:
+			area_at[i] = area_of_fill[o]
+	for y in h:
+		var row := y * w
+		for x in w:
+			if area_at[row + x] >= 0:
+				lo.y = mini(lo.y, y)
+				hi.y = y
+				lo.x = mini(lo.x, x)
+				hi.x = maxi(hi.x, x)
+	# The paint cells: the map's scale from its width (what the areas take of it).
 	var cell_w := maxf(2.0, float(hi.x - lo.x + 1) / maxi(1, cells_across))
 	var cell := Vector2(cell_w, cell_w * paint_cell.y / paint_cell.x)
 	var origin := Vector2(lo)
 	var cols := ceili((hi.x - lo.x + 1) / cell.x) + 1
 	var rows := ceili((hi.y - lo.y + 1) / cell.y) + 1
-	# Each cell's pixels by area.
-	var counts: Dictionary = {} # Vector3i(x, y, area) -> px
-	for i in n:
-		var o: int = owner[i]
-		if o < 0:
-			continue
-		var c := Vector2i(int((i % w - origin.x) / cell.x), int((i / w - origin.y) / cell.y))
-		var key := Vector3i(c.x, c.y, area_of_fill[o])
-		counts[key] = int(counts.get(key, 0)) + 1
+	# Each cell's pixels by area, each area's color (of its fills) and box, in one pass.
+	var counts := PackedInt32Array()
+	counts.resize(cols * rows * area_count)
+	var area_px: Array[int] = []
+	area_px.resize(area_count)
+	var area_col: Array = []
+	var area_box: Array = []
+	for a in area_count:
+		area_col.append(Vector3.ZERO)
+		area_box.append(Rect2i(w, h, -w, -h))
+	var col_of := PackedInt32Array()
+	col_of.resize(w)
+	for x in w:
+		col_of[x] = int((x - origin.x) / cell.x)
+	for y in range(lo.y, hi.y + 1):
+		var cy := int((y - origin.y) / cell.y)
+		var row := y * w
+		for x in range(lo.x, hi.x + 1):
+			var i := row + x
+			var a: int = area_at[i]
+			if a < 0:
+				continue
+			counts[(cy * cols + col_of[x]) * area_count + a] += 1
+			var b: Rect2i = area_box[a]
+			if b.size.x < 0:
+				area_box[a] = Rect2i(x, y, 1, 1)
+			elif not b.has_point(Vector2i(x, y)):
+				# Its end is past the pixel: the pixel is in it.
+				area_box[a] = b.expand(Vector2i(x, y)).expand(Vector2i(x + 1, y + 1))
+			if region[i] >= 0 and fill_of[region[i]] == owner[i]:
+				area_px[a] += 1
+				area_col[a] += Vector3(data[i * 4], data[i * 4 + 1], data[i * 4 + 2])
 	var cell_area := cell.x * cell.y
 	var best: Dictionary = {} # cell -> [area, share]
 	var shares: Array = [] # per area: {cell: share}
 	for a in area_count:
 		shares.append({})
-	for key: Vector3i in counts:
-		var share := float(counts[key]) / cell_area
-		var c := Vector2i(key.x, key.y)
-		shares[key.z][c] = share
+	for k in counts.size():
+		if counts[k] == 0:
+			continue
+		var a := k % area_count
+		var ci := k / area_count
+		var c := Vector2i(ci % cols, ci / cols)
+		var share := float(counts[k]) / cell_area
+		shares[a][c] = share
 		if not best.has(c) or share > float(best[c][1]):
-			best[c] = [key.z, share]
+			best[c] = [a, share]
 	var area_cells: Array = []
 	for a in area_count:
 		area_cells.append({})
@@ -271,7 +318,7 @@ func analyze(image: Image, background: Color, paint_cell := Vector2(288, 162)) -
 			listed.append(c)
 			cells_out[c] = kept[a]
 			cover_out[c] = minf(1.0, float(shares[a].get(c, 0.0)))
-		areas.append({"color": Color(col.x, col.y, col.z), "cells": listed, "outline": _outline(owner, area_of_fill, a, w, h, f)})
+		areas.append({"color": Color(col.x, col.y, col.z), "cells": listed, "outline": _outline(area_at, a, area_box[a], w, f)})
 		for piece: Dictionary in MDSAreaGenerator.components(area_cells[a]):
 			gen.seed_value = hash([seed_value, a, rooms.size()])
 			var parts := gen.partition(piece, cover_out)
@@ -378,19 +425,28 @@ static func _join_pieces(cells: Dictionary, shares: Dictionary, taken: Dictionar
 			at = prev[at]
 		pieces = MDSAreaGenerator.components(cells)
 
-## The outline of area [param a] (picture px): its pixels' shapes, traced.
-static func _outline(owner: PackedInt32Array, area_of_fill: Array[int], a: int, w: int, h: int, f: float) -> Array:
-	var bits := BitMap.new()
-	bits.create(Vector2i(w, h))
-	for i in owner.size():
-		if owner[i] >= 0 and area_of_fill[owner[i]] == a:
-			bits.set_bit(i % w, i / w, true)
+## The outline of area [param a] (picture px): its pixels' shapes ([param area_at]: each work
+## pixel's area, [param w] a row), traced in its [param box] alone.
+static func _outline(area_at: PackedInt32Array, a: int, box: Rect2i, w: int, f: float) -> Array:
 	var out: Array = []
-	for poly: PackedVector2Array in bits.opaque_to_polygons(Rect2i(0, 0, w, h), 1.0):
+	if box.size.x <= 0 or box.size.y <= 0:
+		return out
+	# A pixel of margin round it, so its outline closes at the box's edges.
+	var size := box.size + Vector2i(2, 2)
+	var bits := BitMap.new()
+	bits.create(size)
+	for y in box.size.y:
+		var row := (box.position.y + y) * w + box.position.x
+		for x in box.size.x:
+			if area_at[row + x] == a:
+				bits.set_bit(x + 1, y + 1, true)
+	var at := Vector2(box.position) - Vector2.ONE
+	for poly: PackedVector2Array in bits.opaque_to_polygons(Rect2i(Vector2i.ZERO, size), 1.0):
 		if poly.size() >= 3 and absf(MDSGeometry.signed_area(poly)) >= 16.0:
 			var scaled := PackedVector2Array()
-			for p in poly:
-				scaled.append(p / f)
+			scaled.resize(poly.size())
+			for k in poly.size():
+				scaled[k] = (poly[k] + at) / f
 			out.append(scaled)
 	return out
 

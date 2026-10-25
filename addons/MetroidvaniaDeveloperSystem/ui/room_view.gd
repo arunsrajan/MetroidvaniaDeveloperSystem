@@ -668,7 +668,7 @@ func _build_full_controls() -> void:
 	var snap := CheckBox.new()
 	snap.text = "Snap to cells"
 	snap.button_pressed = true
-	snap.tooltip_text = "Rectangles and ellipses on the paint cells' corners, polygon corners on the world grid, outlines and rooms moved by whole cells"
+	snap.tooltip_text = "Rectangles and ellipses on the paint cells' corners, polygon corners on the world grid, outlines moved by the grid. Rooms and scenes dragged in move smoothly, to the pixel, stopping against their neighbours"
 	snap.toggled.connect(func(on: bool) -> void: full_tools.snap = on)
 	var at_once := CheckBox.new()
 	at_once.text = "At once"

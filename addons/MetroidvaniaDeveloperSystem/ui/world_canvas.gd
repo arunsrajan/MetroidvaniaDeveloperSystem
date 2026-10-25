@@ -44,13 +44,15 @@ signal area_selected(area: String)
 signal area_activated(area: String)
 ## A box (paint cells) was dragged with the Generate tool.
 signal generate_requested(box: Rect2i)
+## Merge (Ctrl+M) asks for rooms [param ids] to be merged into [param keep] (see [method merge_selection]).
+signal merge_requested(ids: Array[String], keep: String)
 
 enum Tool { SELECT, ROOM, RECT, GATE, PIN, PAINT, ERASE, AREA, GENERATE, AREA_PAINT }
 const TOOL_NAMES: PackedStringArray = ["Select (V)", "Draw room (R)", "Extend room (E)", "Gate (G)", "Pin (P)", "Paint (B)", "Erase (X)", "Area (A)", "Generate area (N)", "Paint area (M)"]
 const TOOL_HINTS: PackedStringArray = [
 	"Click to select, drag to move, drag handles to resize, drag from a gate to another gate to connect. Several rooms: Ctrl+click adds one (or takes it out), Ctrl+drag on empty space selects a box of them; drag one to move them all. A whole area: click or drag its name, or Alt+drag any of its rooms (once selected, drag any of its rooms; click one to pick just that room). Alt+drag a name moves only the name. Drop .tscn files here to place scenes, or a map image to import it.",
 	"Drag to draw a new room.",
-	"Drag to add a rectangle to the selected room (irregular shapes).",
+	"Drag to add a rectangle to the selected room (irregular shapes). With several rooms selected, the box is shared out: each extends with the part of it nearest to it.",
 	"Click a room edge to add a gate. Drag from a gate to another gate to connect.",
 	"Click to place a pin.",
 	"Paint the map: drag on empty space for a new room, start inside a room to grow it (Shift: always a new room). [ ] change the brush size.",
@@ -98,6 +100,12 @@ var zoom := 0.06 ## Screen pixels per world pixel.
 var pan := Vector2(40, 40)
 
 var _overlay: Control
+var _rooms_layer: Node2D
+var _marks_layer: Node2D
+## The pan and zoom the rooms and marks layers were drawn at (they move with the pan since).
+var _rooms_pan := Vector2.ZERO
+var _marks_pan := Vector2.ZERO
+var _layers_zoom := -1.0
 var _preview_root: Node2D
 var _preview_layer := -9999
 var _preview_nodes: Dictionary = {} ## room id -> preview instance
@@ -150,8 +158,17 @@ func _init() -> void:
 	focus_mode = Control.FOCUS_ALL
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	tooltip_text = " "
+	# The rooms, under the scene previews, and the gates, names and marks over them: drawn when
+	# the map or the zoom changes, only moved when the view pans (a map of hundreds of rooms pans
+	# smoothly).
+	_rooms_layer = Node2D.new()
+	_rooms_layer.draw.connect(_draw_rooms)
+	add_child(_rooms_layer, false, Node.INTERNAL_MODE_FRONT)
 	_preview_root = Node2D.new()
 	add_child(_preview_root, false, Node.INTERNAL_MODE_FRONT)
+	_marks_layer = Node2D.new()
+	_marks_layer.draw.connect(_draw_marks)
+	add_child(_marks_layer, false, Node.INTERNAL_MODE_FRONT)
 	_overlay = Control.new()
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -324,6 +341,8 @@ func refresh_previews() -> void:
 func redraw() -> void:
 	queue_redraw()
 	_overlay.queue_redraw()
+	_rooms_layer.queue_redraw()
+	_marks_layer.queue_redraw()
 
 func world_to_screen(p: Vector2) -> Vector2:
 	return pan + p * zoom
@@ -367,7 +386,14 @@ func center_on_room(id: String) -> void:
 func _after_view_change() -> void:
 	_preview_root.position = pan
 	_preview_root.scale = Vector2(zoom, zoom)
-	redraw()
+	# Only panned, within what was drawn round the view: the rooms and marks drawn move with it.
+	if zoom == _layers_zoom and _drawn_view().encloses(Rect2(_rooms_pan - pan, size)) and _drawn_view().encloses(Rect2(_marks_pan - pan, size)):
+		_rooms_layer.position = pan - _rooms_pan
+		_marks_layer.position = pan - _marks_pan
+		queue_redraw()
+		_overlay.queue_redraw()
+	else:
+		redraw()
 	view_changed.emit()
 
 # --- Colors ------------------------------------------------------------------------------
@@ -448,14 +474,34 @@ func _draw() -> void:
 		_draw_paint_grid()
 	elif show.grid:
 		_draw_grid()
+
+## What the rooms and marks layers draw (screen px when drawn): the view and half of it again
+## round it, so a pan that far needs no drawing.
+func _drawn_view() -> Rect2:
+	return Rect2(-size * 0.5, size * 2.0)
+
+## Whether room [param id] is in what the layers draw (see [method _drawn_view]).
+func _in_drawn_view(id: String, view: Rect2) -> bool:
+	return world_rect_to_screen(world.get_room_bounds(id)).intersects(view)
+
+## The rooms, on [member _rooms_layer] (see [method _after_view_change]).
+func _draw_rooms() -> void:
+	_rooms_pan = pan
+	_layers_zoom = zoom
+	_rooms_layer.position = Vector2.ZERO
+	if not world:
+		return
+	var ci: CanvasItem = _rooms_layer
 	var style := get_style()
 	var b := _border_px()
 	var dim := not highlight_rooms.is_empty()
 	var glow := style.kind == MDSMapStyle.Kind.GLOW
 	if glow:
-		_draw_glow_areas(dim)
+		_draw_glow_areas(ci, dim)
+	var xf := Transform2D(0.0, Vector2(zoom, zoom), 0.0, pan)
+	var view := _drawn_view()
 	for id in world.get_room_ids():
-		if world.get_room_layer(id) != layer:
+		if world.get_room_layer(id) != layer or not _in_drawn_view(id, view):
 			continue
 		var color := get_room_color(id)
 		if dim and not highlight_rooms.has(id):
@@ -471,24 +517,24 @@ func _draw() -> void:
 		elif world.has_room_shape(id):
 			# Curved and slanted sides: drawn by its outline.
 			var band := Color.TRANSPARENT if style.kind == MDSMapStyle.Kind.FLAT else (fill if style.kind == MDSMapStyle.Kind.ATLAS else _style_border_color(style, color))
-			MDSMapStyle.draw_outlined(self, MDSMapStyle.room_polygons(world, id), world_to_screen, style.outline_fill(fill), color.darkened(0.5), band, b * 1.6)
+			MDSMapStyle.draw_outlined_xf(ci, MDSMapStyle.room_polygons(world, id), xf, style.outline_fill(fill), color.darkened(0.5), band, b * 1.6)
 		elif style.kind != MDSMapStyle.Kind.FLAT:
-			style.draw_room(self, get_cells(id), world.get_paint_cell(), world_to_screen, zoom, fill, _style_border_color(style, color), _passages(id))
+			style.draw_room(ci, get_cells(id), world.get_paint_cell(), world_to_screen, zoom, fill, _style_border_color(style, color), _passages(id))
 		else:
 			# Border first, fill on top: rects of one room merge into a single shape.
 			for r in rects:
-				draw_rect(world_rect_to_screen(r).grow(b), color.darkened(0.5))
+				ci.draw_rect(world_rect_to_screen(r).grow(b), color.darkened(0.5))
 			for r in rects:
-				draw_rect(world_rect_to_screen(r), fill)
+				ci.draw_rect(world_rect_to_screen(r), fill)
 		if show.terrain and not show.previews:
 			var path := world.get_scene_path(id)
 			var tex := _get_silhouette(path)
 			if tex:
 				var sr: Rect2 = scene_db[path].silhouette_rect
-				draw_texture_rect(tex, world_rect_to_screen(Rect2(world.get_origin(id) + sr.position, sr.size)), false, color.darkened(0.5))
+				ci.draw_texture_rect(tex, world_rect_to_screen(Rect2(world.get_origin(id) + sr.position, sr.size)), false, color.darkened(0.5))
 
 ## The glowing style draws each area as one shape: its rooms translucent, a rim around it.
-func _draw_glow_areas(dim: bool) -> void:
+func _draw_glow_areas(ci: CanvasItem, dim: bool) -> void:
 	var groups: Dictionary = {} # group -> {cell: room}
 	var members: Dictionary = {} # group -> its rooms
 	var shaped: Dictionary = {} # groups with a room drawn by its outline
@@ -522,9 +568,9 @@ func _draw_glow_areas(dim: bool) -> void:
 			var rooms: Dictionary = {}
 			for id: String in members[g]:
 				rooms[id] = MDSMapStyle.room_polygons(world, id)
-			MDSMapStyle.draw_glow_polygons(self, rooms, world_to_screen, zoom, fills, rim, MDSMapStyle.area_outline(world, members[g]))
+			MDSMapStyle.draw_glow_polygons(ci, rooms, world_to_screen, zoom, fills, rim, MDSMapStyle.area_outline(world, members[g]))
 		else:
-			MDSMapStyle.draw_glow(self, groups[g], world.get_paint_cell(), world_to_screen, zoom, fills, rim)
+			MDSMapStyle.draw_glow(ci, groups[g], world.get_paint_cell(), world_to_screen, zoom, fills, rim)
 
 func set_brush_size(value: int) -> void:
 	brush_size = clampi(value, 1, 8)
@@ -670,6 +716,34 @@ func _draw_overlay() -> void:
 		else:
 			for r in world.get_world_rects(hovered_room):
 				ci.draw_rect(world_rect_to_screen(r), Color(1, 1, 1, 0.1))
+	if selected_rooms.size() >= 2:
+		_draw_rooms_selection(ci)
+	if world.has_room(selected_room) and world.get_room_layer(selected_room) == layer:
+		_draw_selection(ci)
+	if not selected_area.is_empty():
+		_draw_area_selection(ci)
+	_draw_drag_feedback(ci)
+	_draw_title(ci)
+	if show.legend:
+		_draw_legend(ci)
+
+## Doors, gates, names, marks and pins, on [member _marks_layer] (see [method _after_view_change]).
+func _draw_marks() -> void:
+	_marks_pan = pan
+	_layers_zoom = zoom
+	_marks_layer.position = Vector2.ZERO
+	if not world:
+		return
+	var ci: CanvasItem = _marks_layer
+	# The rooms in what is drawn (the area names are placed from all of their rooms).
+	var all_ids: Array[String] = []
+	var ids: Array[String] = []
+	var view := _drawn_view()
+	for id in world.get_room_ids():
+		if world.get_room_layer(id) == layer:
+			all_ids.append(id)
+			if _in_drawn_view(id, view):
+				ids.append(id)
 	_draw_links(ci)
 	if show.gates:
 		_draw_connections(ci, ids)
@@ -686,21 +760,11 @@ func _draw_overlay() -> void:
 		for id in ids:
 			_draw_room_label(ci, id)
 	if show.area_labels:
-		_draw_area_labels(ci, ids)
+		_draw_area_labels(ci, all_ids)
 	if show.issues:
 		_draw_issue_badges(ci, ids)
 	if show.pins:
 		_draw_pins(ci)
-	if selected_rooms.size() >= 2:
-		_draw_rooms_selection(ci)
-	if world.has_room(selected_room) and world.get_room_layer(selected_room) == layer:
-		_draw_selection(ci)
-	if not selected_area.is_empty():
-		_draw_area_selection(ci)
-	_draw_drag_feedback(ci)
-	_draw_title(ci)
-	if show.legend:
-		_draw_legend(ci)
 
 func _draw_message(text: String) -> void:
 	var font := get_theme_default_font()
@@ -1099,6 +1163,17 @@ func _draw_drag_feedback(ci: CanvasItem) -> void:
 			var r := _rubber_world_rect()
 			ci.draw_rect(world_rect_to_screen(r), Color(COLOR_SELECT, 0.2))
 			ci.draw_rect(world_rect_to_screen(r), COLOR_SELECT, false, 2.0)
+			# Extending several rooms: the part each one gets, and its name.
+			if tool == Tool.RECT and selected_rooms.size() >= 2:
+				var parts := MDSAreaTools.split_extension(world, get_selected_rooms(), r)
+				var font_s := get_theme_default_font()
+				for id: String in parts:
+					var col := get_room_color(id)
+					for piece: Rect2 in parts[id]:
+						ci.draw_rect(world_rect_to_screen(piece), Color(col, 0.35))
+						ci.draw_rect(world_rect_to_screen(piece), Color(col.lightened(0.4), 0.9), false, 1.5)
+					var b: Rect2 = parts[id][0]
+					ci.draw_string(font_s, world_to_screen(b.position) + Vector2(4, 14), id, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.9))
 			var font := get_theme_default_font()
 			ci.draw_string(font, world_to_screen(r.end) + Vector2(6, 14), "%d x %d" % [r.size.x, r.size.y], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COLOR_SELECT)
 		Drag.CONNECT:
@@ -1210,8 +1285,10 @@ func _handle_at(screen_pos: Vector2) -> Array:
 	return []
 
 func _area_label_at(screen_pos: Vector2) -> String:
+	# The names were drawn where the view was then: it may have panned since.
+	var at := screen_pos - _marks_layer.position
 	for a in _area_label_rects:
-		if _area_label_rects[a].grow(4).has_point(screen_pos):
+		if _area_label_rects[a].grow(4).has_point(at):
 			return a
 	return ""
 
@@ -1299,8 +1376,12 @@ func _on_left_press(mb: InputEventMouseButton) -> void:
 			_begin_drag(Drag.RUBBER, mb)
 			return
 		Tool.RECT:
+			# Ctrl+click picks the rooms to extend together.
+			if (mb.ctrl_pressed or mb.meta_pressed) and not room.is_empty():
+				_toggle_room(room)
+				return
 			if selected_room.is_empty():
-				status_message.emit("Select a room first, then drag to add a rectangle to it.")
+				status_message.emit("Select a room first (Ctrl+click more to extend them together), then drag to add a rectangle to it.")
 				return
 			_begin_drag(Drag.RUBBER, mb)
 			return
@@ -1476,6 +1557,8 @@ func _on_left_release(mb: InputEventMouseButton) -> void:
 					selected_gate = ""
 					room_selected.emit(id)
 					status_message.emit("Created %s. Assign a scene in Inspect, or right-click > Create scene." % id)
+				elif selected_rooms.size() >= 2:
+					extend_rooms(get_selected_rooms(), r)
 				elif world.has_room(selected_room):
 					world.add_rect(selected_room, r)
 		Drag.CONNECT:
@@ -1636,6 +1719,8 @@ func _on_key(key: InputEventKey) -> void:
 			set_tool(Tool.AREA)
 		KEY_N when not ctrl:
 			set_tool(Tool.GENERATE)
+		KEY_M when ctrl:
+			merge_selection()
 		KEY_M when not ctrl:
 			set_tool(Tool.AREA_PAINT)
 		KEY_BRACKETLEFT:
@@ -1682,6 +1767,42 @@ func _on_key(key: InputEventKey) -> void:
 func _redo() -> void:
 	if world.redo():
 		status_message.emit("Redo")
+
+## Extends rooms [param ids] at once with rectangle [param box] (world px): each gets the part
+## of it nearest to it (see [method MDSAreaTools.split_extension]). One undo step. Returns how
+## many rooms grew.
+func extend_rooms(ids: Array[String], box: Rect2) -> int:
+	var parts := MDSAreaTools.split_extension(world, ids, box)
+	if parts.is_empty():
+		status_message.emit("Rooms cover all of that box already.")
+		return 0
+	world.checkpoint()
+	for id: String in parts:
+		for piece: Rect2 in parts[id]:
+			world.add_rect(id, piece)
+	status_message.emit("Extended %d room(s): %s, each with the part of the box nearest it. Ctrl+Z to undo." % [parts.size(), ", ".join(parts.keys())])
+	redraw()
+	return parts.size()
+
+## The rooms a merge takes: the rooms selected; one room alone with the rooms it touches (of its
+## area, when it has one and touches any of it). Asks for them with [signal merge_requested].
+func merge_selection() -> void:
+	var ids := get_selected_rooms()
+	if ids.size() == 1:
+		var id := ids[0]
+		var around := MDSAreaTools.touching(world, id, layer)
+		var area := world.get_room_area(id)
+		var same := around.filter(func(o: String) -> bool: return world.get_room_area(o) == area)
+		if not area.is_empty() and not same.is_empty():
+			around.assign(same)
+		if around.is_empty():
+			status_message.emit("%s touches no room to merge with: select rooms side by side (Ctrl+click), then Merge (Ctrl+M)." % id)
+			return
+		ids.append_array(around)
+	if ids.size() < 2:
+		status_message.emit("Select the rooms to merge (Ctrl+click, Ctrl+drag a box), or one room to merge with the rooms it touches, then Merge (Ctrl+M).")
+		return
+	merge_requested.emit(ids, selected_room if ids.has(selected_room) else ids[0])
 
 ## Deletes the selected gate, else the selected room; the selected area's rooms when an area
 ## is selected (Area tool, or its name clicked).

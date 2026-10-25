@@ -20,7 +20,7 @@ enum WorldItem { NEW = 1000, OPEN, IMPORT_METSYS, RELOAD, IMPORT_IMAGE }
 enum ViewItem { LABELS, AREA_LABELS, TERRAIN, PREVIEWS, GATES, MARKERS, PINS, ISSUES, GRID, LEGEND, EXPLORED }
 enum ExportItem { JSON, PNG, DOT, MARKDOWN }
 enum ScenesItem { RESCAN, ADD_SCENES, AUTO_CONNECT, SETTINGS, GAME_SCENE, AUTO_DOORS }
-enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, SET_START, ROUTE, LINK, DUPLICATE, DELETE, ADD_ROOM, ADD_PIN, REMOVE_PIN, ADD_GATE, COPY_ID, PAINT_ROOM, GENERATE_AREA, SELECT_AREA, AREA_CAVES, EDIT_ROOMS, MERGE_ROOMS, EDIT_AREA, MERGE_AREA, IMPORT_IMAGE, FULL_VIEW }
+enum ContextItem { OPEN, PLAY_HERE, RUN_SCENE, CREATE_SCENE, ASSIGN_SCENE, FIT, SET_START, ROUTE, LINK, DUPLICATE, DELETE, ADD_ROOM, ADD_PIN, REMOVE_PIN, ADD_GATE, COPY_ID, PAINT_ROOM, GENERATE_AREA, SELECT_AREA, AREA_CAVES, EDIT_ROOMS, MERGE_ROOMS, EDIT_AREA, MERGE_AREA, IMPORT_IMAGE, FULL_VIEW, MERGE_NEIGHBOURS }
 
 # Data
 var world_path := ""
@@ -254,6 +254,12 @@ func _build_ui() -> void:
 	auto_doors.tooltip_text = "Paint: a room painted onto an area gets a door to each room of the area it touches. (Generated and painted areas always get their doors; areas dragged against each other with the Area tool connect.)"
 	auto_doors.toggled.connect(func(on: bool) -> void: canvas.auto_doors = on)
 	tool_grid.add_child(auto_doors)
+	var merge := MDSUi.button("Merge rooms", "Merge the rooms selected (Ctrl+click, Ctrl+drag a box) into one room; one room selected merges with the rooms it touches (of its area). They must be side by side. Asks first (which room to keep, what to do with their scenes). Ctrl+M on the map")
+	merge.pressed.connect(func() -> void:
+		if world:
+			canvas.merge_selection()
+			canvas.grab_focus())
+	tool_grid.add_child(MDSSidePanel.fill(merge))
 	undo_button = MDSUi.button("Undo", "Undo (Ctrl+Z on the map)")
 	undo_button.pressed.connect(func() -> void:
 		if world:
@@ -349,6 +355,7 @@ func _build_ui() -> void:
 	canvas.area_selected.connect(_on_canvas_area_selected)
 	canvas.area_activated.connect(_ask_rename_area)
 	canvas.generate_requested.connect(open_generate_dialog)
+	canvas.merge_requested.connect(func(ids: Array[String], keep: String) -> void: ask_merge_rooms(ids, keep, "%d rooms" % ids.size(), true))
 	canvas.brush_size_changed.connect(func(n: int) -> void: brush_spin.set_value_no_signal(n))
 	canvas.view_changed.connect(func() -> void: zoom_label.text = "%d%%" % roundi(canvas.zoom * 100.0 / 0.06))
 	# Map view (the world map) and Room view (the room's actual contents) share this spot.
@@ -365,7 +372,7 @@ func _build_ui() -> void:
 	room_view.area_caves_requested.connect(ask_area_caves)
 	room_view.rooms_requested.connect(func(ids: Array[String]) -> void: _edit_rooms(ids))
 	room_view.scenes_dropped.connect(func(files: PackedStringArray, at: Vector2) -> void:
-		_on_scenes_dropped(files, at)
+		_on_scenes_dropped(files, at, true)
 		room_view.refresh_full())
 	room_view.generate_area_requested.connect(open_generate_dialog)
 	room_view.scene_path_for = _default_scene_path
@@ -720,11 +727,16 @@ func open_import_dialog(path := "", at := Vector2.INF) -> void:
 		return
 	import_dialog.open(world, canvas.layer, path, at)
 
-## Asks about merging rooms [param ids] into one ([param keep] first in the list to keep).
-func ask_merge_rooms(ids: Array[String], keep := "", label := "") -> void:
+## Asks about merging rooms [param ids] into one ([param keep] first in the list to keep). With
+## [param adjacent], rooms that touch none of the others are refused (a merge of the selection).
+func ask_merge_rooms(ids: Array[String], keep := "", label := "", adjacent := false) -> void:
 	if not world:
 		return
 	var error := world.merge_error(ids)
+	if error.is_empty() and adjacent:
+		var apart := MDSAreaTools.apart_from(world, ids)
+		if not apart.is_empty():
+			error = "%s touch%s none of the other rooms selected: merge rooms side by side (select them with Ctrl+click, or one room to merge it with the rooms it touches)." % [", ".join(apart), "es" if apart.size() == 1 else ""]
 	if not error.is_empty():
 		_set_status(error)
 		return
@@ -1928,7 +1940,9 @@ func _nearest_pin(world_pos: Vector2) -> int:
 	return best
 
 ## Drop: onto a room without a scene assigns it; elsewhere each scene becomes a new room.
-func _on_scenes_dropped(files: PackedStringArray, world_pos: Vector2) -> void:
+## Scenes [param files] dropped at [param world_pos] become rooms there; with [param exact] (the
+## Full view, which showed where) to the pixel, else on the paint cells.
+func _on_scenes_dropped(files: PackedStringArray, world_pos: Vector2, exact := false) -> void:
 	if not world:
 		_set_status("Create or open a world first.")
 		return
@@ -1959,7 +1973,7 @@ func _on_scenes_dropped(files: PackedStringArray, world_pos: Vector2) -> void:
 		var meta := scanner.analyze_scene_any(f)
 		scene_database[f] = meta
 		# Where it was dropped (the Full view shows where), else the nearest place free.
-		var id := MDSWorldSceneTools.place_scene(world, f, meta, pos, canvas.layer, canvas.new_room_area, true)
+		var id := MDSWorldSceneTools.place_scene(world, f, meta, pos, canvas.layer, canvas.new_room_area, true, exact)
 		created.append(id)
 		var j := MDSWorldSceneTools.join_placed(world, id)
 		joined += j.connected.size()
@@ -2473,7 +2487,9 @@ func _on_canvas_context(room_id: String, world_pos: Vector2, local_pos: Vector2)
 		if picked.size() >= 2 and picked.has(room_id):
 			context_menu.add_separator()
 			context_menu.add_item("Edit the %d rooms in the Room view" % picked.size(), ContextItem.EDIT_ROOMS)
-			context_menu.add_item("Merge the %d rooms into one..." % picked.size(), ContextItem.MERGE_ROOMS)
+			context_menu.add_item("Merge the %d rooms into one... (Ctrl+M)" % picked.size(), ContextItem.MERGE_ROOMS)
+		elif not MDSAreaTools.touching(world, room_id, world.get_room_layer(room_id)).is_empty():
+			context_menu.add_item("Merge with the rooms it touches... (Ctrl+M)", ContextItem.MERGE_NEIGHBOURS)
 		if not world.get_room_area(room_id).is_empty():
 			context_menu.add_item("Select area %s" % world.get_room_area(room_id), ContextItem.SELECT_AREA)
 			context_menu.add_item("Edit area %s in the Room view" % world.get_room_area(room_id), ContextItem.EDIT_AREA)
@@ -2563,7 +2579,10 @@ func _on_context_menu(item: int) -> void:
 			show_rooms_view(picked, id, "%d rooms" % picked.size())
 		ContextItem.MERGE_ROOMS:
 			var picked := canvas.get_selected_rooms()
-			ask_merge_rooms(picked, id, "%d rooms" % picked.size())
+			ask_merge_rooms(picked, id, "%d rooms" % picked.size(), true)
+		ContextItem.MERGE_NEIGHBOURS:
+			canvas.select_rooms([id], id)
+			canvas.merge_selection()
 		ContextItem.EDIT_AREA:
 			var area := world.get_room_area(id)
 			show_rooms_view(MDSWorldSceneTools.area_room_order(world, area, world.get_room_layer(id)), id, "Area " + area)

@@ -64,6 +64,10 @@ var _starts: Dictionary = {}
 var _own: Dictionary = {}
 var _taken: Dictionary = {}
 var _delta := Vector2i.ZERO
+## Rooms moving: their rectangles and the others' (world px), how far they have gone (px).
+var _own_rects: Array[Rect2] = []
+var _other_rects: Array[Rect2] = []
+var _delta_px := Vector2.ZERO
 var _mouse := Vector2.INF ## world px
 var _preview: Array = []
 var _preview_key := 0
@@ -455,6 +459,11 @@ func _begin_move(p: Vector2) -> void:
 	_own = MDSAreaTools.cells_of(_world(), ids)
 	_taken = MDSAreaTools.occupied(_world(), _layer(), ids)
 	_delta = Vector2i.ZERO
+	_own_rects.clear()
+	for id in ids:
+		_own_rects.append_array(_world().get_world_rects(id))
+	_other_rects = MDSWorldSceneTools.layer_rects(_world(), _layer(), ids)
+	_delta_px = Vector2.ZERO
 
 func _move_to(p: Vector2) -> void:
 	var d := p - _from
@@ -466,16 +475,16 @@ func _move_to(p: Vector2) -> void:
 	_moved = true
 	_place(d)
 
-## The rooms and outlines moving go [param d] world px from where they were: rooms by whole
-## paint cells, stopping against others (the outlines with them); outlines alone by the grid.
+## The rooms and outlines moving go [param d] world px from where they were: rooms smoothly, with
+## the mouse, stopping flush against others and sliding along them (the outlines with them);
+## outlines alone by the grid.
 func _place(d: Vector2) -> void:
 	var ids: Array[String] = []
 	ids.assign(_origins.keys())
 	var px := d
 	if not ids.is_empty():
-		var s := _world().get_paint_cell()
-		_delta = MDSAreaTools.slide(_own, _taken, _delta, Vector2i((d / s).round()))
-		px = Vector2(_delta) * s
+		_delta_px = MDSAreaTools.slide_rects(_own_rects, _other_rects, _delta_px, d.round())
+		px = _delta_px
 	elif snap:
 		px = d.snapped(Vector2.ONE * _world().get_grid())
 	var before: Vector2 = canvas.frame_origin()
@@ -701,35 +710,47 @@ func drop_preview(files: PackedStringArray, p: Vector2) -> Vector2:
 		_footprints[path] = MDSWorldSceneTools.footprint(w, meta)
 	var cells: Dictionary = _footprints[path]
 	var first := MDSWorldSceneTools.footprint_corner(cells)
-	var last := first
-	for c: Vector2i in cells:
-		last = Vector2i(maxi(last.x, c.x), maxi(last.y, c.y))
-	var want := Vector2i((p / s).floor()) - (first + last) / 2
-	var taken := MDSAreaTools.occupied(w, _layer())
+	var rects := MDSWorldSceneTools.footprint_rects(cells, s)
+	var shape := Rect2()
+	for i in rects.size():
+		shape = rects[i] if i == 0 else shape.merge(rects[i])
+	# Where the scene's (0, 0) goes for its shape to be centred on the mouse, to the pixel.
+	var want := (p - shape.get_center()).round()
+	if _drop.get("files") != files or not _drop.has("others"):
+		_drop = {"files": files, "others": MDSWorldSceneTools.layer_rects(w, _layer())}
+	var others: Array[Rect2] = _drop.others
 	var at := want
-	if not MDSAreaTools.fits(cells, want, taken):
-		# Over rooms: from where it was, as far as it goes towards the mouse.
-		var was: Vector2i = _drop.get("at", Vector2i.MAX)
-		if _drop.get("files") == files and was != Vector2i.MAX and MDSAreaTools.fits(cells, was, taken):
-			at = MDSAreaTools.slide(cells, taken, was, want)
+	if not MDSAreaTools.rects_fit(rects, others, want):
+		# Over rooms: from where it was, as far as it goes towards the mouse, sliding along them.
+		var was: Vector2 = _drop.get("at", Vector2.INF)
+		if was != Vector2.INF and MDSAreaTools.rects_fit(rects, others, was):
+			at = MDSAreaTools.slide_rects(rects, others, was, want)
 		else:
-			at = MDSWorldSceneTools.nearest_free(cells, taken, want)
-	if not _touches(cells, at, taken):
-		for d in MDSAreaTools.DIRS:
-			if MDSAreaTools.fits(cells, at + d, taken) and _touches(cells, at + d, taken):
-				at += d
+			var free := MDSWorldSceneTools.nearest_free(cells, MDSAreaTools.occupied(w, _layer()), Vector2i((want / s).round()))
+			at = Vector2(free) * s
+	# Near a room (a third of a paint cell): against it.
+	var touch := _touches(rects, others, at)
+	if not touch:
+		var near := minf(s.x, s.y) / 3.0
+		for d: Vector2 in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+			var to := MDSAreaTools.slide_rects(rects, others, at, at + d * near)
+			if to.distance_to(at + d * near) > 0.5:
+				at = to
+				touch = true
 				break
-	if _drop.get("at", Vector2i.MAX) != at or _drop.get("files") != files:
-		_drop = {"files": files, "cells": cells, "at": at, "touch": _touches(cells, at, taken)}
+	if _drop.get("at", Vector2.INF) != at:
+		_drop.cells = cells
+		_drop.rects = rects
+		_drop.at = at
+		_drop.touch = touch
 		canvas._overlay.queue_redraw()
-	return Vector2(at + first) * s
+	return at + Vector2(first) * s
 
-## Whether [param cells] moved by [param at] touch one of [param taken] (side by side).
-static func _touches(cells: Dictionary, at: Vector2i, taken: Dictionary) -> bool:
-	for c: Vector2i in cells:
-		for d in MDSAreaTools.DIRS:
-			if taken.has(c + at + d) and not cells.has(c + d):
-				return true
+## Whether rectangles [param rects] moved by [param at] (world px) touch one of [param others].
+static func _touches(rects: Array[Rect2], others: Array[Rect2], at: Vector2) -> bool:
+	for d: Vector2 in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+		if MDSAreaTools.slide_rects(rects, others, at, at + d).distance_to(at) < 0.5:
+			return true
 	return false
 
 ## The scenes dragged left the view, or were dropped: nothing more shown.
@@ -753,13 +774,12 @@ func _draw_drop(ci: CanvasItem) -> void:
 			ci.draw_polyline(pts, color, 3.0)
 		label = "Fills %s" % _drop.fill
 		at_px = w.get_room_bounds(str(_drop.fill)).position
-	else:
-		var placed: Dictionary = {}
+	elif _drop.has("rects"):
+		var at: Vector2 = _drop.at
 		for c: Vector2i in _drop.cells:
-			placed[c + _drop.at] = true
-			ci.draw_rect(Rect2(to_screen(Vector2(c + _drop.at) * s), s * canvas.zoom), Color(color, 0.16))
-		ci.draw_multiline(xf * MDSAreaTools.outline(placed, s), color, 3.0)
-		at_px = Vector2(MDSWorldSceneTools.footprint_corner(placed)) * s
+			ci.draw_rect(Rect2(to_screen(Vector2(c) * s + at), s * canvas.zoom), Color(color, 0.16))
+		ci.draw_multiline((xf * Transform2D(0.0, at)) * MDSAreaTools.outline(_drop.cells, s), color, 3.0)
+		at_px = Vector2(MDSWorldSceneTools.footprint_corner(_drop.cells)) * s + at
 		label = "%s%s" % [(_drop.files[0] as String).get_file().get_basename(), ", against its neighbour" if _drop.touch else ""]
 		if _drop.files.size() > 1:
 			label += " (+%d more to its right)" % (_drop.files.size() - 1)

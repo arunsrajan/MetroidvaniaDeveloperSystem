@@ -468,6 +468,13 @@ func _edges_along(across: bool) -> Dictionary:
 	var now_marks := PackedByteArray()
 	now_marks.resize(n)
 	var stride := 4 if across else _w * 4
+	# What _label_o() does, inline: this looks at a million pixels or so.
+	var data := _data
+	var bg0 := _bg[0]
+	var bg1 := _bg[1]
+	var bg2 := _bg[2]
+	var bg_tol := _bg_tol
+	var ink := _ink
 	for line in range(0, lines, step):
 		now_marks.fill(0)
 		var o := (line * _w) * 4 if across else line * 4
@@ -475,13 +482,20 @@ func _edges_along(across: bool) -> Dictionary:
 		for i in range(1, n):
 			var po := o
 			o += stride
-			var now := _label_o(o)
+			var r: int = data[o]
+			var g: int = data[o + 1]
+			var b: int = data[o + 2]
+			var now := FILL
+			if data[o + 3] < 128 or absi(r - bg0) + absi(g - bg1) + absi(b - bg2) <= bg_tol:
+				now = BACKGROUND
+			elif (r * 299 + g * 587 + b * 114) / 1000 < ink:
+				now = INK
 			var mark := 0
 			if now == FILL and last != FILL:
 				mark = 1
 			elif last == FILL and now != FILL:
 				mark = 2
-			elif now == FILL and last == FILL and maxi(maxi(absi(_data[o] - _data[po]), absi(_data[o + 1] - _data[po + 1])), absi(_data[o + 2] - _data[po + 2])) > contrast:
+			elif now == FILL and last == FILL and maxi(maxi(absi(r - data[po]), absi(g - data[po + 1])), absi(b - data[po + 2])) > contrast:
 				mark = 3
 			if mark > 0:
 				now_marks[i] = mark
