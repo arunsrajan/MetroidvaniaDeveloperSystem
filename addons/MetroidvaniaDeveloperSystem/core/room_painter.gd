@@ -1858,78 +1858,84 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 				var e: Vector2i = dc + (Vector2i(k, 1) if across else Vector2i(0, k))
 				if inside.has(e):
 					part_ends.append({"cell": e, "side": "part", "mouth": dc})
-	# Initial rock: outline band thick, thinning inwards with noise.
 	var solid: Dictionary = {}
-	var chance := {1: 1.0, 2: 0.8, 3: 0.42, 4: 0.18, 5: 0.06}
-	for y in range(lo.y, hi.y + 1):
-		for x in range(lo.x, hi.x + 1):
-			var c := Vector2i(x, y)
-			if not inside.has(c):
-				solid[c] = true
-			elif rng.randf() < chance.get(dist[c], 0.0):
-				solid[c] = true
-	# Smooth into cave-like shapes.
-	for it in 3:
-		var next := solid.duplicate()
-		for c in inside:
-			if dist[c] <= 1:
-				continue
-			var count := 0
-			for dy in range(-1, 2):
-				for dx in range(-1, 2):
-					if (dx != 0 or dy != 0) and (solid.has(c + Vector2i(dx, dy)) or not inside.has(c + Vector2i(dx, dy))):
-						count += 1
-			if count >= 5:
-				next[c] = true
-			elif count <= 2:
-				next.erase(c)
-		solid = next
-	# A walkable floor: the two lowest inside cells of every column (of each old room of a
-	# merged one).
-	for x in range(lo.x, hi.x + 1):
-		var bottom: Dictionary = {}
+	var cave: Dictionary = fills.get("cave", {})
+	if MDSCaveShapes.wanted(cave):
+		# The open space as shapes (a T, a U, an H...): see MDSCaveShapes.
+		var climb := climb_params(world)
+		solid = MDSCaveShapes.rock(inside, lo, hi, cave, rng, int(climb.tall), int(climb.step))
+	else:
+		# Initial rock: outline band thick, thinning inwards with noise.
+		var chance := {1: 1.0, 2: 0.8, 3: 0.42, 4: 0.18, 5: 0.06}
 		for y in range(lo.y, hi.y + 1):
-			if inside.has(Vector2i(x, y)):
-				bottom[part_of.get(Vector2i(x, y), -1)] = y
-		for y: int in bottom.values():
-			solid[Vector2i(x, y)] = true
-			solid[Vector2i(x, y - 1)] = true
-	# Ledges jutting out of the side walls, like jungle cave platforms, with room above.
-	var ledges := maxi(1, inside.size() / 240)
-	var keys: Array = inside.keys()
-	for i in ledges * 12:
-		if ledges <= 0:
-			break
-		var c: Vector2i = keys[rng.randi_range(0, keys.size() - 1)]
-		if solid.has(c) or c.y > hi.y - 5 or c.y < lo.y + 4:
-			continue
-		# Find the closest wall on the left or right within a few tiles.
-		var dir := 0
-		for k in range(1, 5):
-			if solid.has(c + Vector2i(-k, 0)):
-				dir = -1
+			for x in range(lo.x, hi.x + 1):
+				var c := Vector2i(x, y)
+				if not inside.has(c):
+					solid[c] = true
+				elif rng.randf() < chance.get(dist[c], 0.0):
+					solid[c] = true
+		# Smooth into cave-like shapes.
+		for it in 3:
+			var next := solid.duplicate()
+			for c in inside:
+				if dist[c] <= 1:
+					continue
+				var count := 0
+				for dy in range(-1, 2):
+					for dx in range(-1, 2):
+						if (dx != 0 or dy != 0) and (solid.has(c + Vector2i(dx, dy)) or not inside.has(c + Vector2i(dx, dy))):
+							count += 1
+				if count >= 5:
+					next[c] = true
+				elif count <= 2:
+					next.erase(c)
+			solid = next
+		# A walkable floor: the two lowest inside cells of every column (of each old room of a
+		# merged one).
+		for x in range(lo.x, hi.x + 1):
+			var bottom: Dictionary = {}
+			for y in range(lo.y, hi.y + 1):
+				if inside.has(Vector2i(x, y)):
+					bottom[part_of.get(Vector2i(x, y), -1)] = y
+			for y: int in bottom.values():
+				solid[Vector2i(x, y)] = true
+				solid[Vector2i(x, y - 1)] = true
+		# Ledges jutting out of the side walls, like jungle cave platforms, with room above.
+		var ledges := maxi(1, inside.size() / 240)
+		var keys: Array = inside.keys()
+		for i in ledges * 12:
+			if ledges <= 0:
 				break
-			if solid.has(c + Vector2i(k, 0)):
-				dir = 1
-				break
-		if dir == 0:
-			continue
-		var clear := true
-		for k in range(0, 8):
-			for up in range(1, 4):
-				if solid.has(c + Vector2i(-dir * k, -up)):
-					clear = false
-		if not clear:
-			continue
-		var length := rng.randi_range(3, 7)
-		var thick := rng.randi_range(1, 2)
-		var x := c.x
-		while not solid.has(Vector2i(x, c.y)) and absi(x - c.x) < 5:
-			x += dir
-		for k in length + absi(x - c.x):
-			for t in thick:
-				solid[Vector2i(x - dir * k, c.y + t)] = true
-		ledges -= 1
+			var c: Vector2i = keys[rng.randi_range(0, keys.size() - 1)]
+			if solid.has(c) or c.y > hi.y - 5 or c.y < lo.y + 4:
+				continue
+			# Find the closest wall on the left or right within a few tiles.
+			var dir := 0
+			for k in range(1, 5):
+				if solid.has(c + Vector2i(-k, 0)):
+					dir = -1
+					break
+				if solid.has(c + Vector2i(k, 0)):
+					dir = 1
+					break
+			if dir == 0:
+				continue
+			var clear := true
+			for k in range(0, 8):
+				for up in range(1, 4):
+					if solid.has(c + Vector2i(-dir * k, -up)):
+						clear = false
+			if not clear:
+				continue
+			var length := rng.randi_range(3, 7)
+			var thick := rng.randi_range(1, 2)
+			var x := c.x
+			while not solid.has(Vector2i(x, c.y)) and absi(x - c.x) < 5:
+				x += dir
+			for k in length + absi(x - c.x):
+				for t in thick:
+					solid[Vector2i(x - dir * k, c.y + t)] = true
+			ledges -= 1
 	for c in open:
 		solid.erase(c)
 	for c in part_ground:

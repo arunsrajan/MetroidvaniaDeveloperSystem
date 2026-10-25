@@ -102,7 +102,11 @@ var effect_list: ItemList
 var _effect_box: VBoxContainer
 var no_effects_check: CheckBox
 ## What Generate cave makes besides terrain: background, decor, foreground, stamps, paths.
+## The Cave shape picker (see [method _build_cave_shape]).
+var cave_shape_picker: OptionButton
 var generate_options := {"background": true, "decor": true, "foreground": true, "stamps": true, "paths": true, "parts": true}
+## The shape of the caves Generate cave makes (see [MDSCaveShapes]): {shape, rotation, count, width}.
+var cave_shape := {"shape": "natural", "rotation": 0, "count": 1, "width": 0}
 ## Rooms shown together (see [method open_rooms]), [member room_id] the one edited. Empty: one.
 var _session: Array[String] = []
 ## Their painters opened so far: id -> MDSRoomPainter ([member painter] among them). Each keeps
@@ -479,6 +483,7 @@ func _init() -> void:
 		var key: String = o[0]
 		c.toggled.connect(func(on: bool) -> void: generate_options[key] = on)
 		options.add_child(c)
+	_build_cave_shape(generation)
 	var deco := MDSUi.button("Auto-decorate", "Redo grass, plants, vines, stalactites and moss on the current terrain (uses tiles tagged with those kinds)")
 	deco.pressed.connect(func() -> void:
 		if painter:
@@ -1768,10 +1773,50 @@ func generate(new_variation: bool) -> void:
 		gates += "; not every gate could be joined to the others (the room is too thin on the map for a path to climb there: make it taller or wider, or move its gates)"
 	_changed("Generated a cave from %s's shape on the map (%s; %s). Paint over it, then Save." % [room_id, ", ".join(made), gates])
 
+## The cave's shape: Natural (grown from the room's outline), or one or more shapes (T, U, H, L,
+## cross, ring, S, freeform, mixed), turned, how many, how wide (see [MDSCaveShapes]).
+func _build_cave_shape(box: Control) -> void:
+	var shape := OptionButton.new()
+	shape.tooltip_text = "The cave's open space: Natural grows it from the room's outline; a shape (T, U, H, L, cross, ring, S, freeform, or a mix) carves it as that shape, with rough rock edges, the shapes joined by tunnels and their tall parts given ledges. Generate cave, New variation, Generate all and New variation for all use it, in the Room view and the Full view"
+	for i in MDSCaveShapes.CHOICES.size():
+		shape.add_item(MDSCaveShapes.CHOICES[i][1], i)
+	var turn := OptionButton.new()
+	turn.tooltip_text = "How the shapes are turned (clockwise): a T turned 90° opens to the left, a U turned 180° is upside down. Random: each shape its own way"
+	for i in MDSCaveShapes.ROTATIONS.size():
+		turn.add_item(MDSCaveShapes.ROTATIONS[i][1], i)
+	var count := SpinBox.new()
+	count.min_value = 1
+	count.max_value = 8
+	count.value = 1
+	count.prefix = "x"
+	count.tooltip_text = "How many shapes in each room, side by side along its long side (a grid when many), joined by tunnels"
+	var width := SpinBox.new()
+	width.min_value = 0
+	width.max_value = 30
+	width.value = 0
+	width.prefix = "Wide"
+	width.tooltip_text = "How wide the shapes' passages are, in tiles (0: from the room's size; never lower than the player)"
+	var sync := func() -> void:
+		cave_shape = {"shape": MDSCaveShapes.CHOICES[shape.selected][0], "rotation": MDSCaveShapes.ROTATIONS[turn.selected][0], "count": int(count.value), "width": int(width.value)}
+		var on := MDSCaveShapes.wanted(cave_shape)
+		turn.disabled = not on or cave_shape.shape == "freeform"
+		count.editable = on
+		width.editable = on
+	shape.item_selected.connect(func(_i: int) -> void: sync.call())
+	turn.item_selected.connect(func(_i: int) -> void: sync.call())
+	count.value_changed.connect(func(_v: float) -> void: sync.call())
+	width.value_changed.connect(func(_v: float) -> void: sync.call())
+	sync.call()
+	MDSSidePanel.field(box, "Cave shape", shape)
+	MDSSidePanel.row(box, [turn, count, width])
+	cave_shape_picker = shape
+
 ## What Generate cave makes, from the fills picked for each layer and the options (see
 ## [method MDSRoomPainter.generate_cave]).
 func generation_fills() -> Dictionary:
 	var fills := {"terrain": canvas.fills.get(MDSRoomCanvas.Tool.TERRAIN, {}), "paths": bool(generate_options.get("paths", true)), "parts": bool(generate_options.get("parts", true))}
+	if MDSCaveShapes.wanted(cave_shape):
+		fills.cave = cave_shape.duplicate()
 	if fills.terrain.is_empty() or (str(fills.terrain.get("type", "")) == "terrain" and painter and painter.has_terrains()):
 		var t := _terrain_for_generation() if painter else Vector2i.ZERO
 		fills.terrain = {"type": "terrain", "set": t.x, "terrain": t.y}
