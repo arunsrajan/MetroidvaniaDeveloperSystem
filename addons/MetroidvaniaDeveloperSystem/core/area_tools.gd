@@ -60,7 +60,144 @@ static func bounds_of(world: MDSWorld, ids: Array[String]) -> Rect2:
 		b = world.get_room_bounds(ids[i]) if i == 0 else b.merge(world.get_room_bounds(ids[i]))
 	return b
 
+## Rectangle [param box] (world px) shared out among rooms [param ids] to extend them all at
+## once: each piece of it (cells of the world grid) goes to the room nearest it, so a box drawn
+## under two rooms side by side extends each downwards. Parts any room on their layer already
+## covers are left out. Returns room id -> its new rectangles (world px), rooms with none left
+## out.
+static func split_extension(world: MDSWorld, ids: Array[String], box: Rect2) -> Dictionary:
+	var out: Dictionary = {}
+	if ids.is_empty() or not box.has_area():
+		return out
+	var g := world.get_grid()
+	var layer := world.get_room_layer(ids[0])
+	var own: Dictionary = {} # id -> its world rects
+	for id in ids:
+		own[id] = world.get_world_rects(id)
+	var others: Array[Rect2] = []
+	for id in world.get_room_ids():
+		if world.get_room_layer(id) == layer and world.get_room_bounds(id).intersects(box):
+			others.append_array(world.get_world_rects(id))
+	var size := Vector2i((box.size / g).ceil())
+	var mine: Dictionary = {} # id -> {cell: true}
+	for y in size.y:
+		for x in size.x:
+			var cell := Rect2(box.position + Vector2(x, y) * g, Vector2(g, g)).intersection(box)
+			var mid := cell.get_center()
+			var taken := false
+			for r in others:
+				if r.has_point(mid):
+					taken = true
+					break
+			if taken:
+				continue
+			var best := ""
+			var best_d := INF
+			for id in ids:
+				for r: Rect2 in own[id]:
+					var d := (mid - mid.clamp(r.position, r.end)).length_squared()
+					if d < best_d:
+						best_d = d
+						best = id
+			if not mine.has(best):
+				mine[best] = {}
+			mine[best][Vector2i(x, y)] = true
+	for id in mine:
+		var rects: Array[Rect2] = []
+		for run in MDSWorld.cells_to_runs(mine[id]):
+			var r := Rect2(box.position + Vector2(run[0], run[2]) * g, Vector2(run[1] - run[0] + 1, run[3] - run[2] + 1) * g)
+			rects.append(r.intersection(box))
+		out[id] = rects
+	return out
+
+## Rooms of [param ids] that touch none of the others (side by side, on the map): merged, they
+## wouldn't make one room a player can cross. Empty when they all hang together.
+static func apart_from(world: MDSWorld, ids: Array[String]) -> Array[String]:
+	var out: Array[String] = []
+	if ids.size() < 2:
+		return out
+	var seen: Dictionary = {ids[0]: true}
+	var todo: Array[String] = [ids[0]]
+	while not todo.is_empty():
+		var at: String = todo.pop_back()
+		for other in ids:
+			if not seen.has(other) and rooms_touch(world, at, other):
+				seen[other] = true
+				todo.append(other)
+	for id in ids:
+		if not seen.has(id):
+			out.append(id)
+	return out
+
+## Whether rooms [param a] and [param b] touch on the map (a side shared, or overlapping).
+static func rooms_touch(world: MDSWorld, a: String, b: String) -> bool:
+	if not world.get_room_bounds(a).grow(1.0).intersects(world.get_room_bounds(b)):
+		return false
+	for ra in world.get_world_rects(a):
+		for rb in world.get_world_rects(b):
+			var i := ra.grow(0.5).intersection(rb.grow(0.5))
+			# More than a corner: a length of side shared.
+			if i.size.x > 1.5 or i.size.y > 1.5:
+				return true
+	return false
+
+## The rooms on [param layer] that [param id] touches (see [method rooms_touch]).
+static func touching(world: MDSWorld, id: String, layer: int) -> Array[String]:
+	var out: Array[String] = []
+	var b := world.get_room_bounds(id).grow(1.0)
+	for other in world.get_room_ids():
+		if other != id and world.get_room_layer(other) == layer and world.get_room_bounds(other).intersects(b) and rooms_touch(world, id, other):
+			out.append(other)
+	return out
+
 # --- Moving ----------------------------------------------------------------------------------
+
+## How far rectangles [param own] (world px, where they are) get moving from offset
+## [param from] to [param to] (world px) without going over [param others]: along one axis as far
+## as it goes, then the other, then the first again, so they stop flush against what they meet
+## and slide along it. Rectangles already over one another at [param from] don't stop each other.
+static func slide_rects(own: Array[Rect2], others: Array[Rect2], from: Vector2, to: Vector2) -> Vector2:
+	var at := from
+	# Only what the move could reach.
+	var reach := Rect2()
+	for i in own.size():
+		var r := own[i]
+		var swept := Rect2(r.position + from, r.size).merge(Rect2(r.position + to, r.size))
+		reach = swept if i == 0 else reach.merge(swept)
+	var near: Array[Rect2] = []
+	for r in others:
+		if r.intersects(reach.grow(1.0)):
+			near.append(r)
+	var first := 0 if absf(to.x - from.x) >= absf(to.y - from.y) else 1
+	for axis in [first, 1 - first, first]:
+		var want: float = to[axis] - at[axis]
+		if absf(want) < 0.001:
+			continue
+		var limit := want
+		var other_axis: int = 1 - axis
+		for o in own:
+			var moved := Rect2(o.position + at, o.size)
+			for r in near:
+				# Side by side across the move's axis (more than touching), and not already over it.
+				if moved.end[other_axis] - 0.01 <= r.position[other_axis] or r.end[other_axis] - 0.01 <= moved.position[other_axis]:
+					continue
+				if moved.intersects(r.grow(-0.01)):
+					continue
+				if want > 0.0 and r.position[axis] >= moved.end[axis] - 0.01:
+					limit = minf(limit, r.position[axis] - moved.end[axis])
+				elif want < 0.0 and r.end[axis] <= moved.position[axis] + 0.01:
+					limit = maxf(limit, r.end[axis] - moved.position[axis])
+		at[axis] += limit
+	return at
+
+## Whether rectangles [param own] moved by [param offset] (world px) are over none of [param others].
+static func rects_fit(own: Array[Rect2], others: Array[Rect2], offset: Vector2) -> bool:
+	for o in own:
+		var moved := Rect2(o.position + offset, o.size).grow(-0.01)
+		for r in others:
+			if moved.intersects(r):
+				return false
+	return true
 
 ## Whether [param own] cells moved by [param delta] cells land on none of [param taken].
 static func fits(own: Dictionary, delta: Vector2i, taken: Dictionary) -> bool:
@@ -337,16 +474,37 @@ static func link_apart(world: MDSWorld, ids: Array[String], bridge := 0) -> Dict
 ## or L-shaped, the shortest found of at most [param longest] cells; [] when there is none.
 static func passage(world: MDSWorld, own: Dictionary, others: Dictionary, layer: int, longest: int) -> Array:
 	var taken := occupied(world, layer)
-	var pairs: Array = []
+	# Out from own's edge through the free cells, a cell at a time: the nearest cells of others
+	# (only the cells near own are looked at, not every pair of cells: big maps stay quick).
+	var from: Dictionary = {} # free cell -> [own cell it came from, previous cell]
+	var front: Array[Vector2i] = []
 	for a: Vector2i in own:
-		for b: Vector2i in others:
-			var d := absi(a.x - b.x) + absi(a.y - b.y)
-			if d >= 2 and d <= longest + 1:
-				pairs.append([d, a, b])
-	pairs.sort_custom(func(p: Array, q: Array) -> bool: return p[0] < q[0] or (p[0] == q[0] and (p[1].y > q[1].y or (p[1].y == q[1].y and p[1].x < q[1].x))))
-	for pq in pairs:
-		var a: Vector2i = pq[1]
-		var b: Vector2i = pq[2]
+		for d in DIRS:
+			var n: Vector2i = a + d
+			if not taken.has(n) and not from.has(n):
+				from[n] = [a, a]
+				front.append(n)
+	var found: Array = [] # [own cell, other cell, last free cell]
+	var depth := 1
+	while not front.is_empty() and found.is_empty() and depth <= longest:
+		var next: Array[Vector2i] = []
+		for c in front:
+			for d in DIRS:
+				var n: Vector2i = c + d
+				if others.has(n):
+					found.append([from[c][0], n, c])
+				elif not taken.has(n) and not from.has(n):
+					from[n] = [from[c][0], c]
+					next.append(n)
+		front = next
+		depth += 1
+	if found.is_empty():
+		return []
+	# Straight or L-shaped where one is free, the lowest first (a corridor's floor), as before.
+	found.sort_custom(func(p: Array, q: Array) -> bool: return p[0].y > q[0].y or (p[0].y == q[0].y and p[0].x < q[0].x))
+	for f in found:
+		var a: Vector2i = f[0]
+		var b: Vector2i = f[1]
 		for across_first in [true, false]:
 			var path: Array = [a]
 			var at := a
@@ -355,14 +513,22 @@ static func passage(world: MDSWorld, own: Dictionary, others: Dictionary, layer:
 				while at != t:
 					at += Vector2i(signi(t.x - at.x), signi(t.y - at.y))
 					path.append(at)
-			var free := true
+			var free := path.size() - 2 <= longest
 			for k in range(1, path.size() - 1):
 				if taken.has(path[k]):
 					free = false
 					break
 			if free:
 				return path
-	return []
+	# Else the way found, round what is in it.
+	var f: Array = found[0]
+	var path: Array = [f[1]]
+	var at: Vector2i = f[2]
+	while not own.has(at):
+		path.push_front(at)
+		at = from[at][1]
+	path.push_front(at)
+	return path
 
 ## How many pieces rooms [param ids] make, joined by doors (1: a player can reach them all).
 static func pieces(world: MDSWorld, ids: Array[String]) -> int:

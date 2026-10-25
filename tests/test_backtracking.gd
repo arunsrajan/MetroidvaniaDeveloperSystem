@@ -237,36 +237,42 @@ func _drops() -> void:
 	var world := _world("drops")
 	world.set_setting("paint_cell", [256, 160])
 	world.add_room("Left", Rect2(0, 0, 768, 480), 0)
-	world.add_room("Empty", Rect2(2048, 0, 512, 320), 0)
+	world.add_room("Empty", Rect2(3072, 0, 512, 320), 0)
 	world.set_room_scene("Left", _terrain_scene("left", [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(2, 1), Vector2i(0, 2), Vector2i(1, 2), Vector2i(2, 2)]))
 	await _open(world, "drops")
 	var tools := view.full_tools
 	var ell := DIR + "/ell.tscn"
 	var files := PackedStringArray([ell])
-	var left := world.get_room_cells("Left")
+	var left := world.get_world_rects("Left")
 	var hits := 0
 	var last := Vector2.ZERO
-	# Dragged from the right into the room on the left: it stays against it, never over it.
+	var xs: Array[float] = []
+	# Dragged from the right into the room on the left: it follows the mouse to the pixel, then
+	# stays against the room, never over it.
 	for k in 12:
-		last = tools.drop_preview(files, Vector2(1800 - k * 120, 240))
+		last = tools.drop_preview(files, Vector2(1800 - k * 117, 240))
 		var d: Dictionary = tools._drop
-		for c: Vector2i in d.cells:
-			if left.has(c + d.at):
-				hits += 1
+		xs.append(d.at.x)
+		for r: Rect2 in d.rects:
+			for l in left:
+				if Rect2(r.position + d.at, r.size).grow(-0.5).intersects(l):
+					hits += 1
 	check(hits == 0 and tools._drop.touch, "dragged into a room, the scene's shape stays against it, never over it (%s)" % [tools._drop.get("at")])
+	check(is_equal_approx(xs[1] - xs[0], -117.0) and not is_zero_approx(fmod(xs[1], 256.0)), "smoothly, with the mouse, not by paint cells (%s)" % [xs.slice(0, 3)])
+	check(is_equal_approx(tools._drop.at.x + 0.0, 768.0), "flush against it (%s)" % tools._drop.at)
 	check(not tools._drop.is_empty(), "shown while dragged")
 	tools.drop_end()
 	check(tools._drop.is_empty(), "and no more once dropped or gone")
-	# Dropped there: a room of its shape, where it was shown.
+	# Dropped there: a room of its shape, where it was shown, to the pixel.
 	var before := world.get_room_ids().size()
 	view.scenes_dropped.connect(func(f: PackedStringArray, at: Vector2) -> void:
 		var meta := MDSSceneScanner.new(world.get_default_room_size()).analyze_scene_any(f[0])
-		MDSWorldSceneTools.place_scene(world, f[0], meta, at, 0, "", true), CONNECT_ONE_SHOT)
+		MDSWorldSceneTools.place_scene(world, f[0], meta, at, 0, "", true, true), CONNECT_ONE_SHOT)
 	view.scenes_dropped.emit(files, last)
 	var placed := world.get_room_ids().filter(func(id: String) -> bool: return world.get_scene_path(id) == ell)
-	check(world.get_room_ids().size() == before + 1 and placed.size() == 1 and world.get_room_cells(placed[0]).size() == 5, "dropped, it is a room of its shape where it was shown")
+	check(world.get_room_ids().size() == before + 1 and placed.size() == 1 and world.get_local_rects(placed[0]).size() == 2 and world.get_room_bounds(placed[0]).position.is_equal_approx(last), "dropped, it is a room of its shape where it was shown (%s, %s)" % [world.get_room_bounds(placed[0]).position if placed.size() == 1 else Vector2.INF, last])
 	# Over a room without a scene: that room is what it fills.
-	tools.drop_preview(files, Vector2(2100, 100))
+	tools.drop_preview(files, Vector2(3100, 100))
 	check(tools._drop.get("fill") == "Empty", "over a room without a scene, it fills that room")
 	tools.drop_end()
 

@@ -64,7 +64,7 @@ Like MetSys' own editor, MetDevSys keeps its buttons in a **tool panel on the le
 - **Left: the tool panel.** It is split into foldable sections:
   - **World** or **Map**: mode switch, map or world file, Scenes/Scan, Export and **Side tabs**.
   - **View** (non-linear mode): Map view or Room view.
-  - **Map tools**: Select, Room, Extend, Gate, Pin, Paint, Erase, Area, Generate and Paint area, plus brush size, Auto doors and Undo/Redo.
+  - **Map tools**: Select, Room, Extend, Gate, Pin, Paint, Erase, Area, Generate and Paint area, plus brush size, Auto doors, **Merge rooms** and Undo/Redo.
   - **Map display**: layer, style, color mode, what to show on the map, and zoom.
   - **Markers**: the marker filters.
   - **Room painting**: shown instead of the map sections while the Room view is open.
@@ -128,7 +128,7 @@ Then:
 
 1. **Draw rooms** with the **Room** tool (`R`): drag a rectangle. It snaps to the world grid. Or draw them at their real size in the **Full view** (rectangles, ellipses, polygons, curvy outlines), then **Generate map** (see [Full view](#full-view-every-room-at-its-real-size)).
 2. **Or place scenes**: drag `.tscn` files from the FileSystem dock onto the map. Each becomes a room sized to its terrain, and gate nodes in the scene become map gates. Dropping one scene on a room that has none assigns it.
-3. **Shape rooms** with **Extend** (`E`) to add rectangles (L, T, U shapes...) and the resize handles.
+3. **Shape rooms** with **Extend** (`E`) to add rectangles (L, T, U shapes...) and the resize handles. With several rooms selected (Ctrl+click them, in Extend too), the box drawn is shared out: each room extends with the part of it nearest to it, so a box under a row of rooms extends each downwards, in one undo step.
 4. **Connect rooms** with the **Gate** tool (`G`): click a room's edge to add a gate, then drag from one gate to another gate (or to a room edge, which creates the gate for you). **Scenes > Auto-connect facing gates** pairs every facing, unconnected gate that's close enough.
 5. **Group rooms into areas** in the **Areas** tab: pick colors, map-zone ids, and which area new rooms join. Drag area names on the map to reposition them.
 6. **Create the scenes**: double-click a room without a scene (or right-click > **Create scene...**). You get a new scene with `MapBounds` guides showing the room's shape and one `MDSGate` per gate, and it opens in the editor. **World settings** can point to your own scene template.
@@ -277,7 +277,10 @@ print(made.rooms.size(), " rooms, ", made.doors, " doors")
 
 ### Merging rooms
 
-Several rooms of the map can become one. Select them first: Ctrl+click rooms, or Ctrl+drag a box on empty space. Then right-click one of them > **Merge the N rooms into one...**. For a whole area, right-click one of its rooms > **Merge area X's rooms into one...**.
+Several rooms of the map can become one. Select them first: Ctrl+click rooms, or Ctrl+drag a box on empty space. Then press **Merge rooms** (tool panel's Tools section) or Ctrl+M, or right-click one of them > **Merge the N rooms into one...**. For a whole area, right-click one of its rooms > **Merge area X's rooms into one...**.
+
+- **One room selected** merges with the rooms it touches: those of its area when it has one and touches any of them, else all of them (right-click > **Merge with the rooms it touches...**).
+- The rooms must be side by side: a room that touches none of the others selected is named in the status bar, and nothing is merged. Rooms meeting only at a corner don't touch.
 
 - **Keep** picks the room that stays. It keeps its id, its scene and its settings; names, notes and abilities it lacks come from the others.
 - The others' rectangles and curved outlines join it, and so do their gates to the rest of the map. A gate whose name is taken is renamed, side plus number. Gates, links (their gate ends too), the start room and objectives that named the merged rooms now name it.
@@ -309,13 +312,13 @@ The tool panel's View section has three views: **Map view** (the world map), **F
   - An outline shows the paint cells it will take. Cells other rooms have are left out.
 - **What an outline makes** (**Make**): **One room each**, or **Split into rooms** like a generated area (rectangles, L, T and U shapes, shafts, up to the size set beside it) with doors between them. **Area**: a new one (outlines that touch share it), none, or one of the world's. Changing them changes the outlines selected too. Outlines of the same kind and area that overlap are one.
 - **Generate map** makes the outlines selected, or every outline, rooms on the map. Their rectangles are the paint cells the outline covers, and the outline is the rooms' outline on the map, so curves and slants show. Each outline gets a door to every room or area it touches. **Caves too** also makes a scene for each new room and a cave in it. **At once** makes every outline rooms as soon as it is drawn. One Ctrl+Z takes it back to the outlines.
-- **Rooms tool:** click rooms and outlines to select them (Ctrl or Shift adds or takes out), or drag a box on empty space. Drag them to move them: rooms move by whole paint cells, stop against other rooms and get doors where they touch. Delete removes them, Ctrl+A selects everything, the arrows nudge, Ctrl+Z / Ctrl+Y undo and redo on the map. One room selected shows in the Inspect tab.
+- **Rooms tool:** click rooms and outlines to select them (Ctrl or Shift adds or takes out), or drag a box on empty space. Drag them to move them: rooms follow the mouse smoothly, to the pixel, stop flush against other rooms and slide along them, and get doors where they touch. Delete removes them, Ctrl+A selects everything, the arrows nudge, Ctrl+Z / Ctrl+Y undo and redo on the map. One room selected shows in the Inspect tab.
 - **Room view of the rooms selected:** double-click one of them, press **Edit selected**, or press **Room view**.
 - **Generate area** drags a box for the Generate area dialog, as the map's tool does.
 - **Tile palette and fills:** before any room is edited, the tile palette shows the rooms' tileset (the world's `room_tileset`) with its sheets, and the Fill list its terrains and kinds. Tiles picked there become the Terrain brush's fill, ready for the press in a room.
 - **Painting:** pick a Room painting tool and press in any room. It is edited from then on (a room without a scene gets one), as with [several rooms in the Room view](#room-view-painting-the-room-itself): each keeps its changes and undo, painting stops where another room starts, **Save** saves them all, and **Generate all** / **New variation for all** make caves in the rooms selected, or all of them. **Generate cave** and **New variation** work on the rooms selected too.
 - **Crossed and backtracked:** before making caves, Generate all joins the rooms no door leads to: a door where they touch (areas side by side), a passage through the free cells where they don't (a new room, `Passage_01`). One Ctrl+Z on the map takes them back. Every room's gates then reach each other both ways, doors in floors and ceilings included (see **Paths** below).
-- **Scenes** dragged from the FileSystem dock or the Scenes tab show where they will go: the shape of their room on the paint cells (their MapBounds, else the cells their terrain covers and closes in, so an L stays an L, else what their pictures cover), under the mouse. Over rooms the shape stays against them, sliding along them, never over one; a cell away from one it goes against it. Dropped, it is a room there, its gates connected to those facing them in the rooms it touches. Dropped on a room without a scene, a scene becomes that room's.
+- **Scenes** dragged from the FileSystem dock or the Scenes tab show where they will go: the shape of their room (their MapBounds, else the paint cells their terrain covers and closes in, so an L stays an L, else what their pictures cover), centred on the mouse. It follows the mouse smoothly, to the pixel. Over rooms the shape stays flush against them, sliding along them, never over one; within a third of a paint cell of one it goes against it. Dropped, it is a room there, its gates connected to those facing them in the rooms it touches. Dropped on a room without a scene, a scene becomes that room's.
 - **2.5D preview** (Room painting section) shows every room in the view.
 - **Big worlds open at once.** The Full view never loads every room's scene. Zoomed out (below 20%), each room shows its picture, or its outline until the picture is there. Pictures come from the cache the World map and `MDSRoomPictures` share: read from disk off the main thread, or drawn in the background two rooms at a time the first time. Zoomed in, the scenes of the rooms in view and a little around it come in a few a frame, nearest the middle first, at most 40 at once. Rooms the view leaves let go of their scenes. A room being edited always shows its tiles. Weather and backgrounds are left out here; the Room view shows them.
 

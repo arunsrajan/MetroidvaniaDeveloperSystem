@@ -102,7 +102,7 @@ func _run() -> void:
 	_press(_screen(spot2), false)
 	check(view.room_id == oval_room and first.dirty, "a press in another room edits that one; the first keeps its change")
 
-	# The Rooms tool: select, move by paint cells, undo, box select, double-click, delete.
+	# The Rooms tool: select, move (smoothly), undo, box select, double-click, delete.
 	view.set_full_tool(MDSFullViewTools.Tool.ROOMS)
 	var poly_room := world.room_at(Vector2(200, 900), 0)
 	var origin := world.get_origin(poly_room)
@@ -112,7 +112,7 @@ func _run() -> void:
 	check(tools.selected_rooms().is_empty(), "a click on empty space lets them go")
 	_drag(_screen(Vector2(200, 900)), _screen(Vector2(200, 900 + s.y * 2 + 10)))
 	check(tools.selected_rooms().size() == 1 and tools.selected_rooms()[0] == poly_room, "a press on a room selects it")
-	check(world.get_origin(poly_room) == origin + Vector2(0, s.y * 2), "dragged, it moves by whole paint cells (%s)" % (world.get_origin(poly_room) - origin))
+	check(world.get_origin(poly_room).is_equal_approx(origin + Vector2(0, s.y * 2 + 10)), "dragged, it follows the mouse smoothly, to the pixel (%s)" % (world.get_origin(poly_room) - origin))
 	check(_screen(spot2).is_equal_approx(before_edit), "the room edited stays where it is")
 	_key(KEY_Z, true)
 	check(world.get_origin(poly_room) == origin, "Ctrl+Z takes the move back")
@@ -140,11 +140,11 @@ func _run() -> void:
 	var at := _screen(Vector2(3000, 200))
 	check(canvas._can_drop_data(at, data), "scenes can be dropped on the Full view")
 	canvas._drop_data(at, data)
-	# Its shape under the mouse, on the paint cells (see MDSFullViewTools.drop_preview).
+	# Its shape centred on the mouse, to the pixel (see MDSFullViewTools.drop_preview).
 	var cells: Dictionary = tools._footprints.get(world.get_scene_path(rect_room), {})
 	var drop_at: Vector2 = dropped[0][1] if dropped.size() == 1 else Vector2.INF
 	var shape := Rect2(drop_at, Vector2(MDSAreaTools.bounds_of(world, [rect_room] as Array[String]).size))
-	check(dropped.size() == 1 and not cells.is_empty() and shape.grow(1.0).has_point(Vector2(3000, 200)) and is_zero_approx(fmod(drop_at.x, s.x)) and is_zero_approx(fmod(drop_at.y, s.y)), "placed where they were dropped: its shape under the mouse, on the paint cells (%s)" % drop_at)
+	check(dropped.size() == 1 and not cells.is_empty() and shape.get_center().distance_to(Vector2(3000, 200)) <= 1.0, "placed where they were dropped: its shape centred on the mouse (%s)" % drop_at)
 	check(tools._drop.is_empty(), "nothing shown once dropped")
 
 	# A room whose rectangles leave a notch in its box goes under the others: Generate cave fills

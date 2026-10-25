@@ -225,6 +225,24 @@ static func draw_outlined(ci: CanvasItem, polys: Array, to_screen: Callable, fil
 		for p: PackedVector2Array in polys:
 			ci.draw_polyline(_on_screen(p, to_screen, true), band, maxf(1.5, width))
 
+## [method draw_outlined] with the world px to screen mapping as a transform [param xf]: each
+## polygon goes on the screen in one step, not a call a point (maps of hundreds of rooms).
+static func draw_outlined_xf(ci: CanvasItem, polys: Array, xf: Transform2D, fill: Color, border: Color, band: Color, width: float) -> void:
+	var on_screen: Array[PackedVector2Array] = []
+	for p: PackedVector2Array in polys:
+		on_screen.append(xf * p)
+	for s in on_screen:
+		var closed := s.duplicate()
+		closed.append(s[0])
+		ci.draw_polyline(closed, border, width * 2.0 + 1.0)
+	for s in on_screen:
+		ci.draw_colored_polygon(s, fill)
+	if band.a > 0.0:
+		for s in on_screen:
+			var closed := s.duplicate()
+			closed.append(s[0])
+			ci.draw_polyline(closed, band, maxf(1.5, width))
+
 ## [method draw_glow] for rooms with outlines: [param rooms] maps room ids to their world-px
 ## polygons, [param outline] is the area's (see [method area_outline]).
 static func draw_glow_polygons(ci: CanvasItem, rooms: Dictionary, to_screen: Callable, scale: float, fills: Dictionary, rim: Color, outline: Array) -> void:

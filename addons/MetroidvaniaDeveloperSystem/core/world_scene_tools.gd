@@ -19,11 +19,24 @@ const GATE_SIZE_ACROSS := 48.0
 ## Adds a room for [param scene_path], the paint cells of its [method footprint], the top-left
 ## one at [param world_pos] (to the nearest paint cell). [param meta] is the scanner result for
 ## the scene. With [param free_spot], it goes to the nearest place no room on [param layer] is
-## in. Returns the new room id.
-static func place_scene(world: MDSWorld, scene_path: String, meta: Dictionary, world_pos: Vector2, layer: int, area := "", free_spot := false) -> String:
+## in. With [param exact], it goes where [param world_pos] says to the pixel (the Full view,
+## which showed it there), else on the paint cells. Returns the new room id.
+static func place_scene(world: MDSWorld, scene_path: String, meta: Dictionary, world_pos: Vector2, layer: int, area := "", free_spot := false, exact := false) -> String:
 	var s := world.get_paint_cell()
 	var cells := footprint(world, meta)
 	var first := footprint_corner(cells)
+	var local := footprint_rects(cells, s)
+	if exact:
+		var exact_origin := (world_pos - Vector2(first) * s).round()
+		if not free_spot or MDSAreaTools.rects_fit(local, layer_rects(world, layer), exact_origin):
+			var made := world.add_room(scene_path.get_file().get_basename(), Rect2(exact_origin + Vector2(first) * s, s), layer, area, scene_path, exact_origin)
+			var rects: Array = []
+			for r in local:
+				rects.append([r.position.x, r.position.y, r.size.x, r.size.y])
+			world.data.rooms[made].rects = rects
+			world._touch()
+			import_gates(world, made, meta)
+			return made
 	# The scene's origin on a paint cell's corner, so its cells are the map's.
 	var at := Vector2i((world_pos / s - Vector2(first)).round())
 	if free_spot:
@@ -36,6 +49,22 @@ static func place_scene(world: MDSWorld, scene_path: String, meta: Dictionary, w
 	world.set_room_cells(id, placed)
 	import_gates(world, id, meta)
 	return id
+
+## [param cells] (paint cells of size [param s], scene-local) as rectangles (scene px): rows of
+## cells, rows alike merged.
+static func footprint_rects(cells: Dictionary, s: Vector2) -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	for run in MDSWorld.cells_to_runs(cells):
+		out.append(Rect2(Vector2(run[0], run[2]) * s, Vector2(run[1] - run[0] + 1, run[3] - run[2] + 1) * s))
+	return out
+
+## The rectangles (world px) of every room on [param layer] but [param except].
+static func layer_rects(world: MDSWorld, layer: int, except: Array[String] = []) -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	for id in world.get_room_ids():
+		if world.get_room_layer(id) == layer and not except.has(id):
+			out.append_array(world.get_world_rects(id))
+	return out
 
 ## The paint cells a scene's room covers on the map, scene-local (cell (0, 0) starts at the
 ## scene's (0, 0)), from what [MDSSceneScanner] found in it ([param meta]): the rectangles it
