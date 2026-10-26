@@ -86,6 +86,10 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - In code: `MDSRoomView.sync_from_scene()`, `MDSRoomPainter.open_packed()`, `rebase_onto()` and `merge_states()`.
 - **Machinery backgrounds follow the camera when asked:** `scroll_scale` (1 by default: fixed in the world; less is farther away; 0 stays on the screen) and `follow_camera` (cover the whole view in the game; off by default), as on the other backgrounds.
 - **Caves of shapes.** Generate cave, New variation, Generate all and New variation for all (Room view and Full view, and Generate caves for an area) can carve the cave's open space as one or more shapes instead of growing it from the room's outline: **Cave shape** T, U, H, L, Cross, Ring, S, Freeform or Mixed, turned 0°, 90°, 180°, 270° or at random, several to a room (joined by tunnels), as wide as asked. Their edges are rough rock, their tall parts get ledges to climb, and the room's gates still reach each other both ways (`MDSCaveShapes`, the fills' `cave`).
+  - **i**: a shaft with a round chamber over it, joined by a narrow neck.
+  - **Any angle**: turned 0° to 359° clockwise (45° slants a shape, made smaller to stay in its room), or each shape at random. Right angles turn as before.
+  - **Several picked**: tick the shapes, and they are shared out among a room's shapes, each at least once when there are as many, in a new order each generation.
+  - **Style: Linear**: straight walls and flat floors, the shapes' tall parts smooth walls the player wall-climbs (no ledges). `MDSRoomPainter.climb_reach()` and the gate checks take `wall_climb`, so a linear room's gates count as joined by climbing.
 
 ### Changed
 

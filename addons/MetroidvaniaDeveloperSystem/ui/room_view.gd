@@ -106,7 +106,10 @@ var no_effects_check: CheckBox
 var cave_shape_picker: OptionButton
 var generate_options := {"background": true, "decor": true, "foreground": true, "stamps": true, "paths": true, "parts": true}
 ## The shape of the caves Generate cave makes (see [MDSCaveShapes]): {shape, rotation, count, width}.
-var cave_shape := {"shape": "natural", "rotation": 0, "count": 1, "width": 0}
+var cave_shape := {"shape": "natural", "shapes": ["t", "u", "h"], "rotation": 0, "count": 1, "width": 0, "style": "cave"}
+## The shapes to pick several of (Cave shape: Several picked).
+var cave_shapes_menu: MenuButton
+var cave_rotation_spin: SpinBox
 ## Rooms shown together (see [method open_rooms]), [member room_id] the one edited. Empty: one.
 var _session: Array[String] = []
 ## Their painters opened so far: id -> MDSRoomPainter ([member painter] among them). Each keeps
@@ -1774,16 +1777,36 @@ func generate(new_variation: bool) -> void:
 	_changed("Generated a cave from %s's shape on the map (%s; %s). Paint over it, then Save." % [room_id, ", ".join(made), gates])
 
 ## The cave's shape: Natural (grown from the room's outline), or one or more shapes (T, U, H, L,
-## cross, ring, S, freeform, mixed), turned, how many, how wide (see [MDSCaveShapes]).
+## i, cross, ring, S, freeform, a mix, or several picked), turned by any angle, how many, how wide,
+## as a cave or linear with walls to climb (see [MDSCaveShapes]).
 func _build_cave_shape(box: Control) -> void:
 	var shape := OptionButton.new()
-	shape.tooltip_text = "The cave's open space: Natural grows it from the room's outline; a shape (T, U, H, L, cross, ring, S, freeform, or a mix) carves it as that shape, with rough rock edges, the shapes joined by tunnels and their tall parts given ledges. Generate cave, New variation, Generate all and New variation for all use it, in the Room view and the Full view"
+	shape.tooltip_text = "The cave's open space: Natural grows it from the room's outline; a shape (T, U, H, L, i, cross, ring, S, freeform, a mix, or several picked) carves it as that shape, the shapes joined by tunnels. Generate cave, New variation, Generate all and New variation for all use it, in the Room view and the Full view"
 	for i in MDSCaveShapes.CHOICES.size():
 		shape.add_item(MDSCaveShapes.CHOICES[i][1], i)
-	var turn := OptionButton.new()
-	turn.tooltip_text = "How the shapes are turned (clockwise): a T turned 90° opens to the left, a U turned 180° is upside down. Random: each shape its own way"
-	for i in MDSCaveShapes.ROTATIONS.size():
-		turn.add_item(MDSCaveShapes.ROTATIONS[i][1], i)
+	# Several picked: a list of the shapes to tick.
+	var menu := MenuButton.new()
+	menu.flat = false
+	menu.tooltip_text = "The shapes to share out among each room's shapes (Cave shape: Several picked): each is used at least once when there are as many shapes (x), in an order of its own each generation"
+	var popup := menu.get_popup()
+	popup.hide_on_checkable_item_selection = false
+	for i in MDSCaveShapes.PICKABLE.size():
+		var id: String = MDSCaveShapes.PICKABLE[i]
+		var name := ""
+		for c: Array in MDSCaveShapes.CHOICES:
+			if c[0] == id:
+				name = c[1]
+		popup.add_check_item(name, i)
+		popup.set_item_checked(i, (cave_shape.shapes as Array).has(id))
+	var turn := SpinBox.new()
+	turn.min_value = 0
+	turn.max_value = 359
+	turn.step = 1
+	turn.suffix = "°"
+	turn.tooltip_text = "How far the shapes are turned, clockwise, any angle from 0 to 359: a T turned 90° opens to the left, a U turned 180° is upside down, 45° slants it (made smaller to fit its room)"
+	var random := CheckBox.new()
+	random.text = "Random"
+	random.tooltip_text = "Each shape turned its own way, any angle, a new one each variation"
 	var count := SpinBox.new()
 	count.min_value = 1
 	count.max_value = 8
@@ -1796,20 +1819,44 @@ func _build_cave_shape(box: Control) -> void:
 	width.value = 0
 	width.prefix = "Wide"
 	width.tooltip_text = "How wide the shapes' passages are, in tiles (0: from the room's size; never lower than the player)"
+	var style := OptionButton.new()
+	style.tooltip_text = "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too"
+	for i in MDSCaveShapes.STYLES.size():
+		style.add_item(MDSCaveShapes.STYLES[i][1], i)
 	var sync := func() -> void:
-		cave_shape = {"shape": MDSCaveShapes.CHOICES[shape.selected][0], "rotation": MDSCaveShapes.ROTATIONS[turn.selected][0], "count": int(count.value), "width": int(width.value)}
-		var on := MDSCaveShapes.wanted(cave_shape)
-		turn.disabled = not on or cave_shape.shape == "freeform"
+		var picked: Array = []
+		for i in popup.item_count:
+			if popup.is_item_checked(i):
+				picked.append(MDSCaveShapes.PICKABLE[popup.get_item_id(i)])
+		cave_shape = {"shape": MDSCaveShapes.CHOICES[shape.selected][0], "shapes": picked, "rotation": -1 if random.button_pressed else int(turn.value),
+			"count": int(count.value), "width": int(width.value), "style": MDSCaveShapes.STYLES[style.selected][0]}
+		var on: bool = MDSCaveShapes.wanted(cave_shape) or cave_shape.shape == "several"
+		menu.visible = cave_shape.shape == "several"
+		menu.text = "Shapes: %s" % (", ".join(picked.map(func(k: String) -> String: return k.to_upper() if k.length() == 1 and k != "i" else k)) if not picked.is_empty() else "none")
+		turn.editable = on and not random.button_pressed and cave_shape.shape != "freeform"
+		random.disabled = not on
 		count.editable = on
 		width.editable = on
+		style.disabled = not on
 	shape.item_selected.connect(func(_i: int) -> void: sync.call())
-	turn.item_selected.connect(func(_i: int) -> void: sync.call())
+	popup.id_pressed.connect(func(id: int) -> void:
+		var idx := popup.get_item_index(id)
+		popup.set_item_checked(idx, not popup.is_item_checked(idx))
+		sync.call())
+	turn.value_changed.connect(func(_v: float) -> void: sync.call())
+	random.toggled.connect(func(_on: bool) -> void: sync.call())
 	count.value_changed.connect(func(_v: float) -> void: sync.call())
 	width.value_changed.connect(func(_v: float) -> void: sync.call())
+	style.item_selected.connect(func(_i: int) -> void: sync.call())
 	sync.call()
 	MDSSidePanel.field(box, "Cave shape", shape)
-	MDSSidePanel.row(box, [turn, count, width])
+	box.add_child(menu)
+	MDSSidePanel.row(box, [turn, random])
+	MDSSidePanel.row(box, [count, width])
+	MDSSidePanel.field(box, "Style", style)
 	cave_shape_picker = shape
+	cave_shapes_menu = menu
+	cave_rotation_spin = turn
 
 ## What Generate cave makes, from the fills picked for each layer and the options (see
 ## [method MDSRoomPainter.generate_cave]).

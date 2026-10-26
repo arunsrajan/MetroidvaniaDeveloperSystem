@@ -1961,7 +1961,7 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 	if bool(fills.get("paths", true)):
 		# A room too narrow on the map for its paths (a neck two tiles wide to climb): again, its
 		# shape widened into its rectangles.
-		var joined := connect_gates(world, id, inside, solid, open, part_ends)
+		var joined := connect_gates(world, id, inside, solid, open, part_ends, MDSCaveShapes.wall_climb(cave))
 		for g in world.get_gates(id):
 			joined = joined and not gate_end(world, id, g, inside).is_empty()
 		if not joined and widen < 4 and inside.size() < box.size():
@@ -2079,7 +2079,7 @@ func _generate_stamps(inside: Dictionary, solid: Dictionary, stamps: Dictionary,
 ## the player, floored over drops too deep to climb out of, and shafts with ledges to climb.
 ## [param extra_ends] are more places to join ({cell, side, mouth}, like [method gate_end]'s),
 ## such as the doors between a merged room's parts. Returns whether they all are, in the end.
-func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dictionary, keep: Dictionary = {}, extra_ends: Array = []) -> bool:
+func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dictionary, keep: Dictionary = {}, extra_ends: Array = [], wall_climb := false) -> bool:
 	var climb := climb_params(world)
 	var tall: int = climb.tall
 	var reach: int = climb.reach
@@ -2108,9 +2108,9 @@ func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dicti
 			if reached.is_empty():
 				var open_cells := _open_cells(inside, solid)
 				var land := land_map(open_cells)
-				reached = {"open": open_cells, "land": land, "from": climb_reach(open_cells, ends[0].cell, reach, 3, land)}
-			var from_i := climb_reach(reached.open, ends[i].cell, reach, 3, reached.land)
-			if _arrives(reached.from, ends[i], reached.open, reached.land, reach) and _arrives(from_i, ends[0], reached.open, reached.land, reach):
+				reached = {"open": open_cells, "land": land, "from": climb_reach(open_cells, ends[0].cell, reach, 3, land, wall_climb)}
+			var from_i := climb_reach(reached.open, ends[i].cell, reach, 3, reached.land, wall_climb)
+			if _arrives(reached.from, ends[i], reached.open, reached.land, reach, wall_climb) and _arrives(from_i, ends[0], reached.open, reached.land, reach, wall_climb):
 				continue
 			all_ok = false
 			reached = {}
@@ -2133,8 +2133,8 @@ func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dicti
 				var open_cells := _open_cells(inside, solid)
 				var land := land_map(open_cells)
 				reached = {"open": open_cells, "land": land}
-			var from_e := climb_reach(reached.open, e.cell, reach, 3, reached.land)
-			if _arrives(from_e, e, reached.open, reached.land, reach):
+			var from_e := climb_reach(reached.open, e.cell, reach, 3, reached.land, wall_climb)
+			if _arrives(from_e, e, reached.open, reached.land, reach, wall_climb):
 				continue
 			all_ok = false
 			var down: Vector2i = reached.land.get(e.cell, e.cell)
@@ -2147,22 +2147,22 @@ func connect_gates(world: MDSWorld, id: String, inside: Dictionary, solid: Dicti
 					solid[c] = true
 		if all_ok:
 			return true
-	return gates_joined(inside, solid, ends, reach)
+	return gates_joined(inside, solid, ends, reach, wall_climb)
 
 ## Whether gate ends [param ends] (see [method gate_end]) reach each other both ways in the cave
 ## ([param inside]'s cells but [param solid]), and a top gate's from where the player lands under
 ## it, jumping [param reach] rows.
-func gates_joined(inside: Dictionary, solid: Dictionary, ends: Array, reach: int) -> bool:
+func gates_joined(inside: Dictionary, solid: Dictionary, ends: Array, reach: int, wall_climb := false) -> bool:
 	if ends.is_empty():
 		return true
 	var open_cells := _open_cells(inside, solid)
 	var land := land_map(open_cells)
-	var from0 := climb_reach(open_cells, ends[0].cell, reach, 3, land)
+	var from0 := climb_reach(open_cells, ends[0].cell, reach, 3, land, wall_climb)
 	for i in ends.size():
-		var from_i := from0 if i == 0 else climb_reach(open_cells, ends[i].cell, reach, 3, land)
-		if not _arrives(from0, ends[i], open_cells, land, reach) or not _arrives(from_i, ends[0], open_cells, land, reach):
+		var from_i := from0 if i == 0 else climb_reach(open_cells, ends[i].cell, reach, 3, land, wall_climb)
+		if not _arrives(from0, ends[i], open_cells, land, reach, wall_climb) or not _arrives(from_i, ends[0], open_cells, land, reach, wall_climb):
 			return false
-		if ends[i].side == "top" and not _arrives(from_i, ends[i], open_cells, land, reach):
+		if ends[i].side == "top" and not _arrives(from_i, ends[i], open_cells, land, reach, wall_climb):
 			return false
 	return true
 
@@ -2381,20 +2381,20 @@ func _open_cells(inside: Dictionary, solid: Dictionary) -> Dictionary:
 	return open
 
 ## Whether a player gets from gate end [param a] to [param b] and back.
-func _both_ways(inside: Dictionary, solid: Dictionary, a: Dictionary, b: Dictionary, reach: int) -> bool:
+func _both_ways(inside: Dictionary, solid: Dictionary, a: Dictionary, b: Dictionary, reach: int, wall_climb := false) -> bool:
 	var open := _open_cells(inside, solid)
 	var land := land_map(open)
-	var from_a := climb_reach(open, a.cell, reach, 3, land)
-	var from_b := climb_reach(open, b.cell, reach, 3, land)
-	return _arrives(from_a, b, open, land, reach) and _arrives(from_b, a, open, land, reach)
+	var from_a := climb_reach(open, a.cell, reach, 3, land, wall_climb)
+	var from_b := climb_reach(open, b.cell, reach, 3, land, wall_climb)
+	return _arrives(from_a, b, open, land, reach, wall_climb) and _arrives(from_b, a, open, land, reach, wall_climb)
 
 ## Whether standing cells [param reached] get the player out through gate end [param e]: to where
 ## it stands for a side or bottom gate, near enough under the mouth to jump out for a top one.
-static func _arrives(reached: Dictionary, e: Dictionary, open: Dictionary, land: Dictionary, reach: int) -> bool:
+static func _arrives(reached: Dictionary, e: Dictionary, open: Dictionary, land: Dictionary, reach: int, wall_climb := false) -> bool:
 	if e.side == "top":
 		var mouth: Vector2i = e.mouth
 		for s: Vector2i in reached:
-			if absi(s.x - mouth.x) <= 2 and s.y - mouth.y <= reach:
+			if absi(s.x - mouth.x) <= 2 and (s.y - mouth.y <= reach or (wall_climb and s.y - _rise(open, s, reach, true) - mouth.y <= 1)):
 				return true
 		return false
 	return reached.has(land.get(e.cell, e.cell))
@@ -2402,7 +2402,8 @@ static func _arrives(reached: Dictionary, e: Dictionary, open: Dictionary, land:
 ## Carves a straight leg from [param p] to [param q]: across, a tunnel [param tall] tiles high,
 ## floored where it crosses a drop deeper than [param reach] rows (that a player falling in
 ## couldn't climb out of); up or down, a shaft four tiles wide with ledges every [param step]
-## rows, on alternate sides, to climb back up; none on [param spots].
+## rows, on alternate sides, to climb back up; none on [param spots]. (A shaft carved across
+## open space has no wall beside it to climb: it keeps its ledges in a linear room too.)
 func _carve_leg(p: Vector2i, q: Vector2i, inside: Dictionary, solid: Dictionary, keep: Dictionary, tall: int, step: int, reach := 6, spots: Dictionary = {}) -> void:
 	var clear := func(c: Vector2i) -> void:
 		if inside.has(c):
@@ -2455,8 +2456,10 @@ static func land_map(open: Dictionary) -> Dictionary:
 
 ## The cells a player standing at (or let go at) [param from] can stand on, moving through the
 ## [param open] tile cells: walking, jumping up to [param jump_h] tiles and across [param jump_w],
-## and falling. A rough platformer reach, to check a room can be crossed (and backtracked).
-static func climb_reach(open: Dictionary, from: Vector2i, jump_h := 4, jump_w := 3, land: Dictionary = {}) -> Dictionary:
+## and falling; with [param wall_climb], also climbing any wall as high as it goes (a linear room's
+## smooth shafts, see [MDSCaveShapes]). A rough platformer reach, to check a room can be crossed
+## (and backtracked).
+static func climb_reach(open: Dictionary, from: Vector2i, jump_h := 4, jump_w := 3, land: Dictionary = {}, wall_climb := false) -> Dictionary:
 	if land.is_empty():
 		land = land_map(open)
 	var seen: Dictionary = {}
@@ -2467,9 +2470,7 @@ static func climb_reach(open: Dictionary, from: Vector2i, jump_h := 4, jump_w :=
 	var todo: Array[Vector2i] = [start]
 	while not todo.is_empty():
 		var s: Vector2i = todo.pop_back()
-		var rise := 0
-		while rise < jump_h and open.has(s + Vector2i(0, -(rise + 1))):
-			rise += 1
+		var rise := _rise(open, s, jump_h, wall_climb)
 		for up in rise + 1:
 			for dir in [-1, 1]:
 				for dx in range(1, jump_w + 1):
@@ -2481,6 +2482,17 @@ static func climb_reach(open: Dictionary, from: Vector2i, jump_h := 4, jump_w :=
 						seen[n] = true
 						todo.append(n)
 	return seen
+
+## How high a player standing at [param s] gets in [param open]: a jump of [param jump_h], or,
+## with [param wall_climb], up a wall beside it as high as the wall and the room go.
+static func _rise(open: Dictionary, s: Vector2i, jump_h: int, wall_climb := false) -> int:
+	var rise := 0
+	while open.has(s + Vector2i(0, -(rise + 1))):
+		var at := s + Vector2i(0, -(rise + 1))
+		if rise >= jump_h and not (wall_climb and (not open.has(at + Vector2i.LEFT) or not open.has(at + Vector2i.RIGHT))):
+			break
+		rise += 1
+	return rise
 
 ## Grass and plants on floors, stalactites, vines and moss under ceilings. With
 ## [param allowed] (cells), decorations stay inside those cells (the room's shape). With
