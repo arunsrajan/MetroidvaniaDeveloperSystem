@@ -1241,6 +1241,11 @@ They react to the player (the nodes of `affect_groups`):
 
 - **Activity:** the faster the player moves, the more stirred up they get (`activity`, 0 to 1). They move faster, and each kind reacts in its own way (see the table). `reactivity` sets how much they care.
 - **Jolts:** a sudden jump, dash or hit startles them. From code, `startle(at, strength)` scatters them from a point (a boss's slam), and `excitement` keeps them stirred (a second phase).
+- **Together or each on its own** (`movement`): the kinds that live together can move as one or go their own ways. These are bees, wasps and lumaflies (a swarm), small birds and firebirds (a flock), glowfish (a school) and crows (circling).
+  - **Swarm** (the default) keeps them together.
+  - **Individual**: every one wanders to places of its own, in its own direction and at its own pace. Each turns at its own rate, finds somewhere new when it gets there or after a while, and keeps away from the player (stirred-up wasps come at it). They stay on the screen and flap or swim as their kind does.
+  - The other kinds already go their own ways and aren't changed.
+  - The Animated bg fields' **+** menu has **Each on its own (not as a swarm)**: it writes `bees(movement=individual)`. In code, `is_individual()` says whether they do now.
 - **Light:** those near the player on screen glow brighter (`proximity_glow`).
 
 **They never touch the fight.** Nothing in the background collides, pushes or hurts.
