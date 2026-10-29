@@ -2720,8 +2720,23 @@ func _show_settings() -> void:
 	depth.toggled.connect(func(on: bool) -> void: world.set_setting("depth_25d", on))
 	grid.add_child(depth)
 	var depth_style_edit := MDSUi.field_line(grid, "2.5D style", world.get_setting("depth_style", ""), "optional MDSDepthStyle .tres")
+	depth_style_edit.tooltip_text = "Empty: moody (the view darkens away from the player, for caves). The addon's bright one, for outdoor rooms: %s" % MDSDepthStyle.DAYLIGHT
 	MDSUi.commit_line(depth_style_edit, func(t: String) -> void: world.set_setting("depth_style", t.strip_edges()))
 	MDSUi.path_drop(depth_style_edit)
+	grid.add_child(MDSUi.label(""))
+	var daylight := Button.new()
+	daylight.text = "Bright daylight"
+	daylight.tooltip_text = "Sets the bright 2.5D style (%s) and the daylight tileset as the Room tileset (%s), for open worlds under the sky. Rooms already painted keep their tileset" % [MDSDepthStyle.DAYLIGHT, MDSTilesetFactory.DAYLIGHT_PATH]
+	daylight.pressed.connect(func() -> void:
+		world.set_setting("depth_style", MDSDepthStyle.DAYLIGHT)
+		depth_style_edit.text = MDSDepthStyle.DAYLIGHT
+		MDSTilesetFactory.get_or_create(MDSTilesetFactory.DAYLIGHT_PATH)
+		world.set_setting("room_tileset", MDSTilesetFactory.DAYLIGHT_PATH)
+		_set_status("Daylight: the bright 2.5D style, and new rooms paint with the daylight tileset."))
+	grid.add_child(daylight)
+	var bright_edit := MDSUi.field_line(grid, "Brightness", str(world.get_setting("brightness", 1.0)), "1")
+	bright_edit.tooltip_text = "How bright MDSWorldGame draws the rooms: 1 as they are, 1.3 brighter, 0.8 dimmer (the HUD and the backdrop aren't touched). The game's brightness export overrides it"
+	MDSUi.commit_line(bright_edit, func(t: String) -> void: world.set_setting("brightness", clampf(t.to_float(), 0.1, 3.0) if t.to_float() > 0.0 else 1.0))
 	var backdrop_edit := MDSUi.field_line(grid, "Backdrop", world.get_setting("backdrop", ""), "optional MDSBackdrop .tres")
 	backdrop_edit.tooltip_text = "Distance drawn behind every room whose area and room set none (Areas tab, Inspect tab)"
 	MDSUi.path_drop(backdrop_edit)

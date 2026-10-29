@@ -18,6 +18,9 @@ extends MDSEnvironmentEffect
 ## - those near the player on screen glow brighter ([member proximity_glow]);
 ## - the game can keep them stirred with [member excitement] (a boss's second phase).
 ##
+## Those that live together (bees, wasps and lumaflies swarming, small birds and firebirds in a
+## flock, glowfish in a school, crows circling) can go each its own way instead ([member movement]).
+##
 ## Used as the background of a room, an area's boss rooms or the world's (the "Animated bg"
 ## fields take a creature id, like [code]bats[/code], or a style and a creature:
 ## [code]blood_moon, bats[/code]), their light takes the area's color ([member area_tint]).
@@ -55,6 +58,11 @@ const MAX_COUNT := 32
 enum Motion { SWARM, FLUTTER, DART, FLOCK, CIRCLE, ERRATIC, CRAWL, SCUTTLE, SCHOOL, SINUOUS, PULSE, PERCH, BURROW }
 ## How each kind moves, in [enum Creature] order.
 const MOTIONS: Array[int] = [Motion.SWARM, Motion.SWARM, Motion.SWARM, Motion.FLUTTER, Motion.FLUTTER, Motion.DART, Motion.FLOCK, Motion.CIRCLE, Motion.ERRATIC, Motion.FLOCK, Motion.CRAWL, Motion.CRAWL, Motion.CRAWL, Motion.CRAWL, Motion.SCUTTLE, Motion.PULSE, Motion.SCHOOL, Motion.SINUOUS, Motion.PERCH, Motion.BURROW]
+## How the kinds that live together move ([member movement]): as one (a swarm, a flock, a school,
+## circling together) or each on its own, every one to places of its own, at its own pace.
+enum Movement { SWARM, INDIVIDUAL }
+## The motions [member movement] changes: the others go their own ways anyway.
+const GROUP_MOTIONS: Array[int] = [Motion.SWARM, Motion.FLOCK, Motion.SCHOOL, Motion.CIRCLE]
 ## Seen from above, turning to where they go.
 const TOP_VIEW: Array[int] = [Creature.MOTHS, Creature.BUTTERFLIES, Creature.DRAGONFLIES, Creature.SPIDERS, Creature.BEETLES, Creature.CENTIPEDES, Creature.SNAILS]
 ## Seen from the front, upright.
@@ -142,6 +150,21 @@ const FRONT_VIEW: Array[int] = [Creature.BATS, Creature.CRABS, Creature.JELLYFIS
 		area_tint = v
 		_changed()
 @export_group("Behavior")
+## Together (a swarm, a flock, a school, circling as one) or each on its own: every one wanders
+## to places of its own, in its own direction and at its own pace, turning away from the player.
+## For the kinds that live together (see [constant GROUP_MOTIONS]); the others go their own ways
+## anyway. In a background field: [code]bees(movement=individual)[/code].
+@export var movement: Movement = Movement.SWARM:
+	set(v):
+		if v == movement:
+			return
+		movement = v
+		if not GROUP_MOTIONS.has(MOTIONS[creature]):
+			return
+		# Where each is headed now is its own.
+		for i in _aim.size():
+			_aim[i] = _random_point()
+			_t[i] = _rng.randf_range(0.5, 3.0)
 ## How fast they go.
 @export_range(0.0, 4.0) var speed := 1.0
 ## How much the player's moving about stirs them up (0: they ignore it).
@@ -370,6 +393,10 @@ func step(delta: float) -> void:
 	_sense(delta)
 	var dt := minf(delta, 0.05) * speed
 	_time += dt
+	if is_individual():
+		_move_alone(dt)
+		_glow(dt)
+		return
 	match MOTIONS[creature]:
 		Motion.SWARM:
 			_move_swarm(dt)
@@ -398,6 +425,11 @@ func step(delta: float) -> void:
 		Motion.BURROW:
 			_move_burrow(dt)
 	_glow(dt)
+
+## Whether they go each their own way now: [member movement] individual, and a kind that
+## otherwise moves together.
+func is_individual() -> bool:
+	return movement == Movement.INDIVIDUAL and GROUP_MOTIONS.has(MOTIONS[creature])
 
 func _spawn() -> void:
 	_spawned = true
@@ -449,6 +481,8 @@ func _spawn() -> void:
 				_p[i].y = _ground(i)
 				_ex[i] = -1.0
 				_t[i] = _rng.randf_range(0.2, 3.5)
+		if is_individual():
+			_aim[i] = _random_point()
 	var idx: Array = range(n)
 	idx.sort_custom(func(a: int, b: int) -> bool: return _dep[a] > _dep[b])
 	_order = PackedInt32Array(idx)
@@ -556,6 +590,60 @@ func _move_swarm(dt: float) -> void:
 		_v[i] = _v[i].lerp(want, 1.0 - exp(-4.0 * dt))
 		_p[i] += _v[i] * dt
 		_ph[i] += dt * 45.0
+		_steer_face(i)
+
+## Each on its own ([member movement] individual): heading for a place of its own, turning toward it
+## at its own rate with a wander in its path, at its own pace; somewhere else once there or after a
+## while. They keep away from the player (wasps, stirred, come at it), and flap as their kind does.
+func _move_alone(dt: float) -> void:
+	var motion := MOTIONS[creature]
+	var ag := _agitation()
+	var fear := _fear()
+	var base := 0.2
+	match motion:
+		Motion.FLOCK:
+			base = 0.5 if creature == Creature.FIREBIRDS else 0.32
+		Motion.SCHOOL:
+			base = 0.18
+		Motion.CIRCLE:
+			base = 0.16
+		Motion.SWARM:
+			base = 0.1 if creature == Creature.LUMAFLIES else 0.22
+	for i in _p.size():
+		_t[i] -= dt
+		var to := _aim[i] - _p[i]
+		# There (within its turn: it would circle the place), or it has been long enough.
+		if to.length() < 0.15 or _t[i] <= 0.0:
+			# Somewhere new: far enough from here to be a journey.
+			var next := _random_point()
+			for k in 2:
+				var c := _random_point()
+				if c.distance_to(_p[i]) > next.distance_to(_p[i]):
+					next = c
+			_aim[i] = next
+			_t[i] = _rng.randf_range(3.0, 8.0)
+			to = _aim[i] - _p[i]
+		var steer := to.normalized() + Vector2(_n(i, 0), _n(i, 1)) * 0.6 + _inward(i) * 2.0
+		if creature == Creature.WASPS and _has_player and fear > 0.3:
+			steer += (_player - _p[i]).normalized() * fear * 1.5
+		else:
+			steer += _flee(i, 0.3) * (0.4 + fear * 2.5)
+		# Its own heading, turning at its own rate (harder the farther off the screen it strays).
+		var rate := (1.5 + 2.5 * _h(i, 5)) * ag * (1.0 + _inward(i).length())
+		_ang[i] = lerp_angle(_ang[i], steer.angle(), 1.0 - exp(-rate * dt))
+		var spd := base * (0.7 + 0.6 * _h(i, 6)) * ag
+		_v[i] = Vector2.from_angle(_ang[i]) * lerpf(_v[i].length(), spd, 1.0 - exp(-3.0 * dt))
+		_p[i] += _v[i] * dt
+		match motion:
+			Motion.SWARM:
+				_ph[i] += dt * 45.0
+			Motion.SCHOOL:
+				_ph[i] += dt * (6.0 + _v[i].length() * 15.0)
+			Motion.CIRCLE:
+				var flapping := fmod(_time + _h(i) * 5.0, 4.0) < 1.6
+				_ph[i] += dt * (6.0 if flapping else 0.4) * ag
+			_:
+				_ph[i] += dt * (9.0 + _v[i].length() * 12.0)
 		_steer_face(i)
 
 func _move_flutter(dt: float, erratic: bool) -> void:

@@ -1,0 +1,141 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_world_game.gd" id="1_cyfvp"]
+[ext_resource type="PackedScene" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/mds_player.tscn" id="2_6gs2i"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/mds_player.gd" id="3_u65rd"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/mds_gameplay.gd" id="33_xkwy0"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_room_camera.gd" id="34_bcdmc"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_camera_director.gd" id="35_wwdun"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_music.gd" id="36_hfbwg"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/ui/world_map_view.gd" id="37_1hsnv"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_area_title.gd" id="38_u10vn"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_objective_banner.gd" id="39_f7kqr"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_hud.gd" id="40_4de5b"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_toast.gd" id="41_8tqys"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_ability_popup.gd" id="42_ta150"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_pause_menu.gd" id="43_x02er"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_dialogue_box.gd" id="44_p8fsv"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_shop_screen.gd" id="45_ka51o"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1qrpi"]
+size = Vector2(28, 60)
+
+[node name="OpenWorldDemoGame" type="Node2D" unique_id=1100802255 node_paths=PackedStringArray("player", "camera", "map_view", "room_camera")]
+script = ExtResource("1_cyfvp")
+world_file = "res://examples/open_world_demo/open_world_demo.mdsworld.json"
+starting_room = "Meadow_01"
+player = NodePath("Player")
+camera = NodePath("Player/Camera2D")
+map_view = NodePath("UI/Map")
+room_camera = NodePath("RoomCamera")
+enforce_requirements = true
+stream_rooms = true
+light_groups = PackedStringArray("player", "enemy", "lantern")
+save_file = "user://open_world_demo_save.json"
+exploration_file = "user://open_world_demo_exploration.json"
+
+[node name="Player" type="CharacterBody2D" parent="." unique_id=1769360487 instance=ExtResource("2_6gs2i")]
+script = ExtResource("3_u65rd")
+abilities_without_game = PackedStringArray()
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=1413310692]
+shape = SubResource("RectangleShape2D_1qrpi")
+
+[node name="Gameplay" type="Node" parent="." unique_id=566443097]
+script = ExtResource("33_xkwy0")
+
+[node name="RoomCamera" type="Node2D" parent="." unique_id=1244812087 node_paths=PackedStringArray("camera", "target")]
+script = ExtResource("34_bcdmc")
+camera = NodePath("../Player/Camera2D")
+target = NodePath("../Player")
+
+[node name="Director" type="Node" parent="RoomCamera" unique_id=290599985]
+script = ExtResource("35_wwdun")
+quiet_states = PackedStringArray("IDLE", "PATROL", "PASSIVE", "INTRO", "INACTIVE", "DEAD", "WANDER", "REST", "SLEEP")
+
+[node name="Music" type="Node" parent="." unique_id=1318814950]
+script = ExtResource("36_hfbwg")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=1875569215]
+
+[node name="Map" type="Control" parent="UI" unique_id=1255832004]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = 220.0
+grow_horizontal = 0
+script = ExtResource("37_1hsnv")
+world_file = "res://examples/open_world_demo/open_world_demo.mdsworld.json"
+follow_player = true
+
+[node name="AreaTitle" type="Control" parent="UI" unique_id=220851983]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("38_u10vn")
+
+[node name="ObjectiveBanner" type="Control" parent="UI" unique_id=1588253906]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("39_f7kqr")
+
+[node name="Hud" type="Control" parent="UI" unique_id=1909267162]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("40_4de5b")
+
+[node name="Toast" type="Control" parent="UI" unique_id=576333129]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("41_8tqys")
+
+[node name="AbilityPopup" type="Control" parent="UI" unique_id=451300509]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 2
+script = ExtResource("42_ta150")
+confirm_actions = PackedStringArray("ui_accept", "jump", "attack", "interact")
+
+[node name="PauseMenu" type="Control" parent="UI" unique_id=634439301]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("43_x02er")
+close_actions = PackedStringArray("ui_cancel", "pause")
+
+[node name="DialogueBox" type="Control" parent="UI" unique_id=1525447805]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("44_p8fsv")
+advance_actions = PackedStringArray("ui_accept", "interact", "jump", "attack")
+close_actions = PackedStringArray()
+
+[node name="ShopScreen" type="Control" parent="UI" unique_id=1544558297]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("45_ka51o")
+close_actions = PackedStringArray("ui_cancel")

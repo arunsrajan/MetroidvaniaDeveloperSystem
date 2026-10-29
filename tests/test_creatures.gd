@@ -2,7 +2,8 @@ extends "res://tests/test_case.gd"
 ## Creature backgrounds (MDSCreatures): the twenty kinds and their looks, the shader, how they move
 ## and react to the player (activity, fleeing, coming near, climbing, hiding, startling), their
 ## glow (near the player, the area's color), that they never touch the player, the background
-## values of boss rooms, the game and the Room view, and saving.
+## values of boss rooms, the game and the Room view, and saving. And movement: together (a swarm, a
+## flock, a school, circling) or each on its own, every one going its own way.
 
 const Fixture := preload("res://tests/game_fixture.gd")
 const DT := 1.0 / 60.0
@@ -22,6 +23,7 @@ func _run() -> void:
 	await _reactions()
 	await _glow()
 	await _harmless()
+	await _individual()
 	_specs()
 	_field()
 	await _in_game()
@@ -266,6 +268,89 @@ func _harmless() -> void:
 	fx.free()
 	hero.free()
 
+## How they move together, over a while: x how far each is from its nearest (a swarm keeps
+## close), y how much they head the same way (a flock: 1, all ways: 0), z how steadily each goes
+## round their middle one way (circling: near 1, wandering: near 0).
+func _togetherness(fx: MDSCreatures, seconds: float) -> Vector3:
+	var near := 0.0
+	var align := 0.0
+	var n := 0
+	var orbit := PackedFloat32Array()
+	orbit.resize(fx.count)
+	for k in int(seconds / 0.25):
+		_run_for(fx, 0.25)
+		var pts := fx.creature_positions()
+		var mid := Vector2.ZERO
+		for p in pts:
+			mid += p / pts.size()
+		var heading := Vector2.ZERO
+		for i in pts.size():
+			var best := INF
+			for j in pts.size():
+				if j != i:
+					best = minf(best, pts[i].distance_to(pts[j]))
+			near += best / pts.size()
+			var v: Vector2 = fx._v[i]
+			var out := pts[i] - mid
+			if v.length() > 0.0001:
+				heading += v.normalized()
+				if out.length() > 0.0001:
+					orbit[i] += out.normalized().cross(v.normalized())
+		align += heading.length() / pts.size()
+		n += 1
+	var steady := 0.0
+	for o in orbit:
+		steady += absf(o) / n / orbit.size()
+	return Vector3(near / n, align / n, steady)
+
+## Each on its own (movement individual): every one wanders its own way, apart, in all directions,
+## on the screen; kinds that never moved together aren't changed; the background fields say it.
+func _individual() -> void:
+	var lines: PackedStringArray = []
+	for id in ["bees", "songbirds", "glowfish", "crows", "firebirds"]:
+		var together := _make(id)
+		var alone := _make(id)
+		alone.movement = MDSCreatures.Movement.INDIVIDUAL
+		check(alone.is_individual() and not together.is_individual(), "%s: each on its own" % id)
+		_run_for(together, 4.0)
+		_run_for(alone, 4.0)
+		var a := _togetherness(together, 10.0)
+		var b := _togetherness(alone, 10.0)
+		lines.append("%s %.2f/%.2f/%.2f -> %.2f/%.2f/%.2f" % [id, a.x, a.y, a.z, b.x, b.y, b.z])
+		# Apart: farther from one another (a swarm), no longer heading one way (a flock, a school), or
+		# no longer going steadily round their middle (circling).
+		check(b.x > a.x * 1.25 or b.y < a.y * 0.6 or b.z < a.z * 0.8, "%s: no longer together (near/alignment/orbit %s)" % [id, lines[lines.size() - 1]])
+		check(b.y < 0.5, "%s: heading all ways (%.2f)" % [id, b.y])
+		var on_screen := true
+		var moving := 0
+		for i in alone.creature_positions().size():
+			var p := alone.creature_positions()[i]
+			on_screen = on_screen and absf(p.x) < alone._half.x + 0.15 and absf(p.y) < alone._half.y + 0.15
+			if alone._v[i].length() > 0.02:
+				moving += 1
+		var far := Vector2.ZERO
+		for p in alone.creature_positions():
+			far = far.max(p.abs())
+		check(on_screen and moving > alone.count * 0.7, "%s: all on the screen (as far as %s of %s), going (%d of %d)" % [id, far, alone._half, moving, alone.count])
+		together.queue_free()
+		alone.queue_free()
+	# Kinds that go their own ways anyway: just the same.
+	var a := _make("spiders")
+	var b := _make("spiders")
+	b.movement = MDSCreatures.Movement.INDIVIDUAL
+	_run_for(a, 3.0)
+	_run_for(b, 3.0)
+	check(not b.is_individual() and a.creature_positions() == b.creature_positions(), "spiders crawl as they did")
+	a.queue_free()
+	b.queue_free()
+	# The background fields.
+	var node := MDSEnvironment.build_background("bees(movement=individual)", Rect2(0, 0, 1152, 648))
+	var fx := MDSEnvironment.effects_in(node)
+	check(fx.size() == 1 and (fx[0] as MDSCreatures).movement == MDSCreatures.Movement.INDIVIDUAL, "bees(movement=individual) in a background field")
+	node.free()
+	check(MDSUi.creatures_individual("blood_moon, bats", true) == "blood_moon, bats(movement=individual)" and MDSUi.creatures_individual("bats(count=4, movement=individual)", false) == "bats(count=4)", "the field's Each on its own sets it and takes it off")
+	await get_tree().process_frame
+
 func _specs() -> void:
 	check(MDSEnvironment.background_spec("bats") == "creatures(creature=bats)", "a creature id is a background")
 	check(MDSEnvironment.background_spec("owls(count=3)") == "creatures(creature=owls, count=3)", "with settings")
@@ -308,6 +393,16 @@ func _field() -> void:
 	edit.text = "owls"
 	popup.index_pressed.emit(bats)
 	check(edit.text == "bats", "and replaces other creatures")
+	var alone := -1
+	for i in popup.item_count:
+		if str(popup.get_item_metadata(i)) == "individual":
+			alone = i
+	popup.index_pressed.emit(alone)
+	check(edit.text == "bats(movement=individual)" and popup.is_item_checked(alone), "Each on its own: the creatures go their own ways (%s)" % edit.text)
+	popup.index_pressed.emit(bats)
+	check(edit.text == "bats(movement=individual)", "and the ones picked next too")
+	popup.index_pressed.emit(alone)
+	check(edit.text == "bats", "ticked off, together again")
 	grid.free()
 
 func _in_game() -> void:

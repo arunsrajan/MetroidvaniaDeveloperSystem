@@ -85,6 +85,18 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - The Room view's items are changed in place and never leave the tree. The Inspector keeps what it shows, its sections unfolded as they were, and a change in the editor never takes it over. A click on the selected effect shows it in the Inspector again.
   - In code: `MDSRoomView.sync_from_scene()`, `MDSRoomPainter.open_packed()`, `rebase_onto()` and `merge_states()`.
 - **Machinery backgrounds follow the camera when asked:** `scroll_scale` (1 by default: fixed in the world; less is farther away; 0 stays on the screen) and `follow_camera` (cover the whole view in the game; off by default), as on the other backgrounds.
+- **Creatures each on their own:** `MDSCreatures.movement` is **Swarm** (as before) or **Individual**. Individual makes bees, wasps, lumaflies, small birds, firebirds, glowfish and crows wander apart, each to places of its own in its own direction and at its own pace, instead of moving as a swarm, flock, school or circle. The Animated bg fields' **+** menu has **Each on its own** (`bees(movement=individual)`), and `is_individual()` says whether they do now.
+- **Outdoor and Arena rooms:** Generate cave's **Style** has two that aren't caves (`MDSOpenLayouts`), for the Room view and the Full view, Generate all and New variation.
+  - **Outdoor** is an open world's surface: open sky over rolling hills, pits and floating ledges, no ceiling, and open sides where another room goes on. Its grounds meet the neighbours' at the shared edges, and the sky is kept clear of background tiles.
+  - **Arena** is a fight room: a flat floor, walls, a ceiling, and mirrored platforms in tiers.
+  - `MDSCaveShapes.STYLES` gains `outdoor` and `arena`, and `is_open()` is new.
+- **Light:** the starter tileset has a `daylight` palette (`MDSTilesetFactory.PALETTES`, `DAYLIGHT_PATH`, `get_or_create(path, palette)`). There is a bright 2.5D style, `MDSDepthStyle.DAYLIGHT`, and World settings has a **Bright daylight** button and **Brightness** (`MDSWorldGame.brightness`, `apply_brightness()`).
+- **Open world demo** (`examples/open_world_demo/`): Outdoor meadows, a cave under them and an arena, streamed, in 2.5D daylight.
+- **Open worlds:** `MDSWorldGame.stream_rooms` keeps the rooms around the player loaded, in place beside the room it is in (those within `stream_margin` px), loaded in the background as it goes and freed far behind.
+  - Walking into one makes it the current room with nothing reloaded and the player going on as it was. Gates on the side it shares with the room are walked through.
+  - The camera looks across the room and the rooms it touches (`get_camera_bounds()`, also for `MDSRoomCamera`).
+  - Each has its 2.5D, and its nodes get their own room's `object_id()`. `MDSRoomDresser` dresses them as they come, each room once.
+  - New: `streamed`, `room_streamed`, `get_stream_neighbours()`, `is_stream_ready()` and `clear_streamed()`.
 - **Caves of shapes.** Generate cave, New variation, Generate all and New variation for all (Room view and Full view, and Generate caves for an area) can carve the cave's open space as one or more shapes instead of growing it from the room's outline: **Cave shape** T, U, H, L, Cross, Ring, S, Freeform or Mixed, turned 0°, 90°, 180°, 270° or at random, several to a room (joined by tunnels), as wide as asked. Their edges are rough rock, their tall parts get ledges to climb, and the room's gates still reach each other both ways (`MDSCaveShapes`, the fills' `cave`).
   - **i**: a shaft with a round chamber over it, joined by a narrow neck.
   - **Any angle**: turned 0° to 359° clockwise (45° slants a shape, made smaller to stay in its room), or each shape at random. Right angles turn as before.

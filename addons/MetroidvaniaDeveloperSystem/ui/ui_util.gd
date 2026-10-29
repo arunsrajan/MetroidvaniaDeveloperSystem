@@ -306,6 +306,10 @@ static func background_field(grid: GridContainer, text: String, value: String, p
 		popup.add_icon_item(creature_icon(id), MDSCreatures.CREATURE_NAMES[i])
 		popup.set_item_metadata(popup.item_count - 1, ["creature", id])
 		popup.set_item_tooltip(popup.item_count - 1, MDSCreatures.CREATURE_INFO[i] + ". Added to a style already in the field, they fly in front of it")
+	popup.add_check_item("Each on its own (not as a swarm)")
+	popup.set_item_metadata(popup.item_count - 1, "individual")
+	popup.set_item_checked(popup.item_count - 1, value.contains("movement=individual"))
+	popup.set_item_tooltip(popup.item_count - 1, "The creatures in the field go each their own way: every one wanders to places of its own, in its own direction and at its own pace, instead of moving as a swarm, a flock or a school (movement=individual). For bees, wasps, lumaflies, small birds, firebirds, crows and glowfish; the others go their own ways anyway")
 	for gothic in [true, false]:
 		popup.add_separator("Gothic machinery (Castlevania-style castles)" if gothic else "Sci-fi machinery (Metroid-style stations)")
 		for i in MDSMachineryBackground.MACHINE_IDS.size():
@@ -320,8 +324,17 @@ static func background_field(grid: GridContainer, text: String, value: String, p
 	popup.set_item_metadata(popup.item_count - 1, "none")
 	popup.add_item("Clear")
 	popup.set_item_metadata(popup.item_count - 1, "")
+	var individual := popup.item_count
+	for k in popup.item_count:
+		if str(popup.get_item_metadata(k)) == "individual":
+			individual = k
 	popup.index_pressed.connect(func(i: int) -> void:
 		var m: Variant = popup.get_item_metadata(i)
+		if str(m) == "individual":
+			popup.set_item_checked(i, not popup.is_item_checked(i))
+			edit.text = creatures_individual(edit.text, popup.is_item_checked(i))
+			edit.text_submitted.emit(edit.text)
+			return
 		if m is Array:
 			# A creature or a machine: on its own, or after the style already there.
 			var current := edit.text.strip_edges()
@@ -331,6 +344,8 @@ static func background_field(grid: GridContainer, text: String, value: String, p
 					keep.append(t.strip_edges())
 			keep.append(str(m[1]))
 			edit.text = ", ".join(keep)
+			if m[0] == "creature" and popup.is_item_checked(individual):
+				edit.text = creatures_individual(edit.text, true)
 		else:
 			edit.text = str(m)
 		edit.text_submitted.emit(edit.text))
@@ -339,6 +354,24 @@ static func background_field(grid: GridContainer, text: String, value: String, p
 	path_drop(edit)
 	commit_line(edit, commit)
 	return edit
+
+## Background field text [param text] with its creatures going each their own way
+## ([param on]: [code]bats(movement=individual)[/code]) or together ([member MDSCreatures.movement]).
+static func creatures_individual(text: String, on: bool) -> String:
+	var out: PackedStringArray = []
+	for t in MDSEnvironment.split_list(text):
+		if MDSEnvironment._background_kind(t) != "creature":
+			out.append(t.strip_edges())
+			continue
+		var parts := MDSEnvironment._head_args(t)
+		var args: PackedStringArray = []
+		for a in str(parts[1]).split(",", false):
+			if not a.strip_edges().begins_with("movement"):
+				args.append(a.strip_edges())
+		if on:
+			args.append("movement=individual")
+		out.append(parts[0] + ("(%s)" % ", ".join(args) if not args.is_empty() else ""))
+	return ", ".join(out)
 
 ## A small picture of a creature: its glow over its habitat's dark.
 static func creature_icon(id: String, size := 16) -> Texture2D:

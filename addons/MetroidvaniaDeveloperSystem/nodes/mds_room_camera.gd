@@ -319,13 +319,17 @@ func enter_room(id: String, style: int, previous_center: Vector2) -> void:
 	style = get_room_transition(style)
 	room_id = id
 	var rects := game.world.get_world_rects(id)
-	match confine:
-		Confine.ROOM_SHAPE:
-			zones = camera_zones(rects)
-		Confine.ROOM_BOUNDS:
-			zones = [game.world.get_room_bounds(id)]
-		_:
-			zones = []
+	if game.stream_rooms and confine != Confine.NONE:
+		# An open world: the view goes on over the rooms loaded around this one.
+		zones = [game.get_camera_bounds(id)]
+	else:
+		match confine:
+			Confine.ROOM_SHAPE:
+				zones = camera_zones(rects)
+			Confine.ROOM_BOUNDS:
+				zones = [game.world.get_room_bounds(id)]
+			_:
+				zones = []
 	var start := _zone_for(target.global_position if target else game.world.get_room_label_pos(id))
 	if using_phantom:
 		await _enter_room_phantom(start, style)
@@ -419,7 +423,7 @@ func _limits_for(z: Rect2) -> Rect2:
 	if not z.has_area():
 		return Rect2(-1e7, -1e7, 2e7, 2e7)
 	var view := (camera.get_viewport_rect().size if camera else Vector2(1152, 648)) / zoom_for(z)
-	var bounds := game.world.get_room_bounds(room_id)
+	var bounds := game.get_camera_bounds(room_id)
 	var r := z
 	for axis in 2:
 		if r.size[axis] < view[axis]:
@@ -558,7 +562,7 @@ func legal_areas() -> Array[Rect2]:
 	if confine == Confine.NONE or not game or room_id.is_empty():
 		return out
 	if zones.is_empty():
-		out.append(_limits_for(game.world.get_room_bounds(room_id)))
+		out.append(_limits_for(game.get_camera_bounds(room_id)))
 	for z in zones:
 		out.append(_limits_for(z))
 	return out
@@ -568,7 +572,9 @@ func shape_rects() -> Array[Rect2]:
 	var out: Array[Rect2] = []
 	if not game or room_id.is_empty():
 		return out
-	if confine == Confine.ROOM_BOUNDS:
+	if game.stream_rooms:
+		out.append(game.get_camera_bounds(room_id))
+	elif confine == Confine.ROOM_BOUNDS:
 		out.append(game.world.get_room_bounds(room_id))
 	else:
 		out.assign(game.world.get_world_rects(room_id))

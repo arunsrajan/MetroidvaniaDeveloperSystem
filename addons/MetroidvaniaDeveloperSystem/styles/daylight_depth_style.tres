@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MDSDepthStyle" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_depth_style.gd" id="1_style"]
+
+[resource]
+script = ExtResource("1_style")
+light_reach = 2400.0
+light_inner = 900.0
+light_dark = Color(0.93, 0.93, 0.96, 1)
+vignette = 0.06
+shadow_strength = 0.45
+plain_side = Color(0.55, 0.42, 0.3, 1)
+plain_top = Color(0.42, 0.66, 0.3, 1)
+plain_joint = Color(0.25, 0.18, 0.12, 1)

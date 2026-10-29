@@ -1,0 +1,202 @@
+{
+	"areas": {
+		"Ridge Arena": {
+			"color": "#c0703f",
+			"parallax": "dusk_mountains",
+			"title": "Ridge Arena"
+		},
+		"Sunlit Meadows": {
+			"color": "#7cc043",
+			"parallax": "misty_forest",
+			"subtitle": "Where the valley opens",
+			"title": "Sunlit Meadows"
+		},
+		"Under Hollow": {
+			"color": "#6b5a3e",
+			"darkness": 0.25,
+			"parallax": "deep_cavern",
+			"title": "Under Hollow"
+		}
+	},
+	"format": "mds_world",
+	"layers": [
+		"Main"
+	],
+	"links": [],
+	"name": "Open World Demo",
+	"pins": [],
+	"rooms": {
+		"Hollow_01": {
+			"area": "Under Hollow",
+			"gates": {
+				"top1": {
+					"pos": [
+						864.0,
+						0.0
+					],
+					"side": "top",
+					"to": "Meadow_02",
+					"to_gate": "bot1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				2592.0,
+				864.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1728.0,
+					648.0
+				]
+			],
+			"scene": "res://examples/open_world_demo/rooms/hollow_01.tscn",
+			"scene_path": "res://examples/open_world_demo/rooms/hollow_01.tscn"
+		},
+		"Meadow_01": {
+			"area": "Sunlit Meadows",
+			"gates": {
+
+			},
+			"layer": 0,
+			"origin": [
+				0.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					2304.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/open_world_demo/rooms/meadow_01.tscn",
+			"scene_path": "res://examples/open_world_demo/rooms/meadow_01.tscn"
+		},
+		"Meadow_02": {
+			"area": "Sunlit Meadows",
+			"gates": {
+				"bot1": {
+					"pos": [
+						1152.0,
+						864.0
+					],
+					"side": "bot",
+					"to": "Hollow_01",
+					"to_gate": "top1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				2304.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					2304.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/open_world_demo/rooms/meadow_02.tscn",
+			"scene_path": "res://examples/open_world_demo/rooms/meadow_02.tscn"
+		},
+		"Meadow_03": {
+			"area": "Sunlit Meadows",
+			"gates": {
+
+			},
+			"layer": 0,
+			"origin": [
+				4608.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					2304.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/open_world_demo/rooms/meadow_03.tscn",
+			"scene_path": "res://examples/open_world_demo/rooms/meadow_03.tscn"
+		},
+		"Meadow_04": {
+			"area": "Sunlit Meadows",
+			"gates": {
+				"right1": {
+					"pos": [
+						2304.0,
+						704.0
+					],
+					"side": "right",
+					"to": "Ridge_Arena",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				6912.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					2304.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/open_world_demo/rooms/meadow_04.tscn",
+			"scene_path": "res://examples/open_world_demo/rooms/meadow_04.tscn"
+		},
+		"Ridge_Arena": {
+			"area": "Ridge Arena",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						704.0
+					],
+					"side": "left",
+					"to": "Meadow_04",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				9216.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1728.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/open_world_demo/rooms/ridge_arena.tscn",
+			"scene_path": "res://examples/open_world_demo/rooms/ridge_arena.tscn",
+			"type": "boss"
+		}
+	},
+	"settings": {
+		"brightness": 1.1,
+		"default_room_size": [
+			2304.0,
+			864.0
+		],
+		"depth_25d": true,
+		"depth_style": "res://addons/MetroidvaniaDeveloperSystem/styles/daylight_depth_style.tres",
+		"grid": 32,
+		"room_tileset": "res://examples/open_world_demo/tiles/daylight_tileset.tres"
+	},
+	"start_room": "Meadow_01",
+	"version": 1
+}
