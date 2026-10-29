@@ -1,0 +1,82 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_background.gd" id="1_4esfk"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_layer.gd" id="2_apeha"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set07/layer1.webp" id="3_ha8pr"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set07/layer2.webp" id="4_etn4a"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set07/layer3.webp" id="5_b2ku4"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set07/foreground_top.webp" id="6_44fjn"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set07/foreground_bottom.webp" id="7_ar5kq"]
+
+[sub_resource type="Resource" id="Resource_mww42"]
+script = ExtResource("2_apeha")
+kind = 0
+color_top = Color(0.06077936, 0.09329746, 0.14460735, 1)
+color_bottom = Color(0.06808765, 0.10116143, 0.14796878, 1)
+scroll_scale = Vector2(0, 0)
+
+[sub_resource type="Resource" id="Resource_eylt4"]
+script = ExtResource("2_apeha")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.04, 0.02)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("3_ha8pr")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_ql1bm"]
+script = ExtResource("2_apeha")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.12, 0.06)
+horizon = 0.7568
+fill_below = false
+haze = 0.0
+picture = ExtResource("4_etn4a")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_mjeap"]
+script = ExtResource("2_apeha")
+kind = 11
+color = Color(0.7, 0.7, 0.7, 1)
+scroll_scale = Vector2(0.6, 0.3)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("5_b2ku4")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_8rfou"]
+script = ExtResource("2_apeha")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.22, 1.08)
+horizon = -0.02
+fill_below = false
+haze = 0.0
+hang = true
+picture = ExtResource("6_44fjn")
+picture_scale = 0.4619565217391304
+
+[sub_resource type="Resource" id="Resource_hexcv"]
+script = ExtResource("2_apeha")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.32, 1.12)
+horizon = 1.02
+fill_below = false
+haze = 0.0
+picture = ExtResource("7_ar5kq")
+picture_scale = 0.4619565217391304
+
+[node name="HangingRootArchives" type="Node2D" unique_id=753630086]
+z_index = -100
+script = ExtResource("1_4esfk")
+preset = 0
+layers = Array[ExtResource("2_apeha")]([SubResource("Resource_mww42"), SubResource("Resource_eylt4"), SubResource("Resource_ql1bm"), SubResource("Resource_mjeap")])
+foreground = 1
+foreground_layers = Array[ExtResource("2_apeha")]([SubResource("Resource_8rfou"), SubResource("Resource_hexcv")])
+fit_room = true
+affect_groups = PackedStringArray("player")

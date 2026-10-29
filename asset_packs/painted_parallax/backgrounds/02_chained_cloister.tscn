@@ -1,0 +1,79 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_background.gd" id="1_ittho"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_layer.gd" id="2_121x6"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set02/layer1.webp" id="3_yuej1"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set02/layer2.webp" id="4_bue0d"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set02/layer3.webp" id="5_rv3i4"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set02/layer4.webp" id="6_hrxkk"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set02/layer5.webp" id="7_ajls5"]
+
+[sub_resource type="Resource" id="Resource_nga7l"]
+script = ExtResource("2_121x6")
+kind = 0
+color_top = Color(0.040745024, 0.10245475, 0.12880535, 1)
+color_bottom = Color(0.09041011, 0.19452739, 0.22411235, 1)
+scroll_scale = Vector2(0, 0)
+
+[sub_resource type="Resource" id="Resource_8p8ya"]
+script = ExtResource("2_121x6")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.04, 0.02)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("3_yuej1")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_bflid"]
+script = ExtResource("2_121x6")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.12, 0.06)
+horizon = 0.8839
+fill_below = false
+haze = 0.0
+picture = ExtResource("4_bue0d")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_ql4h1"]
+script = ExtResource("2_121x6")
+kind = 11
+color = Color(0.9, 0.9, 0.9, 1)
+scroll_scale = Vector2(0.28, 0.14)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("5_rv3i4")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_dbkxr"]
+script = ExtResource("2_121x6")
+kind = 11
+color = Color(0.8, 0.8, 0.8, 1)
+scroll_scale = Vector2(0.44, 0.22)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("6_hrxkk")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_ys7da"]
+script = ExtResource("2_121x6")
+kind = 11
+color = Color(0.7, 0.7, 0.7, 1)
+scroll_scale = Vector2(0.6, 0.3)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("7_ajls5")
+picture_scale = 0.71972656
+
+[node name="ChainedCloister" type="Node2D" unique_id=1952873358]
+z_index = -100
+script = ExtResource("1_ittho")
+preset = 0
+layers = Array[ExtResource("2_121x6")]([SubResource("Resource_nga7l"), SubResource("Resource_8p8ya"), SubResource("Resource_bflid"), SubResource("Resource_ql4h1"), SubResource("Resource_dbkxr"), SubResource("Resource_ys7da")])
+fit_room = true
+affect_groups = PackedStringArray("player")

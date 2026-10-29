@@ -1,0 +1,82 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_background.gd" id="1_0rv7s"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_layer.gd" id="2_i3wfu"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set10/layer1.webp" id="3_cp3nu"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set10/layer2.webp" id="4_pvp3u"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set10/layer3.webp" id="5_q1jxe"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set10/foreground_top.webp" id="6_p5am4"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set10/foreground_bottom.webp" id="7_njou3"]
+
+[sub_resource type="Resource" id="Resource_45tai"]
+script = ExtResource("2_i3wfu")
+kind = 0
+color_top = Color(0.15683506, 0.28280973, 0.29265925, 1)
+color_bottom = Color(0.111079365, 0.20429105, 0.20708276, 1)
+scroll_scale = Vector2(0, 0)
+
+[sub_resource type="Resource" id="Resource_75uvv"]
+script = ExtResource("2_i3wfu")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.04, 0.02)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("3_cp3nu")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_qypf8"]
+script = ExtResource("2_i3wfu")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.12, 0.06)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("4_pvp3u")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_bsglx"]
+script = ExtResource("2_i3wfu")
+kind = 11
+color = Color(0.7, 0.7, 0.7, 1)
+scroll_scale = Vector2(0.6, 0.3)
+horizon = 0.9528
+fill_below = false
+haze = 0.0
+picture = ExtResource("5_q1jxe")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_nb2qj"]
+script = ExtResource("2_i3wfu")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.22, 1.08)
+horizon = -0.02
+fill_below = false
+haze = 0.0
+hang = true
+picture = ExtResource("6_p5am4")
+picture_scale = 0.4619565217391304
+
+[sub_resource type="Resource" id="Resource_e2phm"]
+script = ExtResource("2_i3wfu")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.32, 1.12)
+horizon = 1.02
+fill_below = false
+haze = 0.0
+picture = ExtResource("7_njou3")
+picture_scale = 0.4619565217391304
+
+[node name="GlowmothGreenhouse" type="Node2D" unique_id=1581615641]
+z_index = -100
+script = ExtResource("1_0rv7s")
+preset = 0
+layers = Array[ExtResource("2_i3wfu")]([SubResource("Resource_45tai"), SubResource("Resource_75uvv"), SubResource("Resource_qypf8"), SubResource("Resource_bsglx")])
+foreground = 1
+foreground_layers = Array[ExtResource("2_i3wfu")]([SubResource("Resource_nb2qj"), SubResource("Resource_e2phm")])
+fit_room = true
+affect_groups = PackedStringArray("player")
