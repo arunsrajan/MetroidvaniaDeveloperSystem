@@ -1,0 +1,118 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_background.gd" id="1_lh0w0"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_layer.gd" id="2_dioy1"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set03/layer1.webp" id="3_d5ee8"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set03/layer2.webp" id="4_q0j54"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set03/layer3.webp" id="5_ng2cx"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set03/layer4.webp" id="6_x0vpn"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set03/layer5.webp" id="7_2l7ex"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set03/layer6.webp" id="8_8aah6"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set03/foreground_top.webp" id="9_f6ok7"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set03/foreground_bottom.webp" id="10_8wgp2"]
+
+[sub_resource type="Resource" id="Resource_q456w"]
+script = ExtResource("2_dioy1")
+kind = 0
+color_top = Color(0.065204546, 0.10025393, 0.11453894, 1)
+color_bottom = Color(0.07762667, 0.11951226, 0.13589612, 1)
+scroll_scale = Vector2(0, 0)
+
+[sub_resource type="Resource" id="Resource_ya5vc"]
+script = ExtResource("2_dioy1")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.04, 0.02)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("3_d5ee8")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_3j2p2"]
+script = ExtResource("2_dioy1")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.12, 0.06)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("4_q0j54")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_7fb4b"]
+script = ExtResource("2_dioy1")
+kind = 11
+color = Color(0.925, 0.925, 0.925, 1)
+scroll_scale = Vector2(0.24, 0.12)
+horizon = 0.6712
+fill_below = false
+haze = 0.0
+picture = ExtResource("5_ng2cx")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_bl4lg"]
+script = ExtResource("2_dioy1")
+kind = 11
+color = Color(0.85, 0.85, 0.85, 1)
+scroll_scale = Vector2(0.36, 0.18)
+horizon = 0.6601
+fill_below = false
+haze = 0.0
+picture = ExtResource("6_x0vpn")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_1kkq2"]
+script = ExtResource("2_dioy1")
+kind = 11
+color = Color(0.775, 0.775, 0.775, 1)
+scroll_scale = Vector2(0.48, 0.24)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("7_2l7ex")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_u5itm"]
+script = ExtResource("2_dioy1")
+kind = 11
+color = Color(0.7, 0.7, 0.7, 1)
+scroll_scale = Vector2(0.6, 0.3)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("8_8aah6")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_urdn5"]
+script = ExtResource("2_dioy1")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.22, 1.08)
+horizon = -0.02
+fill_below = false
+haze = 0.0
+hang = true
+picture = ExtResource("9_f6ok7")
+picture_scale = 0.4619565217391304
+
+[sub_resource type="Resource" id="Resource_1eomv"]
+script = ExtResource("2_dioy1")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.32, 1.12)
+horizon = 1.02
+fill_below = false
+haze = 0.0
+picture = ExtResource("10_8wgp2")
+picture_scale = 0.4619565217391304
+
+[node name="LanternHarbor" type="Node2D" unique_id=1488762698]
+z_index = -100
+script = ExtResource("1_lh0w0")
+preset = 0
+layers = Array[ExtResource("2_dioy1")]([SubResource("Resource_q456w"), SubResource("Resource_ya5vc"), SubResource("Resource_3j2p2"), SubResource("Resource_7fb4b"), SubResource("Resource_bl4lg"), SubResource("Resource_1kkq2"), SubResource("Resource_u5itm")])
+foreground = 1
+foreground_layers = Array[ExtResource("2_dioy1")]([SubResource("Resource_urdn5"), SubResource("Resource_1eomv")])
+fit_room = true
+affect_groups = PackedStringArray("player")

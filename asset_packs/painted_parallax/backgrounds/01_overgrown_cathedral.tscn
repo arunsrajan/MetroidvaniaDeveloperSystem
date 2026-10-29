@@ -1,0 +1,106 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_background.gd" id="1_2whak"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_layer.gd" id="2_3q04m"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set01/layer1.webp" id="3_5cb5x"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set01/layer2.webp" id="4_1hxjs"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set01/layer3.webp" id="5_ln3tu"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set01/layer4.webp" id="6_62iaf"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set01/layer5.webp" id="7_iomuf"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set01/foreground_top.webp" id="8_gcaig"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set01/foreground_bottom.webp" id="9_xl8hq"]
+
+[sub_resource type="Resource" id="Resource_cpagf"]
+script = ExtResource("2_3q04m")
+kind = 0
+color_top = Color(0.40014195, 0.5704257, 0.6072843, 1)
+color_bottom = Color(0.08569067, 0.16151752, 0.2166326, 1)
+scroll_scale = Vector2(0, 0)
+
+[sub_resource type="Resource" id="Resource_qw8l1"]
+script = ExtResource("2_3q04m")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.04, 0.02)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("3_5cb5x")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_8p7vi"]
+script = ExtResource("2_3q04m")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.12, 0.06)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("4_1hxjs")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_k3odi"]
+script = ExtResource("2_3q04m")
+kind = 11
+color = Color(0.9, 0.9, 0.9, 1)
+scroll_scale = Vector2(0.28, 0.14)
+horizon = 0.9706
+fill_below = false
+haze = 0.0
+picture = ExtResource("5_ln3tu")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_p6ji3"]
+script = ExtResource("2_3q04m")
+kind = 11
+color = Color(0.8, 0.8, 0.8, 1)
+scroll_scale = Vector2(0.44, 0.22)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("6_62iaf")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_kas3y"]
+script = ExtResource("2_3q04m")
+kind = 11
+color = Color(0.7, 0.7, 0.7, 1)
+scroll_scale = Vector2(0.6, 0.3)
+horizon = 0.7184
+fill_below = false
+haze = 0.0
+picture = ExtResource("7_iomuf")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_iaw41"]
+script = ExtResource("2_3q04m")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.22, 1.08)
+horizon = -0.02
+fill_below = false
+haze = 0.0
+hang = true
+picture = ExtResource("8_gcaig")
+picture_scale = 0.4619565217391304
+
+[sub_resource type="Resource" id="Resource_bix0m"]
+script = ExtResource("2_3q04m")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.32, 1.12)
+horizon = 1.02
+fill_below = false
+haze = 0.0
+picture = ExtResource("9_xl8hq")
+picture_scale = 0.4619565217391304
+
+[node name="OvergrownCathedral" type="Node2D" unique_id=108401338]
+z_index = -100
+script = ExtResource("1_2whak")
+preset = 0
+layers = Array[ExtResource("2_3q04m")]([SubResource("Resource_cpagf"), SubResource("Resource_qw8l1"), SubResource("Resource_8p7vi"), SubResource("Resource_k3odi"), SubResource("Resource_p6ji3"), SubResource("Resource_kas3y")])
+foreground = 1
+foreground_layers = Array[ExtResource("2_3q04m")]([SubResource("Resource_iaw41"), SubResource("Resource_bix0m")])
+fit_room = true
+affect_groups = PackedStringArray("player")

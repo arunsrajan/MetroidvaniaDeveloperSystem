@@ -1,0 +1,94 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_background.gd" id="1_o37f6"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_layer.gd" id="2_e6vjb"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set09/layer1.webp" id="3_227cj"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set09/layer2.webp" id="4_5k364"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set09/layer3.webp" id="5_mby6h"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set09/layer4.webp" id="6_8mlv4"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set09/foreground_top.webp" id="7_2q4l2"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set09/foreground_bottom.webp" id="8_nbwa5"]
+
+[sub_resource type="Resource" id="Resource_5fb7e"]
+script = ExtResource("2_e6vjb")
+kind = 0
+color_top = Color(0.11971863, 0.12699737, 0.24974017, 1)
+color_bottom = Color(0.1473737, 0.18935633, 0.2320441, 1)
+scroll_scale = Vector2(0, 0)
+
+[sub_resource type="Resource" id="Resource_qegrq"]
+script = ExtResource("2_e6vjb")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.04, 0.02)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("3_227cj")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_mqj3w"]
+script = ExtResource("2_e6vjb")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.12, 0.06)
+horizon = 0.94
+fill_below = false
+haze = 0.0
+picture = ExtResource("4_5k364")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_g4g8q"]
+script = ExtResource("2_e6vjb")
+kind = 11
+color = Color(0.85, 0.85, 0.85, 1)
+scroll_scale = Vector2(0.36, 0.18)
+horizon = 0.9261
+fill_below = false
+haze = 0.0
+picture = ExtResource("5_mby6h")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_xlbjq"]
+script = ExtResource("2_e6vjb")
+kind = 11
+color = Color(0.7, 0.7, 0.7, 1)
+scroll_scale = Vector2(0.6, 0.3)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("6_8mlv4")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_y3jpe"]
+script = ExtResource("2_e6vjb")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.22, 1.08)
+horizon = -0.02
+fill_below = false
+haze = 0.0
+hang = true
+picture = ExtResource("7_2q4l2")
+picture_scale = 0.4619565217391304
+
+[sub_resource type="Resource" id="Resource_84dxw"]
+script = ExtResource("2_e6vjb")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.32, 1.12)
+horizon = 1.02
+fill_below = false
+haze = 0.0
+picture = ExtResource("8_nbwa5")
+picture_scale = 0.4619565217391304
+
+[node name="TwilightThornThicket" type="Node2D" unique_id=1023504617]
+z_index = -100
+script = ExtResource("1_o37f6")
+preset = 0
+layers = Array[ExtResource("2_e6vjb")]([SubResource("Resource_5fb7e"), SubResource("Resource_qegrq"), SubResource("Resource_mqj3w"), SubResource("Resource_g4g8q"), SubResource("Resource_xlbjq")])
+foreground = 1
+foreground_layers = Array[ExtResource("2_e6vjb")]([SubResource("Resource_y3jpe"), SubResource("Resource_84dxw")])
+fit_room = true
+affect_groups = PackedStringArray("player")

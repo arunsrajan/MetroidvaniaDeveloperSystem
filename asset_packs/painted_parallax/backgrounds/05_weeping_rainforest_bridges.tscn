@@ -1,0 +1,94 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_background.gd" id="1_8e84u"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_layer.gd" id="2_a6ilc"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set05/layer1.webp" id="3_aone5"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set05/layer2.webp" id="4_6d3to"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set05/layer3.webp" id="5_3koe3"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set05/layer4.webp" id="6_rw2k2"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set05/foreground_top.webp" id="7_qu2s0"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set05/foreground_bottom.webp" id="8_05yfp"]
+
+[sub_resource type="Resource" id="Resource_b0f24"]
+script = ExtResource("2_a6ilc")
+kind = 0
+color_top = Color(0.11342343, 0.24164487, 0.27065858, 1)
+color_bottom = Color(0.05465369, 0.1726632, 0.1999154, 1)
+scroll_scale = Vector2(0, 0)
+
+[sub_resource type="Resource" id="Resource_p383p"]
+script = ExtResource("2_a6ilc")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.04, 0.02)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("3_aone5")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_m3ybw"]
+script = ExtResource("2_a6ilc")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.12, 0.06)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("4_6d3to")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_gtnk1"]
+script = ExtResource("2_a6ilc")
+kind = 11
+color = Color(0.85, 0.85, 0.85, 1)
+scroll_scale = Vector2(0.36, 0.18)
+horizon = 0.6951
+fill_below = false
+haze = 0.0
+picture = ExtResource("5_3koe3")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_dwd1h"]
+script = ExtResource("2_a6ilc")
+kind = 11
+color = Color(0.7, 0.7, 0.7, 1)
+scroll_scale = Vector2(0.6, 0.3)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("6_rw2k2")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_1hgdu"]
+script = ExtResource("2_a6ilc")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.22, 1.08)
+horizon = -0.02
+fill_below = false
+haze = 0.0
+hang = true
+picture = ExtResource("7_qu2s0")
+picture_scale = 0.4619565217391304
+
+[sub_resource type="Resource" id="Resource_g0l6e"]
+script = ExtResource("2_a6ilc")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.32, 1.12)
+horizon = 1.02
+fill_below = false
+haze = 0.0
+picture = ExtResource("8_05yfp")
+picture_scale = 0.4619565217391304
+
+[node name="WeepingRainforestBridges" type="Node2D" unique_id=1907573227]
+z_index = -100
+script = ExtResource("1_8e84u")
+preset = 0
+layers = Array[ExtResource("2_a6ilc")]([SubResource("Resource_b0f24"), SubResource("Resource_p383p"), SubResource("Resource_m3ybw"), SubResource("Resource_gtnk1"), SubResource("Resource_dwd1h")])
+foreground = 1
+foreground_layers = Array[ExtResource("2_a6ilc")]([SubResource("Resource_1hgdu"), SubResource("Resource_g0l6e")])
+fit_room = true
+affect_groups = PackedStringArray("player")

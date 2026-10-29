@@ -1772,6 +1772,12 @@ It comes with a ready TileSet, SpriteFrames and a demo scene. Set it as the worl
 
 ![Sunken Gardens demo](asset_packs/sunken_gardens/preview/demo.png)
 
+## Asset pack: Painted Parallax
+
+[`asset_packs/painted_parallax`](asset_packs/painted_parallax/README.md) is ten painted parallax backgrounds, each an `MDSParallaxBackground` scene of picture layers: a sky, a painted backdrop, two to five layers between, and (in nine of them) foreground strips along the room's top and bottom edges. Put one in a **Parallax** field (Areas tab, Inspect tab or World settings), for example `res://asset_packs/painted_parallax/backgrounds/04_fungal_grotto.tscn`.
+
+![The ten Painted Parallax backgrounds](asset_packs/painted_parallax/preview/backgrounds.jpg)
+
 ## Designing a Hollow Knight-style world
 
 - **Block out first.** Draw rooms (non-linear) or paint cells (MetSys), set their status to `blockout`, and use the *Build status* color mode to see what still needs art.
@@ -1792,6 +1798,7 @@ The repository:
 addons/MetroidvaniaDeveloperSystem/  # the plugin (all you need)
 asset_packs/mossgrove/               # optional art pack: tiles, characters, freeform styles, demos
 asset_packs/sunken_gardens/          # optional art pack: freeform styles and stamps, a demo room
+asset_packs/painted_parallax/        # optional art pack: ten painted MDSParallaxBackground scenes
 examples/                            # a sample .mdsworld.json
 docs/                                # screenshots for this README, the store icon and the objects guide (not imported: .gdignore)
 tests/                               # headless tests (not needed in your project)

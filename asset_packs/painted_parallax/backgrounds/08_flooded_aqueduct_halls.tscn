@@ -1,0 +1,118 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_background.gd" id="1_cee6o"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/environment/mds_parallax_layer.gd" id="2_hsook"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set08/layer1.webp" id="3_m0nuy"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set08/layer2.webp" id="4_w1hf8"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set08/layer3.webp" id="5_6kolu"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set08/layer4.webp" id="6_6204y"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set08/layer5.webp" id="7_vcjhq"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set08/layer6.webp" id="8_cm1al"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set08/foreground_top.webp" id="9_rw6vq"]
+[ext_resource type="Texture2D" path="res://asset_packs/painted_parallax/layers/set08/foreground_bottom.webp" id="10_gvwww"]
+
+[sub_resource type="Resource" id="Resource_cxoe6"]
+script = ExtResource("2_hsook")
+kind = 0
+color_top = Color(0.23798071, 0.33688852, 0.35746184, 1)
+color_bottom = Color(0.13019654, 0.21756448, 0.23908627, 1)
+scroll_scale = Vector2(0, 0)
+
+[sub_resource type="Resource" id="Resource_e0e70"]
+script = ExtResource("2_hsook")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.04, 0.02)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("3_m0nuy")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_ehy66"]
+script = ExtResource("2_hsook")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(0.12, 0.06)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("4_w1hf8")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_8q18u"]
+script = ExtResource("2_hsook")
+kind = 11
+color = Color(0.925, 0.925, 0.925, 1)
+scroll_scale = Vector2(0.24, 0.12)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("5_6kolu")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_8hxvc"]
+script = ExtResource("2_hsook")
+kind = 11
+color = Color(0.85, 0.85, 0.85, 1)
+scroll_scale = Vector2(0.36, 0.18)
+horizon = 0.8873
+fill_below = false
+haze = 0.0
+picture = ExtResource("6_6204y")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_ps8mf"]
+script = ExtResource("2_hsook")
+kind = 11
+color = Color(0.775, 0.775, 0.775, 1)
+scroll_scale = Vector2(0.48, 0.24)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("7_vcjhq")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_ucqwn"]
+script = ExtResource("2_hsook")
+kind = 11
+color = Color(0.7, 0.7, 0.7, 1)
+scroll_scale = Vector2(0.6, 0.3)
+horizon = 1.0
+fill_below = false
+haze = 0.0
+picture = ExtResource("8_cm1al")
+picture_scale = 0.71972656
+
+[sub_resource type="Resource" id="Resource_5qw03"]
+script = ExtResource("2_hsook")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.22, 1.08)
+horizon = -0.02
+fill_below = false
+haze = 0.0
+hang = true
+picture = ExtResource("9_rw6vq")
+picture_scale = 0.4619565217391304
+
+[sub_resource type="Resource" id="Resource_gt1hf"]
+script = ExtResource("2_hsook")
+kind = 11
+color = Color(1, 1, 1, 1)
+scroll_scale = Vector2(1.32, 1.12)
+horizon = 1.02
+fill_below = false
+haze = 0.0
+picture = ExtResource("10_gvwww")
+picture_scale = 0.4619565217391304
+
+[node name="FloodedAqueductHalls" type="Node2D" unique_id=778926509]
+z_index = -100
+script = ExtResource("1_cee6o")
+preset = 0
+layers = Array[ExtResource("2_hsook")]([SubResource("Resource_cxoe6"), SubResource("Resource_e0e70"), SubResource("Resource_ehy66"), SubResource("Resource_8q18u"), SubResource("Resource_8hxvc"), SubResource("Resource_ps8mf"), SubResource("Resource_ucqwn")])
+foreground = 1
+foreground_layers = Array[ExtResource("2_hsook")]([SubResource("Resource_5qw03"), SubResource("Resource_gt1hf")])
+fit_room = true
+affect_groups = PackedStringArray("player")
