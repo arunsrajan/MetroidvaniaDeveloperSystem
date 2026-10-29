@@ -1806,10 +1806,12 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 	var open: Dictionary = {}
 	var ts := tile_size()
 	gate_openings.clear()
+	var gate_cells: Array = []
 	for g in world.get_gates(id):
 		var gp := world.get_gate_local_pos(id, g)
 		var gc := cell_at("Terrain", gp + {"left": Vector2(ts.x, 0), "right": Vector2(-ts.x, 0), "top": Vector2(0, ts.y), "bot": Vector2(0, -ts.y)}.get(world.get_gate_side(id, g), Vector2.ZERO) * 0.5)
 		var side := world.get_gate_side(id, g)
+		gate_cells.append({"cell": gc, "side": side})
 		# The doorway: its mouth (the opening's cells at the edge), and the gate's box across it.
 		var mouth := Rect2()
 		for a in range(-2, 2):
@@ -1860,7 +1862,18 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 					part_ends.append({"cell": e, "side": "part", "mouth": dc})
 	var solid: Dictionary = {}
 	var cave: Dictionary = fills.get("cave", {})
-	if MDSCaveShapes.wanted(cave):
+	var outdoor := str(cave.get("style", "")) == "outdoor"
+	if MDSCaveShapes.is_open(cave):
+		# Not a cave: an open world's surface, or an arena (see MDSOpenLayouts).
+		var climb := climb_params(world)
+		var sides := MDSOpenLayouts.open_sides(world, id, lo, hi, Vector2(ts))
+		if outdoor:
+			var origin := Vector2i((world.get_origin(id) / Vector2(ts)).round())
+			var area_seed := int(cave.get("seed", hash(world.get_room_area(id))))
+			solid = MDSOpenLayouts.outdoor(inside, lo, hi, origin, sides, gate_cells, rng, area_seed, int(climb.tall), int(climb.reach), MDSOpenLayouts.neighbour_ground(world, id, sides, lo, hi, Vector2(ts)))
+		else:
+			solid = MDSOpenLayouts.arena(inside, lo, hi, sides, gate_cells, rng, int(climb.tall), int(climb.reach))
+	elif MDSCaveShapes.wanted(cave):
 		# The open space as shapes (a T, a U, an H...): see MDSCaveShapes.
 		var climb := climb_params(world)
 		solid = MDSCaveShapes.rock(inside, lo, hi, cave, rng, int(climb.tall), int(climb.step))
@@ -1984,6 +1997,14 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 	# Background behind the cave and just under its walls, not in the rock beyond its outline.
 	var back: Dictionary = {}
 	for c: Vector2i in inside:
+		if outdoor:
+			# Outdoors the sky stays clear (the parallax and the backdrop show there): a band of
+			# bushes on the ground only (not on the ledges, a tile thick).
+			if not solid.has(c) and solid.has(c + Vector2i.DOWN) and solid.has(c + Vector2i(0, 2)) and solid.has(c + Vector2i(0, 3)):
+				for dy in range(-1, 2):
+					if inside.has(c + Vector2i(0, dy)):
+						back[c + Vector2i(0, dy)] = true
+			continue
 		for dy in range(-2, 3):
 			for dx in range(-2, 3):
 				var n := c + Vector2i(dx, dy)

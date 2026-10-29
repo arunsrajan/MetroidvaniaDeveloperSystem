@@ -110,6 +110,8 @@ var cave_shape := {"shape": "natural", "shapes": ["t", "u", "h"], "rotation": 0,
 ## The shapes to pick several of (Cave shape: Several picked).
 var cave_shapes_menu: MenuButton
 var cave_rotation_spin: SpinBox
+## The Style picker under Cave shape (cave, linear, outdoor, arena: [constant MDSCaveShapes.STYLES]).
+var cave_style_picker: OptionButton
 ## Rooms shown together (see [method open_rooms]), [member room_id] the one edited. Empty: one.
 var _session: Array[String] = []
 ## Their painters opened so far: id -> MDSRoomPainter ([member painter] among them). Each keeps
@@ -1820,7 +1822,7 @@ func _build_cave_shape(box: Control) -> void:
 	width.prefix = "Wide"
 	width.tooltip_text = "How wide the shapes' passages are, in tiles (0: from the room's size; never lower than the player)"
 	var style := OptionButton.new()
-	style.tooltip_text = "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too"
+	style.tooltip_text = "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too. Outdoor: no cave, an open world's surface: open sky over rolling hills, pits to jump and floating ledges, its sides open where another room goes on (the ground meets it). Arena: a fight room: a flat floor, walls, a ceiling and platforms in tiers, the same both sides"
 	for i in MDSCaveShapes.STYLES.size():
 		style.add_item(MDSCaveShapes.STYLES[i][1], i)
 	var sync := func() -> void:
@@ -1830,14 +1832,16 @@ func _build_cave_shape(box: Control) -> void:
 				picked.append(MDSCaveShapes.PICKABLE[popup.get_item_id(i)])
 		cave_shape = {"shape": MDSCaveShapes.CHOICES[shape.selected][0], "shapes": picked, "rotation": -1 if random.button_pressed else int(turn.value),
 			"count": int(count.value), "width": int(width.value), "style": MDSCaveShapes.STYLES[style.selected][0]}
-		var on: bool = MDSCaveShapes.wanted(cave_shape) or cave_shape.shape == "several"
-		menu.visible = cave_shape.shape == "several"
+		# Outdoor and Arena aren't caves: no shape to pick.
+		var open := MDSCaveShapes.is_open(cave_shape)
+		var on: bool = (MDSCaveShapes.wanted(cave_shape) or cave_shape.shape == "several") and not open
+		shape.disabled = open
+		menu.visible = cave_shape.shape == "several" and not open
 		menu.text = "Shapes: %s" % (", ".join(picked.map(func(k: String) -> String: return k.to_upper() if k.length() == 1 and k != "i" else k)) if not picked.is_empty() else "none")
 		turn.editable = on and not random.button_pressed and cave_shape.shape != "freeform"
 		random.disabled = not on
 		count.editable = on
 		width.editable = on
-		style.disabled = not on
 	shape.item_selected.connect(func(_i: int) -> void: sync.call())
 	popup.id_pressed.connect(func(id: int) -> void:
 		var idx := popup.get_item_index(id)
@@ -1857,6 +1861,7 @@ func _build_cave_shape(box: Control) -> void:
 	cave_shape_picker = shape
 	cave_shapes_menu = menu
 	cave_rotation_spin = turn
+	cave_style_picker = style
 
 ## What Generate cave makes, from the fills picked for each layer and the options (see
 ## [method MDSRoomPainter.generate_cave]).

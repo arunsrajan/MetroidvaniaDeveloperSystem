@@ -414,6 +414,9 @@ The map is one view of a room; the **Room view** is the other. It shows the room
     - **Turn** them by any angle from 0° to 359°, clockwise: a T turned 90° opens to the left, a U turned 180° is a ∩, 45° slants them (made smaller to stay in the room). **Random** turns each shape its own way, a new one each variation.
     - **x** puts several in a room, side by side along its long side (a grid when many), joined by tunnels; **Wide** sets their passages' width in tiles (0: from the room's size, never lower than the player).
     - **Style**: **Cave** (nonlinear) gives them rough rock edges and ledges on alternate sides up their tall parts. **Linear** gives straight walls and flat floors, and leaves the shapes' tall parts as smooth walls the player climbs (the Gameplay Kit's wall jump or climb); the shafts carved across open space to join the gates keep their ledges, having no wall to climb. The gates are joined as for any cave, a wall climb counting in a linear room.
+    - **Outdoor** and **Arena** aren't caves (no shape is picked, `MDSOpenLayouts`):
+      - **Outdoor** is an open world's surface: open sky over rolling ground, slopes and the odd pit to jump, floating ledges a jump apart, and no ceiling. A room's sides are open where another room goes on beyond them and walled where none does (a cliff at the world's end). The hills follow the world's columns, one shape per area, so rooms side by side meet at the same height, and a room lower or higher than its neighbour eases its ground to meet it halfway at the shared edge. Side gates get the ground at their doorstep, a gate in the floor a hole through it. The Background fill makes a band of bushes along the ground and leaves the sky clear for the parallax and the backdrop. Pair it with **Open worlds** (`stream_rooms`, in [At runtime](#at-runtime-mdsworldgame-no-metsys-needed)).
+      - **Arena** is a fight room: a flat floor three tiles thick, walls and a ceiling, and platforms in tiers a jump apart, the same on both sides, with a high one in the middle in a tall room.
     - Generate cave, New variation, Generate all and New variation for all use it, in the Room view and the Full view, and so does Generate caves for an area (`MDSCaveShapes`; in code, the fills' `cave`: `{shape, shapes, rotation, count, width, style}`).
 
   Untick any of them under the buttons. **New variation** rerolls it and **Auto-decorate** redoes only the decorations. Everything stays inside the room's shape, and irregular rooms get rock in their notches.
@@ -874,7 +877,7 @@ It handles:
 - **Open worlds** (`stream_rooms`): the rooms around the player stay loaded, in place beside the room it is in, so a side-scroller's world goes on with no loads and no walls between its rooms.
   - **What is loaded:** the rooms on its layer within `stream_margin` (640 px) of its rectangles. They load in the background (`ResourceLoader` threads), one put in per frame, and the ones left far behind are freed. Keep `stream_margin` at least half the view, so the camera never shows a room before it has loaded.
   - **Walking on:** walking into one makes it the current room where it is: nothing is loaded again, the player keeps going as it was, and the camera glides over. A gate on the side the two rooms share is walked through, not taken. Rooms not loaded yet, doors (`interact` gates) and linked gates work as before.
-  - **The camera** looks across the room and the rooms around it (`get_camera_bounds()`), with an `MDSRoomCamera` or a plain `Camera2D`.
+  - **The camera** looks across the room and the rooms it touches (`get_camera_bounds()`: their bounding box), with an `MDSRoomCamera` or a plain `Camera2D`.
   - **The rooms around** have their enemies and objects running, their 2.5D, and their own object ids (`object_id()` knows which room a node is in). They get the current room's weather, backgrounds and darkness only once the player is in them. Their gates lead nowhere until then.
   - **Locked passages:** a gate's requirements only stop gate transitions, so lock a passage between rooms loaded together with an `MDSGateBarrier` (a door the player can't walk through).
   - **In code:** `streamed` (room id -> node), `room_streamed(id)`, `get_stream_neighbours(id)`, `is_stream_ready()` and `clear_streamed()`. Loading a save and going back to a bench clear them.
@@ -1055,6 +1058,15 @@ It is drawing only: nothing collides differently.
 - **Performance:** outlines are simplified and cached until a shape moves or changes. Faces are only rebuilt when the camera or the light moves, and only for what's on screen; the terrain is looked for again when the room's tree changes. A 2304 x 1296 room with 30 curved shapes builds its faces in under 1 ms per frame.
 
 In the editor, the Room view's **2.5D preview** shows the room as it will look in the game.
+
+#### Light and brightness
+
+Rooms can look dim for two reasons, both of which you can change:
+
+- **The starter tileset is a cave's.** `MDSTilesetFactory` draws it in a palette: `cave` (gray-blue stone in the dark, the default) or `daylight` (brown earth under bright grass, green hills behind). The daylight one is made at `MDSTilesetFactory.DAYLIGHT_PATH`, or anywhere with `get_or_create(path, "daylight")`. Set it as the world's Room tileset.
+- **2.5D darkens the view away from the player.** By default it falls to 66% at 900 px, with a vignette: a cave's mood. `MDSDepthStyle.DAYLIGHT` (`addons/MetroidvaniaDeveloperSystem/styles/daylight_depth_style.tres`) barely darkens it, with a faint vignette and soft shadows. Its `light_dark`, `light_inner`, `light_reach`, `vignette` and `shadow_strength` are yours to tune in a copy.
+
+**World settings** has a **Bright daylight** button that sets both. It also has **Brightness**: `MDSWorldGame` draws the rooms that much brighter (1.3) or dimmer (0.8) through a `CanvasModulate`, without touching the HUD or the backdrop. The game's own `brightness` export wins over it (0: the world setting). Dark rooms (`darkness`, **Dark room share**) and their lights are set as before.
 
 **`MDSGate`** is the transition node, the equivalent of Hollow Knight's TransitionPoint. It's an `Area2D` named like its map gate (`left1`, `door1`...); **Write to scene** adds them for you. `MDSWorldGame` handles it automatically. With your own game code, connect `player_entered(transition)`, which carries `{room, gate, scene_path, entry_pos, side, from_room, from_gate}`, or call `MDSWorld.get_cached(path).get_transition(room_id, gate_name)`.
 
@@ -1602,6 +1614,26 @@ In debug builds, with the setting `metroidvania_developer_system/gameplay/debug_
 | F7 | 25% game speed on / off |
 
 Teleporting is MDS's **Play from here**.
+
+### Open world demo
+
+`examples/open_world_demo/` is a 2.5D side-scroller under the sky, made by MDS's own generator.
+
+- **Sunlit Meadows:** four wide Outdoor rooms in a row with no gates between them, walked as one long valley.
+- **Under Hollow:** an S-shaped cave, reached through a hole in Meadow_02's ground.
+- **Ridge Arena:** an Arena room past Meadow_04, with a Walker in it.
+
+The game streams the rooms around the player (`stream_rooms`), with the daylight tileset, the Daylight 2.5D style and parallax hills. Open `game.tscn` and press **F6**.
+
+![Meadow_01 of the open world demo](docs/open_world_demo.png)
+
+`build_open_world_demo.gd` builds it again:
+
+```
+godot --headless --path . --script res://examples/open_world_demo/build_open_world_demo.gd
+```
+
+`tests/test_open_world_demo.gd` checks the route works both ways: across the meadows into the arena and back, and down into the Hollow and back up. It also checks that the next meadow is already loaded when the player walks in.
 
 ### Gameplay demo
 

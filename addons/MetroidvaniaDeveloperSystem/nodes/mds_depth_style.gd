@@ -3,7 +3,12 @@ class_name MDSDepthStyle
 extends Resource
 ## How [MDSDepth25D] fakes depth: how far walls reach back, how faces are lit, how dark the
 ## view gets away from the player, shadows and floor paving. Save as a .tres to share it, or
-## leave the node's style empty for these defaults.
+## leave the node's style empty for these defaults (moody: the view darkens away from the
+## player, for caves). [constant DAYLIGHT] is a bright one, for outdoor rooms.
+
+## A bright style: the view barely darkens away from the player, a faint vignette, soft shadows,
+## earth and grass for terrain without a style of its own. World settings > 2.5D style takes it.
+const DAYLIGHT := "res://addons/MetroidvaniaDeveloperSystem/styles/daylight_depth_style.tres"
 
 @export_group("Extrusion")
 ## How far back walls reach, as a fraction of the way to the vanishing point (the middle of

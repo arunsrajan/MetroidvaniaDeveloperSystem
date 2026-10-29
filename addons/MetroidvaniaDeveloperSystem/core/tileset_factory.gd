@@ -1,8 +1,10 @@
 @tool
 class_name MDSTilesetFactory
 extends RefCounted
-## Generates a starter pixel-art tileset ("mossy cave") so rooms can be painted before any
-## art exists. Pixels are drawn at 16 px and scaled 2x (32 px tiles).
+## Generates a starter pixel-art tileset so rooms can be painted before any art exists, in one of
+## [constant PALETTES]: "cave" (a mossy cave, gray-blue stone in the dark: the default) or
+## "daylight" (an open world's: brown earth under bright grass, green hills behind, see
+## [constant DAYLIGHT_PATH]). Pixels are drawn at 16 px and scaled 2x (32 px tiles).
 ##
 ## Atlas layout (32 px tiles, 8 columns):
 ## - rows 0-1: "Rock" terrain (terrain set 0), 16 tiles indexed by connected sides
@@ -14,6 +16,9 @@ extends RefCounted
 
 ## Where the starter tileset is made when a room has none.
 const DEFAULT_PATH := "res://mds_tiles/mds_cave_tileset.tres"
+## The daylight one ([method get_or_create] makes it there in the "daylight" palette): set it as
+## the world's Room tileset (World settings) for bright outdoor rooms.
+const DAYLIGHT_PATH := "res://mds_tiles/mds_daylight_tileset.tres"
 ## Name of the custom data layer (a String) that tags decoration tiles with their kind.
 const KIND_LAYER := "mds_kind"
 
@@ -47,10 +52,28 @@ const LEAF_DARK := Color("#0f2f2a")
 const LEAF := Color("#1b4f43")
 const LEAF_LIGHT := Color("#2c7560")
 
-## Creates (or loads) the starter tileset at [param path] (.tres). Its atlas is the PNG next
-## to it, for artists to repaint: linked in the editor, packed into the .tres (compressed,
-## without loss) elsewhere. Never the image itself, which Godot would write out byte by byte.
-static func get_or_create(path := DEFAULT_PATH) -> TileSet:
+## The palettes the tileset is drawn in: name -> its colors.
+const PALETTES := {
+	"cave": {"rock_dark": ROCK_DARK, "rock": ROCK, "stone": STONE, "stone_light": STONE_LIGHT,
+		"moss_dark": MOSS_DARK, "moss": MOSS, "moss_light": MOSS_LIGHT, "moss_tip": MOSS_TIP,
+		"wall": WALL, "wall_light": WALL_LIGHT, "leaf_dark": LEAF_DARK, "leaf": LEAF, "leaf_light": LEAF_LIGHT},
+	# Bright: an open world under the sky.
+	"daylight": {"rock_dark": Color("#4a3220"), "rock": Color("#7a5434"), "stone": Color("#a07a52"), "stone_light": Color("#c9a273"),
+		"moss_dark": Color("#2f7d23"), "moss": Color("#4fae2e"), "moss_light": Color("#8bd94a"), "moss_tip": Color("#d6f57a"),
+		"wall": Color("#5f8a74"), "wall_light": Color("#76a28a"), "leaf_dark": Color("#2e6a3a"), "leaf": Color("#3f8f4a"), "leaf_light": Color("#66b85e")},
+}
+
+## The palette being drawn.
+static var _pal: Dictionary = PALETTES.cave
+
+## Creates (or loads) the starter tileset at [param path] (.tres), in [param palette] (one of
+## [constant PALETTES]; empty: "daylight" at [constant DAYLIGHT_PATH], else "cave"). Its atlas
+## is the PNG next to it, for artists to repaint: linked in the editor, packed into the .tres
+## (compressed, without loss) elsewhere. Never the image itself, which Godot would write out byte
+## by byte.
+static func get_or_create(path := DEFAULT_PATH, palette := "") -> TileSet:
+	if palette.is_empty():
+		palette = "daylight" if path == DAYLIGHT_PATH else "cave"
 	if path == DEFAULT_PATH:
 		path = MDSLegacy.tileset_path(path)
 	if ResourceLoader.exists(path):
@@ -58,18 +81,18 @@ static func get_or_create(path := DEFAULT_PATH) -> TileSet:
 		if existing:
 			return existing
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
-	var img := build_image()
+	var img := build_image(palette)
 	var png := path.get_basename() + ".png"
 	var atlas := MDSRoomPainter._file_texture(img, png)
 	if atlas is PortableCompressedTexture2D:
 		img.save_png(png)
-	var ts := build_tileset(atlas)
+	var ts := build_tileset(atlas, palette)
 	ResourceSaver.save(ts, path)
 	return load(path) as TileSet if ResourceLoader.exists(path) else ts
 
-## The starter tileset, its atlas [param atlas] ([method build_image] in an [ImageTexture]
-## when null).
-static func build_tileset(atlas: Texture2D = null) -> TileSet:
+## The starter tileset, its atlas [param atlas] ([method build_image] of [param palette] in an
+## [ImageTexture] when null).
+static func build_tileset(atlas: Texture2D = null, palette := "cave") -> TileSet:
 	var ts := TileSet.new()
 	ts.tile_size = Vector2i(TILE, TILE)
 	ts.add_physics_layer()
@@ -80,14 +103,14 @@ static func build_tileset(atlas: Texture2D = null) -> TileSet:
 	ts.set_terrain_set_mode(0, TileSet.TERRAIN_MODE_MATCH_SIDES)
 	ts.add_terrain(0)
 	ts.set_terrain_name(0, 0, "Rock")
-	ts.set_terrain_color(0, 0, MOSS)
+	ts.set_terrain_color(0, 0, (PALETTES.get(palette, PALETTES.cave) as Dictionary).moss)
 	ts.add_terrain_set()
 	ts.set_terrain_set_mode(1, TileSet.TERRAIN_MODE_MATCH_SIDES)
 	ts.add_terrain(1)
 	ts.set_terrain_name(1, 0, "Cave wall")
-	ts.set_terrain_color(1, 0, WALL_LIGHT)
+	ts.set_terrain_color(1, 0, (PALETTES.get(palette, PALETTES.cave) as Dictionary).wall_light)
 	var src := TileSetAtlasSource.new()
-	src.texture = atlas if atlas else ImageTexture.create_from_image(build_image())
+	src.texture = atlas if atlas else ImageTexture.create_from_image(build_image(palette))
 	src.texture_region_size = Vector2i(TILE, TILE)
 	ts.add_source(src, 0)
 	var sides := [TileSet.CELL_NEIGHBOR_RIGHT_SIDE, TileSet.CELL_NEIGHBOR_BOTTOM_SIDE, TileSet.CELL_NEIGHBOR_LEFT_SIDE, TileSet.CELL_NEIGHBOR_TOP_SIDE]
@@ -116,7 +139,9 @@ static func build_tileset(atlas: Texture2D = null) -> TileSet:
 
 # --- Pixel art ------------------------------------------------------------------------------
 
-static func build_image() -> Image:
+## The atlas, drawn in [param palette] (see [constant PALETTES]).
+static func build_image(palette := "cave") -> Image:
+	_pal = PALETTES.get(palette, PALETTES.cave)
 	var img := Image.create(COLS * PX, ROWS * PX, false, Image.FORMAT_RGBA8)
 	img.fill(Color.TRANSPARENT)
 	for m in 16:
@@ -135,6 +160,7 @@ static func build_image() -> Image:
 	_stalactite(img, DECOR.stalactite_large * PX, 14, 409)
 	_hanging_moss(img, DECOR.hanging_moss * PX, 410)
 	img.resize(COLS * TILE, ROWS * TILE, Image.INTERPOLATE_NEAREST)
+	_pal = PALETTES.cave
 	return img
 
 static func _px(img: Image, o: Vector2i, x: int, y: int, c: Color) -> void:
@@ -151,7 +177,7 @@ static func _rock_tile(img: Image, o: Vector2i, m: int, s: int) -> void:
 	var r := _rng(s)
 	for y in PX:
 		for x in PX:
-			_px(img, o, x, y, ROCK)
+			_px(img, o, x, y, _pal.rock)
 	# Stones.
 	for i in 5:
 		var cx := r.randi_range(1, PX - 2)
@@ -162,57 +188,57 @@ static func _rock_tile(img: Image, o: Vector2i, m: int, s: int) -> void:
 			for x in range(-rx - 1, rx + 2):
 				var d := pow(float(x) / (rx + 0.5), 2) + pow(float(y) / (ry + 0.5), 2)
 				if d <= 1.0:
-					_px(img, o, cx + x, cy + y, STONE if d > 0.35 or y > 0 else STONE_LIGHT)
+					_px(img, o, cx + x, cy + y, _pal.stone if d > 0.35 or y > 0 else _pal.stone_light)
 				elif d <= 1.5:
-					_px(img, o, cx + x, cy + y, ROCK_DARK)
+					_px(img, o, cx + x, cy + y, _pal.rock_dark)
 	var top := m & 8 == 0
 	var bottom := m & 2 == 0
 	var left := m & 4 == 0
 	var right := m & 1 == 0
 	if left:
 		for y in PX:
-			_px(img, o, 0, y, ROCK_DARK)
+			_px(img, o, 0, y, _pal.rock_dark)
 			if r.randf() < 0.5:
-				_px(img, o, 1, y, ROCK_DARK)
+				_px(img, o, 1, y, _pal.rock_dark)
 	if right:
 		for y in PX:
-			_px(img, o, PX - 1, y, ROCK_DARK)
+			_px(img, o, PX - 1, y, _pal.rock_dark)
 			if r.randf() < 0.5:
-				_px(img, o, PX - 2, y, ROCK_DARK)
+				_px(img, o, PX - 2, y, _pal.rock_dark)
 	if bottom:
 		for x in PX:
-			_px(img, o, x, PX - 1, ROCK_DARK)
+			_px(img, o, x, PX - 1, _pal.rock_dark)
 			if r.randf() < 0.35:
 				# Small moss drips under ledges.
-				_px(img, o, x, PX - 2, MOSS_DARK)
+				_px(img, o, x, PX - 2, _pal.moss_dark)
 	if top:
 		# Moss cap with a bumpy lower edge.
 		for x in PX:
 			var h := 3 + int(2.5 * (0.5 + 0.5 * sin(x * 1.3 + s))) + r.randi_range(0, 1)
 			for y in h:
-				var c := MOSS
+				var c: Color = _pal.moss
 				if y == 0:
-					c = MOSS_LIGHT if r.randf() < 0.75 else MOSS_TIP
+					c = _pal.moss_light if r.randf() < 0.75 else _pal.moss_tip
 				elif y == h - 1:
-					c = MOSS_DARK
+					c = _pal.moss_dark
 				_px(img, o, x, y, c)
 		for i in 3:
-			_px(img, o, r.randi_range(1, PX - 2), r.randi_range(1, 2), MOSS_TIP)
+			_px(img, o, r.randi_range(1, PX - 2), r.randi_range(1, 2), _pal.moss_tip)
 		# Moss creeping down exposed sides from the top.
 		if left:
 			for y in r.randi_range(4, 8):
-				_px(img, o, 0, y, MOSS if y % 3 else MOSS_LIGHT)
+				_px(img, o, 0, y, _pal.moss if y % 3 else _pal.moss_light)
 		if right:
 			for y in r.randi_range(4, 8):
-				_px(img, o, PX - 1, y, MOSS if y % 3 else MOSS_LIGHT)
+				_px(img, o, PX - 1, y, _pal.moss if y % 3 else _pal.moss_light)
 
 static func _wall_tile(img: Image, o: Vector2i, m: int, s: int) -> void:
 	var r := _rng(s)
 	for y in PX:
 		for x in PX:
-			var c := WALL if r.randf() < 0.85 else WALL_LIGHT
+			var c: Color = _pal.wall if r.randf() < 0.85 else _pal.wall_light
 			_px(img, o, x, y, c)
-	var edge := Color(WALL, 0.0)
+	var edge := Color(_pal.wall, 0.0)
 	if m & 8 == 0:
 		for x in PX:
 			_px(img, o, x, 0, edge)
@@ -233,7 +259,7 @@ static func _foliage_tile(img: Image, o: Vector2i, s: int) -> void:
 	var r := _rng(s)
 	for y in PX:
 		for x in PX:
-			_px(img, o, x, y, LEAF_DARK)
+			_px(img, o, x, y, _pal.leaf_dark)
 	for i in 6:
 		var cx := r.randi_range(-2, PX + 1)
 		var cy := r.randi_range(-2, PX + 1)
@@ -242,11 +268,11 @@ static func _foliage_tile(img: Image, o: Vector2i, s: int) -> void:
 			for x in range(-6, 7):
 				var d := Vector2(x, y).length()
 				if d <= rad:
-					var c := LEAF
+					var c: Color = _pal.leaf
 					if d <= rad * 0.45 and y < 0:
-						c = LEAF_LIGHT
+						c = _pal.leaf_light
 					elif d > rad - 1.0:
-						c = LEAF_DARK
+						c = _pal.leaf_dark
 					# Wrap so tiles repeat seamlessly.
 					_px(img, o, posmod(cx + x, PX), posmod(cy + y, PX), c)
 
@@ -255,18 +281,18 @@ static func _grass(img: Image, o: Vector2i, s: int) -> void:
 	for x in range(1, PX - 1):
 		var h := r.randi_range(2, 7)
 		for y in h:
-			_px(img, o, x, PX - 1 - y, MOSS_LIGHT if y < h - 1 else MOSS_TIP)
+			_px(img, o, x, PX - 1 - y, _pal.moss_light if y < h - 1 else _pal.moss_tip)
 		if r.randf() < 0.3:
-			_px(img, o, x, PX - 1 - h, MOSS)
+			_px(img, o, x, PX - 1 - h, _pal.moss)
 
 static func _fern(img: Image, o: Vector2i, _s: int) -> void:
 	for y in range(4, PX):
-		_px(img, o, 8, y, MOSS_DARK)
+		_px(img, o, 8, y, _pal.moss_dark)
 	for i in 5:
 		var y := 5 + i * 2
 		for k in range(1, 6 - i / 2):
-			_px(img, o, 8 - k, y - k / 2, MOSS if k % 2 else MOSS_LIGHT)
-			_px(img, o, 8 + k, y - k / 2, MOSS if k % 2 else MOSS_LIGHT)
+			_px(img, o, 8 - k, y - k / 2, _pal.moss if k % 2 else _pal.moss_light)
+			_px(img, o, 8 + k, y - k / 2, _pal.moss if k % 2 else _pal.moss_light)
 
 static func _flower(img: Image, o: Vector2i, s: int) -> void:
 	_grass(img, o, s)
@@ -290,24 +316,24 @@ static func _vine(img: Image, o: Vector2i, part: int, s: int) -> void:
 		if part == 2 and y > 11:
 			break
 		var x := 7 + int(round(sin(y * 0.6) * 1.5))
-		_px(img, o, x, y, MOSS_DARK)
-		_px(img, o, x + 1, y, MOSS)
+		_px(img, o, x, y, _pal.moss_dark)
+		_px(img, o, x + 1, y, _pal.moss)
 		if y % 4 == 1:
-			_px(img, o, x - 1, y, MOSS_LIGHT)
-			_px(img, o, x + 2, y + 1, MOSS_LIGHT)
+			_px(img, o, x - 1, y, _pal.moss_light)
+			_px(img, o, x + 2, y + 1, _pal.moss_light)
 	if part == 0:
 		for x in range(4, 12):
-			_px(img, o, x, 0, MOSS)
+			_px(img, o, x, 0, _pal.moss)
 			if r.randf() < 0.5:
-				_px(img, o, x, 1, MOSS_DARK)
+				_px(img, o, x, 1, _pal.moss_dark)
 
 static func _stalactite(img: Image, o: Vector2i, length: int, _s: int) -> void:
 	for y in length:
 		var w := int(round(4.0 * (1.0 - float(y) / length)))
 		for x in range(8 - w, 8 + w + 1):
-			var c := STONE if x < 8 else ROCK
+			var c: Color = _pal.stone if x < 8 else _pal.rock
 			if x == 8 - w or x == 8 + w:
-				c = ROCK_DARK
+				c = _pal.rock_dark
 			_px(img, o, x, y, c)
 
 static func _hanging_moss(img: Image, o: Vector2i, s: int) -> void:
@@ -315,4 +341,4 @@ static func _hanging_moss(img: Image, o: Vector2i, s: int) -> void:
 	for x in range(1, PX - 1):
 		var h := r.randi_range(2, 9)
 		for y in h:
-			_px(img, o, x, y, MOSS if y < h - 1 else MOSS_LIGHT)
+			_px(img, o, x, y, _pal.moss if y < h - 1 else _pal.moss_light)

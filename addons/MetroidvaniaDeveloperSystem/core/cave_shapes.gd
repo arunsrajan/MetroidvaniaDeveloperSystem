@@ -33,8 +33,12 @@ const DOTS := {"i": [Vector2(0.5, 0.12)]}
 const NECKS := {"i": [[Vector2(0.5, 0.12), Vector2(0.5, 0.5)]]}
 ## How the shapes are carved: "cave" (nonlinear: rough rock, ledges up the tall parts) or "linear"
 ## (straight walls, flat floors, the shapes' tall parts smooth walls to wall-climb, no ledges; the
-## shafts Generate cave carves across open space to join gates keep theirs, having no wall).
-const STYLES := [["cave", "Cave (nonlinear, ledges)"], ["linear", "Linear (straight, wall climb)"]]
+## shafts Generate cave carves across open space to join gates keep theirs, having no wall). Or no
+## cave at all, the shape not used: "outdoor" (an open world's surface: sky, hills, ledges) or
+## "arena" (a fight room: a flat floor, platforms in tiers), see [MDSOpenLayouts].
+const STYLES := [["cave", "Cave (nonlinear, ledges)"], ["linear", "Linear (straight, wall climb)"], ["outdoor", "Outdoor (open sky, hills)"], ["arena", "Arena (flat floor, tiers)"]]
+## The styles that aren't caves (see [constant STYLES]).
+const OPEN_STYLES: PackedStringArray = ["outdoor", "arena"]
 ## The shapes a picker lists, in order: [id, name]. "natural" is the cave grown from the room's
 ## outline (the shapes not used); "mixed" a shape picked at random for each.
 ## "several": the shapes picked ([code]shapes[/code]), shared out among the room's shapes.
@@ -49,6 +53,8 @@ const PICKABLE: PackedStringArray = ["t", "u", "h", "l", "i", "cross", "ring", "
 ## Whether [param cave] (Generate cave's "cave" fill: {shape, shapes, rotation, count, width,
 ## style}) asks for shapes.
 static func wanted(cave: Dictionary) -> bool:
+	if is_open(cave):
+		return true
 	var kind := str(cave.get("shape", "natural"))
 	if kind == "several":
 		return not _picked(cave).is_empty()
@@ -57,6 +63,11 @@ static func wanted(cave: Dictionary) -> bool:
 ## Whether [param cave] carves linear rooms, to wall-climb (see [constant STYLES]).
 static func wall_climb(cave: Dictionary) -> bool:
 	return wanted(cave) and str(cave.get("style", "cave")) == "linear"
+
+## Whether [param cave] asks for a room that isn't a cave: "outdoor" or "arena" (see
+## [MDSOpenLayouts]).
+static func is_open(cave: Dictionary) -> bool:
+	return str(cave.get("style", "cave")) in OPEN_STYLES
 
 ## The shapes picked in [param cave] ("several"), those that exist.
 static func _picked(cave: Dictionary) -> PackedStringArray:

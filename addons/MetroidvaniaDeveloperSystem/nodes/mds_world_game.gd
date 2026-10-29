@@ -119,8 +119,12 @@ static var instance: MDSWorldGame
 ## always, or never. A room that has its own MDSDepth25D keeps it.
 @export_enum("World setting", "On", "Off") var depth_25d := 0
 ## Style of the 2.5D. Empty: the world setting [code]depth_style[/code] (a .tres), else the
-## defaults.
+## defaults. [constant MDSDepthStyle.DAYLIGHT] is a bright one.
 @export var depth_style: MDSDepthStyle
+## How bright the rooms are drawn: 1 as they are, more brighter, less dimmer (the HUD and the
+## backdrop aren't touched). 0: the world setting [code]brightness[/code] (World settings >
+## Brightness), else 1.
+@export_range(0.0, 3.0, 0.05) var brightness := 0.0
 ## Draws the distance behind the rooms: the [MDSBackdrop] of the room
 ## ([code]rooms[id].backdrop[/code] in the world file), else of its area
 ## ([code]areas[name].backdrop[/code]), else the world's ([code]settings.backdrop[/code]).
@@ -219,6 +223,7 @@ var _stream_wanted: Array[String] = []
 var _stream_requested: Dictionary = {} ## scene paths asked for in the background
 var _stream_failed: Dictionary = {}
 var _neighbours: Dictionary = {} ## room id -> get_stream_neighbours()
+var _camera_bounds: Dictionary = {} ## room id -> get_camera_bounds() with stream_rooms
 
 func _enter_tree() -> void:
 	instance = self
@@ -255,6 +260,7 @@ func _ready() -> void:
 		layer.add_child(_fade)
 		add_child(layer)
 	get_tree().node_added.connect(_on_node_added)
+	apply_brightness()
 	_load_exploration()
 	if not _pending_save.is_empty():
 		_apply_save(_pending_save)
@@ -487,15 +493,20 @@ func get_stream_neighbours(id: String) -> Array[String]:
 	return out
 
 ## Where the camera may look in room [param id] (empty: the current one): the room's bounds, or
-## with [member stream_rooms] the bounds of it and the rooms loaded around it.
+## with [member stream_rooms] the bounds of it and the rooms it touches (those loaded around it
+## that only come near aren't looked into: past its edge there is nothing to see).
 func get_camera_bounds(id := "") -> Rect2:
 	id = current_room if id.is_empty() else id
 	if not world or id.is_empty():
 		return Rect2()
 	var b := world.get_room_bounds(id)
 	if stream_rooms:
-		for other in get_stream_neighbours(id):
-			b = b.merge(world.get_room_bounds(other))
+		if not _camera_bounds.has(id):
+			for other in get_stream_neighbours(id):
+				if MDSAreaTools.rooms_touch(world, id, other):
+					b = b.merge(world.get_room_bounds(other))
+			_camera_bounds[id] = b
+		return _camera_bounds[id]
 	return b
 
 ## Whether every room around the current one has loaded ([member stream_rooms]).
@@ -676,6 +687,28 @@ func _add_depth(room: Node2D) -> void:
 	d.room_camera = room_camera
 	d.player = player
 	room.add_child(d)
+
+## How bright the rooms are drawn: [member brightness], else the world setting, else 1.
+func get_brightness() -> float:
+	if brightness > 0.0:
+		return brightness
+	var b := float(world.get_setting("brightness", 1.0)) if world else 1.0
+	return b if b > 0.0 else 1.0
+
+## Draws the rooms as bright as [method get_brightness] says (a [CanvasModulate] over the game's
+## canvas, "Brightness"; none at 1). Call it again after changing [member brightness].
+func apply_brightness() -> void:
+	var b := get_brightness()
+	var cm := get_node_or_null(^"Brightness") as CanvasModulate
+	if is_equal_approx(b, 1.0):
+		if cm:
+			cm.queue_free()
+		return
+	if not cm:
+		cm = CanvasModulate.new()
+		cm.name = "Brightness"
+		add_child(cm)
+	cm.color = Color(b, b, b)
 
 func is_depth_25d_on() -> bool:
 	match depth_25d:
