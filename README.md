@@ -871,6 +871,13 @@ It handles:
   - Floor and ceiling gates need a gap in the terrain: the player has to reach the gate's area at the room's edge.
 - **Missing gate nodes:** a gate connected on the map with no `MDSGate` node in its scene prints a warning naming the room and gate.
 - **Seamless rooms** (`seamless_rooms`): walking into a touching room loads it without a gate.
+- **Open worlds** (`stream_rooms`): the rooms around the player stay loaded, in place beside the room it is in, so a side-scroller's world goes on with no loads and no walls between its rooms.
+  - **What is loaded:** the rooms on its layer within `stream_margin` (640 px) of its rectangles. They load in the background (`ResourceLoader` threads), one put in per frame, and the ones left far behind are freed. Keep `stream_margin` at least half the view, so the camera never shows a room before it has loaded.
+  - **Walking on:** walking into one makes it the current room where it is: nothing is loaded again, the player keeps going as it was, and the camera glides over. A gate on the side the two rooms share is walked through, not taken. Rooms not loaded yet, doors (`interact` gates) and linked gates work as before.
+  - **The camera** looks across the room and the rooms around it (`get_camera_bounds()`), with an `MDSRoomCamera` or a plain `Camera2D`.
+  - **The rooms around** have their enemies and objects running, their 2.5D, and their own object ids (`object_id()` knows which room a node is in). They get the current room's weather, backgrounds and darkness only once the player is in them. Their gates lead nowhere until then.
+  - **Locked passages:** a gate's requirements only stop gate transitions, so lock a passage between rooms loaded together with an `MDSGateBarrier` (a door the player can't walk through).
+  - **In code:** `streamed` (room id -> node), `room_streamed(id)`, `get_stream_neighbours(id)`, `is_stream_ready()` and `clear_streamed()`. Loading a save and going back to a bench clear them.
 - **Requirements** (`enforce_requirements`): gates whose map requirements the player lacks emit `transition_blocked(transition, missing)` instead.
 - **Progress:** `grant_ability()` / `has_ability()`, `store_object()` / `is_object_stored()` for collected items and opened walls (`object_id(node)` gives stable ids), visited rooms and the current area.
 - **Presentation:** the room's backdrop, weather, darkness and lights, and 2.5D (see below).

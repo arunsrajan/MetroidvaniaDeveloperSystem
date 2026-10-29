@@ -58,6 +58,9 @@ signal defeated(id: String, boss: String)
 signal map_pin_added(id: String)
 ## Marker [param id] was taken off the map.
 signal map_pin_removed(id: String)
+## Emitted with [member stream_rooms] when a room around the current one has loaded, in place
+## (it is in [member streamed]).
+signal room_streamed(room_id: String)
 
 ## The running game (the last one that entered the tree), for nodes that need it: title
 ## cards, music, banners, barriers.
@@ -79,6 +82,17 @@ static var instance: MDSWorldGame
 @export var enforce_requirements := false
 ## Load the neighboring room when the player walks into it, without a gate.
 @export var seamless_rooms := false
+## Open world: the rooms around the player stay loaded, in place beside the room it is in
+## (those on its layer within [member stream_margin] of it), loaded in the background as it goes.
+## The camera looks across them, walking into one makes it the current room where it is, with
+## nothing reloaded and the player going on as it was, and gates at a side shared with one are
+## simply walked through. Implies [member seamless_rooms]. Lock a passage between such rooms with
+## an [MDSGateBarrier] (a door the player can't walk through): a gate's requirements only stop
+## gate transitions.
+@export var stream_rooms := false
+## How far (px) past the current room's rectangles [member stream_rooms] keeps rooms loaded. At
+## least half the view, so the camera never shows a room before it has loaded.
+@export var stream_margin := 640.0
 ## Fade to black between rooms (seconds, 0 = instant). With a room camera, its
 ## transition settings are used instead.
 @export var fade_time := 0.2
@@ -187,6 +201,9 @@ var weather: Node2D
 var parallax: Node2D
 ## The current room's animated background (null: none).
 var background: Node2D
+## With [member stream_rooms]: the rooms loaded around the current one, room id -> its node, in
+## place on the map. Their gates lead nowhere until the player walks in.
+var streamed: Dictionary = {}
 
 var _cooldown_until := 0
 var _fade: ColorRect
@@ -198,6 +215,10 @@ var _arrived_frame := -100
 ## not, if the player is still in it or went through it, instead of falling out of the room.
 var _pending_gate: Dictionary = {}
 var _cinema: CanvasLayer
+var _stream_wanted: Array[String] = []
+var _stream_requested: Dictionary = {} ## scene paths asked for in the background
+var _stream_failed: Dictionary = {}
+var _neighbours: Dictionary = {} ## room id -> get_stream_neighbours()
 
 func _enter_tree() -> void:
 	instance = self
@@ -289,11 +310,17 @@ func _physics_process(_delta: float) -> void:
 		if g and (g.overlaps_body(player) or went_through(g, player.global_position)):
 			_on_gate_entered(t)
 			return
-	if seamless_rooms and not world.room_contains(current_room, player.global_position):
+	if (seamless_rooms or stream_rooms) and not world.room_contains(current_room, player.global_position):
 		var next := world.room_at(player.global_position, world.get_room_layer(current_room))
 		if not next.is_empty() and next != current_room:
-			# Walking into a touching room: the camera glides over.
-			load_room(next, "", player.global_position, MDSRoomCamera.Transition.BLEND if room_camera else -1)
+			if streamed.has(next):
+				_enter_streamed(next)
+			else:
+				# Walking into a touching room: the camera glides over.
+				load_room(next, "", player.global_position, MDSRoomCamera.Transition.BLEND if room_camera else -1)
+			return
+	if stream_rooms:
+		_pump_stream()
 
 # --- Rooms --------------------------------------------------------------------------------
 
@@ -338,7 +365,13 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 	var old_room := room_node
 	if old_room:
 		_record_followers(old_room, current_room, id, entry_gate)
-		if style == MDSRoomCamera.Transition.SLIDE or style == MDSRoomCamera.Transition.BLEND:
+		if stream_rooms and id != current_room and get_stream_neighbours(id).has(current_room):
+			# Around the new room: it stays in place, as it is.
+			_drop_departed(old_room, current_room)
+			_detach_room(old_room)
+			streamed[current_room] = old_room
+			old_room = null
+		elif style == MDSRoomCamera.Transition.SLIDE or style == MDSRoomCamera.Transition.BLEND:
 			# Stays visible (but inert) until the camera has moved over.
 			old_room.process_mode = Node.PROCESS_MODE_DISABLED
 		else:
@@ -346,28 +379,24 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 			await old_room.tree_exited
 			old_room = null
 	_exit = {}
-	room_node = (load(path) as PackedScene).instantiate()
-	_clean_room(room_node, path)
-	_remove_defeated(room_node, id)
-	_place_followers(room_node, id, entry_gate)
-	room_node.position = world.get_origin(id)
-	# Before the room enters the tree: its nodes' _ready may ask for their object_id().
 	var previous := current_room
-	current_room = id
-	add_child(room_node)
-	move_child(room_node, 0)
-	for gate in room_node.find_children("*", "Area2D", true, false):
-		if not gate is MDSGate:
-			continue
-		if gate.world_file.is_empty():
-			gate.world_file = world_file
-		if gate.room_id.is_empty():
-			gate.room_id = id
-		gate.player_entered.connect(_on_gate_entered)
-	visited_rooms[id] = true
-	_record_save_points(room_node, id)
-	_dress_room(room_node, id)
-	_pending_gate = {}
+	if streamed.has(id):
+		# Loaded already, around the last room: it is used as it is.
+		room_node = streamed[id]
+		streamed.erase(id)
+		current_room = id
+		_place_followers(room_node, id, entry_gate)
+	else:
+		room_node = _room_scene(path).instantiate()
+		_clean_room(room_node, path)
+		_remove_defeated(room_node, id)
+		_place_followers(room_node, id, entry_gate)
+		room_node.position = world.get_origin(id)
+		# Before the room enters the tree: its nodes' _ready may ask for their object_id().
+		current_room = id
+		add_child(room_node)
+		move_child(room_node, 0)
+	_attach_room(room_node, id)
 	if player:
 		# Back in the physics space first: a body moved while it is out of it keeps its old
 		# position there, and would land in the entry gate it came through.
@@ -385,6 +414,32 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 		apply_camera_limits(camera)
 	if old_room:
 		old_room.queue_free()
+	_arrived(previous, id)
+	if style == MDSRoomCamera.Transition.FADE:
+		await _fade_to(0.0)
+
+## The room [param room] (room [param id]) is the current one now, in the tree: its gates lead
+## on, it is visited, its save points known, and it is dressed.
+func _attach_room(room: Node2D, id: String) -> void:
+	for gate in room.find_children("*", "Area2D", true, false):
+		if not gate is MDSGate:
+			continue
+		_own_gate(gate, id)
+		if not gate.player_entered.is_connected(_on_gate_entered):
+			gate.player_entered.connect(_on_gate_entered)
+	visited_rooms[id] = true
+	_record_save_points(room, id)
+	_dress_room(room, id)
+	_pending_gate = {}
+
+func _own_gate(gate: MDSGate, id: String) -> void:
+	if gate.world_file.is_empty():
+		gate.world_file = world_file
+	if gate.room_id.is_empty():
+		gate.room_id = id
+
+## The room the player is in from now on: the map, the explored file, the signals.
+func _arrived(previous: String, id: String) -> void:
 	if map_view:
 		map_view.mark_visited(id)
 	# Every room entered: the room the player is in is kept too (the editor's map shows it).
@@ -403,10 +458,191 @@ func load_room(room: String, entry_gate := "", world_position := Vector2.INF, tr
 		area_changed.emit(old_area, area)
 	check_objectives()
 	_show_objective_on_map()
+	_restream()
 	# Last: awaiting room_loaded means everything above has happened.
 	room_loaded.emit(id)
-	if style == MDSRoomCamera.Transition.FADE:
-		await _fade_to(0.0)
+
+# --- Open world: the rooms around the player (stream_rooms) -------------------------------------
+
+## The rooms [member stream_rooms] keeps loaded around room [param id]: those with a scene on its
+## layer that come within [member stream_margin] of its rectangles.
+func get_stream_neighbours(id: String) -> Array[String]:
+	if _neighbours.has(id):
+		return _neighbours[id]
+	var out: Array[String] = []
+	var margin := maxf(stream_margin, 1.0)
+	var near: Array[Rect2] = []
+	for r in world.get_world_rects(id):
+		near.append(r.grow(margin))
+	var reach := world.get_room_bounds(id).grow(margin)
+	var layer := world.get_room_layer(id)
+	for other in world.get_room_ids():
+		if other == id or world.get_room_layer(other) != layer or not reach.intersects(world.get_room_bounds(other)) or world.get_scene_path(other).is_empty():
+			continue
+		for r in world.get_world_rects(other):
+			if near.any(func(n: Rect2) -> bool: return n.intersects(r)):
+				out.append(other)
+				break
+	_neighbours[id] = out
+	return out
+
+## Where the camera may look in room [param id] (empty: the current one): the room's bounds, or
+## with [member stream_rooms] the bounds of it and the rooms loaded around it.
+func get_camera_bounds(id := "") -> Rect2:
+	id = current_room if id.is_empty() else id
+	if not world or id.is_empty():
+		return Rect2()
+	var b := world.get_room_bounds(id)
+	if stream_rooms:
+		for other in get_stream_neighbours(id):
+			b = b.merge(world.get_room_bounds(other))
+	return b
+
+## Whether every room around the current one has loaded ([member stream_rooms]).
+func is_stream_ready() -> bool:
+	for id in _stream_wanted:
+		if not streamed.has(id) and id != current_room and not _stream_failed.has(id):
+			return false
+	return true
+
+## Frees the rooms loaded around the current one (they load again as the player moves on).
+func clear_streamed() -> void:
+	for id in streamed.keys():
+		_unstream(id)
+	_stream_wanted.clear()
+
+## Which rooms should be around now: those no longer near go, the others are asked for.
+func _restream() -> void:
+	if not stream_rooms:
+		if not streamed.is_empty():
+			clear_streamed()
+		return
+	_stream_wanted = get_stream_neighbours(current_room)
+	for id in streamed.keys():
+		if not _stream_wanted.has(id):
+			_unstream(id)
+	_pump_stream()
+
+## Asks for the rooms around the current one in the background, and puts in one that has loaded
+## (one a frame, so no frame does it all).
+func _pump_stream() -> void:
+	for id in _stream_wanted:
+		if streamed.has(id) or id == current_room or _stream_failed.has(id):
+			continue
+		var path := world.get_scene_path(id)
+		if not _stream_requested.has(path):
+			if ResourceLoader.load_threaded_request(path) != OK:
+				_stream_failed[id] = true
+				push_warning("MDSWorldGame: room '%s' can't be loaded around the player (%s)." % [id, path])
+				continue
+			_stream_requested[path] = true
+		match ResourceLoader.load_threaded_get_status(path):
+			ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+				continue
+			ResourceLoader.THREAD_LOAD_LOADED:
+				_stream_in(id, path, _room_scene(path))
+				return
+			_:
+				_stream_requested.erase(path)
+				_stream_failed[id] = true
+				push_warning("MDSWorldGame: room '%s' can't be loaded around the player (%s)." % [id, path])
+
+## The scene of a room: the one loaded in the background when it was asked for, else loaded now.
+func _room_scene(path: String) -> PackedScene:
+	if _stream_requested.has(path):
+		_stream_requested.erase(path)
+		var scene := ResourceLoader.load_threaded_get(path) as PackedScene
+		if scene:
+			return scene
+	return load(path) as PackedScene
+
+## Puts room [param id] in place beside the current one, as it is in the game but for its gates,
+## which lead nowhere until the player walks in (and its weather, backgrounds and darkness, the
+## current room's only). With 2.5D, it gets its depth.
+func _stream_in(id: String, path: String, scene: PackedScene) -> void:
+	if not scene:
+		_stream_failed[id] = true
+		return
+	var room := scene.instantiate() as Node2D
+	if not room:
+		_stream_failed[id] = true
+		return
+	_clean_room(room, path)
+	_remove_defeated(room, id)
+	_place_followers(room, id, "")
+	room.position = world.get_origin(id)
+	# Before it enters the tree: its nodes' _ready may ask for their object_id().
+	streamed[id] = room
+	add_child(room)
+	move_child(room, 0)
+	for gate in room.find_children("*", "Area2D", true, false):
+		if gate is MDSGate:
+			_own_gate(gate, id)
+	_record_save_points(room, id)
+	if is_depth_25d_on():
+		_add_depth(room)
+	room_streamed.emit(id)
+
+## Takes room [param id] away from around the current one; its followers that moved are kept.
+func _unstream(id: String) -> void:
+	var room: Node2D = streamed.get(id)
+	streamed.erase(id)
+	if not is_instance_valid(room):
+		return
+	var exit := _exit
+	_exit = {}
+	_record_followers(room, id, "", "")
+	_exit = exit
+	room.queue_free()
+
+## The current room [param room] stays loaded around the next one: its gates lead nowhere now,
+## and what only the current room has (weather, backgrounds, darkness) goes.
+func _detach_room(room: Node2D) -> void:
+	for gate in room.find_children("*", "Area2D", true, false):
+		if gate is MDSGate and gate.player_entered.is_connected(_on_gate_entered):
+			gate.player_entered.disconnect(_on_gate_entered)
+	for n: Node in [weather, parallax, background, room.get_node_or_null(^"MDSDarkness")]:
+		if is_instance_valid(n) and room.is_ancestor_of(n):
+			n.get_parent().remove_child(n)
+			n.queue_free()
+	weather = null
+	parallax = null
+	background = null
+
+## Followers of [param room] (room [param id]) that went on with the player: they are in the next
+## room now, not in this one any more.
+func _drop_departed(room: Node2D, id: String) -> void:
+	if carry_over_group == &"" or not is_inside_tree():
+		return
+	for n in get_tree().get_nodes_in_group(carry_over_group):
+		if not n is Node2D or not room.is_ancestor_of(n):
+			continue
+		var oid := str(MDSLegacy.get_meta_key(n, &"mds_object_id")) if MDSLegacy.has_meta_key(n, &"mds_object_id") else "%s/%s" % [id, room.get_path_to(n)]
+		if moved.has(oid) and moved[oid].room != id:
+			n.get_parent().remove_child(n)
+			n.queue_free()
+
+## The player walked into room [param id], loaded already around the last one: it becomes the
+## current room where it is, nothing reloaded, the player going on as it was, the camera gliding
+## over to its view.
+func _enter_streamed(id: String) -> void:
+	changing_room = true
+	var previous := current_room
+	var previous_center := room_camera.screen_center() if room_camera and room_camera.camera else Vector2.ZERO
+	_exit = {}
+	if room_node:
+		_detach_room(room_node)
+		streamed[previous] = room_node
+	room_node = streamed[id]
+	streamed.erase(id)
+	current_room = id
+	_attach_room(room_node, id)
+	_warn_missing_gate_nodes(id, world.get_scene_path(id))
+	if room_camera:
+		await room_camera.enter_room(id, MDSRoomCamera.Transition.BLEND, previous_center)
+	elif camera:
+		apply_camera_limits(camera)
+	_arrived(previous, id)
 
 ## Room scenes are plain scenes: players placed in them for testing are removed, and a
 ## game script on their root is reported (it would try to run a second game).
@@ -423,17 +659,23 @@ func _clean_room(room: Node, path: String) -> void:
 ## Presentation added to a room as it loads.
 func _dress_room(room: Node2D, id: String) -> void:
 	_apply_backdrop(room, id)
-	if is_depth_25d_on() and not room.find_children("*", "Node2D", true, false).any(func(n: Node) -> bool: return n is MDSDepth25D):
-		var d := MDSDepth25D.new()
-		d.name = "Depth25D"
-		d.style = depth_style if depth_style else _setting_resource("depth_style") as MDSDepthStyle
-		d.room_camera = room_camera
-		d.player = player
-		room.add_child(d)
+	if is_depth_25d_on():
+		_add_depth(room)
 	_apply_weather(room, id)
 	_apply_background(room, id)
 	_apply_parallax(room, id)
 	_apply_darkness(room, id)
+
+## Gives [param room] an [MDSDepth25D], unless it has one of its own.
+func _add_depth(room: Node2D) -> void:
+	if room.find_children("*", "Node2D", true, false).any(func(n: Node) -> bool: return n is MDSDepth25D):
+		return
+	var d := MDSDepth25D.new()
+	d.name = "Depth25D"
+	d.style = depth_style if depth_style else _setting_resource("depth_style") as MDSDepthStyle
+	d.room_camera = room_camera
+	d.player = player
+	room.add_child(d)
 
 func is_depth_25d_on() -> bool:
 	match depth_25d:
@@ -811,6 +1053,9 @@ func _on_gate_entered(t: Dictionary) -> void:
 			transition_blocked.emit(t, missing)
 			return
 	var from := MDSGate.find_gate(room_node, t.get("from_gate", "")) if room_node else null
+	if stream_rooms and streamed.has(str(t.get("room", ""))) and not t.get("link", false) and from and from.mode == MDSGate.Mode.TOUCH:
+		# The room beyond is loaded beside this one: the player walks on into it.
+		return
 	_exit = {"gate": t.get("from_gate", ""), "pos": from.global_position if from else (player.global_position if player else Vector2.ZERO)}
 	var cinematic: PackedScene = t.get("transition_scene")
 	if cinematic:
@@ -857,9 +1102,10 @@ func play_cinematic(scene: PackedScene, transition := {}) -> void:
 func get_room_bounds() -> Rect2:
 	return world.get_room_bounds(current_room) if world and not current_room.is_empty() else Rect2()
 
-## Clamps [param cam] to the current room, like MetSys' RoomInstance.adjust_camera_limits.
+## Clamps [param cam] to the current room, like MetSys' RoomInstance.adjust_camera_limits
+## (with [member stream_rooms], to it and the rooms around it: [method get_camera_bounds]).
 func apply_camera_limits(cam: Camera2D) -> void:
-	var b := get_room_bounds()
+	var b := get_camera_bounds()
 	cam.limit_left = int(b.position.x)
 	cam.limit_top = int(b.position.y)
 	cam.limit_right = int(b.end.x)
@@ -883,13 +1129,23 @@ func grant_ability(ability: String) -> void:
 func has_ability(ability: String) -> bool:
 	return abilities.has(ability)
 
-## Stable id for a node in the current room ("Room_01/Items/HeartPiece"), for
-## remembering collected items, opened walls and defeated enemies across rooms and saves. A
-## node carried into another room keeps the id it had ([code]mds_object_id[/code] metadata).
+## Stable id for a node in the current room ("Room_01/Items/HeartPiece"), or in a room
+## loaded around it ([member stream_rooms]), for remembering collected items, opened walls and
+## defeated enemies across rooms and saves. A node carried into another room keeps the id it
+## had ([code]mds_object_id[/code] metadata).
 func object_id(node: Node) -> String:
 	if MDSLegacy.has_meta_key(node, &"mds_object_id"):
 		return str(MDSLegacy.get_meta_key(node, &"mds_object_id"))
-	return "%s/%s" % [current_room, room_node.get_path_to(node) if room_node and room_node.is_ancestor_of(node) else node.name]
+	var id := current_room
+	var host := room_node
+	if not (room_node and room_node.is_ancestor_of(node)):
+		for other: String in streamed:
+			var r: Node2D = streamed[other]
+			if is_instance_valid(r) and r.is_ancestor_of(node):
+				id = other
+				host = r
+				break
+	return "%s/%s" % [id, host.get_path_to(node) if host and host.is_ancestor_of(node) else node.name]
 
 func store_object(node_or_id: Variant) -> void:
 	stored_objects[node_or_id if node_or_id is String else object_id(node_or_id)] = true
@@ -982,7 +1238,8 @@ func _place_followers(room: Node, id: String, entry_gate: String) -> void:
 		var e: Dictionary = moved[oid]
 		if e.room != id or not ResourceLoader.exists(e.scene) or defeated_ids.has(oid):
 			continue
-		var node := room.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n.owner == room and "%s/%s" % [id, room.get_path_to(n)] == oid)
+		# The room's own node, or one carried in earlier that is still there (a room kept loaded).
+		var node := room.find_children("*", "", true, false).filter(func(n: Node) -> bool: return (n.owner == room and "%s/%s" % [id, room.get_path_to(n)] == oid) or (n.has_meta(&"mds_object_id") and str(n.get_meta(&"mds_object_id")) == oid))
 		var inst: Node2D = node[0] if not node.is_empty() else (load(e.scene) as PackedScene).instantiate() as Node2D
 		if not inst:
 			continue
@@ -1401,6 +1658,7 @@ func new_game() -> void:
 ## the starting room when they never rested. Asynchronous: await it or use
 ## [signal room_loaded].
 func return_to_save_point() -> void:
+	clear_streamed()
 	if respawn.is_empty() or not world.has_room(str(respawn.get("room", ""))):
 		var room := starting_room if world.has_room(starting_room) else world.get_start_room()
 		await load_room(room, starting_gate)
@@ -1462,6 +1720,8 @@ func set_save_data(data: Dictionary) -> void:
 	_apply_save(data)
 
 func _apply_save(data: Dictionary) -> void:
+	# The rooms around the player were loaded as the progress was before.
+	clear_streamed()
 	var explored := visited_rooms.duplicate() if not exploration_file.is_empty() else {}
 	visited_rooms.clear()
 	abilities.clear()

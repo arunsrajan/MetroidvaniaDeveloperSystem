@@ -24,14 +24,17 @@ func _ready() -> void:
 	var game := get_parent() as MDSWorldGame
 	if game:
 		game.room_loaded.connect(func(_id: String) -> void: dress(game.room_node))
+		# Rooms loaded around the player (an open world) are dressed as they come.
+		game.room_streamed.connect(func(id: String) -> void: dress(game.streamed.get(id)))
 	else:
 		var room := owner if owner else get_parent()
 		dress.call_deferred(room)
 
 ## Dresses [param room] now (it must be in the tree): returns the edits made.
 func dress(room: Node) -> Array:
-	if not is_instance_valid(room) or not room.is_inside_tree():
+	if not is_instance_valid(room) or not room.is_inside_tree() or room.has_meta(&"mds_dressed"):
 		return []
+	room.set_meta(&"mds_dressed", true)
 	# The room's ground is copied into a physics world of its own, apart from the live room's.
 	var host := SubViewport.new()
 	host.disable_3d = true
