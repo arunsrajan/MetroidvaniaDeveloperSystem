@@ -164,6 +164,9 @@ func start(a: MDSAttackData) -> void:
 	hitbox.reset_hits()
 	_bounced = false
 	_place_hitbox(a)
+	var p := _player()
+	if p:
+		MDSAttackFX.on_swing(a, p, float(p.facing))
 	attack_started.emit(a)
 
 func _advance(delta: float) -> void:
@@ -273,6 +276,8 @@ func try_parry(info: MDSDamageInfo) -> bool:
 	if attacker and attacker.has_method(&"stun"):
 		attacker.call(&"stun", 1.0)
 	parried.emit(info)
+	if MDSAttackFX.enabled() and p.is_inside_tree():
+		MDSAttackFX.play("parry_flash", p.get_parent(), p.global_position + Vector2(p.facing * 24, -8))
 	if p.gameplay:
 		p.gameplay.hitstop(90)
 	return true

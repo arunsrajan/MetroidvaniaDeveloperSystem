@@ -34,6 +34,12 @@ enum Direction { FORWARD, UP, DOWN }
 @export var projectile: PackedScene
 ## Hits each target once per swing.
 @export var one_hit_per_target := true
+## The effect played as it swings (an [constant MDSAttackFX.EFFECTS] id): empty picks one by how
+## it goes ([method MDSAttackFX.swing_for]), "none" plays none.
+@export var swing_fx := ""
+## The effect played where it hits: empty picks one by its damage type
+## ([method MDSAttackFX.hit_for]), "none" plays none.
+@export var hit_fx := ""
 
 func startup_time() -> float:
 	return startup_frames / 60.0

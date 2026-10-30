@@ -1531,6 +1531,60 @@ A barrier with `consume_items` uses up the items it requires. A map gate whose r
 - **Feel:** hit-stop, `MDSRoomCamera.shake()` (skipped with the *Cut, never glide* camera motion), a white hit flash, gamepad rumble, and floating damage numbers (`MDSDamageNumber`, off by default). Each is a setting under `metroidvania_developer_system/gameplay/feel/`.
 - **Hazards:** `MDSHazard` RESPAWN spikes and MDS's `MDSLava` hurt the player and put it back on its last safe ground (or the room's `MDSCheckpoint`); DAMAGE hazards and other environment effects hurt and knock back.
 
+#### Attack effects
+
+**`MDSAttackFX`** plays an attack's effect once: a blade's arc as the player swings, a flash and sparks where a blow lands, fire, ice or lightning for a hit of that type, a body flickering or freezing as it is hit. There are thirty, each a `canvas_item` shader in `gameplay/shaders/attacks/`. All of them share `attack_fx.gdshaderinc`, so they all play by a `progress` value from 0 to 1 and take a `core_color` and a `glow_color`. Each is drawn on a quad that faces the way the attack goes and frees itself when it's done.
+
+![The thirty attack effects half way through](docs/attack_fx.png)
+
+- **Colours:** each effect takes the colours of whoever attacks. The player's are warm white and sky blue, an enemy's pale rose and red. The elemental ones keep their own colours: fire is orange whoever throws it.
+- **Played by themselves** (the feel setting `feel/attack_fx`, on by default):
+  - The player's swings (`MDSAttackController`) get an arc picked by how they go: forward an arc, up an uppercut, down a cleave, a charged one a burst, a ground pound a slam.
+  - Every hit of a player or enemy hitbox or projectile gets an effect where it struck (`MDSHitbox`), picked by its damage type: `fire`, `ice`, `shock`, `void`, `poison`, `holy`, `wind`, `water`, `shadow` and `soul` each have one. A plain blow is a star (the player's), a critical flash (3 damage or more) or sparks (an enemy's).
+  - Ice also freezes the body hit, shock electrocutes it, and an enemy's blow shakes the player's picture.
+  - A parry flashes.
+- **An attack's own:** `MDSAttackData.swing_fx` and `hit_fx` take an effect id, or `none` for no effect. Empty picks one as above.
+- **From code:**
+  ```gdscript
+  MDSAttackFX.play("lightning_strike", room, enemy.global_position)
+  MDSAttackFX.play("claw_rake", room, boss.global_position, -1.0, MDSAttackFX.Team.ENEMY)
+  MDSAttackFX.play("freeze_overlay", player, player.global_position, 1.0, MDSAttackFX.Team.ENEMY, 1.0, player)
+  ```
+  The arguments, in order: the effect, the parent, where (global), the facing (1 right, -1 left), whose colours, the size, and a body to follow. "On the body" effects bend or tint what is under them through the screen texture, so they go over the body hit and follow it. `get_material_fx()` gives an effect's material, for its colours and `intensity`.
+
+| Effect | Kind | What it is |
+|---|---|---|
+| `slash_arc` | Swing | A blade's arc swept from above down to the front |
+| `crescent_wave` | Swing | A crescent of light thrown forward (a sword beam) |
+| `thrust` | Swing | A stab: a straight streak shooting forward |
+| `overhead_cleave` | Swing | A heavy cleave brought down from overhead |
+| `spin_slash` | Swing | A whirlwind: the blade swept round twice |
+| `claw_rake` | Swing | Three claw marks torn across one after another |
+| `uppercut_arc` | Swing | A rising slash throwing sparks upward |
+| `ground_slam` | Swing | A dome of force bursting up off the ground, dust flying |
+| `charge_burst` | Swing | Motes gathering in, then a burst of light let loose |
+| `dash_streak` | Swing | Speed lines streaming out behind a dash |
+| `impact_star` | Impact | The flash where a blow lands: a four-pointed star |
+| `spark_burst` | Impact | Sparks thrown out from the hit, arcing down |
+| `shockwave_ring` | Impact | A ring racing outward, bending what is behind it |
+| `ink_splash` | Impact | A splash of ink thrown from the wound |
+| `crit_flash` | Impact | A critical hit: a blinding cross flare |
+| `parry_flash` | Impact | A diamond of light snapping out from a parry |
+| `shield_ripple` | Impact | A blocked hit: a shield's hexagons lit by a ripple |
+| `fire_burst` | Impact | Fire licking up and out, embers flying (its own colors) |
+| `ice_shatter` | Impact | Crystal shards flung out, frost glittering (its own colors) |
+| `lightning_strike` | Impact | A jagged bolt cracking down onto the hit (its own colors) |
+| `poison_cloud` | Impact | A sickly cloud welling up, bubbles rising (its own colors) |
+| `void_rift` | Impact | A rift torn open, swirling into darkness (its own colors) |
+| `holy_burst` | Impact | A radiant burst with rays fanning out (its own colors) |
+| `wind_cut` | Impact | Thin blades of air whipping across (its own colors) |
+| `water_splash` | Impact | A crown of spray and drops falling back (its own colors) |
+| `shadow_bite` | Impact | Dark jaws snapping shut on the hit (its own colors) |
+| `soul_drain` | Impact | Wisps spiralling in to the one who hit (its own colors) |
+| `chromatic_hit` | On the body | The body's picture split red, green and blue and shaken |
+| `freeze_overlay` | On the body | The body frozen: icy, frost at its edges, thawing (its own colors) |
+| `electrocute` | On the body | Arcs crawling over the body, flickering (its own colors) |
+
 ### Enemies and bosses
 
 `MDSEnemy` is a `CharacterBody2D` in the `enemy` group with health, a hurtbox, a contact hitbox, knockback, an `MDSPlayerDetector` and its own state machine. Its `respawn` decides whether it comes back: on every room load, after a rest on a bench (the default), or never (`mark_defeated()`). A defeat rolls its `MDSEnemyData` drops and currency, and counts in the Bestiary.

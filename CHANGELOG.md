@@ -6,6 +6,12 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 ### Added
 
+- **Attack effects** (`MDSAttackFX`): thirty attack shaders in `gameplay/shaders/attacks/`, played once in the player's or the enemy's colours.
+  - Ten swings: slash arc, crescent wave, thrust, overhead cleave, spin slash, claw rake, uppercut, ground slam, charge burst, dash streak.
+  - Seven impacts: star, sparks, shockwave, ink splash, critical flash, parry flash, shield ripple.
+  - Ten elements: fire, ice, lightning, poison, void, holy, wind, water, shadow bite, soul drain.
+  - Three on the body hit: chromatic split, freeze, electrocute.
+  - They play by themselves for the player's swings, every hit by damage type, and parries (`feel/attack_fx`). An attack can pick its own with `MDSAttackData.swing_fx` and `hit_fx`.
 - **Gameplay Kit** (`addons/MetroidvaniaDeveloperSystem/gameplay/`, see the README): the gameplay half of a Metroidvania, plugged into `MDSWorldGame`.
   - **Hub:** `MDSGameplay` under the game holds items, currency, equipment, story flags, health and mana, saved with the game in `ext.gameplay` (versioned, `MIGRATIONS`). `MDSGameplaySetup` adds the input actions, collision layer names and settings a project lacks.
   - **Conditions:** `item:<id>`, `item:<id>>=<n>` and `flag:<name>` work in gate and barrier `requires`, objectives, dialogue and shops, and in the Progress tab. `MDSGateBarrier.consume_items` uses the items up; the map gate behind the open barrier still lets the player through.

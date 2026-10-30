@@ -60,6 +60,7 @@ const SETTINGS := {
 	"feel/hitstop_time_scale": [0.05, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.0,1.0,0.01"],
 	"feel/screen_shake": [true, TYPE_BOOL, PROPERTY_HINT_NONE, ""],
 	"feel/hit_flash": [true, TYPE_BOOL, PROPERTY_HINT_NONE, ""],
+	"feel/attack_fx": [true, TYPE_BOOL, PROPERTY_HINT_NONE, ""],
 	"feel/damage_numbers": [false, TYPE_BOOL, PROPERTY_HINT_NONE, ""],
 	"feel/rumble": [true, TYPE_BOOL, PROPERTY_HINT_NONE, ""],
 	"death_penalty": [DeathPenalty.CORPSE, TYPE_INT, PROPERTY_HINT_ENUM, "None,Lose a share,Corpse"],
