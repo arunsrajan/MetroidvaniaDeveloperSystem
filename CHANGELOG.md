@@ -19,6 +19,8 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - The kinds: blood, ink, sparks, metal, bone, dust, smoke, embers, ash, ice, snow, frost, electricity, static, poison, acid, void, shadow, holy motes, feathers, leaves, petals, slime, water, crystal, soul orbs, rock, sand, stars, heart shards.
   - **Colours:** one colour fading to a second, or a palette where each particle takes one colour at random. Embers, holy motes, leaves, petals, crystals, rock and stars have a palette of their own.
   - **Glow:** a strength (0 none, 1 glowing, more brighter), scaled for all of them by `fx/particle_glow`.
+  - **Size:** `particle_size` on hurtboxes, attacks and enemies, `burst(..., particle_size)`, `set_particle_size()`, `MDSHitParticles.sizes` by kind, and `fx/particle_size` for all of them.
+  - **Dropdowns:** `hurt_particles`, `hit_particles` and `damage_type` are picked from a list in the inspector (or typed).
   - **Set at every level:** one burst's (`burst(..., palette, glow)`, `set_palette()`, `set_glow()`), a hurtbox's (`particle_color`, `particle_fade`, `particle_palette`, `particle_glow`), an attack's (`particle_palette`, `particle_glow`), by kind from code (`MDSHitParticles.palettes`, `glows`), and the team colours.
   - The attack effects' glow strength is set by `MDSAttackData.fx_intensity` or `set_intensity()`.
   - They fly from every hit, picked by `MDSAttackData.hit_particles`, then `MDSHurtbox.hurt_particles`, then the damage type (`feel/hurt_particles`).

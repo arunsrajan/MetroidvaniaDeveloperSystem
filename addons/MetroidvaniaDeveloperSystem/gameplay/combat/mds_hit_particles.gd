@@ -33,6 +33,8 @@ extends CPUParticles2D
 const SETTING := "feel/hurt_particles"
 ## How big the particles are drawn (their textures are 16 px or so), over their own scale.
 const SIZE := 1.8
+## The ids of [constant PARTICLES], and "none": the inspector's dropdown of them.
+const KINDS := "none,blood_spray,ink_drops,sparks,metal_shards,bone_chips,dust_puff,smoke,embers,ash,ice_chips,snowflakes,frost_mist,electric_sparks,static_flicker,poison_droplets,acid_bubbles,void_motes,shadow_wisps,holy_motes,feathers,leaves,petals,slime_blobs,water_droplets,crystal_shards,soul_orbs,rock_debris,sand_spray,star_burst,heart_shards"
 
 ## id -> its settings: tex (the particle's shape: dot, soft, spark, shard, square, ring, star,
 ## flake, leaf, feather), amount, life (s), speed [min, max] (px/s), spread (degrees round the
@@ -84,12 +86,15 @@ const BY_TYPE := {
 static var palettes: Dictionary = {}
 ## How strongly kinds glow, of your own: id -> strength (0 none, 1 glowing, more brighter).
 static var glows: Dictionary = {}
+## How big kinds' particles are, of your own: id -> times as big (1 as they are).
+static var sizes: Dictionary = {}
 
 ## Which particles (an id of [constant PARTICLES]).
 var particles := ""
 ## Whose colors they take (the one hurt).
 var team: MDSAttackFX.Team = MDSAttackFX.Team.ENEMY
 var _left := 1.0
+var _size := 1.0
 
 static var _textures: Dictionary = {}
 
@@ -98,22 +103,23 @@ static var _textures: Dictionary = {}
 ## (the one hurt) or [param colors] ([color, fade-to color]; see [method MDSAttackFX.colors_for]),
 ## [param size] times as big; [param palette] several colors, each particle one of them (one: all
 ## that color); [param glow] how strongly they glow (less than 0: as they would, see
-## [method glow_for]). Returns them (null: no such particles, or no parent).
-static func burst(id: String, parent: Node, at: Vector2, direction := Vector2.UP, p_team: MDSAttackFX.Team = MDSAttackFX.Team.ENEMY, colors: Array = [], size := 1.0, palette := PackedColorArray(), glow := -1.0) -> MDSHitParticles:
+## [method glow_for]); [param particle_size] how big each particle is (times; flying as far, see
+## [method size_for]). Returns them (null: no such particles, or no parent).
+static func burst(id: String, parent: Node, at: Vector2, direction := Vector2.UP, p_team: MDSAttackFX.Team = MDSAttackFX.Team.ENEMY, colors: Array = [], size := 1.0, palette := PackedColorArray(), glow := -1.0, particle_size := 1.0) -> MDSHitParticles:
 	if not PARTICLES.has(id):
 		push_warning("MDSHitParticles: no particles '%s' (%s)." % [id, ", ".join(PARTICLES.keys())])
 		return null
 	if not is_instance_valid(parent):
 		return null
 	var p := MDSHitParticles.new()
-	p.setup(id, p_team, colors, size, direction, palette, glow)
+	p.setup(id, p_team, colors, size, direction, palette, glow, particle_size)
 	parent.add_child(p)
 	p.global_position = at
 	p.restart()
 	return p
 
 ## Makes these particles [param id] (see [method burst]); they burst once in the tree.
-func setup(id: String, p_team: MDSAttackFX.Team = MDSAttackFX.Team.ENEMY, colors: Array = [], size := 1.0, way := Vector2.UP, palette := PackedColorArray(), glow := -1.0) -> void:
+func setup(id: String, p_team: MDSAttackFX.Team = MDSAttackFX.Team.ENEMY, colors: Array = [], size := 1.0, way := Vector2.UP, palette := PackedColorArray(), glow := -1.0, particle_size := 1.0) -> void:
 	var s: Dictionary = PARTICLES[id]
 	particles = id
 	team = p_team
@@ -138,8 +144,8 @@ func setup(id: String, p_team: MDSAttackFX.Team = MDSAttackFX.Team.ENEMY, colors
 	gravity = Vector2(0, float(s.get("gravity", 0)))
 	damping_min = float(s.get("damping", 0)) * 0.6
 	damping_max = float(s.get("damping", 0))
-	scale_amount_min = float(s.scale[0]) * size * SIZE
-	scale_amount_max = float(s.scale[1]) * size * SIZE
+	_size = size
+	set_particle_size(size_for(id, particle_size))
 	var spin := float(s.get("spin", 0))
 	angular_velocity_min = -spin
 	angular_velocity_max = spin
@@ -196,6 +202,16 @@ func set_palette(colors: PackedColorArray) -> void:
 	# Their own color all their life, fading out at the end.
 	color_ramp = _ramp(Color.WHITE, Color(0.85, 0.85, 0.85), flicker)
 
+## How big each particle is: [param times] its kind's size (1 as they are), for the next burst.
+## They fly as far.
+func set_particle_size(times: float) -> void:
+	var s: Dictionary = PARTICLES.get(particles, {})
+	if s.is_empty():
+		return
+	var k := maxf(times, 0.01) * _size * SIZE
+	scale_amount_min = float(s.scale[0]) * k
+	scale_amount_max = float(s.scale[1]) * k
+
 ## How strongly they glow: 0 not at all (drawn over what is behind), 1 glowing (added to it), more
 ## brighter still.
 func set_glow(strength: float) -> void:
@@ -233,6 +249,14 @@ static func glow_for(id: String, strength := -1.0) -> float:
 	if g < 0.0:
 		g = float(glows[id]) if glows.has(id) else (1.0 if PARTICLES.get(id, {}).get("add", false) else 0.0)
 	return g * float(MDSGameplaySetup.setting("fx/particle_glow", 1.0))
+
+## How big particles [param id] are: [param times] if more than 0, else [member sizes]' for it,
+## else 1 (as they are); times the Project Settings' fx/particle_size.
+static func size_for(id: String, times := 1.0) -> float:
+	var k := times if times > 0.0 else float(sizes.get(id, 1.0))
+	if times > 0.0 and sizes.has(id):
+		k *= float(sizes[id])
+	return k * float(MDSGameplaySetup.setting("fx/particle_size", 1.0))
 
 func _process(delta: float) -> void:
 	_left -= delta
@@ -300,6 +324,8 @@ static func on_hurt(hitbox: MDSHitbox, target: Node, info: MDSDamageInfo, hurtbo
 	var colors: Array = MDSAttackFX.attack_colors(attack)
 	var palette := attack.particle_palette if attack else PackedColorArray()
 	var glow := attack.particle_glow if attack else -1.0
+	# The attack's size times the hurt one's.
+	var particle_size := attack.particle_size if attack else 1.0
 	if hurtbox:
 		# The hurt one's own win over the attack's.
 		if hurtbox.particle_color.a > 0.0:
@@ -312,9 +338,10 @@ static func on_hurt(hitbox: MDSHitbox, target: Node, info: MDSDamageInfo, hurtbo
 			palette = PackedColorArray()
 		if hurtbox.particle_glow >= 0.0:
 			glow = hurtbox.particle_glow
+		particle_size *= hurtbox.particle_size
 	var at := hitbox.global_position.lerp(body.global_position, 0.7)
 	var parent: Node = body.get_parent() if body.get_parent() else body
-	return burst(id, parent, at, way, p_team, colors, 1.0, palette, glow)
+	return burst(id, parent, at, way, p_team, colors, 1.0, palette, glow, particle_size)
 
 # --- Textures --------------------------------------------------------------------------------------
 

@@ -54,18 +54,20 @@ enum Look { CRAWLER, BAT, TURRET, BEETLE, WORM, KNIGHT }
 @export_group("Hits and hurts")
 ## The damage type of its attacks (touching it, its shots): "fire" burns, "ice" freezes, "shock"
 ## electrocutes... (see [MDSAttackFX] and [MDSHitParticles]). Empty: its attacks' own.
-@export var damage_type := ""
+@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, MDSDamageInfo.TYPES) var damage_type := ""
 ## The color of its attacks' effects (transparent: an enemy's, from the Project Settings)...
 @export var attack_color := Color(0, 0, 0, 0)
 ## ...and the light round them.
 @export var attack_glow := Color(0, 0, 0, 0)
 ## The particles flying off it when hurt ([constant MDSHitParticles.PARTICLES]; empty: its
 ## hurtbox's, else picked by the damage type).
-@export var hurt_particles := ""
+@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, MDSHitParticles.KINDS) var hurt_particles := ""
 ## Their colors: each particle one of them (one: all of it; empty: as they would be).
 @export var particle_palette := PackedColorArray()
 ## How strongly they glow: 0 not at all, 1 glowing, more brighter; less than 0, as they would.
 @export_range(-1.0, 3.0, 0.05) var particle_glow := -1.0
+## How big each of them is: 1 as they are, 2 twice as big (0: its hurtbox's).
+@export_range(0.0, 4.0, 0.05, "or_greater") var particle_size := 0.0
 
 var machine: MDSStateMachine
 var health: MDSHealth
@@ -103,7 +105,8 @@ func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 
 ## Gives its hurtbox and its touch what [member hurt_particles], [member particle_palette],
-## [member particle_glow], [member damage_type], [member attack_color] and [member attack_glow] ask.
+## [member particle_glow], [member particle_size], [member damage_type], [member attack_color] and
+## [member attack_glow] ask.
 func _apply_hits_and_hurts() -> void:
 	if hurtbox:
 		if not hurt_particles.is_empty():
@@ -112,6 +115,8 @@ func _apply_hits_and_hurts() -> void:
 			hurtbox.particle_palette = particle_palette
 		if particle_glow >= 0.0:
 			hurtbox.particle_glow = particle_glow
+		if particle_size > 0.0:
+			hurtbox.particle_size = particle_size
 	if contact and contact.attack:
 		contact.attack = style_attack(contact.attack)
 

@@ -22,6 +22,7 @@ func _run() -> void:
 	_color_settings()
 	await _particles()
 	_palettes_and_glow()
+	_dropdowns_and_size()
 	await _hurt_particles()
 	level.queue_free()
 	await get_tree().process_frame
@@ -343,3 +344,60 @@ func _palettes_and_glow() -> void:
 			n.free()
 	enemy.free()
 	foe.free()
+
+## Damage types and particles picked from dropdowns; how big the particles are, set at every level.
+func _dropdowns_and_size() -> void:
+	var kinds := MDSHitParticles.KINDS.split(",")
+	check(kinds.size() == 31 and kinds[0] == "none" and Array(kinds.slice(1)) == MDSHitParticles.PARTICLES.keys(), "the particles' dropdown: none and every kind")
+	for t: String in MDSHitParticles.BY_TYPE.keys() + MDSAttackFX.BY_TYPE.keys() + ["physical", "environment"]:
+		if not MDSDamageInfo.TYPES.split(",").has(t):
+			check(false, "the damage types' dropdown has %s" % t)
+	var hints := {}
+	for o: Object in [MDSHurtbox.new(), MDSAttackData.new(), MDSEnemy.new()]:
+		for prop in o.get_property_list():
+			if prop.name in ["hurt_particles", "hit_particles", "damage_type"]:
+				hints["%s.%s" % [o.get_script().get_global_name(), prop.name]] = [prop.hint, prop.hint_string]
+		if o is Node:
+			o.free()
+	var want := {
+		"MDSHurtbox.hurt_particles": MDSHitParticles.KINDS, "MDSAttackData.hit_particles": MDSHitParticles.KINDS,
+		"MDSEnemy.hurt_particles": MDSHitParticles.KINDS, "MDSAttackData.damage_type": MDSDamageInfo.TYPES,
+		"MDSEnemy.damage_type": MDSDamageInfo.TYPES,
+	}
+	var ok := true
+	for k: String in want:
+		ok = ok and hints.has(k) and hints[k] == [PROPERTY_HINT_ENUM_SUGGESTION, want[k]]
+	check(ok, "damage types and particles are dropdowns in the inspector (%s)" % [hints.keys()])
+	# Size.
+	var plain := MDSHitParticles.burst("sparks", level, Vector2.ZERO)
+	var big := MDSHitParticles.burst("sparks", level, Vector2.ZERO, Vector2.UP, MDSAttackFX.Team.ENEMY, [], 1.0, PackedColorArray(), -1.0, 2.0)
+	check(is_equal_approx(big.scale_amount_max, plain.scale_amount_max * 2.0) and is_equal_approx(big.initial_velocity_max, plain.initial_velocity_max), "particle_size 2: twice as big, flying as far")
+	big.set_particle_size(0.5)
+	check(is_equal_approx(big.scale_amount_max, plain.scale_amount_max * 0.5), "set_particle_size()")
+	big.free()
+	MDSHitParticles.sizes["sparks"] = 3.0
+	check(is_equal_approx(MDSHitParticles.size_for("sparks"), 3.0) and is_equal_approx(MDSHitParticles.size_for("embers"), 1.0), "a kind's size from code")
+	MDSHitParticles.sizes.clear()
+	ProjectSettings.set_setting("metroidvania_developer_system/gameplay/fx/particle_size", 1.5)
+	check(is_equal_approx(MDSHitParticles.size_for("sparks", 2.0), 3.0), "the Project Settings' fx/particle_size: all of them bigger")
+	ProjectSettings.set_setting("metroidvania_developer_system/gameplay/fx/particle_size", null)
+	# From a hit: the attack's size times the hurtbox's.
+	var enemy := _dummy(MDSHurtbox.Team.ENEMY, Vector2(800, 300))
+	var hurt := enemy.get_node(^"Hurtbox") as MDSHurtbox
+	hurt.hurt_particles = "sparks"
+	hurt.particle_size = 2.0
+	var hero := Node2D.new()
+	level.add_child(hero)
+	var blade := MDSHitbox.make(MDSHitbox.Team.PLAYER, Vector2(40, 40), MDSAttackData.make("slash", 1))
+	blade.attack.particle_size = 1.5
+	hero.add_child(blade)
+	hero.global_position = enemy.global_position
+	blade.try_hit(hurt)
+	var got := level.get_children().filter(func(n: Node) -> bool: return n is MDSHitParticles and n != plain)
+	check(got.size() == 1 and is_equal_approx((got[0] as MDSHitParticles).scale_amount_max, plain.scale_amount_max * 3.0), "a hit: the attack's size times the hurtbox's")
+	plain.free()
+	for n in level.get_children():
+		if n is MDSHitParticles or n is MDSAttackFX:
+			n.free()
+	hero.free()
+	enemy.free()

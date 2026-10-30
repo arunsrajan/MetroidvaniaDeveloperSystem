@@ -24,7 +24,7 @@ const GROUP := &"mds_hurtbox"
 ## The particles that fly off it when hurt ([constant MDSHitParticles.PARTICLES]): empty, picked by
 ## the damage type ([method MDSHitParticles.particles_for]); "none", none. An attack's own
 ## [member MDSAttackData.hit_particles] wins.
-@export var hurt_particles := ""
+@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, MDSHitParticles.KINDS) var hurt_particles := ""
 ## Their color (transparent: its team's, or the particles' own)...
 @export var particle_color := Color(0, 0, 0, 0)
 ## ...and the color they fade to.
@@ -35,6 +35,9 @@ const GROUP := &"mds_hurtbox"
 ## How strongly they glow: 0 not at all, 1 glowing, more brighter; less than 0, as they would
 ## ([method MDSHitParticles.glow_for]).
 @export_range(-1.0, 3.0, 0.05) var particle_glow := -1.0
+## How big each of them is: 1 as they are, 2 twice as big (times an attack's own
+## [member MDSAttackData.particle_size]).
+@export_range(0.1, 4.0, 0.05, "or_greater") var particle_size := 1.0
 ## Asked before a hit lands: returns true to block it (a parry). Set by code.
 var blocker: Callable
 

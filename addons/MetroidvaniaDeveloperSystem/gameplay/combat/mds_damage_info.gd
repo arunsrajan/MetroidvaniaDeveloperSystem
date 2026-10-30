@@ -9,6 +9,10 @@ extends RefCounted
 var amount := 1
 ## physical, fire, ice, shock, void, environment (or any name resistances use).
 var damage_type := "physical"
+
+## The damage types the kit knows, the inspector's dropdown of them (see [constant MDSAttackFX.BY_TYPE]
+## and [constant MDSHitParticles.BY_TYPE]). Any other name works too, for resistances.
+const TYPES := "physical,fire,ice,shock,lightning,poison,acid,void,holy,light,wind,water,shadow,dark,soul,earth,environment"
 ## Push: x away from the source, y up (negative).
 var knockback := Vector2.ZERO
 var hitstop_ms := 0

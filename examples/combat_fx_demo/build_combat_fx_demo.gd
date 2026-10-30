@@ -35,12 +35,12 @@ const TEMPLATES := "res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/te
 const ENEMIES := {
 	"Prism_Arena": [
 		["Ember_Crawler", "mds_walker", 520.0, 0.0, {"damage_type": "fire", "attack_color": Color("#fff1a8"), "attack_glow": Color("#ff6a1a"), "hurt_particles": "embers", "particle_palette": [Color("#fff1a8"), Color("#ffb03a"), Color("#ff5a1a"), Color("#e8261a")], "particle_glow": 1.5, "body_color": Color("#e0632a")}],
-		["Prism_Moth", "mds_flyer", 900.0, 470.0, {"hurt_particles": "petals", "particle_palette": [Color("#ff5a7a"), Color("#ffd25a"), Color("#5affb0"), Color("#5ab8ff"), Color("#c77aff")], "particle_glow": 1.2, "attack_glow": Color("#ff7ad8"), "body_color": Color("#c77aff")}],
-		["Crystal_Golem", "mds_charger", 1320.0, 0.0, {"damage_type": "earth", "hurt_particles": "crystal_shards", "particle_palette": [Color("#8ff4ff"), Color("#b78cff"), Color("#ff9ae0")], "particle_glow": 2.0, "attack_glow": Color("#8ff4ff"), "body_color": Color("#6fa8c8")}],
+		["Prism_Moth", "mds_flyer", 900.0, 470.0, {"hurt_particles": "petals", "particle_palette": [Color("#ff5a7a"), Color("#ffd25a"), Color("#5affb0"), Color("#5ab8ff"), Color("#c77aff")], "particle_glow": 1.2, "particle_size": 0.8, "attack_glow": Color("#ff7ad8"), "body_color": Color("#c77aff")}],
+		["Crystal_Golem", "mds_charger", 1320.0, 0.0, {"damage_type": "earth", "hurt_particles": "crystal_shards", "particle_palette": [Color("#8ff4ff"), Color("#b78cff"), Color("#ff9ae0")], "particle_glow": 2.0, "particle_size": 1.6, "attack_glow": Color("#8ff4ff"), "body_color": Color("#6fa8c8")}],
 	],
 	"Storm_Hall": [
 		["Storm_Beetle", "mds_walker", 520.0, 0.0, {"damage_type": "shock", "hurt_particles": "electric_sparks", "particle_palette": [Color("#ffffff"), Color("#7fd2ff"), Color("#ffe14a")], "particle_glow": 2.0, "body_color": Color("#3a5aa8")}],
-		["Ink_Slime", "mds_walker", 900.0, 0.0, {"damage_type": "poison", "hurt_particles": "ink_drops", "particle_palette": [Color("#3a1a5a"), Color("#1a8a8a"), Color("#5a2a8a")], "particle_glow": 0.0, "body_color": Color("#2a6a5a")}],
+		["Ink_Slime", "mds_walker", 900.0, 0.0, {"damage_type": "poison", "hurt_particles": "ink_drops", "particle_palette": [Color("#3a1a5a"), Color("#1a8a8a"), Color("#5a2a8a")], "particle_glow": 0.0, "particle_size": 1.4, "body_color": Color("#2a6a5a")}],
 		["Frost_Eye", "mds_turret", 1400.0, 0.0, {"damage_type": "ice", "hurt_particles": "snowflakes", "particle_palette": [Color("#ffffff"), Color("#a8dcff"), Color("#6fc8ff")], "particle_glow": 0.8, "body_color": Color("#8fd8ff")}],
 	],
 }

@@ -12,10 +12,13 @@ extends Node
 ## The particles its blows throw off an enemy with no colors of its own: each one of these.
 @export var blow_palette := PackedColorArray([Color("#ffe27a"), Color("#ffffff"), Color("#ffa53a")])
 @export_range(-1.0, 3.0, 0.05) var blow_glow := 1.2
+## How big each of them is (1 as they are).
+@export_range(0.1, 4.0, 0.05) var blow_size := 1.0
 ## What flies off the player when hurt, in these colors, this bright.
-@export var hurt_particles := "heart_shards"
+@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, MDSHitParticles.KINDS) var hurt_particles := "heart_shards"
 @export var hurt_palette := PackedColorArray([Color("#ff4a6a"), Color("#ff9ab0"), Color("#ffffff")])
 @export_range(-1.0, 3.0, 0.05) var hurt_glow := 1.0
+@export_range(0.1, 4.0, 0.05) var hurt_size := 1.3
 
 func _ready() -> void:
 	MDSAttackFX.effect_colors["player"] = [player_color, player_glow]
@@ -39,6 +42,7 @@ func _style_player() -> void:
 			hb.hurt_particles = hurt_particles
 			hb.particle_palette = hurt_palette
 			hb.particle_glow = hurt_glow
+			hb.particle_size = hurt_size
 
 func _style_attacks(c: MDSAttackController) -> void:
 	for list in [c.ground_combo, c.air_combo]:
@@ -54,4 +58,5 @@ func _styled(attack: MDSAttackData) -> MDSAttackData:
 	a.fx_intensity = player_intensity
 	a.particle_palette = blow_palette
 	a.particle_glow = blow_glow
+	a.particle_size = blow_size
 	return a
