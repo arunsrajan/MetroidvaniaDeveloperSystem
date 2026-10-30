@@ -27,10 +27,10 @@ func _run() -> void:
 	var crawler := game.room_node.find_child("Ember_Crawler", true, false) as MDSEnemy
 	var golem := game.room_node.find_child("Crystal_Golem", true, false) as MDSEnemy
 	check(crawler and crawler.hurtbox.hurt_particles == "embers" and crawler.contact.attack.damage_type == "fire" and crawler.contact.attack.fx_glow == Color("#ff6a1a"), "the Ember Crawler: fire, its colors, embers when hurt")
-	check(golem and golem.hurtbox.particle_palette.size() == 3 and is_equal_approx(golem.hurtbox.particle_glow, 2.0), "the Crystal Golem: a palette of three, glowing strongly")
+	check(golem and golem.hurtbox.particle_palette.size() == 3 and is_equal_approx(golem.hurtbox.particle_glow, 2.0) and is_equal_approx(golem.hurtbox.particle_size, 1.6), "the Crystal Golem: a palette of three, glowing strongly, big shards")
 	var hurt := player.find_children("*", "MDSHurtbox", true, false)[0] as MDSHurtbox
 	var attacks := player.find_children("*", "MDSAttackController", true, false)[0] as MDSAttackController
-	check(MDSAttackFX.effect_colors.get("player", []) == [Color("#fff4c2"), Color("#ffb020")] and hurt.hurt_particles == "heart_shards" and attacks.ground_combo[0].particle_palette.size() == 3, "the player's colors set by CombatColors")
+	check(MDSAttackFX.effect_colors.get("player", []) == [Color("#fff4c2"), Color("#ffb020")] and hurt.hurt_particles == "heart_shards" and is_equal_approx(hurt.particle_size, 1.3) and attacks.ground_combo[0].particle_palette.size() == 3, "the player's colors set by CombatColors")
 	# The player hits the crawler.
 	crawler.set_physics_process(false)
 	player.global_position = crawler.global_position + Vector2(-56, -10)

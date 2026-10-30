@@ -67,6 +67,7 @@ const SETTINGS := {
 	"fx/enemy_color": [Color("#ffe3dc"), TYPE_COLOR, PROPERTY_HINT_NONE, ""],
 	"fx/enemy_glow": [Color("#ff3b4e"), TYPE_COLOR, PROPERTY_HINT_NONE, ""],
 	"fx/particle_glow": [1.0, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.0,3.0,0.05"],
+	"fx/particle_size": [1.0, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.1,4.0,0.05"],
 	"feel/damage_numbers": [false, TYPE_BOOL, PROPERTY_HINT_NONE, ""],
 	"feel/rumble": [true, TYPE_BOOL, PROPERTY_HINT_NONE, ""],
 	"death_penalty": [DeathPenalty.CORPSE, TYPE_INT, PROPERTY_HINT_ENUM, "None,Lose a share,Corpse"],

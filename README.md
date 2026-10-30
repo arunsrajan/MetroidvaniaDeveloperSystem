@@ -1607,6 +1607,8 @@ A barrier with `consume_items` uses up the items it requires. A map gate whose r
   3. The attack's: `fx_color`, `fx_glow`, `particle_palette`, `particle_glow`.
   4. From code, by kind: `MDSHitParticles.palettes["sparks"] = [Color.GOLD, Color.WHITE]`, `MDSHitParticles.glows["ink_drops"] = 1.5`, and `MDSAttackFX.effect_colors`.
   5. The Project Settings' team colours.
+- **Size:** how big each particle is, 1 as they are and 2 twice as big; they still fly as far. Set it on the hurtbox's `particle_size` (times the attack's `particle_size`), an enemy's `particle_size` (0 keeps its hurtbox's), one burst's last `burst()` argument or `set_particle_size()`, by kind from code (`MDSHitParticles.sizes["sparks"] = 2.0`), and for all of them with the Project Settings' `fx/particle_size`.
+- **Dropdowns in the inspector:** `hurt_particles` (hurtbox, enemy) and `hit_particles` (attack) list the 30 kinds and `none`; `damage_type` (attack, enemy) lists the damage types the kit knows (`MDSDamageInfo.TYPES`). The empty entry at the top means automatic, and you can still type a name of your own, for resistances.
 - **Played by themselves** (the feel setting `feel/hurt_particles`, on by default): every hit of a hitbox or projectile throws them off the one hurt. Which ones, in order:
   1. the attack's `MDSAttackData.hit_particles`;
   2. the hurtbox's `MDSHurtbox.hurt_particles` (a bird's feathers, a golem's rock);

@@ -11,8 +11,9 @@ enum Direction { FORWARD, UP, DOWN }
 
 @export var id := "slash"
 @export var damage := 1
-## physical, fire, ice, shock, void, environment (or any name resistances use).
-@export var damage_type := "physical"
+## physical, fire, ice, shock, void, environment (or any name resistances use): pick one, or type
+## your own.
+@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, MDSDamageInfo.TYPES) var damage_type := "physical"
 ## Push given to what it hits: x away from the attacker, y up (negative).
 @export var knockback := Vector2(220, -140)
 ## How long the game freezes when it lands (ms; see the hit-stop feel setting).
@@ -49,12 +50,15 @@ enum Direction { FORWARD, UP, DOWN }
 @export_range(0.0, 4.0, 0.05) var fx_intensity := 1.0
 ## The particles flying off what it hurts ([constant MDSHitParticles.PARTICLES]): empty, the hurt
 ## one's own or picked by the damage type ([method MDSHitParticles.particles_for]); "none", none.
-@export var hit_particles := ""
+@export_custom(PROPERTY_HINT_ENUM_SUGGESTION, MDSHitParticles.KINDS) var hit_particles := ""
 ## Their colors: each particle one of them, picked at random (one: all of it; empty: as they
 ## would be). A hurtbox's own win.
 @export var particle_palette := PackedColorArray()
 ## How strongly they glow: 0 not at all, 1 glowing, more brighter; less than 0, as they would.
 @export_range(-1.0, 3.0, 0.05) var particle_glow := -1.0
+## How big each of them is: 1 as they are, 2 twice as big (times the hurtbox's
+## [member MDSHurtbox.particle_size]).
+@export_range(0.1, 4.0, 0.05, "or_greater") var particle_size := 1.0
 
 func startup_time() -> float:
 	return startup_frames / 60.0
