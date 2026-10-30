@@ -1769,6 +1769,35 @@ godot --headless --path . --script res://examples/open_world_demo/build_open_wor
 
 `tests/test_open_world_demo.gd` checks the route works both ways: across the meadows into the arena and back, and down into the Hollow and back up. It also checks that the next meadow is already loaded when the player walks in.
 
+### Combat effects demo
+
+`examples/combat_fx_demo/` is a Metroidvania world where every hit and every hurt throws coloured particles and plays its effects. It has two arenas, made with Generate cave's Arena style, and six enemies. Each enemy is set up in its inspector (**`MDSEnemy` > Hits and hurts**), with no code:
+
+| Enemy | Its attacks | Particles when the player hits it |
+|---|---|---|
+| Ember Crawler | fire, gold-to-orange effects | embers in four fire colours, glow 1.5 |
+| Prism Moth | pink effects | petals in five colours, glow 1.2 |
+| Crystal Golem | earth, cyan effects | crystal shards in cyan, violet and pink, glow 2 |
+| Storm Beetle | shock (the player electrocuted) | sparks of white, blue and gold, glow 2 |
+| Ink Slime | poison | dark ink in three colours, no glow |
+| Frost Eye (turret) | ice shots (the player frozen) | snowflakes in white and blues |
+
+The player's own colours are set by `combat_colors.gd`, a node of the game scene, as your game might set them:
+- its effects in gold, glowing at 1.4;
+- the particles its blows throw off enemies that have no palette of their own;
+- the heart shards it loses when hurt, in reds and white.
+
+Open `game.tscn` and press **F6**. `build_combat_fx_demo.gd` builds it again, and `tests/test_combat_fx_demo.gd` plays it. In that test the player's blow throws the crawler's embers in their palette, and the crawler's touch throws the player's heart shards and bursts into fire.
+
+![The player striking the Crystal Golem: crystal shards fly off it](docs/combat_fx_demo.png)
+
+**`MDSEnemy`'s Hits and hurts** settings, for any enemy:
+- `damage_type`: what its touch and its shots do;
+- `attack_color` and `attack_glow`: their effects' colours;
+- `hurt_particles`, `particle_palette` and `particle_glow`: what flies off it when it is hurt.
+
+`style_attack(attack)` applies these to an attack of your own, so a custom enemy's shots match too.
+
 ### Gameplay demo
 
 `examples/gameplay_demo/` is a 12-room, two-area world (Mossgrove and Sunken Gardens) with its game scene, `game.tscn`: get `double_jump` in Grove_03, beat the Warden in Grove_05, get `dash` in Grove_06 and the `red_key` in Gardens_02, pull the switch that lowers the bridge in Gardens_03, get `wall_jump` in Gardens_04 and reach the end of Gardens_05. Open `game.tscn` and press **F6**.

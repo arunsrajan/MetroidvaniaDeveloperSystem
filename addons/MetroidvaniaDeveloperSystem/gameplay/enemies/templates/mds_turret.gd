@@ -38,6 +38,7 @@ func _make_states() -> Array[Node]:
 ## Fires one shot along [member aim]. Returns it.
 func fire() -> MDSProjectile:
 	var a := MDSAttackData.make("bolt", projectile_damage, [])
+	a = style_attack(a)
 	a.knockback = Vector2(200, -150)
 	var parent: Node = get_parent() if get_parent() else self
 	var p := MDSProjectile.fire(projectile, parent, global_position + aim * (body_size.x * 0.6), aim, MDSHitbox.Team.ENEMY, a, self)

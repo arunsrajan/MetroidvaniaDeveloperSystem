@@ -206,7 +206,8 @@ func set_glow(strength: float) -> void:
 	var m := CanvasItemMaterial.new()
 	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	material = m
-	var b := 1.0 + maxf(strength - 1.0, 0.0) * 0.8
+	# Brighter above 1, keeping their colors (not washed to white).
+	var b := 1.0 + maxf(strength - 1.0, 0.0) * 0.3
 	color = Color(b, b, b, clampf(strength, 0.0, 1.0))
 
 ## The palette particles [param id] burst in: [param palette] if given, else none when

@@ -13,6 +13,8 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - Three on the body hit: chromatic split, freeze, electrocute.
   - They play by themselves for the player's swings, every hit by damage type, and parries (`feel/attack_fx`). An attack can pick its own with `MDSAttackData.swing_fx` and `hit_fx`.
   - **Their colours can be set at every level:** each team's in the Project Settings (`fx/player_color`, `fx/player_glow`, `fx/enemy_color`, `fx/enemy_glow`), one effect's (`MDSAttackFX.effect_colors`), an attack's (`MDSAttackData.fx_color`, `fx_glow`), and one play's (`play(..., colors)`, `set_colors()`).
+- **Enemies' hits and hurts** (`MDSEnemy`): `damage_type`, `attack_color` and `attack_glow` for their touch and shots; `hurt_particles`, `particle_palette` and `particle_glow` for what flies off them. `style_attack()` applies them to an attack of your own.
+- **Combat effects demo** (`examples/combat_fx_demo/`): two arenas and six enemies with their own elements and particle palettes, and the player's colours set by a node of the game. A test plays it.
 - **Hurt particles** (`MDSHitParticles`): thirty one-shot `CPUParticles2D` bursts that fly off whoever is hurt.
   - The kinds: blood, ink, sparks, metal, bone, dust, smoke, embers, ash, ice, snow, frost, electricity, static, poison, acid, void, shadow, holy motes, feathers, leaves, petals, slime, water, crystal, soul orbs, rock, sand, stars, heart shards.
   - **Colours:** one colour fading to a second, or a palette where each particle takes one colour at random. Embers, holy motes, leaves, petals, crystals, rock and stars have a palette of their own.
