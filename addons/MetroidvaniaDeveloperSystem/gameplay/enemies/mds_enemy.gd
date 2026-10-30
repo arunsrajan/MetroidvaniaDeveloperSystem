@@ -51,6 +51,21 @@ enum Look { CRAWLER, BAT, TURRET, BEETLE, WORM, KNIGHT }
 		queue_redraw()
 ## The state it goes back to after being hurt (empty: the first state).
 @export var resume_state: StringName = &""
+@export_group("Hits and hurts")
+## The damage type of its attacks (touching it, its shots): "fire" burns, "ice" freezes, "shock"
+## electrocutes... (see [MDSAttackFX] and [MDSHitParticles]). Empty: its attacks' own.
+@export var damage_type := ""
+## The color of its attacks' effects (transparent: an enemy's, from the Project Settings)...
+@export var attack_color := Color(0, 0, 0, 0)
+## ...and the light round them.
+@export var attack_glow := Color(0, 0, 0, 0)
+## The particles flying off it when hurt ([constant MDSHitParticles.PARTICLES]; empty: its
+## hurtbox's, else picked by the damage type).
+@export var hurt_particles := ""
+## Their colors: each particle one of them (one: all of it; empty: as they would be).
+@export var particle_palette := PackedColorArray()
+## How strongly they glow: 0 not at all, 1 glowing, more brighter; less than 0, as they would.
+@export_range(-1.0, 3.0, 0.05) var particle_glow := -1.0
 
 var machine: MDSStateMachine
 var health: MDSHealth
@@ -74,6 +89,7 @@ func _ready() -> void:
 		queue_redraw()
 		return
 	_build_missing()
+	_apply_hits_and_hurts()
 	collision_layer = MDSGameplaySetup.bit("enemy")
 	collision_mask = MDSGameplaySetup.bit("world")
 	game = MDSWorldGame.instance if MDSWorldGame.instance and MDSWorldGame.instance.is_ancestor_of(self) else null
@@ -85,6 +101,33 @@ func _ready() -> void:
 	_rng.seed = hash(name) ^ int(global_position.x * 13.0)
 	health.died.connect(_on_died)
 	health.damaged.connect(_on_damaged)
+
+## Gives its hurtbox and its touch what [member hurt_particles], [member particle_palette],
+## [member particle_glow], [member damage_type], [member attack_color] and [member attack_glow] ask.
+func _apply_hits_and_hurts() -> void:
+	if hurtbox:
+		if not hurt_particles.is_empty():
+			hurtbox.hurt_particles = hurt_particles
+		if not particle_palette.is_empty():
+			hurtbox.particle_palette = particle_palette
+		if particle_glow >= 0.0:
+			hurtbox.particle_glow = particle_glow
+	if contact and contact.attack:
+		contact.attack = style_attack(contact.attack)
+
+## [param attack] as this enemy's: of its [member damage_type], in its [member attack_color] and
+## [member attack_glow] (a copy when it changes anything).
+func style_attack(attack: MDSAttackData) -> MDSAttackData:
+	if damage_type.is_empty() and attack_color.a <= 0.0 and attack_glow.a <= 0.0:
+		return attack
+	var a := attack.duplicate() as MDSAttackData
+	if not damage_type.is_empty():
+		a.damage_type = damage_type
+	if attack_color.a > 0.0:
+		a.fx_color = attack_color
+	if attack_glow.a > 0.0:
+		a.fx_glow = attack_glow
+	return a
 
 ## Builds the parts it lacks (see the class description). With [param with_states] off, its state
 ## machine is left empty (the states are made when it starts).

@@ -1,0 +1,92 @@
+{
+	"areas": {
+		"Prism Arena": {
+			"color": "#b07aff",
+			"parallax": "deep_cavern",
+			"subtitle": "Hit them and watch",
+			"title": "Prism Arena"
+		},
+		"Storm Hall": {
+			"color": "#4a8aff",
+			"parallax": "deep_cavern",
+			"title": "Storm Hall"
+		}
+	},
+	"format": "mds_world",
+	"layers": [
+		"Main"
+	],
+	"links": [],
+	"name": "Combat FX Demo",
+	"pins": [],
+	"rooms": {
+		"Prism_Arena": {
+			"area": "Prism Arena",
+			"gates": {
+				"right1": {
+					"pos": [
+						1728.0,
+						704.0
+					],
+					"side": "right",
+					"to": "Storm_Hall",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				0.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1728.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/combat_fx_demo/rooms/prism_arena.tscn",
+			"scene_path": "res://examples/combat_fx_demo/rooms/prism_arena.tscn"
+		},
+		"Storm_Hall": {
+			"area": "Storm Hall",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						704.0
+					],
+					"side": "left",
+					"to": "Prism_Arena",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1728.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1728.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/combat_fx_demo/rooms/storm_hall.tscn",
+			"scene_path": "res://examples/combat_fx_demo/rooms/storm_hall.tscn"
+		}
+	},
+	"settings": {
+		"default_room_size": [
+			1728.0,
+			864.0
+		],
+		"grid": 32,
+		"room_tileset": "res://examples/combat_fx_demo/tiles/cave_tileset.tres"
+	},
+	"start_room": "Prism_Arena",
+	"version": 1
+}

@@ -1,0 +1,146 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_world_game.gd" id="1_1fwx0"]
+[ext_resource type="PackedScene" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/mds_player.tscn" id="2_17l0s"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/player/mds_player.gd" id="3_t8l4a"]
+[ext_resource type="Script" path="res://examples/combat_fx_demo/combat_colors.gd" id="17_oty8p"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/mds_gameplay.gd" id="33_qu31o"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_room_camera.gd" id="34_4uyfp"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_camera_director.gd" id="35_6mexq"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_music.gd" id="36_hgfvw"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/ui/world_map_view.gd" id="37_1l55m"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_area_title.gd" id="38_vxxpp"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/nodes/mds_objective_banner.gd" id="39_76kj3"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_hud.gd" id="40_mmlul"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_toast.gd" id="41_yy3lo"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_ability_popup.gd" id="42_p6dnx"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_pause_menu.gd" id="43_roaxf"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_dialogue_box.gd" id="44_rf4jr"]
+[ext_resource type="Script" path="res://addons/MetroidvaniaDeveloperSystem/gameplay/ui/mds_shop_screen.gd" id="45_tduv0"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1qrpi"]
+size = Vector2(28, 60)
+
+[node name="CombatFxDemoGame" type="Node2D" unique_id=1539473898 node_paths=PackedStringArray("player", "camera", "map_view", "room_camera")]
+script = ExtResource("1_1fwx0")
+world_file = "res://examples/combat_fx_demo/combat_fx_demo.mdsworld.json"
+starting_room = "Prism_Arena"
+player = NodePath("Player")
+camera = NodePath("Player/Camera2D")
+map_view = NodePath("UI/Map")
+room_camera = NodePath("RoomCamera")
+enforce_requirements = true
+light_groups = PackedStringArray("player", "enemy", "lantern")
+save_file = "user://combat_fx_demo_save.json"
+exploration_file = "user://combat_fx_demo_exploration.json"
+
+[node name="Player" type="CharacterBody2D" parent="." unique_id=1769360487 instance=ExtResource("2_17l0s")]
+script = ExtResource("3_t8l4a")
+abilities_without_game = PackedStringArray()
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=1413310692]
+shape = SubResource("RectangleShape2D_1qrpi")
+
+[node name="Gameplay" type="Node" parent="." unique_id=2068338764]
+script = ExtResource("33_qu31o")
+
+[node name="RoomCamera" type="Node2D" parent="." unique_id=197771660 node_paths=PackedStringArray("camera", "target")]
+script = ExtResource("34_4uyfp")
+camera = NodePath("../Player/Camera2D")
+target = NodePath("../Player")
+
+[node name="Director" type="Node" parent="RoomCamera" unique_id=372869127]
+script = ExtResource("35_6mexq")
+quiet_states = PackedStringArray("IDLE", "PATROL", "PASSIVE", "INTRO", "INACTIVE", "DEAD", "WANDER", "REST", "SLEEP")
+
+[node name="Music" type="Node" parent="." unique_id=1987848810]
+script = ExtResource("36_hgfvw")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=1195506612]
+
+[node name="Map" type="Control" parent="UI" unique_id=1566546860]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = 220.0
+grow_horizontal = 0
+script = ExtResource("37_1l55m")
+world_file = "res://examples/combat_fx_demo/combat_fx_demo.mdsworld.json"
+follow_player = true
+
+[node name="AreaTitle" type="Control" parent="UI" unique_id=2069792083]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("38_vxxpp")
+
+[node name="ObjectiveBanner" type="Control" parent="UI" unique_id=1821010448]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("39_76kj3")
+
+[node name="Hud" type="Control" parent="UI" unique_id=1840979544]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("40_mmlul")
+
+[node name="Toast" type="Control" parent="UI" unique_id=1871592567]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("41_yy3lo")
+
+[node name="AbilityPopup" type="Control" parent="UI" unique_id=2014918747]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 2
+script = ExtResource("42_p6dnx")
+confirm_actions = PackedStringArray("ui_accept", "jump", "attack", "interact")
+
+[node name="PauseMenu" type="Control" parent="UI" unique_id=1266526194]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("43_roaxf")
+close_actions = PackedStringArray("ui_cancel", "pause")
+
+[node name="DialogueBox" type="Control" parent="UI" unique_id=51177115]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("44_rf4jr")
+advance_actions = PackedStringArray("ui_accept", "interact", "jump", "attack")
+close_actions = PackedStringArray()
+
+[node name="ShopScreen" type="Control" parent="UI" unique_id=2082102902]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("45_tduv0")
+close_actions = PackedStringArray("ui_cancel")
+
+[node name="CombatColors" type="Node" parent="." unique_id=706121218]
+script = ExtResource("17_oty8p")
+blow_palette = PackedColorArray(1, 0.8862745, 0.47843137, 1, 1, 1, 1, 1, 1, 0.64705884, 0.22745098, 1)
+hurt_palette = PackedColorArray(1, 0.2901961, 0.41568628, 1, 1, 0.6039216, 0.6901961, 1, 1, 1, 1, 1)
