@@ -1537,7 +1537,13 @@ A barrier with `consume_items` uses up the items it requires. A map gate whose r
 
 ![The thirty attack effects half way through](docs/attack_fx.png)
 
-- **Colours:** each effect takes the colours of whoever attacks. The player's are warm white and sky blue, an enemy's pale rose and red. The elemental ones keep their own colours: fire is orange whoever throws it.
+- **Colours:** each effect takes the colours of whoever attacks. The player's are warm white and sky blue, an enemy's pale rose and red. The elemental ones keep their own colours: fire is orange whoever throws it. You can set colours at every level, and each overrides the one before:
+  1. **A team's**, in the Project Settings: `metroidvania_developer_system/gameplay/fx/player_color` and `player_glow`, and `enemy_color` and `enemy_glow`.
+  2. **One effect's**, from code: `MDSAttackFX.effect_colors["slash_arc"] = [core, glow]`. `effect_colors["player"]` or `["enemy"]` sets a team's the same way.
+  3. **An attack's:** `MDSAttackData.fx_color` and `fx_glow`. Leave one transparent to keep the colour it would have had.
+  4. **One play's:** the `colors` argument of `play()`, or `set_colors()` while it plays.
+
+  **How strongly they glow:** the shaders' `intensity` (1 as they are, 0 gone, more brighter). Set it per attack with `MDSAttackData.fx_intensity`, or per play with `set_intensity()`.
 - **Played by themselves** (the feel setting `feel/attack_fx`, on by default):
   - The player's swings (`MDSAttackController`) get an arc picked by how they go: forward an arc, up an uppercut, down a cleave, a charged one a burst, a ground pound a slam.
   - Every hit of a player or enemy hitbox or projectile gets an effect where it struck (`MDSHitbox`), picked by its damage type: `fire`, `ice`, `shock`, `void`, `poison`, `holy`, `wind`, `water`, `shadow` and `soul` each have one. A plain blow is a star (the player's), a critical flash (3 damage or more) or sparks (an enemy's).
@@ -1584,6 +1590,75 @@ A barrier with `consume_items` uses up the items it requires. A map gate whose r
 | `chromatic_hit` | On the body | The body's picture split red, green and blue and shaken |
 | `freeze_overlay` | On the body | The body frozen: icy, frost at its edges, thawing (its own colors) |
 | `electrocute` | On the body | Arcs crawling over the body, flickering (its own colors) |
+
+#### Hurt particles
+
+**`MDSHitParticles`** are particles that fly off whoever is hurt, player or enemy: blood or ink thrown the way the blow went, sparks off armour, embers from a burn, ice chips, feathers, little stars of light and so on. There are thirty. Each is a one-shot burst of `CPUParticles2D` with a small texture drawn in code, so it runs on every renderer, and it frees itself when the last particle is gone.
+
+![The thirty hurt particles just after they burst; the last row in a palette of four colours, glowing strongly](docs/hit_particles.png)
+
+- **One colour or several:**
+  - **In one colour,** each particle goes from that colour to a second as it fades. That's the colours of whoever is hurt (the player's or an enemy's, from the same Project Settings as the attack effects), unless the kind has an element's own: ice chips are ice blue.
+  - **In several (a palette),** each particle is one of the colours, picked at random, fading out at the end. Some kinds have a palette of their own: embers, holy motes, leaves, petals, crystal shards, rock debris and star bursts.
+- **Glow:** 0 is none (drawn over what is behind), 1 glows (added to what is behind), and more is brighter still. The glowing kinds (sparks, embers, motes, orbs, stars) are 1 by default and the rest 0. The Project Settings' `fx/particle_glow` scales how strongly all of them glow.
+- **Setting colours and glow:** the first one given wins.
+  1. One burst's `colors`, `palette` and `glow` in `burst()`, or `set_colors()`, `set_palette()` and `set_glow()` before it bursts.
+  2. The hurt one's hurtbox, for its own blood: `particle_color`, `particle_fade`, `particle_palette`, `particle_glow`.
+  3. The attack's: `fx_color`, `fx_glow`, `particle_palette`, `particle_glow`.
+  4. From code, by kind: `MDSHitParticles.palettes["sparks"] = [Color.GOLD, Color.WHITE]`, `MDSHitParticles.glows["ink_drops"] = 1.5`, and `MDSAttackFX.effect_colors`.
+  5. The Project Settings' team colours.
+- **Played by themselves** (the feel setting `feel/hurt_particles`, on by default): every hit of a hitbox or projectile throws them off the one hurt. Which ones, in order:
+  1. the attack's `MDSAttackData.hit_particles`;
+  2. the hurtbox's `MDSHurtbox.hurt_particles` (a bird's feathers, a golem's rock);
+  3. the damage type's (`fire` embers, `ice` chips, `shock` sparks, `poison` droplets, `void` motes, `holy` stars, `water` droplets, `wind` leaves, `shadow` wisps, `soul` orbs, `earth` rock);
+  4. for a plain blow: sparks if it's heavy, otherwise drops (the player's) or ink (an enemy's).
+
+  `none` turns them off at any level.
+- **From code:**
+  ```gdscript
+  MDSHitParticles.burst("feathers", room, bird.global_position, Vector2.UP)
+  MDSHitParticles.burst("star_burst", room, at, Vector2.UP, MDSAttackFX.Team.ENEMY, [], 1.0, PackedColorArray([Color.GOLD, Color.HOT_PINK, Color.CYAN]), 2.0)
+  ```
+  After the kind and where, `burst()` takes, in order:
+  - the way they fly;
+  - whose colours;
+  - your own `[colour, fade-to colour]`;
+  - the size;
+  - a palette;
+  - the glow.
+
+| Particles | Shape | What they are |
+|---|---|---|
+| `blood_spray` | dot | Drops thrown the way the blow went, falling |
+| `ink_drops` | dot | Blots of ink splattering out and dropping |
+| `sparks` | spark | Sparks off armour or a blade, streaking |
+| `metal_shards` | shard | Bits of metal knocked off, tumbling (their own colors) |
+| `bone_chips` | square | Chips of bone flying and tumbling down (their own colors) |
+| `dust_puff` | soft | A puff of dust swelling and settling (their own colors) |
+| `smoke` | soft | Smoke curling up from the wound (their own colors) |
+| `embers` | dot | Embers rising and drifting from a burn (their own colors) |
+| `ash` | square | Flakes of ash drifting down (their own colors) |
+| `ice_chips` | shard | Chips of ice breaking off (their own colors) |
+| `snowflakes` | flake | Snowflakes spinning out and drifting (their own colors) |
+| `frost_mist` | soft | A cold mist breathed out (their own colors) |
+| `electric_sparks` | spark | Crackling sparks of electricity (their own colors) |
+| `static_flicker` | dot | Specks of static flickering about (their own colors) |
+| `poison_droplets` | dot | Poison spattering up and falling (their own colors) |
+| `acid_bubbles` | ring | Bubbles of acid rising and popping (their own colors) |
+| `void_motes` | dot | Motes of void pulled back into the wound, swirling (their own colors) |
+| `shadow_wisps` | soft | Wisps of shadow curling away (their own colors) |
+| `holy_motes` | star | Little stars of light rising (their own colors) |
+| `feathers` | feather | Feathers knocked loose, drifting down (their own colors) |
+| `leaves` | leaf | Leaves torn off a plant creature (their own colors) |
+| `petals` | leaf | Petals scattering (their own colors) |
+| `slime_blobs` | dot | Blobs of slime flung off |
+| `water_droplets` | dot | Droplets of water splashing up (their own colors) |
+| `crystal_shards` | shard | Glowing crystal shards breaking off a crystal creature |
+| `soul_orbs` | soft | Orbs of soul light rising out (their own colors) |
+| `rock_debris` | square | Bits of rock knocked off a stone creature (their own colors) |
+| `sand_spray` | dot | A spray of sand (their own colors) |
+| `star_burst` | star | Stars knocked out of the one hit, cartoon-style |
+| `heart_shards` | shard | Shards of a lost heart (a mask of health) breaking off |
 
 ### Enemies and bosses
 

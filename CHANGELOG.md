@@ -12,6 +12,14 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - Ten elements: fire, ice, lightning, poison, void, holy, wind, water, shadow bite, soul drain.
   - Three on the body hit: chromatic split, freeze, electrocute.
   - They play by themselves for the player's swings, every hit by damage type, and parries (`feel/attack_fx`). An attack can pick its own with `MDSAttackData.swing_fx` and `hit_fx`.
+  - **Their colours can be set at every level:** each team's in the Project Settings (`fx/player_color`, `fx/player_glow`, `fx/enemy_color`, `fx/enemy_glow`), one effect's (`MDSAttackFX.effect_colors`), an attack's (`MDSAttackData.fx_color`, `fx_glow`), and one play's (`play(..., colors)`, `set_colors()`).
+- **Hurt particles** (`MDSHitParticles`): thirty one-shot `CPUParticles2D` bursts that fly off whoever is hurt.
+  - The kinds: blood, ink, sparks, metal, bone, dust, smoke, embers, ash, ice, snow, frost, electricity, static, poison, acid, void, shadow, holy motes, feathers, leaves, petals, slime, water, crystal, soul orbs, rock, sand, stars, heart shards.
+  - **Colours:** one colour fading to a second, or a palette where each particle takes one colour at random. Embers, holy motes, leaves, petals, crystals, rock and stars have a palette of their own.
+  - **Glow:** a strength (0 none, 1 glowing, more brighter), scaled for all of them by `fx/particle_glow`.
+  - **Set at every level:** one burst's (`burst(..., palette, glow)`, `set_palette()`, `set_glow()`), a hurtbox's (`particle_color`, `particle_fade`, `particle_palette`, `particle_glow`), an attack's (`particle_palette`, `particle_glow`), by kind from code (`MDSHitParticles.palettes`, `glows`), and the team colours.
+  - The attack effects' glow strength is set by `MDSAttackData.fx_intensity` or `set_intensity()`.
+  - They fly from every hit, picked by `MDSAttackData.hit_particles`, then `MDSHurtbox.hurt_particles`, then the damage type (`feel/hurt_particles`).
 - **Gameplay Kit** (`addons/MetroidvaniaDeveloperSystem/gameplay/`, see the README): the gameplay half of a Metroidvania, plugged into `MDSWorldGame`.
   - **Hub:** `MDSGameplay` under the game holds items, currency, equipment, story flags, health and mana, saved with the game in `ext.gameplay` (versioned, `MIGRATIONS`). `MDSGameplaySetup` adds the input actions, collision layer names and settings a project lacks.
   - **Conditions:** `item:<id>`, `item:<id>>=<n>` and `flag:<name>` work in gate and barrier `requires`, objectives, dialogue and shops, and in the Progress tab. `MDSGateBarrier.consume_items` uses the items up; the map gate behind the open barrier still lets the player through.

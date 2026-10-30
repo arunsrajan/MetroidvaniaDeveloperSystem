@@ -40,6 +40,21 @@ enum Direction { FORWARD, UP, DOWN }
 ## The effect played where it hits: empty picks one by its damage type
 ## ([method MDSAttackFX.hit_for]), "none" plays none.
 @export var hit_fx := ""
+## The hot middle of its effects and particles (transparent: the team's, or the effect's own; see
+## [method MDSAttackFX.colors_for])...
+@export var fx_color := Color(0, 0, 0, 0)
+## ...and the light round it.
+@export var fx_glow := Color(0, 0, 0, 0)
+## How strongly its effects glow (their shaders' intensity: 1 as they are).
+@export_range(0.0, 4.0, 0.05) var fx_intensity := 1.0
+## The particles flying off what it hurts ([constant MDSHitParticles.PARTICLES]): empty, the hurt
+## one's own or picked by the damage type ([method MDSHitParticles.particles_for]); "none", none.
+@export var hit_particles := ""
+## Their colors: each particle one of them, picked at random (one: all of it; empty: as they
+## would be). A hurtbox's own win.
+@export var particle_palette := PackedColorArray()
+## How strongly they glow: 0 not at all, 1 glowing, more brighter; less than 0, as they would.
+@export_range(-1.0, 3.0, 0.05) var particle_glow := -1.0
 
 func startup_time() -> float:
 	return startup_frames / 60.0

@@ -2,7 +2,9 @@ extends "res://tests/test_case.gd"
 ## Attack effects (MDSAttackFX): the thirty shaders, played once and gone, facing the attack, in
 ## the player's or the enemy's colors (an element in its own), picked by themselves for swings
 ## and hits (by the attack, its direction, its damage type), and what a hit does to the body hit;
-## the feel setting turns them off.
+## the feel setting turns them off. Their colors, set at every level: the Project Settings' team
+## colors, an effect's, an attack's, one play's. And the thirty hurt particles (MDSHitParticles)
+## flying off whoever is hurt, in its colors, picked the same ways.
 
 const SETTING := "metroidvania_developer_system/gameplay/feel/attack_fx"
 
@@ -17,6 +19,10 @@ func _run() -> void:
 	_choices()
 	await _hits()
 	_swings()
+	_color_settings()
+	await _particles()
+	_palettes_and_glow()
+	await _hurt_particles()
 	level.queue_free()
 	await get_tree().process_frame
 
@@ -173,3 +179,167 @@ func _swings() -> void:
 	var down := MDSAttackFX.on_swing(a, hero, 1.0)
 	check(down.effect == "overhead_cleave" and is_equal_approx(down.rotation, PI * 0.5) and down.position.y > 0.0, "a swing down: turned to face down, below")
 	hero.free()
+
+## The colors at every level.
+func _color_settings() -> void:
+	var key := "metroidvania_developer_system/gameplay/fx/player_glow"
+	ProjectSettings.set_setting(key, Color.ORANGE)
+	var fx := MDSAttackFX.new()
+	fx.setup("slash_arc", MDSAttackFX.Team.PLAYER)
+	check(fx.get_material_fx().get_shader_parameter("glow_color") == Color.ORANGE, "the Project Settings' team color")
+	fx.free()
+	ProjectSettings.set_setting(key, null)
+	MDSAttackFX.effect_colors["slash_arc"] = [Color.WHITE, Color.GREEN]
+	MDSAttackFX.effect_colors["enemy"] = [Color.BLACK, Color.PURPLE]
+	var mine := MDSAttackFX.new()
+	mine.setup("slash_arc", MDSAttackFX.Team.ENEMY)
+	var theirs := MDSAttackFX.new()
+	theirs.setup("thrust", MDSAttackFX.Team.ENEMY)
+	check(mine.get_material_fx().get_shader_parameter("glow_color") == Color.GREEN and theirs.get_material_fx().get_shader_parameter("glow_color") == Color.PURPLE, "one effect's own colors, and a team's, from code")
+	mine.free()
+	theirs.free()
+	MDSAttackFX.effect_colors.clear()
+	var a := MDSAttackData.make("slash")
+	a.fx_glow = Color.YELLOW
+	check(MDSAttackFX.colors_for("fire_burst", MDSAttackFX.Team.PLAYER, MDSAttackFX.EFFECTS.fire_burst[3], MDSAttackFX.attack_colors(a)) == [MDSAttackFX.EFFECTS.fire_burst[3][0], Color.YELLOW], "an attack's glow over fire's own, its unset core left as fire's")
+	var one := MDSAttackFX.play("impact_star", level, Vector2.ZERO, 1.0, MDSAttackFX.Team.PLAYER, 1.0, null, [Color.RED, Color.BLUE])
+	check(one.get_material_fx().get_shader_parameter("core_color") == Color.RED, "one play's colors")
+	one.set_colors(Color.CYAN, Color.MAGENTA)
+	check(one.get_material_fx().get_shader_parameter("glow_color") == Color.MAGENTA, "and changed while it plays")
+	one.free()
+
+func _particles() -> void:
+	check(MDSHitParticles.PARTICLES.size() == 30, "thirty hurt particles (%d)" % MDSHitParticles.PARTICLES.size())
+	var bad: Array = []
+	for id: String in MDSHitParticles.PARTICLES:
+		var p := MDSHitParticles.new()
+		p.setup(id)
+		if p.amount <= 0 or p.lifetime <= 0.0 or not p.texture or not p.color_ramp or not p.one_shot:
+			bad.append(id)
+		p.free()
+	check(bad.is_empty(), "each a one-shot burst with its texture and colors (%s)" % [bad])
+	var ink := MDSHitParticles.burst("ink_drops", level, Vector2(200, 100), Vector2.RIGHT, MDSAttackFX.Team.ENEMY)
+	check(ink and ink.get_parent() == level and ink.global_position == Vector2(200, 100) and ink.emitting and ink.direction.x > 0.0, "a burst where asked, flying the way the blow went")
+	check(ink.color_ramp.get_color(0) == MDSAttackFX.ENEMY_COLORS[0], "in the enemy's colors")
+	var embers := MDSHitParticles.burst("embers", level, Vector2.ZERO, Vector2.UP, MDSAttackFX.Team.PLAYER)
+	var pal: Gradient = embers.color_initial_ramp
+	check(pal and pal.get_point_count() == 4 and pal.interpolation_mode == Gradient.GRADIENT_INTERPOLATE_CONSTANT and embers.material is CanvasItemMaterial, "embers in their own palette, each one of its colors, glowing")
+	var ice := MDSHitParticles.burst("ice_chips", level, Vector2.ZERO)
+	check(ice.color_initial_ramp == null and ice.color_ramp.get_color(0) == MDSHitParticles.PARTICLES.ice_chips.colors[0] and ice.material == null, "ice chips in one color, not glowing")
+	ice.free()
+	var green := MDSHitParticles.burst("blood_spray", level, Vector2.ZERO, Vector2.UP, MDSAttackFX.Team.ENEMY, [Color.GREEN, Color.DARK_GREEN])
+	check(green.color_ramp.get_color(0) == Color.GREEN, "colors of one's own")
+	MDSAttackFX.effect_colors["feathers"] = [Color.GOLD, Color.ORANGE]
+	var gold := MDSHitParticles.burst("feathers", level, Vector2.ZERO)
+	check(gold.color_ramp.get_color(0) == Color.GOLD, "a kind's colors set from code")
+	MDSAttackFX.effect_colors.clear()
+	check(MDSHitParticles.burst("no_such", level, Vector2.ZERO) == null, "an unknown one: none")
+	await get_tree().create_timer(gold.lifetime * 1.4 + 0.25).timeout
+	check(not is_instance_valid(gold) and not is_instance_valid(ink), "they free themselves when done")
+	for n in [embers, green]:
+		if is_instance_valid(n):
+			n.free()
+
+func _hurt_particles() -> void:
+	var hb := MDSHurtbox.make(MDSHurtbox.Team.ENEMY, Vector2(10, 10))
+	check(MDSHitParticles.particles_for(MDSDamageInfo.make(1), hb) == "ink_drops" and MDSHitParticles.particles_for(MDSDamageInfo.make(1, "fire"), hb) == "embers" and MDSHitParticles.particles_for(MDSDamageInfo.make(5), hb) == "sparks", "an enemy hurt: ink, embers for a burn, sparks for a heavy blow")
+	hb.team = MDSHurtbox.Team.PLAYER
+	check(MDSHitParticles.particles_for(MDSDamageInfo.make(1), hb) == "blood_spray", "the player hurt: drops")
+	hb.hurt_particles = "feathers"
+	check(MDSHitParticles.particles_for(MDSDamageInfo.make(1, "fire"), hb) == "feathers", "a hurtbox's own first")
+	var a := MDSAttackData.make("x")
+	a.hit_particles = "none"
+	check(MDSHitParticles.particles_for(MDSDamageInfo.make(1), hb, a) == "", "an attack's own before it (none)")
+	hb.free()
+	# A real hit: off the enemy, in its colors, its hurtbox's own when set.
+	var enemy := _dummy(MDSHurtbox.Team.ENEMY, Vector2(500, 300))
+	var hurt := enemy.get_node(^"Hurtbox") as MDSHurtbox
+	hurt.particle_color = Color.LIME
+	var hero := Node2D.new()
+	level.add_child(hero)
+	hero.global_position = Vector2(440, 300)
+	var blade := MDSHitbox.make(MDSHitbox.Team.PLAYER, Vector2(40, 40), MDSAttackData.make("slash", 1))
+	hero.add_child(blade)
+	blade.try_hit(hurt)
+	var parts := level.get_children().filter(func(n: Node) -> bool: return n is MDSHitParticles)
+	check(parts.size() == 1 and (parts[0] as MDSHitParticles).particles == "ink_drops" and (parts[0] as MDSHitParticles).team == MDSAttackFX.Team.ENEMY, "a hit: ink flies off the enemy (%s)" % [parts.map(func(n: MDSHitParticles) -> String: return n.particles)])
+	check(parts.size() == 1 and (parts[0] as MDSHitParticles).color_ramp.get_color(0) == Color.LIME and (parts[0] as MDSHitParticles).direction.x > 0.0, "in its hurtbox's color, away from the blow")
+	for n in level.get_children():
+		if n is MDSHitParticles or n is MDSAttackFX:
+			n.free()
+	ProjectSettings.set_setting("metroidvania_developer_system/gameplay/feel/hurt_particles", false)
+	blade.reset_hits()
+	blade.try_hit(hurt)
+	check(not level.get_children().any(func(n: Node) -> bool: return n is MDSHitParticles), "feel/hurt_particles off: none")
+	ProjectSettings.set_setting("metroidvania_developer_system/gameplay/feel/hurt_particles", null)
+	await get_tree().process_frame
+
+## One color or several, and how strongly they glow, set at every level.
+func _palettes_and_glow() -> void:
+	var three := PackedColorArray([Color.RED, Color.GREEN, Color.BLUE])
+	var p := MDSHitParticles.burst("ink_drops", level, Vector2.ZERO, Vector2.UP, MDSAttackFX.Team.ENEMY, [], 1.0, three)
+	var g: Gradient = p.color_initial_ramp
+	var seen := [g.sample(0.1), g.sample(0.5), g.sample(0.9)]
+	check(seen == [Color.RED, Color.GREEN, Color.BLUE], "a palette: each particle one of its colors (%s)" % [seen])
+	check(p.color_ramp.get_color(0) == Color.WHITE and p.color_ramp.get_color(p.color_ramp.get_point_count() - 1).a == 0.0, "keeping it, fading out")
+	p.set_palette(PackedColorArray([Color.ORANGE]))
+	check(p.color_initial_ramp == null and p.color_ramp.get_color(0) == Color.ORANGE, "one color: all of it")
+	p.free()
+	var plain := MDSHitParticles.burst("embers", level, Vector2.ZERO, Vector2.UP, MDSAttackFX.Team.ENEMY, [Color.CYAN, Color.BLUE])
+	check(plain.color_initial_ramp == null and plain.color_ramp.get_color(0) == Color.CYAN, "colors given win over a kind's own palette")
+	plain.free()
+	MDSHitParticles.palettes["sparks"] = [Color.GOLD, Color.WHITE]
+	var mine := MDSHitParticles.burst("sparks", level, Vector2.ZERO)
+	check(mine.color_initial_ramp and mine.color_initial_ramp.get_point_count() == 2, "a kind's palette set from code")
+	mine.free()
+	MDSHitParticles.palettes.clear()
+	# Glow.
+	var none := MDSHitParticles.burst("sparks", level, Vector2.ZERO, Vector2.UP, MDSAttackFX.Team.ENEMY, [], 1.0, PackedColorArray(), 0.0)
+	check(none.material == null and none.color == Color.WHITE, "glow 0: none")
+	var bright := MDSHitParticles.burst("ink_drops", level, Vector2.ZERO, Vector2.UP, MDSAttackFX.Team.ENEMY, [], 1.0, PackedColorArray(), 2.0)
+	check(bright.material is CanvasItemMaterial and (bright.material as CanvasItemMaterial).blend_mode == CanvasItemMaterial.BLEND_MODE_ADD and bright.color.r > 1.0, "glow 2: glowing, brighter (%s)" % bright.color)
+	var half := MDSHitParticles.burst("ink_drops", level, Vector2.ZERO, Vector2.UP, MDSAttackFX.Team.ENEMY, [], 1.0, PackedColorArray(), 0.5)
+	check(is_equal_approx(half.color.a, 0.5), "glow 0.5: half")
+	none.free()
+	bright.free()
+	half.free()
+	MDSHitParticles.glows["ink_drops"] = 1.5
+	check(is_equal_approx(MDSHitParticles.glow_for("ink_drops"), 1.5) and is_equal_approx(MDSHitParticles.glow_for("sparks"), 1.0) and is_equal_approx(MDSHitParticles.glow_for("ice_chips"), 0.0), "a kind's glow from code; the glowing kinds 1, the rest 0")
+	MDSHitParticles.glows.clear()
+	ProjectSettings.set_setting("metroidvania_developer_system/gameplay/fx/particle_glow", 2.0)
+	check(is_equal_approx(MDSHitParticles.glow_for("sparks"), 2.0), "the Project Settings' fx/particle_glow: all twice as strong")
+	ProjectSettings.set_setting("metroidvania_developer_system/gameplay/fx/particle_glow", null)
+	# An attack's effects' glow.
+	var a := MDSAttackData.make("slash")
+	a.fx_intensity = 2.5
+	var hero := Node2D.new()
+	level.add_child(hero)
+	var fx := MDSAttackFX.on_swing(a, hero, 1.0)
+	check(is_equal_approx(float(fx.get_material_fx().get_shader_parameter("intensity")), 2.5), "an attack's fx_intensity: its effects glow that strongly")
+	hero.free()
+	# From a hit: the hurtbox's palette and glow, then the attack's.
+	var enemy := _dummy(MDSHurtbox.Team.ENEMY, Vector2(800, 300))
+	var hurt := enemy.get_node(^"Hurtbox") as MDSHurtbox
+	var blade := MDSHitbox.make(MDSHitbox.Team.PLAYER, Vector2(40, 40), MDSAttackData.make("slash", 1))
+	blade.attack.particle_palette = PackedColorArray([Color.WHITE, Color.BLACK])
+	blade.attack.particle_glow = 0.0
+	var foe := Node2D.new()
+	level.add_child(foe)
+	foe.global_position = Vector2(740, 300)
+	foe.add_child(blade)
+	blade.try_hit(hurt)
+	var got := level.get_children().filter(func(n: Node) -> bool: return n is MDSHitParticles)
+	check(got.size() == 1 and (got[0] as MDSHitParticles).color_initial_ramp.get_point_count() == 2 and (got[0] as MDSHitParticles).material == null, "an attack's palette and glow on what it hurts")
+	for n in got:
+		n.free()
+	hurt.particle_palette = PackedColorArray([Color.YELLOW, Color.ORANGE, Color.RED])
+	hurt.particle_glow = 1.0
+	blade.reset_hits()
+	blade.try_hit(hurt)
+	got = level.get_children().filter(func(n: Node) -> bool: return n is MDSHitParticles)
+	check(got.size() == 1 and (got[0] as MDSHitParticles).color_initial_ramp.get_point_count() == 3 and (got[0] as MDSHitParticles).material is CanvasItemMaterial, "the hurtbox's own win")
+	for n in level.get_children():
+		if n is MDSHitParticles or n is MDSAttackFX:
+			n.free()
+	enemy.free()
+	foe.free()

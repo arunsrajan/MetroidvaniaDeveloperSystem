@@ -8,7 +8,11 @@ extends Node2D
 ##
 ## Each takes the colors of who attacks ([member team]): the player's (warm white and sky blue) or
 ## an enemy's (pale rose and red), unless it has an element's own (fire is orange whoever throws
-## it). With the kit's feel setting [code]feel/attack_fx[/code] on (the default), they play by
+## it). Every color can be changed (see [method colors_for]): the teams' in the Project Settings
+## ([code]metroidvania_developer_system/gameplay/fx/player_color[/code], [code]player_glow[/code],
+## [code]enemy_color[/code], [code]enemy_glow[/code]), one effect's in [member effect_colors], an
+## attack's with [member MDSAttackData.fx_color] and [member MDSAttackData.fx_glow], one play's
+## with [method play]'s [code]colors[/code]. Where they hit, [MDSHitParticles] fly off the one hurt. With the kit's feel setting [code]feel/attack_fx[/code] on (the default), they play by
 ## themselves: the player's swings ([method on_swing]), every hit of a player or enemy hitbox and
 ## projectile ([method on_hit]) and parries. An attack picks its own with
 ## [member MDSAttackData.swing_fx] and [member MDSAttackData.hit_fx]. From code:
@@ -60,9 +64,14 @@ const EFFECTS := {
 	"freeze_overlay": ["body", Vector2(110, 140), 1.2, [Color("#ffffff"), Color("#8fd8ff")], "The body frozen: icy, frost at its edges, thawing"],
 	"electrocute": ["body", Vector2(110, 140), 0.7, [Color("#ffffff"), Color("#7fd2ff")], "Arcs crawling over the body, flickering"],
 }
-## The team colors: [core, glow].
+## The team colors by default: [core, glow] (the Project Settings' fx/ colors change them).
 const PLAYER_COLORS := [Color("#fff7e6"), Color("#6fd8ff")]
 const ENEMY_COLORS := [Color("#ffe3dc"), Color("#ff3b4e")]
+
+## Colors of your own: id -> [core, glow], over the Project Settings and the effects' own. An
+## effect's id, a hurt particles' id ([constant MDSHitParticles.PARTICLES]), or a team's:
+## "player", "enemy".
+static var effect_colors: Dictionary = {}
 ## The effect of a hit by its damage type (see [method hit_for]).
 const BY_TYPE := {
 	"fire": "fire_burst", "ice": "ice_shatter", "shock": "lightning_strike", "lightning": "lightning_strike",
@@ -91,8 +100,9 @@ var _time := 0.0
 ## Plays effect [param id] at [param at] (global) under [param parent] (the room, or the body it
 ## follows), facing right ([param facing] 1) or left (-1), in [param p_team]'s colors, [param size]
 ## times its size. A "body" effect, or any with [param follow], goes on [param follow] (a body)
-## and moves with it. Returns it (null: no such effect, or no parent).
-static func play(id: String, parent: Node, at: Vector2, facing := 1.0, p_team: Team = Team.PLAYER, size := 1.0, follow: Node2D = null) -> MDSAttackFX:
+## and moves with it. [param colors] ([core, glow]) colors this play (see [method colors_for]).
+## Returns it (null: no such effect, or no parent).
+static func play(id: String, parent: Node, at: Vector2, facing := 1.0, p_team: Team = Team.PLAYER, size := 1.0, follow: Node2D = null, colors: Array = []) -> MDSAttackFX:
 	if not EFFECTS.has(id):
 		push_warning("MDSAttackFX: no effect '%s' (%s)." % [id, ", ".join(EFFECTS.keys())])
 		return null
@@ -100,15 +110,15 @@ static func play(id: String, parent: Node, at: Vector2, facing := 1.0, p_team: T
 	if not is_instance_valid(host):
 		return null
 	var fx := MDSAttackFX.new()
-	fx.setup(id, p_team, size)
+	fx.setup(id, p_team, size, colors)
 	fx.scale = Vector2(-1.0 if facing < 0.0 else 1.0, 1.0)
 	host.add_child(fx)
 	fx.global_position = at
 	return fx
 
-## Makes this effect [param id] in [param p_team]'s colors, [param size] times its size (not yet
-## playing: it plays once in the tree).
-func setup(id: String, p_team: Team = Team.PLAYER, size := 1.0) -> void:
+## Makes this effect [param id] in [param p_team]'s colors (or [param colors]: [core, glow]),
+## [param size] times its size (not yet playing: it plays once in the tree).
+func setup(id: String, p_team: Team = Team.PLAYER, size := 1.0, colors: Array = []) -> void:
 	var e: Array = EFFECTS[id]
 	effect = id
 	team = p_team
@@ -118,9 +128,9 @@ func setup(id: String, p_team: Team = Team.PLAYER, size := 1.0) -> void:
 	var quad_size: Vector2 = e[1] * size
 	_mat = ShaderMaterial.new()
 	_mat.shader = load(SHADER_DIR + id + ".gdshader")
-	var colors: Array = e[3] if not (e[3] as Array).is_empty() else (PLAYER_COLORS if p_team == Team.PLAYER else ENEMY_COLORS)
-	_mat.set_shader_parameter("core_color", colors[0])
-	_mat.set_shader_parameter("glow_color", colors[1])
+	var c := colors_for(id, p_team, e[3], colors)
+	_mat.set_shader_parameter("core_color", c[0])
+	_mat.set_shader_parameter("glow_color", c[1])
 	_mat.set_shader_parameter("rect_size", quad_size)
 	_mat.set_shader_parameter("seed", randf() * 100.0)
 	_mat.set_shader_parameter("progress", 0.0)
@@ -134,6 +144,47 @@ func setup(id: String, p_team: Team = Team.PLAYER, size := 1.0) -> void:
 ## The effect's shader material (for its colors, intensity...).
 func get_material_fx() -> ShaderMaterial:
 	return _mat
+
+## Sets its colors now, while it plays.
+func set_colors(core: Color, glow: Color) -> void:
+	_mat.set_shader_parameter("core_color", core)
+	_mat.set_shader_parameter("glow_color", glow)
+
+## How strongly it glows (its shader's intensity: 1 as it is, 0 gone, more brighter).
+func set_intensity(value: float) -> void:
+	_mat.set_shader_parameter("intensity", value)
+
+# --- Colors ----------------------------------------------------------------------------------------
+
+## [core, glow] of a team: [member effect_colors]' "player" / "enemy", else the Project Settings'
+## (fx/player_color, fx/player_glow, fx/enemy_color, fx/enemy_glow), else the defaults.
+static func team_colors(p_team: Team) -> Array:
+	var key := "player" if p_team == Team.PLAYER else "enemy"
+	if effect_colors.has(key):
+		return effect_colors[key]
+	var d: Array = PLAYER_COLORS if p_team == Team.PLAYER else ENEMY_COLORS
+	return [MDSGameplaySetup.setting("fx/%s_color" % key, d[0]), MDSGameplaySetup.setting("fx/%s_glow" % key, d[1])]
+
+## The colors effect (or particles) [param id] plays in for [param p_team]: [param override]
+## where given ([core, glow]; a transparent one is left as it would be), else
+## [member effect_colors]' for it, else its own [param own] (an element's), else the team's
+## ([method team_colors]).
+static func colors_for(id: String, p_team: Team, own: Array = [], override: Array = []) -> Array:
+	var c: Array = team_colors(p_team)
+	if not own.is_empty():
+		c = own
+	if effect_colors.has(id):
+		c = effect_colors[id]
+	c = c.duplicate()
+	for i in mini(override.size(), 2):
+		if override[i] is Color and (override[i] as Color).a > 0.0:
+			c[i] = override[i]
+	return c
+
+## An attack's colors ([member MDSAttackData.fx_color], [member MDSAttackData.fx_glow]) as an
+## override for [method colors_for] (transparent: none).
+static func attack_colors(attack: MDSAttackData) -> Array:
+	return [attack.fx_color, attack.fx_glow] if attack else []
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -206,8 +257,9 @@ static func on_swing(attack: MDSAttackData, attacker: Node2D, facing: float, p_t
 	if id.is_empty():
 		return null
 	var at := attacker.global_position
-	var fx := play(id, attacker, at, facing, p_team)
+	var fx := play(id, attacker, at, facing, p_team, 1.0, null, attack_colors(attack))
 	if fx and attack:
+		fx.set_intensity(attack.fx_intensity)
 		match attack.direction:
 			MDSAttackData.Direction.UP:
 				fx.position = Vector2(0, -24)
@@ -219,8 +271,13 @@ static func on_swing(attack: MDSAttackData, attacker: Node2D, facing: float, p_t
 	return fx
 
 ## Hit [param info] of [param hitbox] landed on [param target]: the hit's effect where it struck
-## (between the hitbox and the target), and what it does to the target's body.
-static func on_hit(hitbox: MDSHitbox, target: Node, info: MDSDamageInfo) -> void:
+## (between the hitbox and the target), what it does to the target's body, and the particles
+## flying off it ([method MDSHitParticles.on_hurt]).
+static func on_hit(hitbox: MDSHitbox, target: Node, info: MDSDamageInfo, hurtbox: MDSHurtbox = null) -> void:
+	MDSHitParticles.on_hurt(hitbox, target, info, hurtbox)
+	_effects_on_hit(hitbox, target, info)
+
+static func _effects_on_hit(hitbox: MDSHitbox, target: Node, info: MDSDamageInfo) -> void:
 	if not enabled() or not is_instance_valid(hitbox) or not hitbox.is_inside_tree() or hitbox.team == MDSHitbox.Team.HAZARD:
 		return
 	var p_team := Team.PLAYER if hitbox.team == MDSHitbox.Team.PLAYER else Team.ENEMY
@@ -231,8 +288,14 @@ static func on_hit(hitbox: MDSHitbox, target: Node, info: MDSDamageInfo) -> void
 	var world: Node = body.get_parent() if body and body.get_parent() else hitbox.get_tree().current_scene
 	var facing := signf(at.x - (info.origin.x if info.origin != Vector2.INF else hitbox.global_position.x))
 	var id := hit_for(info, p_team, hitbox.attack)
+	var colors := attack_colors(hitbox.attack)
+	var shine := hitbox.attack.fx_intensity if hitbox.attack else 1.0
 	if not id.is_empty():
-		play(id, world, at, facing if facing != 0.0 else 1.0, p_team)
+		var fx := play(id, world, at, facing if facing != 0.0 else 1.0, p_team, 1.0, null, colors)
+		if fx:
+			fx.set_intensity(shine)
 	var on_body := body_for(info, p_team)
 	if not on_body.is_empty() and body and body.is_inside_tree():
-		play(on_body, world, body.global_position, 1.0, p_team, 1.0, body)
+		var fx := play(on_body, world, body.global_position, 1.0, p_team, 1.0, body, colors)
+		if fx:
+			fx.set_intensity(shine)

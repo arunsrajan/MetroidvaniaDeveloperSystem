@@ -103,7 +103,7 @@ func try_hit(area: Area2D) -> int:
 	var dmg := hb.receive(info)
 	if dmg > 0:
 		_hit[key] = true
-		MDSAttackFX.on_hit(self, hb.get_body(), info)
+		MDSAttackFX.on_hit(self, hb.get_body(), info, hb)
 		hit_landed.emit(hb.get_body(), info)
 	return dmg
 
