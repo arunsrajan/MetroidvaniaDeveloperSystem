@@ -24,6 +24,7 @@ var _window: Window
 var _placeholder: Control
 var _metsys_check_timer: Timer
 var _movement_inspector: EditorInspectorPlugin
+var _mcp: MDSMcpEditor
 
 func _enter_tree() -> void:
 	# Settings saved before 3.1 (interactive_dev_panel/...) move to their new names.
@@ -46,6 +47,8 @@ func _enter_tree() -> void:
 	add_inspector_plugin(_movement_inspector)
 	_init_plugin()
 	scene_saved.connect(_on_scene_saved)
+	_mcp = MDSMcpEditor.new(func() -> Variant: return dock_instance.world_panel if dock_instance else null)
+	add_child(_mcp)
 
 func _exit_tree() -> void:
 	_clean_plugin()
@@ -259,6 +262,10 @@ func _check_metsys() -> void:
 		add_child(_metsys_check_timer)
 
 func _clean_plugin() -> void:
+	if _mcp:
+		remove_child(_mcp)
+		_mcp.free()
+		_mcp = null
 	_clear_check_timer()
 	if _movement_inspector:
 		remove_inspector_plugin(_movement_inspector)

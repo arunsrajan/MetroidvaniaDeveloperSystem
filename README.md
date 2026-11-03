@@ -1914,6 +1914,71 @@ During such a run `MDSRuntime.active_request` holds the request (handy for skipp
 - **Graphviz `.dot`:** the room graph clustered by area, with gated doors labeled and one-way doors as arrows (`dot -Tsvg map.dot -o map.svg`)
 - **Markdown design document:** summary, progression, bosses, rooms by area, open issues
 
+## MCP server: letting AI tools build with MDS
+
+MDS can serve [MCP](https://modelcontextprotocol.io), so Claude Code and other AI tools can build worlds with it: rooms, gates, generated caves, enemies, checks. It is written in GDScript, so there is nothing else to install, and the editor doesn't serve it **until you turn it on**.
+
+**Connect a client.** On a fresh clone, run this once so Godot knows the plugin's classes:
+
+```bash
+godot --headless --path . --import
+```
+
+Every client then runs one command, with absolute paths. The panel's **MCP** section has **Copy config**, filled in:
+
+```bash
+claude mcp add --transport stdio mds -- <GODOT> --headless --no-header --path <PROJECT> --script res://addons/MetroidvaniaDeveloperSystem/mcp/mds_mcp_main.gd
+```
+
+For a team, put `.mcp.json` at the project root, with the engine in the `GODOT4` environment variable:
+
+```json
+{
+  "mcpServers": {
+    "mds": {
+      "command": "${GODOT4:-godot}",
+      "args": ["--headless", "--no-header", "--path", "${CLAUDE_PROJECT_DIR:-.}",
+               "--script", "res://addons/MetroidvaniaDeveloperSystem/mcp/mds_mcp_main.gd"]
+    }
+  }
+}
+```
+
+Other MCP clients take the same command and arguments in their own config. So far it has only been tried with Claude Code.
+
+**With the editor closed,** the command does the work itself. **With the editor open,** it depends on the panel's **MCP** section:
+
+| In the editor | What the command does |
+|---|---|
+| **Let AI tools connect** on | Hands each request to the editor, which serves it on `127.0.0.1` from port 6590 and edits worlds open in the panel live. A client can also connect straight to the editor over HTTP: **Copy config > Direct to this editor**. That config holds the token, so never commit it |
+| Off (the default) | Reads still work. Writes are refused with `editor_open_mcp_off`, so nothing changes behind the editor's back |
+
+**What agents can do.** 43 tools: `mds_status`, `mds_catalog` (the valid ids), worlds, areas, rooms and gates, generating and painting rooms, placing and configuring enemies, the game scene, `mds_validate`, `mds_analysis`, `mds_room_check`, `mds_room_ascii` and `mds_room_preview` to see a room, and `mds_batch` to do many things as one step. Clients also get resources (`mds://worlds`, `mds://guide/objects`...) and prompts (`build_area`, `add_encounter`, `gated_progression`, `audit_world`, `combat_fx_pass`).
+
+**What keeps your work safe:**
+
+- **Tiers.** `read`, `author` (the default) and `full`, set in the panel, or with `-- --tier=read` after the command. Only `full` may change `project.godot`, and only `mds_gameplay_setup`, which adds the Gameplay Kit's input actions, layers and settings.
+- **Files.** Only inside `res://`, and never `addons/`, `.godot/`, `.git/` or `.github/`.
+- **Undo.** Each tool call or batch can be undone with `mds_undo`, for as long as its files haven't changed since. The last 50 steps are kept in `.godot/mds_mcp/`, and a batch that fails puts its files back.
+- **Unsaved scenes.** A scene with unsaved changes isn't written over: the tool refuses until you save it, or until the agent asks you and retries with `on_unsaved: "save_first"`. Godot 4.6 can't tell which open scenes have changes, so there **every open scene counts as unsaved**.
+- **Removing** needs `confirm: true`. Generators leave painted rooms alone unless told otherwise.
+- **The network.** The editor listens on `127.0.0.1` only, with a random token, and checks `Host` and `Origin`. Calls are logged in `.godot/mds_mcp/audit.log`.
+
+No tool runs code or shell commands. Loading a room still runs its `@tool` scripts, as opening it in the editor does, so only use this on projects you trust. Other programs running as you can read the token.
+
+**If something goes wrong:**
+
+| What you see | What to do |
+|---|---|
+| Every call says to import the project | Run the import above, once |
+| `editor_open_mcp_off` | Turn MCP on in the panel, or close the editor. After a crash it clears by itself in about 10 seconds |
+| `project_busy` | Another process is writing. Retry. A lock left by a killed process expires after a minute |
+| `scene_has_unsaved_changes` | Save the scene in the editor. On 4.6, close it |
+| The client gives up while connecting | Godot takes a few seconds to start, more on a slow disk. Raise the client's timeout (Claude Code: `MCP_TIMEOUT`) |
+| You need the engine's errors | Add `-- --show-errors`, for a client that reads stderr. They are off because **a client that doesn't read stderr would freeze the server** |
+
+Nothing autoloads the server, and its command refuses to run outside the editor's executable. To leave it out of exported games altogether, exclude `addons/MetroidvaniaDeveloperSystem/mcp/*`.
+
 ## Asset pack: Mossgrove
 
 [`asset_packs/mossgrove`](asset_packs/mossgrove/README.md) is a painted-style starter pack for 32 px tiles:
@@ -1956,6 +2021,7 @@ The repository:
 
 ```
 addons/MetroidvaniaDeveloperSystem/  # the plugin (all you need)
+addons/MetroidvaniaDeveloperSystem/mcp/  # the MCP server for AI tools (can be left out of exports)
 asset_packs/mossgrove/               # optional art pack: tiles, characters, freeform styles, demos
 asset_packs/sunken_gardens/          # optional art pack: freeform styles and stamps, a demo room
 asset_packs/painted_parallax/        # optional art pack: ten painted MDSParallaxBackground scenes
