@@ -1,6 +1,42 @@
 # MCP server for MDS: implementation plan
 
-Status: proposal for approval. Nothing here is implemented. Researched 2026-11-03.
+Status: **implemented**, phases 1 to 4, with Phase 5 left out. Researched and built 2026-11-03. How to use it is in the [README](../README.md#mcp-server-letting-ai-tools-build-with-mds). The rest of this page is the plan as approved, so read it with these results.
+
+## Results
+
+Decisions taken from section 12's recommendations: `author` tier by default, refuse on unsaved scenes, no MetSys mode, `mcp/` ships in the addon, no running the game.
+
+**Different from the plan:**
+
+| Plan | Built | Why |
+|---|---|---|
+| A dead editor or lock holder is detected with `OS.is_process_running` | The endpoint file is rewritten every 3 s and counts as gone after 10 s. A lock left unrenewed for 60 s can be taken | On Windows that call only knows a process's own children. **A frozen editor with MCP off looks closed after 10 s** |
+| On 4.6, compare scene fingerprints to find unsaved scenes | Every open scene counts as unsaved | Only the current tab can be looked at, and a fingerprint misses painted tiles |
+| An unread stderr may need the isolated worker process | The server silences engine errors, and `-- --show-errors` brings them back | With stderr unread, 0 of 58 calls were answered with errors on and 58 of 58 with them off, on both engines |
+| Nothing said about scripts that print | Printing is off except while the server sends | `Engine.print_to_stdout` gates `print()`. `test_mcp_stdio` checks it with a scene that prints |
+| Writes go to a temp file and then rename | True for worlds. Scenes are saved through the plugin's own scene code and Godot's saver, not atomically | A process killed while saving a scene can leave it damaged. Its snapshot in `.godot/mds_mcp/history/pending/` isn't restored by itself |
+| `resources/` and `prompts/` folders | One file each | Less to carry |
+| About 45 tools | 43 | The two play tools are Phase 5 |
+
+**Phase 0 gates, with Claude Code 2.1.310 on Windows:**
+
+| Gate | Result |
+|---|---|
+| Connects over stdio and lists the tools | Yes, 43 tools, on 4.6.1 (console `.exe`) and 4.7.2 (GUI `.exe`) |
+| `\r\n` line ends | Accepted |
+| `${GODOT4:-godot}` and `${CLAUDE_PROJECT_DIR:-.}` in the config | Work, with `GODOT4` set and started from the project folder |
+| Which protocol | It probes `server/discover`, and its log says the server speaks the new protocol. Connecting took about 4.6 s |
+| Exits with the client | No process left behind |
+
+**Not verified:**
+
+- **A model calling tools through a real client.** The CLI on this machine isn't logged in, so that run stopped after connecting. Tool calls were run through a test client over the same pipes and HTTP (`test_mcp_stdio`, `test_mcp_editor`, `test_mcp_http`).
+- **Ctrl+Z on the map after a tool call.** Tests cover undo through `mds_undo` in a headless editor. Nobody has pressed the key.
+- **Room view release and restore** with a real room showing.
+- **The panel's MCP section and Copy config**, by eye, and a windowed editor at all, including when unfocused. The headless editor covers the server, not the UI.
+- **SSE progress** through a real client.
+- Claude Desktop, Cursor, other clients, the Inspector and the conformance suite.
+- Linux and macOS. CI runs the suites on Linux, where the pipe and socket behaviour hasn't been seen yet.
 
 ## 1. Summary
 

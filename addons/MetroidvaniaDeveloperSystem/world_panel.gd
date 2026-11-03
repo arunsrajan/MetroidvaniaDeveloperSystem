@@ -89,6 +89,7 @@ var game_scene_kit_check: CheckBox
 var _files_ready := false ## the editor finished its startup scan and imports
 var _scanner: MDSSceneScanner
 var _save_timer: Timer
+var _mcp_shown: Dictionary = {} ## what the Room view showed before an MCP tool wrote rooms
 var _refresh_timer: Timer
 var _file_timer: Timer
 var _last_modified := 0
@@ -389,6 +390,8 @@ func _build_ui() -> void:
 	side_panel.add_section(SECTION_FULL, room_view.full_controls)
 	side_panel.set_section_visible(SECTION_FULL, false)
 	side_panel.add_section(SECTION_ROOM, room_view.controls)
+	if Engine.is_editor_hint():
+		side_panel.add_section("MCP", MDSMcpSection.new())
 	side_panel.set_section_visible(SECTION_ROOM, false)
 
 	sidebar = TabContainer.new()
@@ -1609,6 +1612,54 @@ func _show_room_sections(room: bool, full := false) -> void:
 		sidebar.current_tab = tiles
 	elif sidebar.current_tab == tiles:
 		sidebar.current_tab = 0
+
+# --- MCP (see MDSMcpEditorHost) ----------------------------------------------------------------
+
+## Saves the world now, through a temporary file.
+func mcp_save_world() -> Error:
+	_save_timer.stop()
+	var err := MDSMcpHost.write_world_file(world)
+	_last_modified = FileAccess.get_modified_time(world_path)
+	return err
+
+## The world's file was put back: takes it in as one undo step.
+func mcp_reload_world() -> void:
+	_save_timer.stop()
+	world.checkpoint()
+	world.data = MDSWorld.load_world(world_path).data
+	_last_modified = FileAccess.get_modified_time(world_path)
+	world.changed.emit()
+	_save_timer.stop()
+
+## Rooms' scenes are about to be written: the Room view lets go of them (it has nothing unsaved
+## by now; see [method MDSMcpEditorHost.room_write_problem]).
+func mcp_release_rooms() -> void:
+	_mcp_shown = {
+		"room": room_view.room_id if room_view.visible else "",
+		"full": room_view.visible and room_view.is_full(),
+		"together": room_view.session_rooms() if room_view.visible and not room_view.is_full() else [],
+	}
+	if room_view.painter:
+		room_view.close_room(false)
+
+func mcp_room_written(path: String) -> void:
+	_on_room_saved(path)
+
+## Shows again what [method mcp_release_rooms] let go of.
+func mcp_restore_rooms() -> void:
+	var was: Dictionary = _mcp_shown
+	_mcp_shown = {}
+	if was.is_empty() or not world:
+		return
+	var room: String = was.room
+	if was.full:
+		show_full_view()
+	elif was.together.size() >= 2:
+		var together: Array[String] = []
+		together.assign(was.together)
+		show_rooms_view(together, room)
+	elif world.has_room(room):
+		show_room_view(room)
 
 func _on_room_saved(path: String) -> void:
 	EditorInterface.get_resource_filesystem().update_file(path)

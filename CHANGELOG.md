@@ -2,6 +2,16 @@
 
 All notable changes to the Metroidvania Developer System. Versions follow [Semantic Versioning](https://semver.org/): a new major version can need changes in your project (see the README's upgrading notes), a minor one only adds.
 
+## [Unreleased]
+
+### Added
+
+- **MCP server** (`addons/MetroidvaniaDeveloperSystem/mcp/`, see the README): AI tools such as Claude Code can build with MDS, in GDScript with nothing else to install.
+  - **One command for every client:** it works by itself with the editor closed, and hands each request to the editor when it is open and serving. Stdio and Streamable HTTP, speaking MCP 2026-07-28 and the earlier versions.
+  - **43 tools:** worlds, areas, rooms and gates; generating, painting and seeing rooms (`mds_room_ascii`, `mds_room_preview`); enemies' hits and hurts; the game scene; `mds_validate`, `mds_analysis`, `mds_room_check`, `mds_export`; `mds_batch`, `mds_undo`. Also resources and five prompts.
+  - **Off in the editor by default:** the panel's new MCP section turns it on, per user and machine. Three permission tiers, paths confined to `res://`, writes kept out of `addons/`, a token and `Host` and `Origin` checks on loopback, an audit log, and no tool that runs code.
+  - **Unsaved work stays:** undo by file snapshots, batches that put their files back when they fail, and refusal to write over a scene with unsaved changes (on Godot 4.6, every open scene counts as unsaved).
+
 ## [3.4.0] - 2026-10-18
 
 ### Added
