@@ -18,7 +18,13 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - **Six recipes** (`MDSMoveRecipes`): `swooper`, `twin_swooper`, `showman`, `duelist`, `possessed_duelist` and `hanging_matriarch`. They are starting points with placeholder looks. `examples/boss_moves_demo/` has one arena for each.
   - **Bosses:** `MDSBoss.stagger_hits` and `stagger_time` make a boss reel after a number of hits (off by default), with a `staggered` signal and `phase_pause` for the pause at a phase change.
   - **Arenas:** `MDSBossArena.add_partner()` keeps a fight going until every partner has fallen. An arena now sets its boss's `arena` when the fight starts, if it has none.
-  - **A plan for a visual editor** is in `docs/combat_moves_plan.md`. The editor isn't built.
+
+- **Fight editor** (a third mode of the MDS panel, see the README): a graph of a fight, for `MDSMoveBoss` and `MDSMoveEnemy`, over the same resources.
+  - **Editing:** add, move, reorder, copy and remove moves, with fields made from each move's exports, conditions, phases and the editor's undo history. Saved move files are written at once, and shared moves can be made separate.
+  - **Recipes and code:** start from a recipe. Recipes and a boss's fight from a `@tool` script show read-only until made editable.
+  - **Checks** under the graph, such as an empty pick or two phases that start at the same health.
+  - **Live view:** a game running from the editor reports each fighter's moves, phase, health, cooldowns and flags through the debugger, and the graph lights up. `MDSMoveState` sends these only when the debugger is attached.
+  - **Not done:** node positions aren't saved, and there are no MCP tools for fights yet. See `docs/combat_moves_plan.md`.
 
 ## [3.4.0] - 2026-10-18
 

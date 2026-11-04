@@ -1,3 +1,4 @@
+@tool
 class_name MDSMoveRecipes
 extends RefCounted
 ## Whole fights built from moves, each a starting point to change or copy. They are patterns, with

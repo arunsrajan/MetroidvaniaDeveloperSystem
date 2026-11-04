@@ -11,7 +11,10 @@ var reactions: Array[MDSMove] = []
 ## The state's memory of the fight.
 var ctx: MDSMoveContext
 
+const REPORT_EVERY := 0.1
+
 var _current: MDSMove
+var _report_in := 0.0
 var _queue: Array[MDSMove] = []
 
 ## A state named [param state_name] running [param p_moves].
@@ -31,9 +34,20 @@ func pending(move: MDSMove) -> void:
 	if move:
 		_queue.append(move)
 
-func exit(_next: StringName) -> void:
+func exit(next: StringName) -> void:
 	_stop_current()
 	_context().interrupted()
+	if EngineDebugger.is_active():
+		EngineDebugger.send_message(MDSMoveTree.MESSAGE, [MDSMoveTree.snapshot(self, next)])
+
+## Tells the Fight editor what it is doing, while the editor is running the game.
+func _report(delta: float) -> void:
+	if not EngineDebugger.is_active():
+		return
+	_report_in -= delta
+	if _report_in <= 0.0:
+		_report_in = REPORT_EVERY
+		EngineDebugger.send_message(MDSMoveTree.MESSAGE, [MDSMoveTree.snapshot(self)])
 
 func _stop_current() -> void:
 	if _current:
@@ -41,6 +55,7 @@ func _stop_current() -> void:
 		_current = null
 
 func physics_update(delta: float) -> void:
+	_report(delta)
 	var c := _context()
 	if c.locks <= 0 and _current not in reactions:
 		for r in reactions:

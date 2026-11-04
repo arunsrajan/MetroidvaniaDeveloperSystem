@@ -5,6 +5,7 @@ extends Control
 ## - MetSys mode ([MDSMetSysPanel]): works on MetSys' grid MapData.txt.
 ## - Non-linear mode ([MDSWorldPanel]): free-form world map where scenes are drawn and
 ##   placed anywhere, connected by Hollow Knight-style named gates, saved as .mdsworld.json.
+## - Fight editor ([MDSFightPanel]): a boss's or an enemy's moves as a graph.
 ##
 ## Panels are created on first use, so an unused mode costs nothing.
 ##
@@ -15,8 +16,8 @@ extends Control
 ## Asks the plugin to move the panel (see the plugin's Placement enum).
 signal placement_requested(placement: int)
 
-enum Mode { METSYS, NON_LINEAR }
-const MODE_NAMES: PackedStringArray = ["MetSys mode", "Non-linear mode"]
+enum Mode { METSYS, NON_LINEAR, FIGHTS }
+const MODE_NAMES: PackedStringArray = ["MetSys mode", "Non-linear mode", "Fight editor"]
 const SETTING_MODE := "metroidvania_developer_system/mode"
 const PLACEMENT_ITEMS: PackedStringArray = ["Dock in main screen (MetDevSys tab)", "Detach to floating window", "Dock on the right", "Dock in bottom panel"]
 
@@ -26,6 +27,9 @@ var placement_menu: MenuButton
 var placement := 0
 var metsys_panel: MDSMetSysPanel
 var world_panel: MDSWorldPanel
+var fight_panel: MDSFightPanel
+## The editor's undo history, which the Fight editor's edits go in.
+var undo_manager: Object
 
 func _ready() -> void:
 	if is_part_of_edited_scene():
@@ -34,7 +38,8 @@ func _ready() -> void:
 	mode_switch = OptionButton.new()
 	for i in MODE_NAMES.size():
 		mode_switch.add_item(MODE_NAMES[i], i)
-	mode_switch.tooltip_text = "MetSys mode: MetSys' grid map (MapData.txt).\nNon-linear mode: draw and place scenes freely on a world map (.mdsworld.json)."
+	mode_switch.tooltip_text = "MetSys mode: MetSys' grid map (MapData.txt).\nNon-linear mode: draw and place scenes freely on a world map (.mdsworld.json).
+Fight editor: a boss's or an enemy's moves as a graph."
 	mode_switch.item_selected.connect(func(idx: int) -> void: set_mode(mode_switch.get_item_id(idx)))
 	placement_menu = MenuButton.new()
 	placement_menu.flat = true
@@ -58,15 +63,23 @@ func set_mode(new_mode: int) -> void:
 		ProjectSettings.save()
 	var panel := get_active_panel()
 	if not panel:
-		if mode == Mode.METSYS:
-			metsys_panel = MDSMetSysPanel.new()
-			panel = metsys_panel
-		else:
-			world_panel = MDSWorldPanel.new()
-			panel = world_panel
-		panel.name = "MetSysPanel" if mode == Mode.METSYS else "WorldPanel"
+		match mode:
+			Mode.METSYS:
+				metsys_panel = MDSMetSysPanel.new()
+				panel = metsys_panel
+				panel.name = "MetSysPanel"
+			Mode.FIGHTS:
+				fight_panel = MDSFightPanel.new()
+				if undo_manager:
+					fight_panel.doc.undo = undo_manager
+				panel = fight_panel
+				panel.name = "FightPanel"
+			_:
+				world_panel = MDSWorldPanel.new()
+				panel = world_panel
+				panel.name = "WorldPanel"
 		add_child(panel)
-	for p in [metsys_panel, world_panel]:
+	for p in [metsys_panel, world_panel, fight_panel]:
 		if p:
 			p.visible = p == panel
 	# One switch, living at the start of the active panel's toolbar.
@@ -91,10 +104,31 @@ func set_placement_state(current: int, main_screen_available: bool) -> void:
 	placement_menu.tooltip_text = "MetDevSys is in the %s. Detach it into its own window, or dock it in the editor" % ["main screen", "floating window", "right dock", "bottom panel"][current]
 
 func get_active_panel() -> Control:
-	return metsys_panel if mode == Mode.METSYS else world_panel
+	match mode:
+		Mode.METSYS:
+			return metsys_panel
+		Mode.FIGHTS:
+			return fight_panel
+	return world_panel
+
+## Called by the plugin: where the Fight editor's edits go for undo.
+func set_undo_manager(manager: Object) -> void:
+	undo_manager = manager
+	if fight_panel:
+		fight_panel.doc.undo = manager
+
+## News of a running fight, from the debugger.
+func on_fight_reported(snapshot: Dictionary) -> void:
+	if fight_panel:
+		fight_panel.apply_live(snapshot)
+
+## The game stopped.
+func on_game_stopped() -> void:
+	if fight_panel:
+		fight_panel.clear_live()
 
 ## Forwarded by the plugin when a scene is saved in the editor.
 func on_scene_saved(path: String) -> void:
-	for p in [metsys_panel, world_panel]:
+	for p in [metsys_panel, world_panel, fight_panel]:
 		if p:
 			p.on_scene_saved(path)

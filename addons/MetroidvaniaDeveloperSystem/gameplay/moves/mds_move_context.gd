@@ -54,6 +54,10 @@ func speed() -> float:
 func cooling(move: MDSMove) -> bool:
 	return _cool.has(move) and _cool[move] > _clock
 
+## Seconds until [param move] can start again.
+func cooldown_left(move: MDSMove) -> float:
+	return maxf(0.0, float(_cool.get(move, _clock)) - _clock)
+
 func cool(move: MDSMove, seconds: float) -> void:
 	_cool[move] = _clock + seconds
 

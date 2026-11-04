@@ -1766,7 +1766,21 @@ An ordinary enemy works the same way: extend `MDSMoveEnemy` and override `_make_
 | `possessed_duelist` | Dives through the floor between long lashes, arcing shots and columns. Four phases |
 | `hanging_matriarch` | Hangs from the ceiling: three swipes from above, thorn walls to cut down, flying adds, and at low health a full row of walls. It drops when staggered |
 
-The recipes are starting points with placeholder looks and untuned numbers. They have been run by headless tests, not judged by playing them. To see how they map onto known fights, what isn't covered (such as grabbing the player) and the plan for a visual editor, read [docs/combat_moves_plan.md](docs/combat_moves_plan.md).
+The recipes are starting points with placeholder looks and untuned numbers. They have been run by headless tests, not judged by playing them. To see how they map onto known fights and what isn't covered (such as grabbing the player), read [docs/combat_moves_plan.md](docs/combat_moves_plan.md).
+
+#### The Fight editor
+
+Choose **Fight editor** in the first drop-down of the MDS panel to see a fight as a graph. It covers `MDSMoveBoss` and `MDSMoveEnemy`, and it edits the same resources you would edit in the inspector, so there is nothing extra to save or ship.
+
+- **Open a fight:** select a boss or enemy in the scene, pick one from the list of fighters in the open scene, or open a `.tres` file of a phase or move.
+- **Start one:** choose a recipe to start from. A recipe, or a boss's fight from a `@tool` script, shows read-only until you press the button in the banner above the graph, which makes it yours to edit. A script without `@tool` can't run in the editor, so its fight isn't shown.
+- **Change it:** select a node to edit its fields and conditions in the side panel. The fields come from the move's exports, so a move class of your own gets them too. Each phase of a boss has a tab.
+- **Rearrange it:** add moves from the side panel, drag a line to put a move under another parent, pull a line off to remove it, and drag a node up or down to change its order. Nodes lay themselves out, and their positions aren't saved.
+- **Undo:** edits go in the editor's undo history. A move saved as its own `.tres` file is written as soon as you change it, and it can be shared, so the panel says where else it is used and can make a separate copy.
+- **Check it:** problems such as an empty pick, or two phases that start at the same health, are listed under the graph.
+- **Watch it run:** while the game runs from the editor, the moves a fighter is doing light up, with its phase, health, cooldowns and flags. Running games report this only when the debugger is attached.
+
+Nobody has judged how it looks or feels yet: it has only been tested headless. See [docs/combat_moves_plan.md](docs/combat_moves_plan.md) for what differs from the plan.
 
 ### Items, equipment, economy and NPCs
 

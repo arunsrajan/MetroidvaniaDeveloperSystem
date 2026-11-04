@@ -1,6 +1,6 @@
-# Boss moves: what is built, what isn't, and the visual editor plan
+# Boss moves: what is built, what isn't, and the Fight editor
 
-The move system (`addons/MetroidvaniaDeveloperSystem/gameplay/moves/`) lets a fight be put together from small, reusable actions instead of a state script for each boss. This page records how the fights it was designed against map onto it, what it can't do yet, and the plan for a visual editor. **The editor is a plan: none of it is built.**
+The move system (`addons/MetroidvaniaDeveloperSystem/gameplay/moves/`) lets a fight be put together from small, reusable actions instead of a state script for each boss. This page records how the fights it was designed against map onto it, what it can't do yet, and how the Fight editor came out against its plan.
 
 ## The fights it was designed against
 
@@ -28,36 +28,31 @@ These parts of the reference fights aren't covered. A subclass of `MDSMove` can 
 - **Silksong's own systems.** Needolin, tools deflecting off an attack and similar interactions depend on player abilities MDS doesn't have. The player's pogo in MDS is straight down only.
 - **Game feel and art.** Recipes use placeholder looks and starting numbers. They have only been run by headless tests, so nobody has judged whether they feel good. Play `examples/boss_moves_demo/` to judge them.
 
-## Visual editor plan
+## The Fight editor
 
-**Recommendation: build it, as a second layer over the same resources.** A fight is already a tree of resources (`MDSMovePhase` → `MDSMovePick` → `MDSMoveSequence` → actions), which maps directly onto nodes in a graph. The editor would add no new runtime and no new file format, so a fight stays editable by hand, in code or in the graph. The inspector can already edit these trees, but deep nesting is hard to read there, and that is the main thing a graph would fix.
+The Fight editor is a mode of the MDS panel (**Fight editor** in its first drop-down). It is a second layer over the same resources: a fight is a tree of resources (`MDSMovePhase` → `MDSMovePick` → `MDSMoveSequence` → actions), and the graph shows that tree. It adds no runtime and no file format, so a fight stays editable by hand, in code or in the graph. How to use it is in the README, under "The Fight editor".
 
-### Scope
+The two open questions in the plan were settled by asking for it: the graph lives in the MDS panel, and it covers `MDSMoveEnemy` as well as bosses.
 
-1. **Fight panel.** A bottom panel built on `GraphEdit`, opened by selecting an `MDSMoveBoss` or an `MDSMovePhase`. One tab per phase, with its thresholds and speed at the top.
-2. **A node per move.** Generated from each class's exports, so a custom `MDSMove` subclass appears without extra code. Sequences show their children in order, picks show weights and parallels show branches.
-3. **Conditions on the node.** `when` and `cancel_when` shown as chips, and `reactions` in a separate lane beside the main tree.
-4. **Saving.** Editing the resources in place through `EditorUndoRedoManager`, saved as `.tres`. Layout positions stored in editor metadata, never read at runtime.
-5. **Start from a recipe.** "New from recipe" turns an `MDSMoveRecipes` fight into resources to change.
-6. **Live view while playing.** Highlight the running move, cooldowns and flags through `EngineDebugger` messages. This is the most useful part for tuning, so it comes straight after the first usable graph.
-7. **Checks.** Warn about a move with no `when` that can never run, an empty pick, or a pick whose moves can all be gated off at once.
+### What differs from the plan
 
-### Order
+- **Layout positions aren't stored.** The graph lays itself out left to right each time, so there is no editor metadata to keep in step with a fight. You can't arrange nodes by hand: dragging one up or down changes its order among its siblings, then it settles back.
+- **Conditions are edited in the side panel,** as rows for the selected move. A node lists them as lines of text, not as chips.
+- **Reactions have no separate lane.** They are a slot of the phase, so they appear as its children in the same graph.
+- **Checks are listed under the graph,** not in the panel's Issues tab, because they belong to the fight on show.
 
-| Step | Delivers | Size |
-|---|---|---|
-| 1 | Read-only graph of a phase | Small |
-| 2 | Editing, adding and reordering with undo | Medium |
-| 3 | Conditions, reactions and recipe import | Small |
-| 4 | Live highlighting while playing | Medium |
-| 5 | Checks in the Issues tab, and MCP tools to build fights | Small |
+### What isn't built
+
+- **MCP tools to build fights.** The MCP server still only reaches enemies through `mds_enemy_configure`.
+- **A full preview of fights built in code.** A boss whose `_make_phases()` is overridden shows them read-only if its script is `@tool`, and otherwise a message asking for `@tool`. An enemy built in `_make_moves()` shows no preview either way. The game still reports these fights while it runs, but the graph has no nodes to light up for them.
+
+### What has been checked, and what hasn't
+
+`tests/test_fight_editor.gd` covers the model, every edit and its undo, conditions, recipes, the checks, the panel and the live view, on Godot 4.6.1 and 4.7.2. A real editor, run headless, was driven through opening scenes, editing with its undo history, and a running game reporting through the debugger.
+
+**Nobody has looked at it yet.** Rendering can't run headless, so its appearance and how usable it feels are unknown, and mouse dragging has only been tested by sending `GraphEdit`'s signals directly. A move used twice under one running parent lights up in both places on the live view.
 
 ### Alternatives considered
 
 - **LimboAI**, a mature behaviour tree and state machine plugin with its own visual editor. It remains the better choice for a team that wants general AI authoring. It's a compiled dependency, and it wouldn't know about phases, arenas, zones or recipes, so those would still need writing as its tasks. It has not been installed or tested with MDS.
 - **Orchestrator**, a visual scripting plugin. It is general purpose, so a fight would be a large script graph rather than a list of moves. It has not been installed or tested with MDS either.
-
-### Open questions
-
-- Should the graph live in the MDS panel or in its own bottom panel? Its own panel looks more likely, because the graph needs width.
-- Should it cover `MDSMoveEnemy` from the first step? It should cost little, since an enemy is one tree without phases.

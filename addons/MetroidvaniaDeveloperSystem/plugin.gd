@@ -25,6 +25,7 @@ var _placeholder: Control
 var _metsys_check_timer: Timer
 var _movement_inspector: EditorInspectorPlugin
 var _mcp: MDSMcpEditor
+var _fight_debugger: MDSFightDebugger
 
 func _enter_tree() -> void:
 	# Settings saved before 3.1 (interactive_dev_panel/...) move to their new names.
@@ -80,6 +81,11 @@ func _init_plugin() -> void:
 		return
 	_in_main_screen = _has_main_screen()
 	dock_instance = preload("res://addons/MetroidvaniaDeveloperSystem/dock.tscn").instantiate()
+	dock_instance.set_undo_manager(get_undo_redo())
+	_fight_debugger = MDSFightDebugger.new()
+	_fight_debugger.fight_reported.connect(dock_instance.on_fight_reported)
+	_fight_debugger.game_stopped.connect(dock_instance.on_game_stopped)
+	add_debugger_plugin(_fight_debugger)
 	dock_instance.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if _in_main_screen:
 		_placeholder = _build_placeholder()
@@ -270,6 +276,9 @@ func _clean_plugin() -> void:
 	if _movement_inspector:
 		remove_inspector_plugin(_movement_inspector)
 		_movement_inspector = null
+	if _fight_debugger:
+		remove_debugger_plugin(_fight_debugger)
+		_fight_debugger = null
 	if dock_instance:
 		_detach()
 		dock_instance.free()
