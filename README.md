@@ -1711,6 +1711,77 @@ Give it an `MDSEnemyData` (stats, drops, currency) and place it in a room scene.
 
 **Bosses:** `MDSBoss` (an `MDSEnemy` in the `boss` group; `boss_name` is also its `mds_boss_name` metadata) fights in phases (`MDSBossPhase`: a health threshold, its attack states and speed). An **`MDSBossArena`** starts the fight when the player walks in: its `MDSArenaDoor`s shut, `MDSMusic.play_boss()` plays, the camera director frames the fight, and the HUD shows the boss bar. When the boss falls it is recorded (`is_boss_defeated()`, `boss:<name>`), the music ends, the doors open and the arena can grant an ability. If the player dies, the fight starts over on the next visit. Doors that stay shut until the boss is beaten are ordinary `MDSGateBarrier`s with `requires = ["boss:<name>"]`.
 
+#### Fights made of moves
+
+`MDSMoveBoss` and `MDSMoveEnemy` fight with **moves** (`gameplay/moves/`): resources you put together in the inspector or in code, instead of writing a state for each attack. There are three ways to get a fight:
+
+1. **Use a recipe.** Set a boss's `recipe` to a ready-made fight from `MDSMoveRecipes`, and change it from there.
+2. **Build it in the inspector.** Give the boss `phases` of `MDSMovePhase`. A phase has `moves`, an `opening` and `reactions`. Moves are `.tres` resources, so you can share them between enemies.
+3. **Inherit it in code.** Extend `MDSMoveBoss` and override `_make_phases()`:
+
+```gdscript
+class_name Hopper
+extends MDSMoveBoss
+
+func _make_phases() -> Array[MDSBossPhase]:
+	var hop := MDSMoveLeap.of(MDSMove.Anchor.PLAYER, 300.0)
+	var shots := MDSMoveShoot.of(MDSMoveShoot.From.SELF, MDSMoveShoot.Aim.FAN_AT_PLAYER, 5)
+	shots.when = [MDSMoveCondition.make(MDSMoveCondition.Kind.HEALTH_BELOW, 0.5)]
+	var attacks := MDSMovePick.of([hop, shots] as Array[MDSMove])
+	return [MDSMovePhase.of(1.0, MDSMoveSequence.of([attacks, MDSMoveWait.of(0.5)]))]
+```
+
+An ordinary enemy works the same way: extend `MDSMoveEnemy` and override `_make_moves()`, or set its `moves`.
+
+**Actions:**
+
+| Move | What it does | For example |
+|---|---|---|
+| `MDSMoveWait` | Stands still, facing the player | The rest between attacks |
+| `MDSMoveDash` | Rushes in a line, with a warning, `bounces` off walls and a `skid` along the floor | A lunge, a swoop, a retreat, a whirlwind |
+| `MDSMoveLeap` | Jumps in an arc to a place, ending at the top or on landing, where it can slam | A leap at the player, a jump into an aerial attack |
+| `MDSMoveFly` | Flies to a place, or hovers over one | Rising to the ceiling, following over the player |
+| `MDSMoveVanish` | Leaves the fight and comes back elsewhere, with a marker first. It can't be hit while gone | Travel under the floor, a teleport |
+| `MDSMoveStrike` | One swing: windup, hit, recovery | Chain them for a double or triple cut |
+| `MDSMoveZones` | Places that warn, then hurt, or stay as walls to cut down (`MDSCombatZone`) | Fireworks, columns, thorn walls |
+| `MDSMoveShoot` | Fires from itself, the ceiling or a ring, at the player or where the player was. Shots can bounce, go off on a fuse and be knocked away (`MDSBossShot`) | Falling rocks, a fan, bombs |
+| `MDSMoveSummon` | Calls enemies, or a `partner` that must fall too | Adds, a second boss |
+| `MDSMoveGuard` | Blocks hits for a moment, and answers one with its `riposte` | A parry |
+| `MDSMoveCue` | A beat with no hit: camera shake, a flag, a signal, dialogue, a sound | A roar, marking a once-only attack as done |
+
+**Patterns:** `MDSMoveSequence` (one after another), `MDSMovePick` (one of them: at random by `weight`, the first that can start, or in turn), `MDSMoveRepeat` and `MDSMoveParallel`.
+
+**On every move:** `when` (conditions to start), `cancel_when` (conditions to stop), `weight`, `cooldown`, `animation`, `interruptible`, `damage` and `attack`. An `MDSMoveCondition` tests where the player is, the enemy's health and phase, a recent hit, a flag, its summons, the floor, a wall, or chance, and can be inverted.
+
+**On a boss:** `stagger_hits` and `stagger_time` make it reel after a number of hits, on any `MDSBoss`. They are off by default, so existing bosses don't change. A stagger or a phase change stops the current move and clears what it left in the room, except partners. A `partner` keeps the arena's fight going until it falls too. Only the last to fall records the boss as defeated, so dying partway through brings all of it back.
+
+**Recipes:**
+
+| Recipe | The fight |
+|---|---|
+| `swooper` | A flyer that dives and skids, then rams the ceiling to bring down rocks and adds |
+| `twin_swooper` | The same, and it calls a second one at half health, or when it dies first |
+| `showman` | A bouncing whirlwind, fireworks, bombs, flutters and travel under the floor. At half health, columns of fire |
+| `duelist` | A fencer: lunges, cuts, a leaping spin, a parry and riposte, a slash at the player's spot. Three phases, and reactions to a player too close |
+| `possessed_duelist` | Dives through the floor between long lashes, arcing shots and columns. Four phases |
+| `hanging_matriarch` | Hangs from the ceiling: three swipes from above, thorn walls to cut down, flying adds, and at low health a full row of walls. It drops when staggered |
+
+The recipes are starting points with placeholder looks and untuned numbers. They have been run by headless tests, not judged by playing them. To see how they map onto known fights and what isn't covered (such as grabbing the player), read [docs/combat_moves_plan.md](docs/combat_moves_plan.md).
+
+#### The Fight editor
+
+Choose **Fight editor** in the first drop-down of the MDS panel to see a fight as a graph. It covers `MDSMoveBoss` and `MDSMoveEnemy`, and it edits the same resources you would edit in the inspector, so there is nothing extra to save or ship.
+
+- **Open a fight:** select a boss or enemy in the scene, pick one from the list of fighters in the open scene, or open a `.tres` file of a phase or move.
+- **Start one:** choose a recipe to start from. A recipe, or a boss's fight from a `@tool` script, shows read-only until you press the button in the banner above the graph, which makes it yours to edit. A script without `@tool` can't run in the editor, so its fight isn't shown.
+- **Change it:** select a node to edit its fields and conditions in the side panel. The fields come from the move's exports, so a move class of your own gets them too. Each phase of a boss has a tab.
+- **Rearrange it:** add moves from the side panel, drag a line to put a move under another parent, pull a line off to remove it, and drag a node up or down to change its order. Nodes lay themselves out, and their positions aren't saved.
+- **Undo:** edits go in the editor's undo history. A move saved as its own `.tres` file is written as soon as you change it, and it can be shared, so the panel says where else it is used and can make a separate copy.
+- **Check it:** problems such as an empty pick, or two phases that start at the same health, are listed under the graph.
+- **Watch it run:** while the game runs from the editor, the moves a fighter is doing light up, with its phase, health, cooldowns and flags. Running games report this only when the debugger is attached.
+
+Nobody has judged how it looks or feels yet: it has only been tested headless. See [docs/combat_moves_plan.md](docs/combat_moves_plan.md) for what differs from the plan.
+
 ### Items, equipment, economy and NPCs
 
 - **Items:** `MDSItemData` (KEY, CONSUMABLE, EQUIPMENT, UPGRADE or COLLECTIBLE, with an optional `MDSItemEffect` such as `MDSHealEffect`), counted by `MDSGameplay` (`add_item()`, `remove_item()`, `use_item()`).
@@ -1799,6 +1870,12 @@ Open `game.tscn` and press **F6**. `build_combat_fx_demo.gd` builds it again, an
 - `hurt_particles`, `particle_palette` and `particle_glow`: what flies off it when it is hurt.
 
 `style_attack(attack)` applies these to an attack of your own, so a custom enemy's shots match too.
+
+### Boss moves demo
+
+`examples/boss_moves_demo/` is a row of six arenas with one fight from `MDSMoveRecipes` in each: Swooper, Twins, Showman, Duelist, Possessed and Matriarch. Walking into a room starts its fight, and the gate on the right leads to the next one. Use it to judge how the recipes feel and to tune them.
+
+Open `game.tscn` and press **F6**. `build_boss_moves_demo.gd` builds it again, and `tests/test_boss_moves_demo.gd` plays it.
 
 ### Gameplay demo
 

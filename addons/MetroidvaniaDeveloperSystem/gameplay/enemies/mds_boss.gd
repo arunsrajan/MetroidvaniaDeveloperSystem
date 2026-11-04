@@ -20,6 +20,7 @@ extends MDSEnemy
 
 signal fight_started
 signal phase_changed(index: int)
+signal staggered
 
 @export var boss_name := "":
 	set(v):
@@ -44,10 +45,19 @@ signal phase_changed(index: int)
 @export var rest_time := 0.9
 ## Starts the fight on its own when the player comes this close, with no arena (0: never).
 @export var wake_range := 0.0
+## After this many hits it is staggered: it stops and takes hits freely (0: never).
+@export var stagger_hits := 0
+## How long a stagger from hits lasts.
+@export var stagger_time := 2.0
+## How long it reels at a phase change.
+@export var phase_pause := 0.8
 
 var phase_index := 0
 var fighting := false
 var attack_box: MDSHitbox
+## Seconds the stagger it is in lasts.
+var stagger_left := 0.8
+var _hits_since_stagger := 0
 
 func _init() -> void:
 	super()
@@ -158,6 +168,18 @@ func _physics_process(delta: float) -> void:
 ## Bosses don't flinch.
 func _on_damaged(info: MDSDamageInfo) -> void:
 	hurt.emit(info)
+	if stagger_hits <= 0 or dying or health.is_dead() or machine.is_in(&"Stagger") or not fighting:
+		return
+	_hits_since_stagger += 1
+	if _hits_since_stagger >= stagger_hits:
+		_on_staggered()
+
+## Its hits are up: it reels for [member stagger_time].
+func _on_staggered() -> void:
+	_hits_since_stagger = 0
+	stagger_left = stagger_time
+	machine.force(&"Stagger")
+	staggered.emit()
 
 func _on_health_changed(current: int, maximum: int) -> void:
 	if dying or current <= 0 or phases.is_empty():
@@ -170,6 +192,7 @@ func _on_health_changed(current: int, maximum: int) -> void:
 	if idx > phase_index:
 		phase_index = idx
 		phase_changed.emit(idx)
+		stagger_left = phase_pause
 		machine.force(&"Stagger")
 		var d := _director()
 		if d:
@@ -310,7 +333,7 @@ class Stagger extends MDSEnemyState:
 		enemy.fall(delta)
 		enemy.halt(delta)
 		enemy.move()
-		if elapsed() > 0.8:
+		if elapsed() > (enemy as MDSBoss).stagger_left:
 			go(&"Idle")
 
 ## Defeated: the camera pushes in on it, it falls and fades.

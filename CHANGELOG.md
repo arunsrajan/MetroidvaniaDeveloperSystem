@@ -12,6 +12,20 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - **Off in the editor by default:** the panel's new MCP section turns it on, per user and machine. Three permission tiers, paths confined to `res://`, writes kept out of `addons/`, a token and `Host` and `Origin` checks on loopback, an audit log, and no tool that runs code.
   - **Unsaved work stays:** undo by file snapshots, batches that put their files back when they fail, and refusal to write over a scene with unsaved changes (on Godot 4.6, every open scene counts as unsaved).
 
+- **Fights made of moves** (`gameplay/moves/`, see the README): `MDSMoveBoss` and `MDSMoveEnemy` fight with resources put together in the inspector or in code, and can be inherited.
+  - **Eleven actions:** wait, dash, leap, fly, vanish, strike, zones, shoot, summon, guard and cue. New nodes `MDSCombatZone` (warns, then hurts, or stays as a wall to cut down) and `MDSBossShot` (bounces, goes off on a fuse, can be knocked away).
+  - **Patterns and conditions:** sequence, pick, repeat and parallel, with conditions, cooldowns and weights on every move, and reactions that cut in.
+  - **Six recipes** (`MDSMoveRecipes`): `swooper`, `twin_swooper`, `showman`, `duelist`, `possessed_duelist` and `hanging_matriarch`. They are starting points with placeholder looks. `examples/boss_moves_demo/` has one arena for each.
+  - **Bosses:** `MDSBoss.stagger_hits` and `stagger_time` make a boss reel after a number of hits (off by default), with a `staggered` signal and `phase_pause` for the pause at a phase change.
+  - **Arenas:** `MDSBossArena.add_partner()` keeps a fight going until every partner has fallen. An arena now sets its boss's `arena` when the fight starts, if it has none.
+
+- **Fight editor** (a third mode of the MDS panel, see the README): a graph of a fight, for `MDSMoveBoss` and `MDSMoveEnemy`, over the same resources.
+  - **Editing:** add, move, reorder, copy and remove moves, with fields made from each move's exports, conditions, phases and the editor's undo history. Saved move files are written at once, and shared moves can be made separate.
+  - **Recipes and code:** start from a recipe. Recipes and a boss's fight from a `@tool` script show read-only until made editable.
+  - **Checks** under the graph, such as an empty pick or two phases that start at the same health.
+  - **Live view:** a game running from the editor reports each fighter's moves, phase, health, cooldowns and flags through the debugger, and the graph lights up. `MDSMoveState` sends these only when the debugger is attached.
+  - **Not done:** node positions aren't saved, and there are no MCP tools for fights yet. See `docs/combat_moves_plan.md`.
+
 ## [3.4.0] - 2026-10-18
 
 ### Added

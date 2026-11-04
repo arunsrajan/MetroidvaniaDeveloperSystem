@@ -1,0 +1,239 @@
+{
+	"areas": {
+		"Arenas": {
+			"color": "#b07aff",
+			"parallax": "deep_cavern",
+			"subtitle": "One fight in each",
+			"title": "The Arenas"
+		}
+	},
+	"format": "mds_world",
+	"layers": [
+		"Main"
+	],
+	"links": [],
+	"name": "Boss Moves Demo",
+	"pins": [],
+	"rooms": {
+		"Duelist": {
+			"area": "Arenas",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						704.0
+					],
+					"side": "left",
+					"to": "Showman",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1728.0,
+						704.0
+					],
+					"side": "right",
+					"to": "Possessed",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				5184.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1728.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/boss_moves_demo/rooms/duelist.tscn",
+			"scene_path": "res://examples/boss_moves_demo/rooms/duelist.tscn"
+		},
+		"Matriarch": {
+			"area": "Arenas",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						704.0
+					],
+					"side": "left",
+					"to": "Possessed",
+					"to_gate": "right1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				8640.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1728.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/boss_moves_demo/rooms/matriarch.tscn",
+			"scene_path": "res://examples/boss_moves_demo/rooms/matriarch.tscn"
+		},
+		"Possessed": {
+			"area": "Arenas",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						704.0
+					],
+					"side": "left",
+					"to": "Duelist",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1728.0,
+						704.0
+					],
+					"side": "right",
+					"to": "Matriarch",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				6912.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1728.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/boss_moves_demo/rooms/possessed.tscn",
+			"scene_path": "res://examples/boss_moves_demo/rooms/possessed.tscn"
+		},
+		"Showman": {
+			"area": "Arenas",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						704.0
+					],
+					"side": "left",
+					"to": "Twins",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1728.0,
+						704.0
+					],
+					"side": "right",
+					"to": "Duelist",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				3456.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1728.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/boss_moves_demo/rooms/showman.tscn",
+			"scene_path": "res://examples/boss_moves_demo/rooms/showman.tscn"
+		},
+		"Swooper": {
+			"area": "Arenas",
+			"gates": {
+				"right1": {
+					"pos": [
+						1728.0,
+						704.0
+					],
+					"side": "right",
+					"to": "Twins",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				0.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1728.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/boss_moves_demo/rooms/swooper.tscn",
+			"scene_path": "res://examples/boss_moves_demo/rooms/swooper.tscn"
+		},
+		"Twins": {
+			"area": "Arenas",
+			"gates": {
+				"left1": {
+					"pos": [
+						0.0,
+						704.0
+					],
+					"side": "left",
+					"to": "Swooper",
+					"to_gate": "right1"
+				},
+				"right1": {
+					"pos": [
+						1728.0,
+						704.0
+					],
+					"side": "right",
+					"to": "Showman",
+					"to_gate": "left1"
+				}
+			},
+			"layer": 0,
+			"origin": [
+				1728.0,
+				0.0
+			],
+			"rects": [
+				[
+					0.0,
+					0.0,
+					1728.0,
+					864.0
+				]
+			],
+			"scene": "res://examples/boss_moves_demo/rooms/twins.tscn",
+			"scene_path": "res://examples/boss_moves_demo/rooms/twins.tscn"
+		}
+	},
+	"settings": {
+		"default_room_size": [
+			1728.0,
+			864.0
+		],
+		"grid": 32,
+		"room_tileset": "res://examples/boss_moves_demo/tiles/cave_tileset.tres"
+	},
+	"start_room": "Swooper",
+	"version": 1
+}

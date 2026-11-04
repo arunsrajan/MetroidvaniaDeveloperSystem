@@ -34,6 +34,24 @@ signal fight_won(boss: MDSBoss)
 
 var fighting := false
 var won := false
+## Others the fight goes on for ([method add_partner]).
+var partners: Array[MDSEnemy] = []
+var _fight_name := ""
+
+## The fight now also needs [param partner] to fall.
+func add_partner(partner: MDSEnemy) -> void:
+	partners.append(partner)
+	if not partner.died.is_connected(_on_boss_died):
+		partner.died.connect(_on_boss_died)
+
+## Whether someone it is fighting still stands, and the HUD should follow them.
+func _someone_stands() -> MDSEnemy:
+	if is_instance_valid(boss) and not boss.dying:
+		return boss
+	for p in partners:
+		if is_instance_valid(p) and not p.dying:
+			return p
+	return null
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
@@ -62,6 +80,9 @@ func start() -> void:
 	if fighting or won or not is_instance_valid(boss) or boss.dying:
 		return
 	fighting = true
+	_fight_name = boss.boss_name
+	if not boss.arena:
+		boss.arena = self
 	for d in doors:
 		if is_instance_valid(d):
 			d.close()
@@ -88,6 +109,12 @@ func start() -> void:
 func _on_boss_died() -> void:
 	if not fighting:
 		return
+	var standing := _someone_stands()
+	if standing:
+		var kit_now := MDSGameplay.find(MDSWorldGame.instance) if MDSWorldGame.instance else null
+		if kit_now:
+			kit_now.boss_node = standing
+		return
 	fighting = false
 	won = true
 	var game := MDSWorldGame.instance
@@ -104,11 +131,15 @@ func _on_boss_died() -> void:
 		game.grant_ability(MDSGameplay.normalize_id(grants))
 	var kit := MDSGameplay.find(game) if game else null
 	if kit:
-		var n := boss.boss_name if is_instance_valid(boss) else ""
 		kit.current_boss = ""
 		kit.boss_node = null
-		kit.boss_ended.emit(n, true)
-	fight_won.emit(boss)
+		kit.boss_ended.emit(_fight_name, true)
+	# The first to fall may be long gone by now.
+	var last: Node = boss if is_instance_valid(boss) else null
+	for p in partners:
+		if not last and is_instance_valid(p):
+			last = p
+	fight_won.emit(last)
 
 ## The player fell in the fight: the arena lets go (the room loads anew after).
 func _on_boss_ended(_boss: String, was_won: bool) -> void:
