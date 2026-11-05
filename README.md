@@ -2030,7 +2030,17 @@ Other MCP clients take the same command and arguments in their own config. So fa
 | **Let AI tools connect** on | Hands each request to the editor, which serves it on `127.0.0.1` from port 6590 and edits worlds open in the panel live. A client can also connect straight to the editor over HTTP: **Copy config > Direct to this editor**. That config holds the token, so never commit it |
 | Off (the default) | Reads still work. Writes are refused with `editor_open_mcp_off`, so nothing changes behind the editor's back |
 
-**What agents can do.** 43 tools: `mds_status`, `mds_catalog` (the valid ids), worlds, areas, rooms and gates, generating and painting rooms, placing and configuring enemies, the game scene, `mds_validate`, `mds_analysis`, `mds_room_check`, `mds_room_ascii` and `mds_room_preview` to see a room, and `mds_batch` to do many things as one step. Clients also get resources (`mds://worlds`, `mds://guide/objects`...) and prompts (`build_area`, `add_encounter`, `gated_progression`, `audit_world`, `combat_fx_pass`).
+**What agents can do.** All of the plugin, with 93 tools. [docs/mcp_coverage.md](docs/mcp_coverage.md) lists each feature and the tool that does it, and what has no tool because it only changes how the panel looks.
+
+- **Anything set up by exports:** `mds_class_list` and `mds_class_info` say what there is, `mds_resource_create` and `mds_node_add` make it: items, abilities, shops, dialogue, weather, cameras, moves, your own classes extending these. No server change is needed for a new export.
+- **The map:** worlds, areas, rooms and gates, room notes, links, pins, layers, outlines, map images, and worlds from MetSys maps.
+- **Rooms:** generating and painting, freeform shapes, Convert to freeform, Decorate freeform, Trace drawing, tile pieces, gameplay objects, tilesets. `mds_room_ascii` and `mds_room_preview` show a room.
+- **Fights:** `mds_fight_get` and `mds_fight_edit`, through the document the Fight editor uses. With the editor, `mds_fight_live` says what a running fight is doing.
+- **Checks and exports:** `mds_validate`, `mds_analysis`, `mds_room_check`, `mds_scene_scan`, `mds_export`.
+- **MetSys mode:** `mds_metsys_get`, `mds_metsys_annotate`, `mds_metsys_check`, `mds_metsys_export`.
+- **Playing:** with the editor and the `full` tier, `mds_play` and `mds_stop`.
+
+`mds_batch` does many things as one step. Clients also get resources (`mds://worlds`, `mds://guide/objects`...) and prompts (`build_area`, `add_encounter`, `gated_progression`, `audit_world`, `combat_fx_pass`).
 
 **What keeps your work safe:**
 
@@ -2041,7 +2051,7 @@ Other MCP clients take the same command and arguments in their own config. So fa
 - **Removing** needs `confirm: true`. Generators leave painted rooms alone unless told otherwise.
 - **The network.** The editor listens on `127.0.0.1` only, with a random token, and checks `Host` and `Origin`. Calls are logged in `.godot/mds_mcp/audit.log`.
 
-No tool runs code or shell commands. Loading a room still runs its `@tool` scripts, as opening it in the editor does, so only use this on projects you trust. Other programs running as you can read the token.
+No tool runs shell commands, and no value can be or hold a script. The one tool that runs code is `mds_play`, which starts your game: it needs the `full` tier and the editor. Loading a room still runs its `@tool` scripts, as opening it in the editor does, so only use this on projects you trust. Other programs running as you can read the token.
 
 **If something goes wrong:**
 

@@ -7,7 +7,11 @@ extends MDSMcpTools
 const SETTINGS: PackedStringArray = ["auto_gate_nodes", "backdrop", "background", "boss_background", "brightness", "camera", "dark_room_share", "default_room_size", "depth_25d", "depth_style", "geometry_checks", "grid", "light_groups", "map_style", "notch_fill_style", "paint_cell", "parallax", "play_scene", "player", "room_tileset", "save_distance_warn", "scene_folder", "scene_template", "weather"]
 ## Those that name a file or folder, which must stay inside the project.
 const PATH_SETTINGS: PackedStringArray = ["notch_fill_style", "play_scene", "room_tileset", "scene_folder", "scene_template"]
-const ROOM_TYPES: PackedStringArray = ["", "normal", "save", "boss", "shop", "teleporter", "corridor", "secret"]
+## What the panel's Inspect tab sets on a room, besides its place on the map.
+const ROOM_VALUES: PackedStringArray = ["name", "status", "boss", "grants", "notes", "parallax", "background", "backdrop", "weather", "darkness"]
+## What the panel's Areas tab sets on an area.
+const AREA_VALUES: PackedStringArray = ["map_zone", "music", "music_volume_db", "boss_music", "backdrop", "background", "boss_background", "weather", "objective", "objective_done_when", "label_pos"]
+const AREA_PATHS: PackedStringArray = ["music", "boss_music", "backdrop"]
 const GENERATOR_SHAPES: PackedStringArray = ["rectangle", "irregular", "freeform", "hybrid"]
 const INCLUDES: PackedStringArray = ["settings", "areas", "rooms", "gates"]
 
@@ -21,7 +25,7 @@ func _register() -> void:
 	_add("mds_world_update", "Changes a world's name, start room or settings. Settings: %s." % ", ".join(SETTINGS), AUTHOR,
 		{"world": world, "name": S.text(), "start_room": S.text(), "settings": S.any_object("Setting -> value; null removes it")}, [], _world_update)
 	_add("mds_area_set", "Makes an area, or changes one.", AUTHOR,
-		{"world": world, "area": S.text("Its name"), "title": S.text(), "subtitle": S.text(), "color": S.text("#rrggbb"), "parallax": S.text("A parallax background's id"), "darkness": S.number("0 to 1", 0, 1), "rename_to": S.text()}, ["area"], _area_set)
+		{"world": world, "area": S.text("Its name"), "title": S.text(), "subtitle": S.text(), "color": S.text("#rrggbb"), "parallax": S.text("A parallax background's id"), "darkness": S.number("0 to 1", 0, 1), "rename_to": S.text(), "values": S.any_object("Also: %s. null removes one." % ", ".join(AREA_VALUES))}, ["area"], _area_set)
 	_add("mds_area_remove", "Removes an area. Its rooms stay, with no area.", AUTHOR, {"world": world, "area": S.text()}, ["area"], _area_remove, {"destructive": true})
 	_add("mds_area_generate", "Generates an area's rooms and doors in a box of the map, the panel's Generate area. box is in paint cells. dry_run shows the rooms without making them.", AUTHOR,
 		{
@@ -29,17 +33,18 @@ func _register() -> void:
 			"shape": S.choice(GENERATOR_SHAPES, "Default hybrid"),
 			"room_min": S.array(S.integer("", 1), "[w, h] in paint cells", 2), "room_max": S.array(S.integer("", 1), "[w, h] in paint cells", 2),
 			"irregularity": S.number("", 0, 1), "shafts": S.number("", 0, 1), "loops": S.number("", 0, 1), "roughness": S.number("", 0, 1),
-			"tendrils": S.integer("", 0, 16), "curves": S.number("", 0, 1), "slants": S.number("", 0, 1), "seed": S.integer(), "dry_run": S.boolean(),
+			"tendrils": S.integer("", 0, 16), "curves": S.number("", 0, 1), "slants": S.number("", 0, 1), "seed": S.integer(), "dry_run": S.boolean(), "link_touching": S.boolean("Doors to the areas it touches, default false"),
 		}, ["area", "box"], _area_generate)
 	_add("mds_room_add", "Adds a room to the map, from a rectangle (world pixels) or paint cells. Returns its id, which differs from the one asked for if that was taken.", AUTHOR,
-		{"world": world, "id": S.text(), "rect": S.rect("World pixels"), "cells": S.cells("Paint cells as [x, y] pairs"), "layer": S.integer("Default 0", 0), "area": S.text(), "type": S.choice(ROOM_TYPES), "scene": S.text("An existing scene to use")}, ["id"], _room_add)
+		{"world": world, "id": S.text(), "rect": S.rect("World pixels"), "cells": S.cells("Paint cells as [x, y] pairs"), "layer": S.integer("Default 0", 0), "area": S.text(), "type": S.choice(Array(MDSAnnotations.ROOM_TYPES)), "scene": S.text("An existing scene to use")}, ["id"], _room_add)
 	_add("mds_room_update", "Changes a room on the map. rects are local to its origin, [x, y, w, h]; shape is outlines in world pixels, [[x, y], ...], empty to remove.", AUTHOR,
 		{
-			"world": world, "id": S.text(), "rename_to": S.text(), "area": S.text("Empty: no area"), "type": S.choice(ROOM_TYPES), "origin": S.point("World pixels"),
+			"world": world, "id": S.text(), "rename_to": S.text(), "area": S.text("Empty: no area"), "type": S.choice(Array(MDSAnnotations.ROOM_TYPES)), "origin": S.point("World pixels"),
 			"rects": S.array(S.array(S.number(), "", 4)), "shape": S.array(S.array(S.array(S.number(), "", 2))), "scene": S.text("Empty: none"),
+			"values": S.any_object("Also: %s. grants is what the room gives, such as [\"dash\"]. status: %s." % [", ".join(ROOM_VALUES), ", ".join(MDSAnnotations.STATUSES)]),
 		}, ["id"], _room_update)
 	_add("mds_room_merge", "Merges rooms into one, bringing what is painted in their scenes along.", AUTHOR,
-		{"world": world, "ids": S.array(S.text(), "At least two", 200), "keep_id": S.text("Which id stays")}, ["ids"], _room_merge)
+		{"world": world, "ids": S.array(S.text(), "At least two", 200), "area": S.text("Or every room of this area"), "keep_id": S.text("Which id stays"), "generate": S.boolean("Replaces its tiles with a cave from its shape"), "walls": S.boolean("With generate: walls where the rooms met, default true"), "variation": S.integer("With generate"), "fills": S.any_object("With generate: as mds_room_generate")}, [], _room_merge)
 	_add("mds_room_remove", "Removes a room from the map. Its scene file stays unless delete_scene is true.", AUTHOR, {"world": world, "id": S.text(), "delete_scene": S.boolean("Default false")}, ["id"], _room_remove, {"destructive": true})
 	_add("mds_gate_add", "Adds a gate to a room. pos is in world pixels. Its side and name come from where it is unless given.", AUTHOR,
 		{"world": world, "room": S.text(), "pos": S.point("World pixels"), "side": S.choice(Array(MDSWorld.SIDES)), "name": S.text(), "snap_to_edge": S.boolean("Default true")}, ["room", "pos"], _gate_add)
@@ -161,6 +166,16 @@ func _area_set(args: Dictionary, _report: Callable) -> Dictionary:
 		if not Color.html_is_valid(args.color):
 			return ctx.fail("bad_arguments", "%s is not a color." % args.color)
 		world.set_area_value(area, "color", args.color)
+	var values: Dictionary = args.get("values", {})
+	for key: String in values:
+		if not key in AREA_VALUES:
+			return ctx.fail("bad_arguments", "%s is not a value of an area. Values: %s." % [key, ", ".join(AREA_VALUES)])
+		if key in AREA_PATHS and values[key] != null and not str(values[key]).is_empty() and MDSMcpGuard.normalize(str(values[key])).is_empty():
+			return ctx.fail("path_not_allowed", "%s is not a path inside res://." % values[key])
+		if values[key] == null:
+			(world.data.areas[area] as Dictionary).erase(key)
+		else:
+			world.set_area_value(area, key, values[key])
 	if args.has("rename_to"):
 		if world.has_area(args.rename_to):
 			return ctx.fail("already_exists", "There is already an area %s." % args.rename_to)
@@ -214,6 +229,8 @@ func _area_generate(args: Dictionary, _report: Callable) -> Dictionary:
 	var r := g.generate(world, box, layer, args.area)
 	if r.rooms.is_empty():
 		return ctx.fail("nothing_generated", "No room fit: the box is taken or too small.")
+	if args.get("link_touching", false):
+		r.links = MDSAreaTools.link_touching(world, MDSAreaTools.group_rooms(world, args.area, layer), layer)
 	var bad := ctx.save_world(world)
 	return bad if not bad.is_empty() else r
 
@@ -257,6 +274,15 @@ func _room_update(args: Dictionary, _report: Callable) -> Dictionary:
 		world.set_room_value(id, "area", args.area)
 	if args.has("type"):
 		world.set_room_value(id, "type", args.type)
+	var values: Dictionary = args.get("values", {})
+	for key: String in values:
+		if not key in ROOM_VALUES:
+			return ctx.fail("bad_arguments", "%s is not a value of a room. Values: %s." % [key, ", ".join(ROOM_VALUES)])
+		if key == "status" and not values[key] in MDSAnnotations.STATUSES:
+			return ctx.fail("bad_arguments", "%s is not a status. Statuses: %s." % [values[key], ", ".join(MDSAnnotations.STATUSES)])
+		if key == "backdrop" and not str(values[key]).is_empty() and MDSMcpGuard.normalize(str(values[key])).is_empty():
+			return ctx.fail("path_not_allowed", "%s is not a path inside res://." % values[key])
+		world.set_room_value(id, key, values[key])
 	if args.has("origin"):
 		world.set_origin(id, _vec2(args.origin))
 	if args.has("rects"):
@@ -290,14 +316,17 @@ func _room_merge(args: Dictionary, _report: Callable) -> Dictionary:
 	if not world:
 		return ctx.error
 	var keep := str(args.get("keep_id", ""))
-	var why := world.merge_error(args.ids, keep)
+	if args.has("area") and not world.has_area(args.area):
+		return ctx.fail("area_not_found", "%s has no area %s." % [world.path, args.area])
+	var ids: Array = args.get("ids", []) if not args.has("area") else Array(world.get_area_rooms(args.area))
+	var why := world.merge_error(ids, keep)
 	if not why.is_empty():
 		return ctx.fail("cant_merge", why)
-	for r: String in args.ids:
+	for r: String in ids:
 		var p := world.get_scene_path(r)
 		if not p.is_empty() and not ctx.prepare_room_write(p, args):
 			return ctx.error
-	var r := world.merge_rooms(args.ids, keep)
+	var r := world.merge_rooms(ids, keep)
 	if r.has("error"):
 		return ctx.fail("cant_merge", str(r.error))
 	var id: String = r.id
@@ -325,6 +354,22 @@ func _room_merge(args: Dictionary, _report: Callable) -> Dictionary:
 			notes.append("Its gate nodes could not be updated: %s" % MDSWorldSceneTools.last_error)
 		MDSWorldSceneTools.load_fresh(path)
 		ctx.host.room_written(path)
+	if args.get("generate", false):
+		if path.is_empty() and not ctx.touch(_default_scene_path(world, id)):
+			return ctx.error
+		var tiles := ctx.room_tiles(world)
+		if not tiles:
+			return ctx.error
+		var fills := MDSMcpToolsRoom._fills(args.get("fills", {}))
+		fills.parts = args.get("walls", true)
+		var merged: Array[String] = [id]
+		var caves := MDSWorldSceneTools.generate_area_caves(world, merged, func(room: String) -> String: return _default_scene_path(world, room), fills, tiles, false, int(args.get("variation", 0)))
+		for f: String in caves.failed:
+			notes.append("No cave: %s" % caves.failed[f])
+		path = world.get_scene_path(id)
+		if not path.is_empty():
+			MDSWorldSceneTools.load_fresh(path)
+			ctx.host.room_written(path)
 	var bad := ctx.save_world(world)
 	return bad if not bad.is_empty() else {"room": room_summary(world, id), "dropped_gates": r.dropped, "warnings": notes}
 

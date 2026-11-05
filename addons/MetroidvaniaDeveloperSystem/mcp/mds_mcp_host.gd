@@ -48,6 +48,31 @@ func rooms_will_change() -> void:
 func room_written(_path: String) -> void:
 	pass
 
+## After resource [param path] was written.
+func resource_written(_path: String) -> void:
+	pass
+
+## What fighters in a running game last reported. Only the editor hears them.
+func live_fights() -> Array:
+	return []
+
+## Starts the game at a place in a room. Returns what happened, for the agent.
+func play(_scene_path: String, _uid: String, _layer: int, _local_pos: Vector2, _game_scene: String) -> String:
+	return "This needs the editor."
+
+## Runs one scene on its own, from the editor.
+func play_scene(_scene_path: String) -> String:
+	return "This needs the editor."
+
+## The map as the panel draws it, with the world's map style: {image, pan, cell_px}. Empty where it
+## can't be: drawing needs the editor, with a window.
+func render_map(_world: MDSWorld, _layer: int, _analysis: MDSAnalysis, _scene_db: Dictionary) -> Dictionary:
+	return {}
+
+## Stops a game started from the editor.
+func stop_playing() -> void:
+	pass
+
 ## After a tool's room writes: gets back what [method rooms_will_change] let go of.
 func rooms_changed() -> void:
 	pass

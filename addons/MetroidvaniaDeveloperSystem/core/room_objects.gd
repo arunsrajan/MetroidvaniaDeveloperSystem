@@ -219,3 +219,94 @@ static func protected_rects(root: Node, margin := 40.0) -> Array[Rect2]:
 		if is_protected(n) and not n in objs:
 			out.append(visual_rect(n, root))
 	return out
+
+# --- Gameplay objects ----------------------------------------------------------------------------
+
+## What the Room view's Effects tool places from its Gameplay Objects list: id -> the class it is.
+const GAMEPLAY_OBJECTS := {
+	"ability_pickup": "MDSAbilityPickup", "item_pickup": "MDSPickup", "health_fragment": "MDSHealthUpgrade", "breakable_wall": "MDSBreakable", "cracked_floor": "MDSBreakable",
+	"switch": "MDSSwitch", "hazard": "MDSHazard", "checkpoint": "MDSCheckpoint", "grapple_point": "MDSGrapplePoint", "enemy_walker": "MDSWalker", "enemy_flyer": "MDSFlyer",
+	"enemy_turret": "MDSTurret", "enemy_charger": "MDSCharger", "enemy_ambusher": "MDSAmbusher", "boss_arena": "MDSBossArena", "npc": "MDSNPC", "dialogue_trigger": "MDSDialogueTrigger",
+}
+
+## A new gameplay object of a kind in [constant GAMEPLAY_OBJECTS], placed for a floor at
+## [param floor_y] under [param at]. Null for another kind.
+static func gameplay_object(kind: String, at: Vector2, floor_y: float) -> Node2D:
+	var node: Node2D = null
+	match kind:
+		"ability_pickup":
+			node = MDSAbilityPickup.new()
+			node.name = "AbilityPickup"
+			node.position = Vector2(at.x, floor_y - 24)
+		"item_pickup":
+			node = MDSPickup.new()
+			node.name = "ItemPickup"
+			node.position = Vector2(at.x, floor_y - 20)
+		"health_fragment":
+			node = MDSHealthUpgrade.new()
+			node.name = "HealthFragment"
+			node.position = Vector2(at.x, floor_y - 20)
+		"breakable_wall":
+			var wall := MDSBreakable.new()
+			wall.kind = "wall"
+			wall.size = Vector2(64, 128)
+			wall.name = "BreakableWall"
+			wall.position = Vector2(at.x, floor_y - 64)
+			node = wall
+		"cracked_floor":
+			var ground := MDSBreakable.new()
+			ground.kind = "cracked_floor"
+			ground.size = Vector2(128, 32)
+			ground.name = "CrackedFloor"
+			ground.position = Vector2(at.x, floor_y - 16)
+			node = ground
+		"switch":
+			node = MDSSwitch.new()
+			node.name = "Switch"
+			node.position = Vector2(at.x, floor_y - 24)
+		"hazard":
+			var hazard := MDSHazard.new()
+			hazard.size = Vector2(128, 32)
+			hazard.name = "Hazard"
+			hazard.position = Vector2(at.x, floor_y - 16)
+			node = hazard
+		"checkpoint":
+			node = MDSCheckpoint.new()
+			node.name = "Checkpoint"
+			node.position = Vector2(at.x, floor_y)
+		"grapple_point":
+			node = MDSGrapplePoint.new()
+			node.name = "GrapplePoint"
+			node.position = Vector2(at.x, floor_y - 120)
+		"enemy_walker", "enemy_flyer", "enemy_turret", "enemy_charger", "enemy_ambusher":
+			# The template scene, standing on the floor (its origin is its middle); flyers hover.
+			var type := kind.trim_prefix("enemy_")
+			node = enemy_template(type)
+			var half: float = (node as MDSEnemy).body_size.y * 0.5 if node is MDSEnemy else 24.0
+			node.position = Vector2(at.x, floor_y - half - (100.0 if type == "flyer" else 0.0))
+		"boss_arena":
+			node = MDSBossArena.new()
+			node.name = "BossArena"
+			node.position = Vector2(at.x, floor_y)
+		"npc":
+			node = MDSNPC.new()
+			node.name = "NPC"
+			node.position = Vector2(at.x, floor_y)
+		"dialogue_trigger":
+			node = MDSDialogueTrigger.new()
+			node.name = "DialogueTrigger"
+			node.position = Vector2(at.x, floor_y)
+	if node:
+		node.add_to_group(&"mds_gameplay_placed")
+	return node
+
+## A new enemy of a kind: its template scene (gameplay/enemies/templates/mds_<kind>.tscn).
+static func enemy_template(kind: String) -> Node2D:
+	var path := "res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_%s.tscn" % kind
+	var node: Node2D = null
+	if ResourceLoader.exists(path):
+		node = (load(path) as PackedScene).instantiate() as Node2D
+	if not node:
+		node = MDSEnemy.new()
+	node.name = kind.capitalize()
+	return node

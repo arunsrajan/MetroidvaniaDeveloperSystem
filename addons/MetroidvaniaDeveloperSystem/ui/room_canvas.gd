@@ -2256,7 +2256,6 @@ func place_gameplay_object(gameplay_type: String, p: Vector2) -> Node2D:
 	if not painter or not painter.root:
 		return null
 	painter.checkpoint()
-	var node: Node2D = null
 	var label_name := gameplay_type.capitalize()
 	var floor_y := p.y
 	if world and world.has_room(room_id):
@@ -2266,77 +2265,10 @@ func place_gameplay_object(gameplay_type: String, p: Vector2) -> Node2D:
 		if not is_nan(hit_y):
 			floor_y = hit_y
 
-	match gameplay_type:
-		"ability_pickup":
-			node = MDSAbilityPickup.new()
-			node.name = "AbilityPickup"
-			node.position = Vector2(p.x, floor_y - 24)
-		"item_pickup":
-			node = MDSPickup.new()
-			node.name = "ItemPickup"
-			node.position = Vector2(p.x, floor_y - 20)
-		"health_fragment":
-			var frag := MDSHealthUpgrade.new()
-			frag.name = "HealthFragment"
-			frag.position = Vector2(p.x, floor_y - 20)
-			node = frag
-		"breakable_wall":
-			var wall := MDSBreakable.new()
-			wall.kind = "wall"
-			wall.size = Vector2(64, 128)
-			wall.name = "BreakableWall"
-			wall.position = Vector2(p.x, floor_y - 64)
-			node = wall
-		"cracked_floor":
-			var fl := MDSBreakable.new()
-			fl.kind = "cracked_floor"
-			fl.size = Vector2(128, 32)
-			fl.name = "CrackedFloor"
-			fl.position = Vector2(p.x, floor_y - 16)
-			node = fl
-		"switch":
-			node = MDSSwitch.new()
-			node.name = "Switch"
-			node.position = Vector2(p.x, floor_y - 24)
-		"hazard":
-			var haz := MDSHazard.new()
-			haz.size = Vector2(128, 32)
-			haz.name = "Hazard"
-			haz.position = Vector2(p.x, floor_y - 16)
-			node = haz
-		"checkpoint":
-			var cp := MDSCheckpoint.new()
-			cp.name = "Checkpoint"
-			cp.position = Vector2(p.x, floor_y)
-			node = cp
-		"grapple_point":
-			node = MDSGrapplePoint.new()
-			node.name = "GrapplePoint"
-			node.position = Vector2(p.x, floor_y - 120)
-		"enemy_walker", "enemy_flyer", "enemy_turret", "enemy_charger", "enemy_ambusher":
-			# The template scene (gameplay/enemies/templates/mds_<kind>.tscn), standing on the
-			# floor (its origin is its middle); flyers hover above it.
-			var kind := gameplay_type.trim_prefix("enemy_")
-			node = enemy_template(kind)
-			var half := (node as MDSEnemy).body_size.y * 0.5 if node is MDSEnemy else 24.0
-			node.position = Vector2(p.x, floor_y - half - (100.0 if kind == "flyer" else 0.0))
-		"boss_arena":
-			node = MDSBossArena.new()
-			node.name = "BossArena"
-			node.position = Vector2(p.x, floor_y)
-		"npc":
-			node = MDSNPC.new()
-			node.name = "NPC"
-			node.position = Vector2(p.x, floor_y)
-		"dialogue_trigger":
-			node = MDSDialogueTrigger.new()
-			node.name = "DialogueTrigger"
-			node.position = Vector2(p.x, floor_y)
-
+	var node := MDSRoomObjects.gameplay_object(gameplay_type, p, floor_y)
 	if not node:
 		return null
 
-	node.add_to_group(&"mds_gameplay_placed")
 	painter.root.add_child(node, true)
 	node.owner = painter.root
 	_own_all_nodes(node, painter.root)
@@ -2350,14 +2282,7 @@ func place_gameplay_object(gameplay_type: String, p: Vector2) -> Node2D:
 ## A new enemy from the Gameplay Kit's template scene for [param kind] ("walker", "flyer",
 ## "turret", "charger", "ambusher"), named after it; a plain [MDSEnemy] when the scene is missing.
 static func enemy_template(kind: String) -> Node2D:
-	var path := "res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/mds_%s.tscn" % kind
-	var node: Node2D = null
-	if ResourceLoader.exists(path):
-		node = (load(path) as PackedScene).instantiate() as Node2D
-	if not node:
-		node = MDSEnemy.new()
-	node.name = kind.capitalize()
-	return node
+	return MDSRoomObjects.enemy_template(kind)
 
 func _own_all_nodes(node: Node, root_node: Node) -> void:
 	for c in node.get_children():

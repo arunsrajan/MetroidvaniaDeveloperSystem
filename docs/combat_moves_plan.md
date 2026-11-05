@@ -43,7 +43,6 @@ The two open questions in the plan were settled by asking for it: the graph live
 
 ### What isn't built
 
-- **MCP tools to build fights.** The MCP server still only reaches enemies through `mds_enemy_configure`.
 - **A full preview of fights built in code.** A boss whose `_make_phases()` is overridden shows them read-only if its script is `@tool`, and otherwise a message asking for `@tool`. An enemy built in `_make_moves()` shows no preview either way. The game still reports these fights while it runs, but the graph has no nodes to light up for them.
 
 ### What has been checked, and what hasn't

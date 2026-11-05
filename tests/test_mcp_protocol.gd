@@ -55,6 +55,14 @@ func _run() -> void:
 	for t: Dictionary in tools:
 		check(t.inputSchema.type == "object" and t.description.length() < 500, "%s has an object schema and a short description" % t.name)
 		check(t.annotations.has("readOnlyHint") and t.annotations.has("destructiveHint"), "%s has annotations" % t.name)
+	# The coverage document and the tools agree.
+	var coverage := FileAccess.get_file_as_string("res://docs/mcp_coverage.md")
+	check(not coverage.is_empty(), "docs/mcp_coverage.md is there")
+	for t: Dictionary in tools:
+		check(coverage.contains("`%s`" % t.name), "%s is in docs/mcp_coverage.md" % t.name)
+	var named := RegEx.create_from_string("`(mds_[a-z_0-9]+)`")
+	for m in named.search_all(coverage):
+		check(m.get_string(1) in names, "docs/mcp_coverage.md names %s, which is a tool" % m.get_string(1))
 	var status: Dictionary = await p.handle({"jsonrpc": "2.0", "id": 10, "method": "tools/call", "params": {"name": "mds_status", "arguments": {}}})
 	check(not status.result.isError and status.result.structuredContent.mode == "headless", "mds_status runs")
 	check(JSON.parse_string(status.result.content[0].text).tier == "read", "the same result as text")

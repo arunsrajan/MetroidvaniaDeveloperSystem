@@ -39,7 +39,9 @@ func _run() -> void:
 		check(bad.is_empty(), "%s: %s" % [t.name, ", ".join(bad)])
 		check(t.name.begins_with("mds_"), "%s has the prefix" % t.name)
 		check(JSON.stringify(t).length() < 6000, "%s stays small" % t.name)
-	check(p.list_tools().size() >= 40 and p.list_tools().size() <= 50, "about 45 tools: %d" % p.list_tools().size())
+	check(p.list_tools().size() >= 90, "the plugin's features have tools: %d" % p.list_tools().size())
+	# Clients without deferred tools pay for all of this in every conversation.
+	check(JSON.stringify(p.list_tools()).length() < 100000, "the list stays under 100 KB, about 25,000 tokens: %d" % JSON.stringify(p.list_tools()).length())
 	Case.clean_folder(TMP + "/mcp_schema_data")
 
 static func _schema_problems(schema: Dictionary, at: String) -> PackedStringArray:
