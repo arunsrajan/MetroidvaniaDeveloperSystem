@@ -10,6 +10,8 @@ const ASCII_LIMIT := 200
 const PREVIEW_LIMIT := 2048
 ## What each layer looks like in the preview, back to front.
 const LAYER_COLORS := {"Background": Color(0.24, 0.27, 0.33), "Terrain": Color(0.56, 0.58, 0.62), "Decor": Color(0.36, 0.62, 0.36), "Foreground": Color(0.42, 0.40, 0.50)}
+## The tile layer at whose depth each group of freeform shapes is drawn.
+const SHAPE_LAYERS := {"FreeformBack": "Background", "Freeform": "Terrain", "FreeformFront": "Foreground"}
 const PREVIEW_SKY := Color(0.09, 0.10, 0.13)
 const PREVIEW_GATE := Color(0.25, 0.85, 0.95)
 const PREVIEW_ITEM := Color(0.95, 0.45, 0.30)
@@ -43,18 +45,18 @@ func _register() -> void:
 		}, ["room", "layer", "op"], _room_paint)
 	_add("mds_room_decorate", "Grass and plants on floors, stalactites, vines and moss under ceilings, inside the room's shape.", AUTHOR,
 		{"world": world, "room": S.text(), "seed": S.integer(), "clear": S.boolean("Default true: replaces the Decor layer"), "floor_fill": S.any_object("Most floor decorations are of this fill"), "on_unsaved": unsaved}, ["room"], _room_decorate)
-	_add("mds_room_place", "Puts something in a room's scene at pos (scene pixels). kind enemy: template, one of mds_catalog enemy_templates. scene: template, a scene path. stamp: template, a stamp set path, with index, scale, rotation, group. effect: template, an id of mds_catalog effects, with settings.", AUTHOR,
+	_add("mds_room_place", "Puts something in a room's scene at pos (scene pixels). kind enemy: template, one of mds_catalog enemy_templates. gameplay: template, one of mds_catalog gameplay_objects (a pickup, a breakable, a switch, a checkpoint, an NPC...), stood on the floor under pos. scene: template, a scene path. stamp: template, a stamp set path, with index, scale, rotation, group. effect: template, an id of mds_catalog effects. settings sets its properties, as mds_node_update does.", AUTHOR,
 		{
-			"world": world, "room": S.text(), "kind": S.choice(["enemy", "scene", "stamp", "effect"]), "template": S.text(), "pos": S.point("Scene pixels"),
+			"world": world, "room": S.text(), "kind": S.choice(["enemy", "gameplay", "scene", "stamp", "effect"]), "template": S.text(), "pos": S.point("Scene pixels"),
 			"name": S.text(), "settings": S.any_object(), "index": S.integer("", 0), "scale": S.number("Default 1", 0), "rotation": S.number("Degrees"), "group": S.choice(Array(STAMP_GROUPS)), "on_unsaved": unsaved,
 		}, ["room", "kind", "template", "pos"], _room_place)
 	_add("mds_room_fit_objects", "floor: stands the room's objects on the floor under them. declutter: spaces out those in each other's way, removing what doesn't fit.", AUTHOR,
 		{"world": world, "room": S.text(), "mode": S.choice(["floor", "declutter"]), "on_unsaved": unsaved}, ["room", "mode"], _fit_objects)
 	_add("mds_room_remove_item", "Removes a node of a room's scene that isn't a tile layer or a gate.", AUTHOR, {"world": world, "room": S.text(), "node": S.text("Node path from mds_room_items"), "on_unsaved": unsaved}, ["room", "node"], _remove_item, {"destructive": true})
 	_add("mds_room_items", "What is in a room's scene: enemies and other scenes, stamps, effects, gates. Paged.", READ, {"world": world, "room": S.text(), "cursor": S.integer("", 0)}, ["room"], _room_items)
-	_add("mds_room_ascii", "A room as text, a cheap way to see it: # solid, . open, g gate, E thing. scale N: one character per N tiles.", READ,
+	_add("mds_room_ascii", "A room as text, a cheap way to see it: # the layer's tiles and the freeform shapes at its depth, . open, g gate, E thing. scale N: one character per N tiles.", READ,
 		{"world": world, "room": S.text(), "layer": layer, "region": S.cell_box("Tile cells"), "scale": S.integer("Default: fits 200 columns", 1, 64)}, ["room"], _room_ascii)
-	_add("mds_room_preview", "A room as a PNG, drawn from its tile layers, gates and items: not how the game renders it.", READ, {"world": world, "room": S.text(), "scale": S.integer("Pixels per tile, default 2", 1, 8)}, ["room"], _room_preview)
+	_add("mds_room_preview", "A room as a PNG, drawn from its tile layers, freeform shapes, gates and enemies: not how the game renders it.", READ, {"world": world, "room": S.text(), "scale": S.integer("Pixels per tile, default 2", 1, 8)}, ["room"], _room_preview)
 
 static func _ids_of(choices: Array) -> Array:
 	return choices.map(func(c: Array) -> String: return c[0])
@@ -286,12 +288,23 @@ func _room_place(args: Dictionary, _report: Callable) -> Dictionary:
 		path = MDSMcpGuard.normalize(path)
 		if path.is_empty() or not FileAccess.file_exists(path):
 			return ctx.fail("not_found", "%s isn't there." % template, "mds_catalog lists enemy_templates and stamp_sets.")
+	if args.kind == "gameplay" and not template in MDSRoomObjects.GAMEPLAY_OBJECTS:
+		return ctx.fail("not_found", "%s is not a gameplay object." % template, "mds_catalog lists gameplay_objects.")
 	var painter := _edit_room(world, args.room, args)
 	if not painter:
 		return ctx.error
 	var pos := _vec2(args.pos)
 	var node: Node2D = null
 	match args.kind:
+		"gameplay":
+			node = MDSRoomObjects.gameplay_object(template, pos, _floor_under(painter.root, world.get_local_rects(args.room), pos))
+			if node:
+				if args.has("name"):
+					node.name = args.name
+				painter.root.add_child(node, true)
+				node.owner = painter.root
+				_own_below(node, painter.root)
+				painter.dirty = true
 		"enemy", "scene":
 			var scene := load(path) as PackedScene
 			node = (scene.instantiate() as Node2D) if scene else null
@@ -316,9 +329,36 @@ func _room_place(args: Dictionary, _report: Callable) -> Dictionary:
 	if not node:
 		painter.free_instance()
 		return ctx.fail("not_placed", "%s couldn't be placed: it isn't a 2D scene of that kind." % template)
+	if args.has("settings") and args.kind != "effect":
+		var reader := MDSMcpValues.new()
+		reader.scene_root = painter.root
+		if not reader.set_all(node, args.settings):
+			painter.free_instance()
+			return ctx.fail("bad_value", reader.error, "mds_class_info lists its properties.")
 	var at := _path_of(node, painter)
 	var bad := _save_room(painter)
 	return bad if not bad.is_empty() else {"room": args.room, "node": at}
+
+## The floor under [param pos] in the scene, or pos's own height when there is none.
+static func _floor_under(root: Node, rects: Array[Rect2], pos: Vector2) -> float:
+	var tree := Engine.get_main_loop() as SceneTree
+	var host := SubViewport.new()
+	host.disable_3d = true
+	host.size = Vector2i(4, 4)
+	host.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	tree.root.add_child(host)
+	var check := MDSRoomDressing.ground_check(host, root, null, rects)
+	var hit := MDSRoomDressing.floor_under(check, pos)
+	check.free_proxy()
+	host.queue_free()
+	return pos.y if is_nan(hit) else hit
+
+static func _own_below(node: Node, root: Node) -> void:
+	if not node.scene_file_path.is_empty():
+		return
+	for c in node.get_children():
+		c.owner = root
+		_own_below(c, root)
 
 func _fit_objects(args: Dictionary, _report: Callable) -> Dictionary:
 	var world := ctx.read_world(args)
@@ -346,15 +386,14 @@ func _fit_objects(args: Dictionary, _report: Callable) -> Dictionary:
 ## [param node]'s path in the saved scene. The painter holds its items apart until it saves.
 static func _path_of(node: Node, painter: MDSRoomPainter) -> String:
 	if painter.items_root.is_ancestor_of(node):
-		return "%s/%s" % [painter.items_root.name, painter.items_root.get_path_to(node)]
+		return str(painter.items_root.get_path_to(node))
 	return str(painter.root.get_path_to(node))
 
-## The node at [param path] (see [method _path_of]), or null.
+## The node at [param path] (see [method _path_of]), or null. An item is the painter's copy: what
+## the scene holds of it is replaced when the painter saves.
 static func _node_at(path: String, painter: MDSRoomPainter) -> Node:
-	var items: String = painter.items_root.name + "/"
-	if path.begins_with(items):
-		return painter.items_root.get_node_or_null(NodePath(path.trim_prefix(items)))
-	return painter.root.get_node_or_null(NodePath(path))
+	var item := painter.items_root.get_node_or_null(NodePath(path.trim_prefix(painter.items_root.name + "/")))
+	return item if item else painter.root.get_node_or_null(NodePath(path))
 
 ## A node that [method _remove_item] may remove: not the layers, the map guides, the items' groups
 ## or a gate.
@@ -431,6 +470,30 @@ static func _cell_bounds(world: MDSWorld, id: String, painter: MDSRoomPainter) -
 	var lo := Vector2i((out.position / tile).floor())
 	return Rect2i(lo, Vector2i((out.end / tile).ceil()) - lo)
 
+## The cells freeform shapes cover inside [param box], by the tile layer at their depth: {layer: {cell: true}}.
+static func _shape_cells(painter: MDSRoomPainter, box: Rect2i) -> Dictionary:
+	var out := {}
+	var tile := painter.tile_size()
+	for group: String in SHAPE_LAYERS:
+		var cells := {}
+		for item: Node in painter.items(group):
+			if not item is MDSFreeform:
+				continue
+			var shape: PackedVector2Array = (item as MDSFreeform).transform * (item as MDSFreeform).get_outline()
+			if shape.size() < 3:
+				continue
+			var bounds := Rect2(shape[0], Vector2.ZERO)
+			for p in shape:
+				bounds = bounds.expand(p)
+			var lo := Vector2i((bounds.position / tile).floor())
+			var span := Rect2i(lo, Vector2i((bounds.end / tile).ceil()) - lo).intersection(box)
+			for y in range(span.position.y, span.end.y):
+				for x in range(span.position.x, span.end.x):
+					if Geometry2D.is_point_in_polygon((Vector2(x, y) + Vector2(0.5, 0.5)) * tile, shape):
+						cells[Vector2i(x, y)] = true
+		out[SHAPE_LAYERS[group]] = cells
+	return out
+
 func _room_ascii(args: Dictionary, _report: Callable) -> Dictionary:
 	var world := ctx.read_world(args)
 	if not world:
@@ -443,6 +506,7 @@ func _room_ascii(args: Dictionary, _report: Callable) -> Dictionary:
 		box = Rect2i(args.region.x, args.region.y, args.region.w, args.region.h)
 	var scale := int(args.get("scale", maxi(1, ceili(box.size.x / float(ASCII_LIMIT)))))
 	var layer: TileMapLayer = painter.layer(str(args.get("layer", "Terrain")))
+	var shapes: Dictionary = _shape_cells(painter, box).get(str(args.get("layer", "Terrain")), {})
 	var tile := painter.tile_size()
 	var marks := {}
 	for g: String in world.get_gates(args.room):
@@ -460,7 +524,7 @@ func _room_ascii(args: Dictionary, _report: Callable) -> Dictionary:
 					var cell := Vector2i(x + dx, y + dy)
 					if marks.has(cell):
 						c = marks[cell]
-					elif c == "." and layer.get_cell_source_id(cell) != -1:
+					elif c == "." and (layer.get_cell_source_id(cell) != -1 or shapes.has(cell)):
 						c = "#"
 			row += c
 		rows.append(row)
@@ -488,12 +552,15 @@ func _room_preview(args: Dictionary, _report: Callable) -> Dictionary:
 	var dot := func(cell: Vector2i, color: Color, grow := 0) -> void:
 		var at := (cell - box.position) * scale
 		img.fill_rect(Rect2i(at - Vector2i(grow, grow), Vector2i(scale + grow * 2, scale + grow * 2)).intersection(Rect2i(Vector2i.ZERO, size)), color)
+	var shapes := _shape_cells(painter, box)
 	for layer_name: String in MDSRoomPainter.LAYER_ORDER:
 		var layer: TileMapLayer = painter.layer(layer_name)
 		if layer:
 			for cell in layer.get_used_cells():
 				if box.has_point(cell):
 					dot.call(cell, LAYER_COLORS[layer_name])
+		for cell: Vector2i in shapes.get(layer_name, {}):
+			dot.call(cell, LAYER_COLORS[layer_name])
 	var tile := painter.tile_size()
 	for n in painter.root.get_children():
 		if n is MDSEnemy:

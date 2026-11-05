@@ -5,6 +5,9 @@ extends MDSMcpHost
 ## per tool call or batch, so Ctrl+Z on the map takes it back), and scenes the editor holds with
 ## unsaved changes are not written over.
 
+## How long a map picture may wait to be drawn, in frames of the editor.
+const RENDER_FRAMES_MAX := 600
+
 ## Returns the [MDSWorldPanel], or null while the panel shows MetSys mode.
 var _panel_getter: Callable
 
@@ -67,6 +70,54 @@ func room_written(path: String) -> void:
 		EditorInterface.get_resource_filesystem().update_file(path)
 		if path in EditorInterface.get_open_scenes():
 			EditorInterface.reload_scene_from_path(path)
+
+func resource_written(path: String) -> void:
+	EditorInterface.get_resource_filesystem().update_file(path)
+
+func live_fights() -> Array:
+	return MDSFightDebugger.recent()
+
+func play(scene_path: String, uid: String, layer: int, local_pos: Vector2, game_scene: String) -> String:
+	return MDSPlayHere.play(scene_path, uid, layer, local_pos, game_scene)
+
+func play_scene(scene_path: String) -> String:
+	EditorInterface.play_custom_scene(scene_path)
+	return "Playing %s on its own." % scene_path
+
+func render_map(world: MDSWorld, layer: int, analysis: MDSAnalysis, scene_db: Dictionary) -> Dictionary:
+	var bounds := world.get_layer_bounds(layer)
+	if DisplayServer.get_name() == "headless" or not DisplayServer.window_can_draw() or not bounds.has_area():
+		return {}
+	var view := SubViewport.new()
+	var map := MDSWorldCanvas.new()
+	map.layer = layer
+	map.show.previews = false
+	var margin := Vector2(260, 80)
+	map.zoom = clampf(7000.0 / maxf(bounds.size.x, bounds.size.y), 0.02, 0.5)
+	map.pan = margin - bounds.position * map.zoom
+	map.size = bounds.size * map.zoom + margin * 2.0
+	view.size = Vector2i(map.size)
+	view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	view.add_child(map)
+	EditorInterface.get_base_control().add_child(view)
+	map.set_data(world, analysis, scene_db)
+	# Frames, not signals: a window minimized meanwhile draws none, and the tool mustn't hang on it.
+	var frames := [0]
+	var drew := func() -> void: frames[0] += 1
+	RenderingServer.frame_post_draw.connect(drew)
+	var tree := Engine.get_main_loop() as SceneTree
+	for i in RENDER_FRAMES_MAX:
+		if frames[0] >= 2:
+			break
+		await tree.process_frame
+	RenderingServer.frame_post_draw.disconnect(drew)
+	var image := view.get_texture().get_image() if frames[0] >= 2 else null
+	var drawn := {"image": image, "pan": map.pan, "cell_px": world.get_paint_cell() * map.zoom}
+	view.queue_free()
+	return drawn if image else {}
+
+func stop_playing() -> void:
+	EditorInterface.stop_playing_scene()
 
 func rooms_changed() -> void:
 	var p := _panel()

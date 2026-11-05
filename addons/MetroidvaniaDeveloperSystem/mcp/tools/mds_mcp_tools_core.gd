@@ -4,7 +4,10 @@ extends MDSMcpTools
 ## Status, the catalog of ids, batches, undo, and the tools that only the editor can do.
 
 const TEMPLATES_DIR := "res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/"
-const CATALOGS: Array = ["cave_styles", "cave_shapes", "attack_fx", "hit_particles", "damage_types", "effects", "enemy_templates", "tile_palettes", "stamp_sets"]
+const CATALOGS: Array = [
+	"cave_styles", "cave_shapes", "attack_fx", "hit_particles", "damage_types", "effects", "enemy_templates", "gameplay_objects", "tile_palettes", "stamp_sets", "freeform_styles", "depth_styles", "backdrops",
+	"recipes", "abilities", "room_types", "statuses", "pin_kinds", "map_styles", "parallax", "parallax_foregrounds", "animated_backgrounds", "machinery", "creatures", "conditions", "game_scenes", "tileset_terrains",
+]
 
 func _register() -> void:
 	_add("mds_status", "Where the server stands: mode (editor or headless), versions, permission tier, worlds in the project, what the editor has open and unsaved.", READ, {}, [], _status)
@@ -17,6 +20,9 @@ func _register() -> void:
 		}, ["ops"], _batch)
 	_add("mds_history", "The recent changes that can be undone, newest first.", READ, {"limit": S.integer("Default 20", 1, MDSMcpHistory.MAX_STEPS)}, [], _history)
 	_add("mds_undo", "Undoes the newest change made through this server, if its files haven't been changed since.", AUTHOR, {"undo_id": S.integer("The newest step's id; left out means the newest.")}, [], _undo, {"writes": false})
+	_add("mds_play", "Runs the game from the editor, starting at a place in a room: Play from here. This runs the project's code, so it needs the full tier. pos is in the room's scene pixels, default its save point or its middle. alone runs just its scene. Editor only.", FULL,
+		{"world": _world_schema(), "map": S.text("Or a MetSys map, with its room id"), "room": S.text(), "pos": S.point("Scene pixels"), "game_scene": S.text("Default the world's play_scene, or the scene found to host it"), "alone": S.boolean("Runs this room's scene only")}, ["room"], _play, {"editor_only": true, "writes": false})
+	_add("mds_stop", "Stops the game started from the editor. Editor only.", FULL, {}, [], _stop, {"editor_only": true, "writes": false})
 	_add("mds_editor_open", "Shows a world, and optionally a room, in the MetDevSys panel. Editor only.", AUTHOR, {"world": _world_schema(), "room": S.text("Room id")}, [], _editor_open, {"editor_only": true, "writes": false})
 	_add("mds_editor_save_scenes", "Saves scenes open in the editor. They may hold the user's unfinished work: ask first. Editor only.", AUTHOR, {"paths": S.array(S.text(), "Scene paths; left out or empty: all open scenes")}, [], _editor_save, {"editor_only": true, "writes": false})
 
@@ -65,8 +71,79 @@ func _catalog(args: Dictionary, _report: Callable) -> Dictionary:
 				items.append({"id": id})
 		"stamp_sets":
 			for p in _find_files("res://", ".stamps.tres"):
-				items.append({"id": p})
+				var stamps := load(p) as MDSStampSet
+				items.append({"id": p, "stamps": stamps.regions.size() if stamps else 0, "categories": stamps.get_categories() if stamps else []})
+		"gameplay_objects":
+			for id: String in MDSRoomObjects.GAMEPLAY_OBJECTS:
+				items.append({"id": id, "class": MDSRoomObjects.GAMEPLAY_OBJECTS[id]})
+		"freeform_styles":
+			items = _resources_of("MDSFreeformStyle")
+		"depth_styles":
+			items = _resources_of("MDSDepthStyle")
+		"backdrops":
+			items = _resources_of("MDSBackdrop")
+		"abilities":
+			items = _resources_of("MDSAbilityData")
+		"recipes":
+			items = _ids(MDSMoveRecipes.RECIPES)
+		"room_types":
+			items = _ids(MDSAnnotations.ROOM_TYPES)
+		"statuses":
+			items = _ids(MDSAnnotations.STATUSES)
+		"pin_kinds":
+			items = _ids(MDSAnnotations.PIN_KINDS)
+		"map_styles":
+			items = _ids(MDSMapStyle.BUILTIN)
+		"parallax":
+			items = _ids(MDSParallaxBackground.PRESET_IDS)
+		"parallax_foregrounds":
+			items = _ids(MDSParallaxBackground.FOREGROUND_IDS)
+		"animated_backgrounds":
+			items = _ids(MDSAnimatedBackground.STYLE_IDS)
+		"machinery":
+			items = _ids(MDSMachineryBackground.MACHINE_IDS)
+		"creatures":
+			items = _ids(MDSCreatures.CREATURE_IDS)
+		"conditions":
+			items = _ids(PackedStringArray(MDSMoveCondition.Kind.keys()))
+		"game_scenes":
+			for s: Dictionary in _game_scenes():
+				items.append(s)
+		"tileset_terrains":
+			for p in _find_files("res://", "_tileset.tres"):
+				var tiles := load(p) as TileSet
+				if tiles:
+					var painter := MDSRoomPainter.for_tile_set(tiles)
+					items.append({"id": p, "terrains": painter.get_terrains()})
+					painter.free_instance()
 	return {"kind": args.kind, "items": items}
+
+static func _ids(ids: PackedStringArray) -> Array:
+	var out := []
+	for id in ids:
+		out.append({"id": id})
+	return out
+
+## The resource files of [param class_id], as a catalog lists them.
+static func _resources_of(class_id: String) -> Array:
+	var all := MDSMcpValues.classes()
+	var out := []
+	for p in MDSMcpToolsObjects._text_resources("res://"):
+		var head := MDSMcpToolsObjects._class_in_header(p)
+		if not head.is_empty() and MDSMcpToolsObjects._extends(head, class_id, all):
+			out.append({"id": p})
+	return out
+
+## Scenes that can host a run of the game, as Play from here chooses among them.
+static func _game_scenes() -> Array:
+	var out := []
+	for p in _find_files("res://", ".tscn"):
+		if p.begins_with("res://tests/") or p.begins_with("res://addons/"):
+			continue
+		var f := FileAccess.open(p, FileAccess.READ)
+		if f and f.get_as_text().contains("mds_world_game.gd"):
+			out.append({"id": p})
+	return out
 
 static func _find_files(folder: String, suffix: String) -> Array[String]:
 	var out: Array[String] = []
@@ -114,6 +191,53 @@ func _undo(args: Dictionary, _report: Callable) -> Dictionary:
 		return ctx.fail("undo_refused", r.error, "", {"conflicts": r.get("conflicts", [])})
 	ctx.host.files_restored(r.files)
 	return {"restored": r.files}
+
+func _play(args: Dictionary, _report: Callable) -> Dictionary:
+	var path := ""
+	var uid := ""
+	var layer := 0
+	var game := ""
+	var local := Vector2(1152, 648) * 0.5
+	var size := Vector2(1152, 648)
+	if args.has("map"):
+		var map := MDSMcpGuard.normalize(str(args.map))
+		if map.is_empty() or not FileAccess.file_exists(map):
+			return ctx.fail("not_found", "%s isn't a map file in the project." % args.map)
+		var room := MDSMapModel.load_file(map).get_room(args.room)
+		if not room:
+			return ctx.fail("room_not_found", "The map has no room %s." % args.room, "mds_metsys_get lists them.")
+		if room.scene_path.is_empty():
+			return ctx.fail("room_has_no_scene", "Room %s has no scene." % args.room)
+		path = room.scene_path
+		uid = room.scene_uid
+		layer = room.layer
+	else:
+		var world := ctx.read_world(args)
+		if not world:
+			return ctx.error
+		path = _scene_of(world, args.room)
+		if path.is_empty():
+			return ctx.error
+		uid = str(world.data.rooms[args.room].get("scene", ""))
+		layer = world.get_room_layer(args.room)
+		game = str(world.get_setting("play_scene", ""))
+		size = world.get_default_room_size()
+		local = world.get_room_bounds(args.room).size * 0.5
+	if args.get("alone", false):
+		return {"status": ctx.host.play_scene(path), "scene": path}
+	var saves: Array = MDSSceneScanner.new(size).analyze_scene_any(path).get("save_points", [])
+	if args.has("pos"):
+		local = _vec2(args.pos)
+	elif not saves.is_empty() and saves[0].get("position") is Vector2:
+		local = saves[0].position
+	game = str(args.get("game_scene", game))
+	if not game.is_empty() and MDSMcpGuard.normalize(game).is_empty():
+		return ctx.fail("path_not_allowed", "%s is not a path inside res://." % game)
+	return {"status": ctx.host.play(path, uid, layer, local, game), "scene": path, "pos": local}
+
+func _stop(_args: Dictionary, _report: Callable) -> Dictionary:
+	ctx.host.stop_playing()
+	return {"stopped": true}
 
 func _editor_open(args: Dictionary, _report: Callable) -> Dictionary:
 	var path := ctx.world_path(args)

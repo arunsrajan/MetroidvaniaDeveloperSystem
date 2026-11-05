@@ -8,7 +8,8 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 - **MCP server** (`addons/MetroidvaniaDeveloperSystem/mcp/`, see the README): AI tools such as Claude Code can build with MDS, in GDScript with nothing else to install.
   - **One command for every client:** it works by itself with the editor closed, and hands each request to the editor when it is open and serving. Stdio and Streamable HTTP, speaking MCP 2026-07-28 and the earlier versions.
-  - **43 tools:** worlds, areas, rooms and gates; generating, painting and seeing rooms (`mds_room_ascii`, `mds_room_preview`); enemies' hits and hurts; the game scene; `mds_validate`, `mds_analysis`, `mds_room_check`, `mds_export`; `mds_batch`, `mds_undo`. Also resources and five prompts.
+  - **All of the plugin, with 93 tools** ([docs/mcp_coverage.md](docs/mcp_coverage.md) lists them by feature): any class, resource or node by its exports, including a project's own classes; room notes, links, pins, layers, outlines, map images and MetSys maps; freeform shapes, Convert, Decorate and Trace; tile pieces, tilesets and gameplay objects; fights; Play from here.
+  - **The first of them:** worlds, areas, rooms and gates; generating, painting and seeing rooms (`mds_room_ascii`, `mds_room_preview`); enemies' hits and hurts; the game scene; `mds_validate`, `mds_analysis`, `mds_room_check`, `mds_export`; `mds_batch`, `mds_undo`. Also resources and five prompts.
   - **Off in the editor by default:** the panel's new MCP section turns it on, per user and machine. Three permission tiers, paths confined to `res://`, writes kept out of `addons/`, a token and `Host` and `Origin` checks on loopback, an audit log, and no tool that runs code.
   - **Unsaved work stays:** undo by file snapshots, batches that put their files back when they fail, and refusal to write over a scene with unsaved changes (on Godot 4.6, every open scene counts as unsaved).
 
@@ -24,7 +25,11 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - **Recipes and code:** start from a recipe. Recipes and a boss's fight from a `@tool` script show read-only until made editable.
   - **Checks** under the graph, such as an empty pick or two phases that start at the same health.
   - **Live view:** a game running from the editor reports each fighter's moves, phase, health, cooldowns and flags through the debugger, and the graph lights up. `MDSMoveState` sends these only when the debugger is attached.
-  - **Not done:** node positions aren't saved, and there are no MCP tools for fights yet. See `docs/combat_moves_plan.md`.
+  - **Not done:** node positions aren't saved. See `docs/combat_moves_plan.md`.
+
+### Fixed
+
+- **Godot 4.6: the panel never ran its room geometry checks**, and each scan logged a script error. It called `EditorFileSystem.is_importing()`, which 4.6 doesn't have.
 
 ## [3.4.0] - 2026-10-18
 

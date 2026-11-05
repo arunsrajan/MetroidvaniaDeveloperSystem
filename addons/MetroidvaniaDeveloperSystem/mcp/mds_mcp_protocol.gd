@@ -26,7 +26,7 @@ const LIST_TTL_MSEC := 3600000
 const PAGE_SIZE_TOOLS := 200
 const MAX_BATCH_OPS := 200
 
-const INSTRUCTIONS := """Builds Metroidvania worlds with the Metroidvania Developer System plugin. Check mds_status first. Use mds_catalog rather than guessing ids (styles, shapes, effects, particles, enemies). Typical order: mds_world_create, mds_tileset_create, mds_area_set, mds_room_add, mds_gate_add and mds_gate_connect (or mds_area_generate), mds_area_generate_caves, mds_room_place, mds_enemy_configure, mds_game_scene_create, then mds_validate and mds_room_check. Keep seeds fixed so rebuilding gives the same rooms. Put related edits in mds_batch: they undo as one step. mds_room_ascii and mds_room_preview show a room. mds_undo takes back the last change."""
+const INSTRUCTIONS := """Builds Metroidvania worlds with the Metroidvania Developer System plugin. Check mds_status first. Use mds_catalog rather than guessing ids (styles, shapes, effects, particles, enemies). Typical order: mds_world_create, mds_tileset_create, mds_area_set, mds_room_add, mds_gate_add and mds_gate_connect (or mds_area_generate), mds_area_generate_caves, mds_room_place, mds_enemy_configure, mds_game_scene_create, then mds_validate and mds_room_check. Keep seeds fixed so rebuilding gives the same rooms. Put related edits in mds_batch: they undo as one step. mds_room_ascii and mds_room_preview show a room. mds_undo takes back the last change. Anything else the plugin has is set up by its exports: mds_class_list and mds_class_info say what there is, mds_resource_create and mds_node_add make it (items, abilities, shops, dialogue, weather, cameras, moves...). mds_fight_edit edits fights."""
 
 var ctx: MDSMcpContext
 var tools: Array[Dictionary] = []
@@ -40,7 +40,7 @@ var _client := ""
 
 func _init(host: MDSMcpHost = null, tier: MDSMcpGuard.Tier = MDSMcpGuard.Tier.AUTHOR, data_dir := MDSMcpGuard.DATA_DIR) -> void:
 	ctx = MDSMcpContext.new(host if host else MDSMcpHost.new(), MDSMcpGuard.new(tier, data_dir))
-	groups.assign([MDSMcpToolsCore.new(), MDSMcpToolsWorld.new(), MDSMcpToolsRoom.new(), MDSMcpToolsGame.new(), MDSMcpToolsCheck.new()])
+	groups.assign([MDSMcpToolsCore.new(), MDSMcpToolsWorld.new(), MDSMcpToolsRoom.new(), MDSMcpToolsGame.new(), MDSMcpToolsCheck.new(), MDSMcpToolsObjects.new(), MDSMcpToolsFight.new(), MDSMcpToolsMap.new(), MDSMcpToolsTerrain.new(), MDSMcpToolsMetSys.new()])
 	for group in groups:
 		group.register(self)
 	resources = MDSMcpResources.new(self)

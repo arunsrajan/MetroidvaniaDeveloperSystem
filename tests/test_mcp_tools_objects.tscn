@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/test_mcp_tools_objects.gd" id="1"]
+
+[node name="TestMcpToolsObjects" type="Node"]
+script = ExtResource("1")

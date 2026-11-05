@@ -35,7 +35,7 @@ const PROMPTS := {
 
 1. mds_analysis kind progression, to see what is reached now.
 2. Pick doors worth locking, with an alternative route to where {ability} is found. mds_gate_update or mds_gate_connect with requires: ["{ability}"].
-3. Make sure a room grants it (mds_room_update can't set this: say so if none does).
+3. Make sure something grants it: an ability pickup (mds_room_place with kind gameplay, template ability_pickup, settings {"ability": a res:// path}), or mds_room_update with values {"grants": ["{ability}"]}.
 4. mds_analysis kinds progression and backtracking, then mds_validate. Nothing should be locked forever. Report what opens up when.""",
 	},
 	"audit_world": {
