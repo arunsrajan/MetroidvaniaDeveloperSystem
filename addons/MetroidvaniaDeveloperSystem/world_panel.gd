@@ -1379,9 +1379,14 @@ func _editor_files_ready() -> void:
 		return
 	await get_tree().process_frame
 	var fs := EditorInterface.get_resource_filesystem()
-	while fs.is_scanning() or fs.is_importing():
+	while _editor_files_busy(fs):
 		await get_tree().create_timer(0.25).timeout
 	_files_ready = true
+
+## Whether the editor is scanning or importing. Godot 4.6 has no is_importing(), so there this
+## is the scan alone, which lasts through the imports of the editor's start.
+static func _editor_files_busy(fs: Object) -> bool:
+	return fs.is_scanning() or (fs.has_method(&"is_importing") and fs.call(&"is_importing"))
 
 func on_scene_saved(p: String) -> void:
 	if world and not world.find_room_by_scene(p).is_empty():

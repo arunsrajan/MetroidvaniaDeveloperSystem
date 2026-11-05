@@ -27,6 +27,10 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - **Live view:** a game running from the editor reports each fighter's moves, phase, health, cooldowns and flags through the debugger, and the graph lights up. `MDSMoveState` sends these only when the debugger is attached.
   - **Not done:** node positions aren't saved. See `docs/combat_moves_plan.md`.
 
+### Fixed
+
+- **Godot 4.6: the panel never ran its room geometry checks**, and each scan logged a script error. It called `EditorFileSystem.is_importing()`, which 4.6 doesn't have.
+
 ## [3.4.0] - 2026-10-18
 
 ### Added
