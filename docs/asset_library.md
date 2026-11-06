@@ -73,5 +73,5 @@ Play
 AI tools
 - An MCP server, off by default, lets Claude Code and other AI tools build with the plugin: worlds, rooms, gameplay objects and fights, with undo and three permission tiers.
 
-Two optional art packs are included, Mossgrove and Sunken Gardens. Godot 4.6 or newer, tested on 4.6.1 and 4.7.2. MIT license. Full documentation: https://github.com/arunsrajan/MetroidvaniaDeveloperSystem
+Three optional art packs are included, Mossgrove, Sunken Gardens and Painted Parallax. Godot 4.6 or newer, tested on 4.6.1 and 4.7.2. MIT license. Full documentation: https://github.com/arunsrajan/MetroidvaniaDeveloperSystem
 ```
