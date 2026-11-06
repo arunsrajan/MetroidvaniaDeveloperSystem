@@ -1,6 +1,6 @@
 # Metroidvania Developer System
 
-Version 3.3.0, MIT license (see [LICENSE](LICENSE)).
+Version 3.5.0, MIT license (see [LICENSE](LICENSE)).
 
 A Godot editor plugin for designing and building a metroidvania's world:
 
@@ -9,6 +9,9 @@ A Godot editor plugin for designing and building a metroidvania's world:
 - **Atmosphere:** add weather, hazards and scenery in motion (shader effects), and parallax, animated, creature or machinery backgrounds (40 gothic and sci-fi machines, for Castlevania- and Metroid-style worlds), for boss rooms too.
 - **Checks:** check rooms with physics, and analyze progression and backtracking.
 - **Play:** run the world with room-to-room transitions and a camera made for irregular rooms. Rest on animated benches (`MDSBench`) to save; a restarted game continues there, with its minimap showing everything explored.
+- **Gameplay:** a Gameplay Kit with a player, abilities, combat, enemies, bosses, money, inventory, equipment and the game's UI, and thirty attack effects.
+- **Fights:** bosses and enemies whose fights are made of moves, with six recipes to start from, and a Fight editor that shows a fight as a graph, lit up while the game runs.
+- **AI tools:** an MCP server, off by default, lets Claude Code and other AI tools build with the plugin.
 
 It works with or without [MetSys](https://github.com/KoBeWi/Metroidvania-System).
 
@@ -19,7 +22,7 @@ It works with or without [MetSys](https://github.com/KoBeWi/Metroidvania-System)
 
 ## Installing
 
-1. Copy this folder to your project's `addons/MetroidvaniaDeveloperSystem/`, or install it from the Godot Asset Store.
+1. Copy this folder to your project's `addons/MetroidvaniaDeveloperSystem/`, or install it from the editor's AssetLib tab.
 2. Enable **Metroidvania Developer System** in **Project Settings > Plugins**.
 
 A **MetDevSys** tab appears next to 2D / 3D / Script. Without MetSys, it starts in non-linear mode.

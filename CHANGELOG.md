@@ -2,7 +2,7 @@
 
 All notable changes to the Metroidvania Developer System. Versions follow [Semantic Versioning](https://semver.org/): a new major version can need changes in your project (see the README's upgrading notes), a minor one only adds.
 
-## [Unreleased]
+## [3.5.0] - 2026-11-07
 
 ### Added
 
