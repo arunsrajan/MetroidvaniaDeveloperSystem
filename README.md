@@ -1,6 +1,6 @@
 # Metroidvania Developer System
 
-[![Tests](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml/badge.svg)](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml) Version 3.4.0 ([changelog](CHANGELOG.md))
+[![Tests](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml/badge.svg)](https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/actions/workflows/tests.yml) Version 3.5.0 ([changelog](CHANGELOG.md))
 
 A Godot 4 editor plugin that turns your metroidvania's world into a design workbench. Draw irregular rooms on a world map, or generate and paint whole areas that split themselves into rooms with doors, and drag areas together to connect them. Paint each room's terrain, freeform rock and decorations (or trace them from a drawing), bring rooms to life with weather, hazards, parallax and animated backgrounds (dust storms, rain, lightning, snow, steam vents, lava, waterfalls, silk threads, will-o'-wisps, void tendrils, cobwebs, distant mountains and cities, auroras, nebulae, a blood moon over a boss fight, glowing bees, spiders, birds and owls watching it, giant clockwork and castle spires, alien reactor cores and specimen tanks turning far behind...), then play it with room-to-room transitions and a camera made for irregular rooms. It also covers room and boss labels, ability gates, progression and backtracking analysis, map validation, and exports you can share with your team.
 
