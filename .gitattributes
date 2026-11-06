@@ -2,7 +2,7 @@
 * text=auto eol=lf
 
 # Downloads (GitHub archives, `git archive`, Godot Asset Store and Asset Library zips) contain
-# only the addon and the optional Mossgrove and Sunken Gardens asset packs, not the demo
+# only the addon and the optional Mossgrove, Sunken Gardens and Painted Parallax asset packs, not the demo
 # project, tests, docs or examples.
 /**                export-ignore
 /addons            !export-ignore
