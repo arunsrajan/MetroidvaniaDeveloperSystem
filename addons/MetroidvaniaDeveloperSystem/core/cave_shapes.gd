@@ -45,7 +45,7 @@ const OPEN_STYLES: PackedStringArray = ["outdoor", "arena"]
 const CHOICES := [
 	["natural", "Natural (from the room's outline)"], ["t", "T"], ["u", "U"], ["h", "H"], ["l", "L"],
 	["i", "i (a shaft and its chamber)"], ["cross", "Cross (+)"], ["ring", "Ring (O)"], ["s", "S (switchbacks)"],
-	["freeform", "Freeform"], ["mixed", "Mixed (any)"], ["several", "Several picked"],
+	["freeform", "Freeform"], ["skeleton", "Skeleton (trunk and branches)"], ["mixed", "Mixed (any)"], ["several", "Several picked"],
 ]
 ## The shapes that can be picked together (see CHOICES' "several").
 const PICKABLE: PackedStringArray = ["t", "u", "h", "l", "i", "cross", "ring", "s", "freeform"]
@@ -53,7 +53,7 @@ const PICKABLE: PackedStringArray = ["t", "u", "h", "l", "i", "cross", "ring", "
 ## Whether [param cave] (Generate cave's "cave" fill: {shape, shapes, rotation, count, width,
 ## style}) asks for shapes.
 static func wanted(cave: Dictionary) -> bool:
-	if is_open(cave):
+	if is_open(cave) or MDSCaveSkeleton.wanted(cave):
 		return true
 	var kind := str(cave.get("shape", "natural"))
 	if kind == "several":
@@ -79,12 +79,14 @@ static func _picked(cave: Dictionary) -> PackedStringArray:
 
 ## The rock of a cave of shapes in [param inside] (a room's cells, in its box [param lo] to
 ## [param hi]): every cell of the box but the shapes'. [param cave]: {shape (an id of
-## [constant STROKES], "freeform", "mixed" or "several"), shapes (the ids picked, for
+## [constant STROKES], "freeform", "skeleton" (see [MDSCaveSkeleton]), "mixed" or "several"), shapes (the ids picked, for
 ## "several"), rotation (degrees clockwise, any; -1: each shape its own, at random), count
 ## (shapes, 1 to 8), width (their passages', tiles; 0: from the room's size), style ("cave" or
 ## "linear", see [constant STYLES])}. [param tall]: the player's height in tiles (passages are
 ## never lower), [param step]: rows between ledges up the tall parts (none when linear).
 static func rock(inside: Dictionary, lo: Vector2i, hi: Vector2i, cave: Dictionary, rng: RandomNumberGenerator, tall := 4, step := 4) -> Dictionary:
+	if MDSCaveSkeleton.wanted(cave):
+		return MDSCaveSkeleton.rock(inside, lo, hi, cave, rng, tall, step)
 	var solid: Dictionary = {}
 	for y in range(lo.y, hi.y + 1):
 		for x in range(lo.x, hi.x + 1):
