@@ -29,6 +29,29 @@ func _run() -> void:
 	check(MDSWorld.load_world(WORLD).get_scene_path("R2").length() > 0, "the world knows the new scene")
 	await refused("mds_area_generate_caves", {"world": WORLD}, "bad_arguments")
 
+	# The Skeleton cave: with no profile, then one measured from the rooms; tries and variance; a bad profile is refused.
+	var sk: Dictionary = await ok("mds_room_generate", {"world": WORLD, "room": "R1", "style": "linear", "shape": "skeleton", "tries": 4, "seed": 5, "overwrite": true})
+	var sk_cells := _terrain_of(sk.scene)
+	check(sk.paths_joined and sk_cells.size() > 100, "a skeleton cave, its gates joined")
+	await ok("mds_room_generate", {"world": WORLD, "room": "R1", "style": "linear", "shape": "skeleton", "tries": 4, "seed": 5, "overwrite": true})
+	check(_terrain_of(sk.scene) == sk_cells, "the same seed makes the same skeleton room")
+	var stats: Dictionary = await ok("mds_cave_stats", {"world": WORLD, "rooms": ["R1", "R2"]})
+	var r1: Dictionary = stats.rooms.R1
+	check(r1.air_frac > 0.02 and r1.air_frac < 0.9 and r1.thickness_p50 > 1 and r1.cells == [36, 20] and stats.rooms.has("R2"), "mds_cave_stats measures the rooms: %s" % [r1])
+	await refused("mds_cave_stats", {"world": WORLD}, "bad_arguments")
+	var profile_path := WORK + "/profile.caveprofile.json"
+	var wrote: Dictionary = await ok("mds_cave_profile", {"world": WORLD, "rooms": ["R1", "R2"], "path": profile_path, "name": "test"})
+	check(wrote.written == profile_path and FileAccess.file_exists(profile_path) and wrote.has("warnings"), "mds_cave_profile writes the file, and says two rooms are few")
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(profile_path))
+	check(parsed is Dictionary and parsed.targets.has("air_frac") and parsed.targets.thickness_p50.min <= parsed.targets.thickness_p50.max and int(parsed.source_rooms) == 2, "its targets are the rooms' ranges")
+	await refused("mds_cave_profile", {"world": WORLD, "rooms": ["R1"], "path": profile_path}, "file_exists")
+	await ok("mds_cave_profile", {"world": WORLD, "rooms": ["R1"], "path": profile_path, "overwrite": true})
+	await refused("mds_cave_profile", {"world": WORLD, "rooms": ["R1"], "path": "C:/outside/profile.json"}, "bad_arguments")
+	var with_profile: Dictionary = await ok("mds_room_generate", {"world": WORLD, "room": "R1", "style": "linear", "shape": "skeleton", "profile": profile_path, "tries": 8, "variance": 0.5, "seed": 5, "overwrite": true})
+	check(with_profile.paths_joined, "a skeleton cave made from the profile, its gates joined")
+	await refused("mds_room_generate", {"world": WORLD, "room": "R1", "shape": "skeleton", "profile": WORK + "/none.json", "overwrite": true}, "bad_arguments")
+	await refused("mds_area_generate_caves", {"world": WORLD, "rooms": ["R2"], "cave": {"shape": "skeleton", "profile": WORK + "/none.json"}, "skip_painted": false}, "bad_arguments")
+
 	# Painting.
 	var scene: String = one.scene
 	await ok("mds_room_paint", {"world": WORLD, "room": "R1", "layer": "Decor", "op": "fill", "cells": [[1, 1], [2, 1]], "fill": {"type": "color", "color": "#ff0000"}})

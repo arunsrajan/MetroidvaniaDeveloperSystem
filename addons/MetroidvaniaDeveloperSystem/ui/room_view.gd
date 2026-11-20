@@ -110,6 +110,10 @@ var cave_shape := {"shape": "natural", "shapes": ["t", "u", "h"], "rotation": 0,
 ## The shapes to pick several of (Cave shape: Several picked).
 var cave_shapes_menu: MenuButton
 var cave_rotation_spin: SpinBox
+## The Skeleton cave shape's profile file, the rooms Generate cave makes to find one inside its targets, and how far its draws stray.
+var cave_profile_edit: LineEdit
+var cave_tries_spin: SpinBox
+var cave_variance_spin: SpinBox
 ## The Style picker under Cave shape (cave, linear, outdoor, arena: [constant MDSCaveShapes.STYLES]).
 var cave_style_picker: OptionButton
 ## Rooms shown together (see [method open_rooms]), [member room_id] the one edited. Empty: one.
@@ -1825,6 +1829,23 @@ func _build_cave_shape(box: Control) -> void:
 	style.tooltip_text = "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too. Outdoor: no cave, an open world's surface: open sky over rolling hills, pits to jump and floating ledges, its sides open where another room goes on (the ground meets it). Arena: a fight room: a flat floor, walls, a ceiling and platforms in tiers, the same both sides"
 	for i in MDSCaveShapes.STYLES.size():
 		style.add_item(MDSCaveShapes.STYLES[i][1], i)
+	# Skeleton: its profile, and how hard Generate cave looks for a room inside it.
+	var profile := LineEdit.new()
+	profile.placeholder_text = "Profile: res://....caveprofile.json"
+	profile.tooltip_text = "Skeleton: a cave profile file, the numbers its rooms are made to fit (the MCP tool mds_cave_profile writes one from rooms you like). Empty: generic widths"
+	var tries := SpinBox.new()
+	tries.min_value = 1
+	tries.max_value = 30
+	tries.value = 12
+	tries.prefix = "Tries"
+	tries.tooltip_text = "Skeleton: rooms made to find one inside the profile's targets; the closest is kept"
+	var variance := SpinBox.new()
+	variance.min_value = 0
+	variance.max_value = 1
+	variance.step = 0.05
+	variance.value = 1
+	variance.prefix = "Variance"
+	variance.tooltip_text = "Skeleton: 0 to 1, how far its draws stray from the typical room"
 	var sync := func() -> void:
 		var picked: Array = []
 		for i in popup.item_count:
@@ -1832,15 +1853,21 @@ func _build_cave_shape(box: Control) -> void:
 				picked.append(MDSCaveShapes.PICKABLE[popup.get_item_id(i)])
 		cave_shape = {"shape": MDSCaveShapes.CHOICES[shape.selected][0], "shapes": picked, "rotation": -1 if random.button_pressed else int(turn.value),
 			"count": int(count.value), "width": int(width.value), "style": MDSCaveShapes.STYLES[style.selected][0]}
+		var skeleton: bool = cave_shape.shape == "skeleton"
+		if skeleton:
+			cave_shape.merge({"profile": profile.text.strip_edges(), "tries": int(tries.value), "variance": variance.value})
+		profile.visible = skeleton
+		tries.visible = skeleton
+		variance.visible = skeleton
 		# Outdoor and Arena aren't caves: no shape to pick.
 		var open := MDSCaveShapes.is_open(cave_shape)
 		var on: bool = (MDSCaveShapes.wanted(cave_shape) or cave_shape.shape == "several") and not open
 		shape.disabled = open
 		menu.visible = cave_shape.shape == "several" and not open
 		menu.text = "Shapes: %s" % (", ".join(picked.map(func(k: String) -> String: return k.to_upper() if k.length() == 1 and k != "i" else k)) if not picked.is_empty() else "none")
-		turn.editable = on and not random.button_pressed and cave_shape.shape != "freeform"
-		random.disabled = not on
-		count.editable = on
+		turn.editable = on and not random.button_pressed and cave_shape.shape != "freeform" and not skeleton
+		random.disabled = not on or skeleton
+		count.editable = on and not skeleton
 		width.editable = on
 	shape.item_selected.connect(func(_i: int) -> void: sync.call())
 	popup.id_pressed.connect(func(id: int) -> void:
@@ -1851,6 +1878,9 @@ func _build_cave_shape(box: Control) -> void:
 	random.toggled.connect(func(_on: bool) -> void: sync.call())
 	count.value_changed.connect(func(_v: float) -> void: sync.call())
 	width.value_changed.connect(func(_v: float) -> void: sync.call())
+	profile.text_changed.connect(func(_t: String) -> void: sync.call())
+	tries.value_changed.connect(func(_v: float) -> void: sync.call())
+	variance.value_changed.connect(func(_v: float) -> void: sync.call())
 	style.item_selected.connect(func(_i: int) -> void: sync.call())
 	sync.call()
 	MDSSidePanel.field(box, "Cave shape", shape)
@@ -1858,6 +1888,11 @@ func _build_cave_shape(box: Control) -> void:
 	MDSSidePanel.row(box, [turn, random])
 	MDSSidePanel.row(box, [count, width])
 	MDSSidePanel.field(box, "Style", style)
+	box.add_child(profile)
+	MDSSidePanel.row(box, [tries, variance])
+	cave_profile_edit = profile
+	cave_tries_spin = tries
+	cave_variance_spin = variance
 	cave_shape_picker = shape
 	cave_shapes_menu = menu
 	cave_rotation_spin = turn

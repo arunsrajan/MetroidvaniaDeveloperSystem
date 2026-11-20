@@ -29,6 +29,7 @@ func _run() -> void:
 	_tries()
 	_styles()
 	_pipeline()
+	await _room_view()
 
 ## A box of cells (0, 0) to [param size] - 1.
 static func _box(size: Vector2i) -> Dictionary:
@@ -197,3 +198,44 @@ func _pipeline() -> void:
 				bad.append("%s %d" % [style, seed_value])
 		p.free_instance()
 	check(bad.is_empty(), "a door on each side reaches every other and back, %d rooms in both styles (%s)" % [made, bad])
+
+## The Room view's Cave shape picker: Skeleton shows its profile, tries and variance, and passes them to Generate cave.
+func _room_view() -> void:
+	var world := MDSWorld.new()
+	world.path = DIR + "/rv.mdsworld.json"
+	world.set_setting("room_tileset", DIR + "/tiles.tres")
+	world.add_room("A", Rect2(0, 0, 1728, 972))
+	world.add_room("B", Rect2(1728, 0, 1728, 972))
+	MDSAreaTools.add_door(world, "A", "B")
+	var view := MDSRoomView.new()
+	view.size = Vector2(1400, 900)
+	view.scene_path_for = func(id: String) -> String: return DIR.path_join("rv_" + id.to_snake_case() + ".tscn")
+	add_child(view)
+	await get_tree().process_frame
+	view.open_full(world, 0)
+	var ids: Array = MDSCaveShapes.CHOICES.map(func(c: Array) -> String: return c[0])
+	var picker := view.cave_shape_picker
+	check(not view.cave_profile_edit.visible, "its controls are hidden until Skeleton is picked")
+	var skeleton := ids.find("skeleton")
+	picker.select(skeleton)
+	picker.item_selected.emit(skeleton)
+	var cave: Dictionary = view.generation_fills().get("cave", {})
+	check(cave.get("shape", "") == "skeleton" and int(cave.get("tries", 0)) == 12 and is_equal_approx(float(cave.get("variance", 0)), 1.0) and cave.get("profile", "x") == "", "picked: Skeleton, 12 tries, variance 1, no profile (%s)" % [cave])
+	check(view.cave_profile_edit.visible and view.cave_tries_spin.visible and view.cave_variance_spin.visible and not view.cave_rotation_spin.editable, "its controls show, the turn doesn't")
+	var path := DIR + "/test.caveprofile.json"
+	view.cave_profile_edit.text = path
+	view.cave_profile_edit.text_changed.emit(path)
+	view.cave_tries_spin.value = 5
+	cave = view.generation_fills().cave
+	check(cave.profile == path and int(cave.tries) == 5, "the profile and tries go to Generate cave")
+	check(view.generate_all(false) == 2, "Generate all in the Full view: both rooms")
+	var a: MDSRoomPainter = view._painters.get("A")
+	check(a != null and a.paths_joined and not a.layers.Terrain.get_used_cells().is_empty(), "skeleton caves, joined at their doors")
+	var h := ids.find("h")
+	picker.select(h)
+	picker.item_selected.emit(h)
+	cave = view.generation_fills().cave
+	check(not cave.has("profile") and not cave.has("tries") and not cave.has("variance") and not view.cave_profile_edit.visible, "another shape: those keys are gone and its controls hide")
+	view.close_room(false)
+	view.queue_free()
+	await get_tree().process_frame

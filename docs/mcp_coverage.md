@@ -52,6 +52,7 @@ Scenes can inherit from others (`mds_scene_create` with `inherits`), which is ho
 | Paint and Erase tools, Palette, starter tileset | `mds_room_paint`, `mds_tileset_create` |
 | Shape brushes: rectangles, uneven shapes, curved faces (convex, concave, slope, rounded, quarter-pipe, S-curve, hill, mesa, wave, steps, spikes), mirror, rough | `mds_room_paint_shape` |
 | Generate room | `mds_room_generate` |
+| Cave shape Skeleton: its profile, tries and variance (arguments of Generate room and Generate caves), measuring rooms' caves, writing a profile from them | `mds_room_generate`, `mds_area_generate_caves`, `mds_cave_stats`, `mds_cave_profile` |
 | Decorate | `mds_room_decorate` |
 | Freeform tool and its ready-made structures | `mds_room_freeform_add`, then `mds_node_update` for its points, style and role |
 | Repair twisted shapes | `mds_room_freeform_repair` |

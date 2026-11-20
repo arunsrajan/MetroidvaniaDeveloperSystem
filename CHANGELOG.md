@@ -2,6 +2,15 @@
 
 All notable changes to the Metroidvania Developer System. Versions follow [Semantic Versioning](https://semver.org/): a new major version can need changes in your project (see the README's upgrading notes), a minor one only adds.
 
+## [Unreleased]
+
+### Added
+
+- **Skeleton caves**, a Cave shape of its own (`MDSCaveSkeleton`): a trunk and branches carved out of solid rock, from shafts crossing a few levels of passages, with chambers, halls, chimneys, loops and pillars. A seed changes the room's structure, not only its edges; the other Cave shapes and their seeds are untouched.
+  - **Profiles** (`MDSCaveProfile`): the ranges a room should fall in and the widths its passages are drawn from, as numbers in a JSON file. **Tries** makes up to that many rooms and keeps the first inside them, **Variance** sets how far the draws stray.
+  - **In the editor and over MCP:** the Room view has a Profile field, Tries and Variance for Skeleton; `mds_room_generate` takes `profile`, `tries` and `variance`, and `mds_area_generate_caves` the same inside `cave`.
+  - **Two more MCP tools, 95 in all:** `mds_cave_stats` measures rooms' caves (`MDSCaveStats`: open share, floor and ledges per 100 tiles, how thick and how varied the passages are) and `mds_cave_profile` writes a profile from rooms you like.
+
 ## [3.5.0] - 2026-11-07
 
 ### Added
