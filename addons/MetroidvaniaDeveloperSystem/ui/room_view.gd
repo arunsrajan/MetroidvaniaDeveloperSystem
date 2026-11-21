@@ -89,6 +89,8 @@ var mode_opt: OptionButton ## freeform Draw / Edit
 var role_opt: OptionButton ## freeform collision role
 var repair_row: Control ## freeform Repair / Repair all
 var size_spin: SpinBox ## stamp size
+var stamp_random_check: CheckBox ## stamps: random sprite, size, flip and tilt (off: one sprite, as is)
+var stamp_sprites: ItemList ## stamps, Random off: the sprites of the category, pick the one to place
 var _styles: Array[MDSFreeformStyle] = []
 var _stamp_sets: Array[MDSStampSet] = []
 var _shape_rows: Array[Control] = []
@@ -110,6 +112,10 @@ var cave_shape := {"shape": "natural", "shapes": ["t", "u", "h"], "rotation": 0,
 ## The shapes to pick several of (Cave shape: Several picked).
 var cave_shapes_menu: MenuButton
 var cave_rotation_spin: SpinBox
+## The Skeleton cave shape's profile file, the rooms Generate cave makes to find one inside its targets, and how far its draws stray.
+var cave_profile_edit: LineEdit
+var cave_tries_spin: SpinBox
+var cave_variance_spin: SpinBox
 ## The Style picker under Cave shape (cave, linear, outdoor, arena: [constant MDSCaveShapes.STYLES]).
 var cave_style_picker: OptionButton
 ## Rooms shown together (see [method open_rooms]), [member room_id] the one edited. Empty: one.
@@ -238,9 +244,32 @@ func _init() -> void:
 	size_spin.value = 100
 	size_spin.prefix = "Size"
 	size_spin.suffix = "%"
-	size_spin.tooltip_text = "Stamp size (each stamp also varies a little)"
-	size_spin.value_changed.connect(func(v: float) -> void: canvas.stamp_scale = v / 100.0)
+	size_spin.tooltip_text = "Stamp size. Random on: each stamp varies from 80% to 120% of it. Random off: every stamp is exactly this size"
+	size_spin.value_changed.connect(func(v: float) -> void:
+		canvas.stamp_scale = v / 100.0
+		canvas._overlay.queue_redraw())
 	controls.add_child(MDSSidePanel.fill(size_spin))
+	stamp_random_check = CheckBox.new()
+	stamp_random_check.text = "Random"
+	stamp_random_check.button_pressed = true
+	stamp_random_check.tooltip_text = "On: each stamp is a random sprite of the category, a little bigger or smaller, flipped or tilted a little. Off: the sprite picked below, exactly at the Size, upright and not flipped. The preview at the mouse is the stamp the next click places. Generate cave's Stamps follow this too"
+	stamp_random_check.toggled.connect(func(on: bool) -> void:
+		canvas.stamp_random = on
+		_update_stamp_controls()
+		canvas._overlay.queue_redraw())
+	controls.add_child(stamp_random_check)
+	stamp_sprites = ItemList.new()
+	stamp_sprites.icon_mode = ItemList.ICON_MODE_TOP
+	stamp_sprites.max_columns = 0
+	stamp_sprites.same_column_width = true
+	stamp_sprites.fixed_icon_size = Vector2i(40, 40) * int(maxf(1.0, MDSUi.editor_scale()))
+	stamp_sprites.custom_minimum_size.y = 120 * MDSUi.editor_scale()
+	stamp_sprites.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stamp_sprites.tooltip_text = "The sprite every click places (Random off): the category's sprites, the preview at the mouse shows the one picked"
+	stamp_sprites.item_selected.connect(func(i: int) -> void:
+		canvas.stamp_pick = int(stamp_sprites.get_item_metadata(i))
+		canvas._overlay.queue_redraw())
+	controls.add_child(stamp_sprites)
 	# Place and Select.
 	turn_spin = SpinBox.new()
 	turn_spin.min_value = 1
@@ -480,7 +509,7 @@ func _init() -> void:
 	generation.add_child(again)
 	var options := HFlowContainer.new()
 	generation.add_child(options)
-	for o in [["background", "Background", "Paint the Background fill behind the cave"], ["decor", "Decor", "Decorations on floors and under ceilings; most floor ones of the Decor fill"], ["foreground", "Foreground", "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"], ["stamps", "Stamps", "Stamps of the set and category picked for the Stamps tool along the floors"], ["paths", "Paths", "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"], ["parts", "Merged walls", "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"]]:
+	for o in [["background", "Background", "Paint the Background fill behind the cave"], ["decor", "Decor", "Decorations on floors and under ceilings; most floor ones of the Decor fill"], ["foreground", "Foreground", "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"], ["stamps", "Stamps", "Stamps of the set and category picked for the Stamps tool along the floors, as it places them: its Size, and its Random (off: the one sprite picked there, exactly at the Size)"], ["paths", "Paths", "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"], ["parts", "Merged walls", "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"]]:
 		var c := CheckBox.new()
 		c.text = o[1]
 		c.tooltip_text = o[2]
@@ -1422,6 +1451,7 @@ func _update_tool_controls() -> void:
 	repair_row.visible = freeform
 	_update_generator_shapes(freeform)
 	size_spin.visible = stamps
+	_update_stamp_controls()
 	brush_spin.visible = brushes and not freeform
 	shape_opt.get_parent().visible = brushes
 	curve_opt.get_parent().visible = brushes
@@ -1454,6 +1484,35 @@ func _update_tool_controls() -> void:
 		layer_opt.tooltip_text = "What clicks and boxes select: everything, the tiles of one layer (on the grid and free), or only items"
 	_filling = false
 	_update_select_hint()
+
+## The Stamps tool's Random box and sprite list (the list is for Random off).
+func _update_stamp_controls() -> void:
+	var stamps := canvas.tool == MDSRoomCanvas.Tool.STAMP
+	stamp_random_check.visible = stamps
+	stamp_random_check.set_pressed_no_signal(canvas.stamp_random)
+	stamp_sprites.visible = stamps and not canvas.stamp_random
+	if stamps:
+		_fill_stamp_sprites()
+
+## The sprite list: the thumbnails of the picked category's sprites, the one Random off places
+## selected (the category's first when the one picked is of another).
+func _fill_stamp_sprites() -> void:
+	stamp_sprites.clear()
+	var st := canvas.stamp_set
+	if not st or not st.texture:
+		return
+	var picks := st.indices(canvas.stamp_category)
+	if not picks.is_empty() and not canvas.stamp_pick in picks:
+		canvas.stamp_pick = picks[0]
+	for n in picks.size():
+		var icon := AtlasTexture.new()
+		icon.atlas = st.texture
+		icon.region = st.regions[picks[n]]
+		stamp_sprites.add_icon_item(icon)
+		stamp_sprites.set_item_metadata(n, picks[n])
+		stamp_sprites.set_item_tooltip(n, "Sprite %d of %d" % [n + 1, picks.size()])
+		if picks[n] == canvas.stamp_pick:
+			stamp_sprites.select(n)
 
 ## The Freeform tool's Shape list also offers the scenery generators (Column, Arch...).
 func _update_generator_shapes(freeform: bool) -> void:
@@ -1807,8 +1866,8 @@ func _build_cave_shape(box: Control) -> void:
 	turn.suffix = "°"
 	turn.tooltip_text = "How far the shapes are turned, clockwise, any angle from 0 to 359: a T turned 90° opens to the left, a U turned 180° is upside down, 45° slants it (made smaller to fit its room)"
 	var random := CheckBox.new()
-	random.text = "Random"
-	random.tooltip_text = "Each shape turned its own way, any angle, a new one each variation"
+	random.text = "Random turn"
+	random.tooltip_text = "Each cave shape turned its own way, any angle, a new one each variation. It only turns the shapes: the Stamps tool has its own Random for the stamps"
 	var count := SpinBox.new()
 	count.min_value = 1
 	count.max_value = 8
@@ -1825,6 +1884,23 @@ func _build_cave_shape(box: Control) -> void:
 	style.tooltip_text = "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too. Outdoor: no cave, an open world's surface: open sky over rolling hills, pits to jump and floating ledges, its sides open where another room goes on (the ground meets it). Arena: a fight room: a flat floor, walls, a ceiling and platforms in tiers, the same both sides"
 	for i in MDSCaveShapes.STYLES.size():
 		style.add_item(MDSCaveShapes.STYLES[i][1], i)
+	# Skeleton: its profile, and how hard Generate cave looks for a room inside it.
+	var profile := LineEdit.new()
+	profile.placeholder_text = "Profile: res://....caveprofile.json"
+	profile.tooltip_text = "Skeleton: a cave profile file, the numbers its rooms are made to fit (the MCP tool mds_cave_profile writes one from rooms you like). Empty: generic widths"
+	var tries := SpinBox.new()
+	tries.min_value = 1
+	tries.max_value = 30
+	tries.value = 12
+	tries.prefix = "Tries"
+	tries.tooltip_text = "Skeleton: rooms made to find one inside the profile's targets; the closest is kept"
+	var variance := SpinBox.new()
+	variance.min_value = 0
+	variance.max_value = 1
+	variance.step = 0.05
+	variance.value = 1
+	variance.prefix = "Variance"
+	variance.tooltip_text = "Skeleton: 0 to 1, how far its draws stray from the typical room"
 	var sync := func() -> void:
 		var picked: Array = []
 		for i in popup.item_count:
@@ -1832,15 +1908,21 @@ func _build_cave_shape(box: Control) -> void:
 				picked.append(MDSCaveShapes.PICKABLE[popup.get_item_id(i)])
 		cave_shape = {"shape": MDSCaveShapes.CHOICES[shape.selected][0], "shapes": picked, "rotation": -1 if random.button_pressed else int(turn.value),
 			"count": int(count.value), "width": int(width.value), "style": MDSCaveShapes.STYLES[style.selected][0]}
+		var skeleton: bool = cave_shape.shape == "skeleton"
+		if skeleton:
+			cave_shape.merge({"profile": profile.text.strip_edges(), "tries": int(tries.value), "variance": variance.value})
+		profile.visible = skeleton
+		tries.visible = skeleton
+		variance.visible = skeleton
 		# Outdoor and Arena aren't caves: no shape to pick.
 		var open := MDSCaveShapes.is_open(cave_shape)
 		var on: bool = (MDSCaveShapes.wanted(cave_shape) or cave_shape.shape == "several") and not open
 		shape.disabled = open
 		menu.visible = cave_shape.shape == "several" and not open
 		menu.text = "Shapes: %s" % (", ".join(picked.map(func(k: String) -> String: return k.to_upper() if k.length() == 1 and k != "i" else k)) if not picked.is_empty() else "none")
-		turn.editable = on and not random.button_pressed and cave_shape.shape != "freeform"
-		random.disabled = not on
-		count.editable = on
+		turn.editable = on and not random.button_pressed and cave_shape.shape != "freeform" and not skeleton
+		random.disabled = not on or skeleton
+		count.editable = on and not skeleton
 		width.editable = on
 	shape.item_selected.connect(func(_i: int) -> void: sync.call())
 	popup.id_pressed.connect(func(id: int) -> void:
@@ -1851,6 +1933,9 @@ func _build_cave_shape(box: Control) -> void:
 	random.toggled.connect(func(_on: bool) -> void: sync.call())
 	count.value_changed.connect(func(_v: float) -> void: sync.call())
 	width.value_changed.connect(func(_v: float) -> void: sync.call())
+	profile.text_changed.connect(func(_t: String) -> void: sync.call())
+	tries.value_changed.connect(func(_v: float) -> void: sync.call())
+	variance.value_changed.connect(func(_v: float) -> void: sync.call())
 	style.item_selected.connect(func(_i: int) -> void: sync.call())
 	sync.call()
 	MDSSidePanel.field(box, "Cave shape", shape)
@@ -1858,6 +1943,11 @@ func _build_cave_shape(box: Control) -> void:
 	MDSSidePanel.row(box, [turn, random])
 	MDSSidePanel.row(box, [count, width])
 	MDSSidePanel.field(box, "Style", style)
+	box.add_child(profile)
+	MDSSidePanel.row(box, [tries, variance])
+	cave_profile_edit = profile
+	cave_tries_spin = tries
+	cave_variance_spin = variance
 	cave_shape_picker = shape
 	cave_shapes_menu = menu
 	cave_rotation_spin = turn
@@ -1877,7 +1967,7 @@ func generation_fills() -> Dictionary:
 		if bool(generate_options.get(k, true)) and not canvas.fills.get(layer_tools[k], {}).is_empty():
 			fills[k] = canvas.fills[layer_tools[k]]
 	if bool(generate_options.get("stamps", true)) and canvas.stamp_set and not canvas.stamp_category.is_empty():
-		fills.stamps = {"set": canvas.stamp_set, "category": canvas.stamp_category, "group": canvas.stamp_group, "scale": canvas.stamp_scale}
+		fills.stamps = {"set": canvas.stamp_set, "category": canvas.stamp_category, "group": canvas.stamp_group, "scale": canvas.stamp_scale, "random": canvas.stamp_random, "pick": canvas.stamp_pick}
 	return fills
 
 ## Shows the area bar for [param area]'s [param rooms] (the room open among them).
@@ -2179,6 +2269,8 @@ func _on_fill_selected(idx: int) -> void:
 		if meta is Array:
 			canvas.stamp_set = _stamp_sets[meta[0]]
 			canvas.stamp_category = meta[1]
+			_fill_stamp_sprites()
+			canvas._overlay.queue_redraw()
 		return
 	var f: Dictionary = fill_opt.get_item_metadata(idx)
 	match str(f.type):
@@ -2235,6 +2327,7 @@ func _load_styles() -> void:
 		canvas.stamp_set = _stamp_sets[0]
 		var cats := canvas.stamp_set.get_categories()
 		canvas.stamp_category = cats[0] if not cats.is_empty() else ""
+	_update_stamp_controls()
 
 ## Tiles picked in the palette: the current tool paints them (Erase, Freeform and Stamps
 ## switch to Terrain).

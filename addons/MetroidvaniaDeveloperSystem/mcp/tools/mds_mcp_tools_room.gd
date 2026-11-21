@@ -24,17 +24,20 @@ func _register() -> void:
 		{"path": S.text("res://....tres"), "palette": S.choice(MDSTilesetFactory.PALETTES.keys())}, ["path"], _tileset_create)
 	_add("mds_room_scene_create", "Makes a room's scene, with its map guides and gate nodes. Default path: the world's scene_folder.", AUTHOR,
 		{"world": world, "room": S.text(), "scene_path": S.text()}, ["room"], _scene_create)
-	_add("mds_room_generate", "Generates a cave (or a linear, outdoor or arena room) in one room, joining its gates so they can all be reached and walked back. Makes the scene if it has none. Refuses to replace painted terrain unless overwrite is true. A fixed seed gives the same room.", AUTHOR,
+	_add("mds_room_generate", "Generates a cave (or a linear, outdoor or arena room) in one room, joining its gates so they can all be reached and walked back. Makes the scene if it has none. Refuses to replace painted terrain unless overwrite is true. A fixed seed gives the same room. Shape skeleton makes a trunk and branches, its widths drawn from a profile (mds_cave_profile writes one from rooms you like); tries and variance steer it.", AUTHOR,
 		{
 			"world": world, "room": S.text(), "style": S.choice(_ids_of(MDSCaveShapes.STYLES)), "shape": S.choice(_ids_of(MDSCaveShapes.CHOICES)), "shapes": S.array(S.choice(Array(MDSCaveShapes.PICKABLE)), "With shape several"),
 			"rotation": S.number("Degrees"), "count": S.integer("", 1, 8), "width": S.integer("Tunnel width in tiles", 0), "seed": S.integer(),
+			"profile": S.text("With shape skeleton: a cave profile file (res://....caveprofile.json), the numbers its rooms are made to fit. Left out: generic widths"),
+			"tries": S.integer("With shape skeleton: rooms made to find one inside the profile's targets, the closest kept. Default 1", 1, 64),
+			"variance": S.number("With shape skeleton: 0 to 1, how far its draws stray from the typical. Default 1", 0, 1),
 			"fills": S.any_object("Layer fills: terrain, background, decor, foreground, as {type: terrain, set, terrain}, {type: kind, kind}, {type: color, color}"),
 			"overwrite": S.boolean("Default false"), "on_unsaved": unsaved,
 		}, ["room"], _room_generate)
 	_add("mds_area_generate_caves", "Generates caves in many rooms: the given rooms, or a whole area. Painted rooms are left alone unless skip_painted is false. Reports progress.", AUTHOR,
 		{
 			"world": world, "rooms": S.array(S.text()), "area": S.text(),
-			"cave": S.any_object("style, shape, shapes, rotation, count, width, as in mds_room_generate"), "fills": S.any_object("As in mds_room_generate"),
+			"cave": S.any_object("style, shape, shapes, rotation, count, width, profile, tries, variance, as in mds_room_generate"), "fills": S.any_object("As in mds_room_generate"),
 			"skip_painted": S.boolean("Default true"), "seed": S.integer(), "on_unsaved": unsaved,
 		}, [], _area_caves)
 	_add("mds_room_paint", "Paints tiles on a layer of a room's scene, on cells or a rectangle of cells. op: terrain (set, terrain), kind (kind), fill (fill), tile (source, atlas), erase, clear (the whole layer).", AUTHOR,
@@ -57,6 +60,10 @@ func _register() -> void:
 	_add("mds_room_ascii", "A room as text, a cheap way to see it: # the layer's tiles and the freeform shapes at its depth, . open, g gate, E thing. scale N: one character per N tiles.", READ,
 		{"world": world, "room": S.text(), "layer": layer, "region": S.cell_box("Tile cells"), "scale": S.integer("Default: fits 200 columns", 1, 64)}, ["room"], _room_ascii)
 	_add("mds_room_preview", "A room as a PNG, drawn from its tile layers, freeform shapes, gates and enemies: not how the game renders it.", READ, {"world": world, "room": S.text(), "scale": S.integer("Pixels per tile, default 2", 1, 8)}, ["room"], _room_preview)
+	_add("mds_cave_stats", "The shape statistics of rooms' caves, as a cave profile's targets use them: the open share, floor and ledges per 100 tiles, how thick and how varied the passages are. Give rooms or an area.", READ,
+		{"world": world, "rooms": S.array(S.text()), "area": S.text("Or every room of this area")}, [], _cave_stats)
+	_add("mds_cave_profile", "Writes a cave profile from rooms: the range (min, median, max) over them of each statistic mds_cave_stats gives, as the JSON the Skeleton cave shape reads (mds_room_generate: shape skeleton, profile). The passage widths it draws from are the generic ones until the file says otherwise. Refuses to replace a file unless overwrite is true.", AUTHOR,
+		{"world": world, "rooms": S.array(S.text()), "area": S.text("Or every room of this area"), "path": S.text("res://....caveprofile.json"), "name": S.text("A name for the profile"), "overwrite": S.boolean("Default false")}, ["path"], _cave_profile)
 
 static func _ids_of(choices: Array) -> Array:
 	return choices.map(func(c: Array) -> String: return c[0])
@@ -149,9 +156,15 @@ func _room_generate(args: Dictionary, _report: Callable) -> Dictionary:
 		return ctx.fail("room_already_painted", "%s has terrain already." % id, "Pass overwrite: true to replace it.")
 	var fills := _fills(args.get("fills", {}))
 	var cave := {}
-	for key in ["style", "shape", "shapes", "rotation", "count", "width"]:
+	var profile_problem := _profile_problem(args.get("profile", ""))
+	if not profile_problem.is_empty():
+		painter.free_instance()
+		return ctx.fail("bad_arguments", profile_problem, "A profile is a JSON file inside res://, as mds_cave_profile writes.")
+	for key in ["style", "shape", "shapes", "rotation", "count", "width", "profile", "tries", "variance"]:
 		if args.has(key):
 			cave[key] = args[key]
+	if cave.has("profile"):
+		cave.profile = MDSMcpGuard.normalize(str(cave.profile))
 	if not cave.is_empty():
 		fills.cave = cave
 	var rock: Dictionary = fills.get("terrain", {})
@@ -193,7 +206,11 @@ func _area_caves(args: Dictionary, report: Callable) -> Dictionary:
 		return ctx.error
 	var fills := _fills(args.get("fills", {}))
 	if args.has("cave"):
-		fills.cave = args.cave
+		var cave_in: Dictionary = args.cave
+		var cave_problem := _profile_problem(cave_in.get("profile", ""))
+		if not cave_problem.is_empty():
+			return ctx.fail("bad_arguments", cave_problem, "A profile is a JSON file inside res://, as mds_cave_profile writes.")
+		fills.cave = cave_in
 	var seed_value := int(args.get("seed", hash(args.get("area", ""))))
 	var out := {"made": [], "generated": [], "skipped": [], "failed": {}}
 	var tree := Engine.get_main_loop() as SceneTree
@@ -532,6 +549,121 @@ func _room_ascii(args: Dictionary, _report: Callable) -> Dictionary:
 			break
 	painter.free_instance()
 	return {"room": args.room, "layer": str(args.get("layer", "Terrain")), "origin_cell": box.position, "scale": scale, "rows": rows}
+
+## What is wrong with a cave profile given as a path, or "" when nothing is: a JSON object in a file inside res://.
+func _profile_problem(value: Variant) -> String:
+	if not value is String or (value as String).is_empty():
+		return ""
+	var problem := ctx.guard.read_problem(value)
+	if not problem.is_empty():
+		return problem
+	var path := MDSMcpGuard.normalize(value)
+	if not FileAccess.file_exists(path):
+		return "%s does not exist" % path
+	if MDSCaveProfile.load_json(path).is_empty():
+		return "%s is not a JSON object" % path
+	return ""
+
+## The rooms the arguments' rooms or area name: {ids}, or a failure.
+func _room_ids(world: MDSWorld, args: Dictionary) -> Dictionary:
+	var ids: Array[String] = []
+	if args.has("rooms"):
+		ids.assign(args.rooms)
+	elif args.has("area"):
+		if not world.has_area(args.area):
+			return ctx.fail("area_not_found", "%s has no area %s." % [world.path, args.area])
+		ids = world.get_area_rooms(args.area)
+	else:
+		return ctx.fail("bad_arguments", "Give rooms or area.")
+	for id in ids:
+		if not ctx.has_room(world, id):
+			return ctx.error
+	if ids.is_empty():
+		return ctx.fail("bad_arguments", "No rooms to measure.")
+	return {"ids": ids}
+
+## A room's cave statistics (see [MDSCaveStats]): its open cells are those of its outline that have no Terrain tile and no
+## freeform shape at that depth, in the box of its rectangles. {} on failure (see [member MDSMcpContext.error]).
+func _measure_cave(world: MDSWorld, id: String) -> Dictionary:
+	var painter := _open_room(world, id)
+	if not painter:
+		return {}
+	# The box of the room's rectangles' cells, as Generate cave takes it (not _cell_bounds: that rounds a partial row up).
+	var lo := Vector2i(1 << 30, 1 << 30)
+	var hi := Vector2i(-(1 << 30), -(1 << 30))
+	for c: Vector2i in painter.room_cells(world, id, false):
+		lo = lo.min(c)
+		hi = hi.max(c)
+	var box := Rect2i(lo, hi - lo + Vector2i.ONE)
+	var layer: TileMapLayer = painter.layer("Terrain")
+	var shapes: Dictionary = _shape_cells(painter, box).get("Terrain", {})
+	var air := PackedByteArray()
+	air.resize(box.size.x * box.size.y)
+	var inside := painter.room_cells(world, id)
+	for c: Vector2i in inside:
+		if box.has_point(c) and layer.get_cell_source_id(c) == -1 and not shapes.has(c):
+			air[(c.y - box.position.y) * box.size.x + (c.x - box.position.x)] = 1
+	painter.free_instance()
+	var out := MDSCaveStats.measure(air, box.size.x, box.size.y, inside.size())
+	out["cells"] = [box.size.x, box.size.y]
+	return out
+
+func _cave_stats(args: Dictionary, _report: Callable) -> Dictionary:
+	var world := ctx.read_world(args)
+	if not world:
+		return ctx.error
+	var found := _room_ids(world, args)
+	if MDSMcpContext.is_failure(found):
+		return found
+	var rooms := {}
+	for id: String in found.ids:
+		var stats := _measure_cave(world, id)
+		if stats.is_empty():
+			return ctx.error
+		for k in stats:
+			if stats[k] is float:
+				stats[k] = snappedf(stats[k], 0.001)
+		rooms[id] = stats
+	return {"rooms": rooms}
+
+@warning_ignore("integer_division")
+func _cave_profile(args: Dictionary, _report: Callable) -> Dictionary:
+	var world := ctx.read_world(args)
+	if not world:
+		return ctx.error
+	var found := _room_ids(world, args)
+	if MDSMcpContext.is_failure(found):
+		return found
+	var path := MDSMcpGuard.normalize(str(args.path))
+	if path.is_empty() or not path.ends_with(".json"):
+		return ctx.fail("bad_arguments", "path must be a .json file inside res://, as res://profiles/caves.caveprofile.json.")
+	if FileAccess.file_exists(path) and not bool(args.get("overwrite", false)):
+		return ctx.fail("file_exists", "%s exists." % path, "Pass overwrite: true to replace it.")
+	var measured: Array = []
+	for id: String in found.ids:
+		var stats := _measure_cave(world, id)
+		if stats.is_empty():
+			return ctx.error
+		measured.append(stats)
+	var targets := {}
+	for key in ["air_frac", "floor_per_100u2", "ledges_per_100u2", "thickness_p50", "thickness_spread"]:
+		var values: Array = measured.map(func(s: Dictionary) -> float: return float(s[key]))
+		values.sort()
+		var n := values.size()
+		targets[key] = {"min": snappedf(values[0], 0.001), "p50": snappedf((float(values[(n - 1) / 2]) + float(values[n / 2])) / 2.0, 0.001), "max": snappedf(values[n - 1], 0.001)}
+	var profile := {"format": MDSCaveProfile.FORMAT, "name": str(args.get("name", path.get_file().get_basename())), "units": "tiles", "source_rooms": measured.size(), "targets": targets}
+	if not ctx.touch(path):
+		return ctx.error
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if not f:
+		return ctx.fail("save_failed", "Could not write %s: %s." % [path, error_string(FileAccess.get_open_error())])
+	f.store_string(S.to_json(profile))
+	f.close()
+	var out := {"written": path, "rooms": measured.size(), "profile": profile}
+	if measured.size() < 3:
+		out["warnings"] = ["A profile of fewer than three rooms only describes those rooms: measure more for a family of caves."]
+	return out
 
 func _room_preview(args: Dictionary, _report: Callable) -> Dictionary:
 	var world := ctx.read_world(args)

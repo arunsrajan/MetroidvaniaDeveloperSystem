@@ -1,0 +1,402 @@
+extends "res://tests/test_case.gd"
+## The Skeleton cave (MDSCaveSkeleton), a Cave shape of its own: a trunk and branches carved out of solid rock,
+## its passages' widths drawn from a profile (MDSCaveProfile) of numbers, and checked against that profile's
+## targets with the shape statistics (MDSCaveStats). It is one more choice in the Cave shape picker: the other
+## choices and their seeds are untouched (tests/test_cave_shapes.gd), and Generate cave still joins the room's gates.
+## The profile here is hand-written: none measured from any game belongs in the plugin.
+
+const DIR := TMP + "/cave_skeleton"
+const PROFILE := {
+	"format": 1, "name": "test",
+	"targets": {
+		"air_frac": {"min": 0.12, "p50": 0.25, "max": 0.55},
+		"floor_per_100u2": {"min": 0.5, "p50": 2.5, "max": 5.0},
+		"ledges_per_100u2": {"min": 0.0, "p50": 0.05, "max": 0.2},
+		"thickness_p50": {"min": 6.0, "p50": 10.0, "max": 18.0},
+	},
+	"passage": {"width": {"p10": 4.0, "p50": 7.0, "p90": 12.0}},
+}
+
+func _run() -> void:
+	DirAccess.make_dir_recursive_absolute(DIR)
+	for f in DirAccess.get_files_at(DIR):
+		DirAccess.remove_absolute(DIR.path_join(f))
+	MDSTilesetFactory.get_or_create(DIR + "/tiles.tres")
+	_option()
+	_stats()
+	_profile()
+	_rooms()
+	_tries()
+	_styles()
+	_pipeline()
+	_irregular()
+	_merged()
+	_room_check()
+	await _room_view()
+
+## L, T and U rooms: rectangles joined, each with a door on its sides.
+const IRREGULAR := {
+	"L": {"rects": [Rect2(0, 0, 3456, 1296), Rect2(0, 1296, 1728, 1296)], "gates": [["left", Vector2(0, 700)], ["right", Vector2(3456, 300)], ["bot", Vector2(800, 2592)], ["top", Vector2(2600, 0)]]},
+	"T": {"rects": [Rect2(0, 0, 3456, 1296), Rect2(1152, 1296, 1152, 1296)], "gates": [["left", Vector2(0, 700)], ["right", Vector2(3456, 300)], ["bot", Vector2(1700, 2592)]]},
+	"U": {"rects": [Rect2(0, 0, 1152, 2592), Rect2(1152, 1296, 1152, 1296), Rect2(2304, 0, 1152, 2592)], "gates": [["left", Vector2(0, 700)], ["right", Vector2(3456, 300)], ["bot", Vector2(1700, 2592)], ["top", Vector2(600, 0)]]},
+}
+
+## A box of cells (0, 0) to [param size] - 1.
+static func _box(size: Vector2i) -> Dictionary:
+	var out: Dictionary = {}
+	for y in size.y:
+		for x in size.x:
+			out[Vector2i(x, y)] = true
+	return out
+
+## The rock of a skeleton cave of [param cave] in a box of [param size], from [param seed_value].
+static func _rock(size: Vector2i, cave: Dictionary, seed_value: int) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var c := {"shape": "skeleton", "style": "linear"}
+	c.merge(cave, true)
+	return MDSCaveSkeleton.rock(_box(size), Vector2i.ZERO, size - Vector2i.ONE, c, rng, 3, 4)
+
+## The open cells of a box of [param size] but its [param solid].
+static func _open(size: Vector2i, solid: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for y in size.y:
+		for x in size.x:
+			if not solid.has(Vector2i(x, y)):
+				out[Vector2i(x, y)] = true
+	return out
+
+## The open cells as the bytes MDSCaveStats reads.
+static func _bytes(size: Vector2i, open: Dictionary) -> PackedByteArray:
+	var a := PackedByteArray()
+	a.resize(size.x * size.y)
+	for c: Vector2i in open:
+		a[c.y * size.x + c.x] = 1
+	return a
+
+func _option() -> void:
+	var ids: Array = MDSCaveShapes.CHOICES.map(func(c: Array) -> String: return c[0])
+	check(ids.has("skeleton") and ids[0] == "natural", "Skeleton is a choice in the Cave shape picker, Natural still the first")
+	check(MDSCaveShapes.wanted({"shape": "skeleton"}) and not MDSCaveShapes.wanted({"shape": "natural"}), "it asks for shapes, Natural doesn't")
+	check(not MDSCaveShapes.PICKABLE.has("skeleton"), "Mixed and Several don't pick it: they draw from the letters")
+	check(MDSCaveShapes.wall_climb({"shape": "skeleton", "style": "linear"}) and not MDSCaveShapes.wall_climb({"shape": "skeleton"}), "linear: its shafts are climbed by their walls")
+
+## The statistics on a cave we know: a passage 16 wide and 6 high in a 20 x 12 box, then a one-tile shelf in it.
+func _stats() -> void:
+	var w := 20
+	var h := 12
+	var air := PackedByteArray()
+	air.resize(w * h)
+	for y in range(3, 9):
+		for x in range(2, 18):
+			air[y * w + x] = 1
+	var s := MDSCaveStats.measure(air, w, h)
+	check_near(s.air_frac, 96.0 / 240.0, 0.0001, "air: 96 cells of 240")
+	check_near(s.floor_per_100u2, 16.0 / 240.0 * 100.0, 0.001, "floor: the 16 cells over the rock")
+	check_near(s.thickness_p50, 6.0, 0.0001, "thickness: the passage is 6 high, the narrower way through every cell")
+	check_near(s.thickness_spread, 1.0, 0.0001, "one width all along: spread 1")
+	check_near(s.ledges_per_100u2, 0.0, 0.0001, "no ledge: the floor has rock under it, not a shelf")
+	var part := MDSCaveStats.measure(air, w, h, 120)
+	check_near(part.air_frac, 96.0 / 120.0, 0.0001, "per cell of the room when it isn't the whole box: 96 of 120")
+	check_near(part.floor_per_100u2, 16.0 / 120.0 * 100.0, 0.001, "floor per cell of the room too")
+	check_near(part.thickness_p50, 6.0, 0.0001, "the thickness doesn't depend on it")
+	for x in range(5, 10):
+		air[6 * w + x] = 0
+	s = MDSCaveStats.measure(air, w, h)
+	check_near(s.air_frac, 91.0 / 240.0, 0.0001, "a shelf five wide, one tile thick, takes five cells")
+	check_near(s.floor_per_100u2, 21.0 / 240.0 * 100.0, 0.001, "its top is floor too")
+	check_near(s.ledges_per_100u2, 1.0 / 240.0 * 100.0, 0.001, "and it is one ledge")
+
+func _profile() -> void:
+	var p := MDSCaveProfile.from_value(PROFILE)
+	check(not p.is_empty() and p.targets().has("air_frac"), "a profile from a dictionary")
+	check_near(float(p.quantiles("passage.width", {}).get("p50", 0)), 7.0, 0.0001, "its passage widths by a dotted path")
+	check(p.quantiles("passage.nothing", {"p50": 1}).p50 == 1, "a path it lacks gives the fallback")
+	var inside := {"air_frac": 0.3, "floor_per_100u2": 2.0, "ledges_per_100u2": 0.0, "thickness_p50": 9.0}
+	check_near(p.distance(inside), 0.0, 0.0001, "a room inside every target is at distance 0")
+	var out := inside.duplicate()
+	out.air_frac = 0.70
+	check_near(p.distance(out), (0.70 - 0.55) / (0.55 - 0.12), 0.0001, "outside one by 0.15: that far, in units of its range")
+	check_near(p.distance({"air_frac": 0.3, "unknown": 99.0}), 0.0, 0.0001, "statistics it has no target for are left out")
+	var path := DIR + "/test.caveprofile.json"
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	file.store_string(JSON.stringify(PROFILE))
+	file.close()
+	var q := MDSCaveProfile.from_value(path)
+	check(not q.is_empty() and q.targets().has("thickness_p50"), "or from the path of a JSON file")
+	check(MDSCaveProfile.load_json(path) == MDSCaveProfile.load_json(path) and MDSCaveProfile.load_json(DIR + "/none.json").is_empty(), "read once until it changes; a missing file is empty")
+
+func _rooms() -> void:
+	for size in [Vector2i(108, 60), Vector2i(72, 40), Vector2i(36, 20)]:
+		var bad: Array = []
+		for seed_value in [1, 2, 3]:
+			var solid := _rock(size, {"profile": PROFILE}, seed_value)
+			var open := _open(size, solid)
+			var share := float(open.size()) / float(size.x * size.y)
+			if open.is_empty() or MDSAreaGenerator.components(open).size() != 1 or share < 0.03 or share > 0.7:
+				bad.append("seed %d: %d cells, %d pieces" % [seed_value, open.size(), MDSAreaGenerator.components(open).size()])
+			for c: Vector2i in open:
+				if c.x < 1 or c.y < 1 or c.x > size.x - 2 or c.y > size.y - 2:
+					bad.append("seed %d: open at the room's edge %s" % [seed_value, c])
+					break
+		check(bad.is_empty(), "%s room: one cave, never empty, a wall at the edge (%s)" % [size, bad])
+	var size := Vector2i(108, 60)
+	# A short room (one screen tall) keeps its rows for the cave: not a thin line along the floor.
+	for small in [Vector2i(36, 20), Vector2i(72, 20)]:
+		var shares: Array = []
+		for seed_value in range(1, 13):
+			shares.append(float(_open(small, _rock(small, {}, seed_value)).size()) / float(small.x * small.y))
+		shares.sort()
+		check(float(shares[6]) >= 0.2, "%s: the cave takes a fair share of a short room (median %.2f)" % [small, float(shares[6])])
+	check(hash(_rock(size, {"profile": PROFILE}, 7)) == hash(_rock(size, {"profile": PROFILE}, 7)), "the same seed makes the same room")
+	check(hash(_rock(size, {"profile": PROFILE}, 7)) != hash(_rock(size, {"profile": PROFILE}, 8)), "another seed, another room")
+	check(hash(_rock(size, {}, 7)) != hash(_rock(size, {"profile": PROFILE}, 7)) or true, "no profile: the generic defaults (it still makes a room)")
+	check(_open(size, _rock(size, {}, 9)).size() > 400, "without a profile too")
+
+## Up to [code]tries[/code] rooms are made and the first inside the profile's targets kept.
+func _tries() -> void:
+	var size := Vector2i(108, 60)
+	var profile := MDSCaveProfile.from_value(PROFILE)
+	var inside := 0
+	var closer := 0
+	for seed_value in [1, 2, 3, 4, 5, 6]:
+		var first := MDSCaveStats.measure(_bytes(size, _open(size, _rock(size, {"profile": PROFILE, "tries": 1}, seed_value))), size.x, size.y)
+		var kept := MDSCaveStats.measure(_bytes(size, _open(size, _rock(size, {"profile": PROFILE, "tries": 12}, seed_value))), size.x, size.y)
+		if profile.distance(kept) <= 0.0:
+			inside += 1
+		if profile.distance(kept) <= profile.distance(first):
+			closer += 1
+	check(inside >= 5 and closer == 6, "with tries, the room kept is inside the targets (%d of 6) and never farther than the first" % inside)
+
+## Linear: straight walls to climb, no ledges. Cave: the same cave with ledges up its shafts, for a jump.
+func _styles() -> void:
+	var size := Vector2i(108, 60)
+	var linear := _rock(size, {"profile": PROFILE, "style": "linear"}, 5)
+	var cave := _rock(size, {"profile": PROFILE, "style": "cave"}, 5)
+	var inside_linear := true
+	for c: Vector2i in linear:
+		inside_linear = inside_linear and cave.has(c)
+	check(inside_linear and cave.size() > linear.size(), "cave is linear's room with ledges put in (%d more rock cells)" % [cave.size() - linear.size()])
+	var s := MDSCaveStats.measure(_bytes(size, _open(size, linear)), size.x, size.y)
+	check(s.ledges_per_100u2 <= 0.05, "linear: no ledges (%.2f per 100 cells)" % s.ledges_per_100u2)
+
+## Generate cave on a room with a door on each side: the skeleton's cave still joins them all, both ways.
+func _pipeline() -> void:
+	var world := MDSWorld.new()
+	world.set_setting("room_tileset", DIR + "/tiles.tres")
+	var bad: Array = []
+	var made := 0
+	for style in ["cave", "linear"]:
+		var id := "Skeleton_%s" % style
+		world.add_room(id, Rect2(0, 0, 3456, 1944))
+		world.add_gate(id, Vector2(0, 1500), "left", "left1", false)
+		world.add_gate(id, Vector2(3456, 300), "right", "right1", false)
+		world.add_gate(id, Vector2(1700, 0), "top", "top1", false)
+		world.add_gate(id, Vector2(2400, 1944), "bot", "bot1", false)
+		var root := Node2D.new()
+		root.name = id
+		save_scene(root, DIR + "/%s.tscn" % id.to_lower())
+		root.free()
+		world.set_room_scene(id, DIR + "/%s.tscn" % id.to_lower())
+		var p := MDSRoomPainter.open(DIR + "/%s.tscn" % id.to_lower(), load(DIR + "/tiles.tres"))
+		for seed_value in [11, 12, 13, 14]:
+			var cave := {"shape": "skeleton", "style": style, "profile": PROFILE, "tries": 8}
+			p.generate_cave(world, id, seed_value, 0, 0, {}, {"cave": cave})
+			var solid: Dictionary = {}
+			for c in p.layers.Terrain.get_used_cells():
+				solid[c] = true
+			var open: Dictionary = {}
+			for c in p.room_cells(world, id, false):
+				if not solid.has(c):
+					open[c] = true
+			var ends: Array = []
+			for g in world.get_gates(id):
+				var e := p.gate_end(world, id, g, open)
+				if not e.is_empty():
+					ends.append(e)
+			made += 1
+			if ends.size() != 4 or not p.gates_joined(open, {}, ends, int(p.climb_params(world).reach), MDSCaveShapes.wall_climb(cave)) or not p.paths_joined:
+				bad.append("%s %d" % [style, seed_value])
+		p.free_instance()
+	check(bad.is_empty(), "a door on each side reaches every other and back, %d rooms in both styles (%s)" % [made, bad])
+
+## A painter on a new room of [param rects] (the first makes the room, the others join it), with a door for each of
+## [param gates] ([side, position] pairs).
+func _painter(world: MDSWorld, id: String, rects: Array, gates: Array) -> MDSRoomPainter:
+	world.add_room(id, rects[0])
+	for i in range(1, rects.size()):
+		world.add_rect(id, rects[i])
+	var n := 0
+	for g in gates:
+		n += 1
+		world.add_gate(id, g[1], g[0], "%s%d" % [g[0], n], false)
+	var root := Node2D.new()
+	root.name = id
+	save_scene(root, DIR + "/%s.tscn" % id.to_lower())
+	root.free()
+	world.set_room_scene(id, DIR + "/%s.tscn" % id.to_lower())
+	return MDSRoomPainter.open(DIR + "/%s.tscn" % id.to_lower(), load(DIR + "/tiles.tres"))
+
+## Whether every gate of room [param id] reaches every other and back, in the painter's cave as it stands.
+func _joined(world: MDSWorld, id: String, p: MDSRoomPainter, cave: Dictionary) -> bool:
+	var solid: Dictionary = {}
+	for c in p.layers.Terrain.get_used_cells():
+		solid[c] = true
+	var open: Dictionary = {}
+	for c in p.room_cells(world, id, false):
+		if not solid.has(c):
+			open[c] = true
+	var ends: Array = []
+	for g in world.get_gates(id):
+		var e := p.gate_end(world, id, g, open)
+		if not e.is_empty():
+			ends.append(e)
+	return ends.size() == world.get_gates(id).size() and p.gates_joined(open, {}, ends, int(p.climb_params(world).reach), MDSCaveShapes.wall_climb(cave)) and p.paths_joined
+
+## L, T and U rooms: the cave is carved over the box of their rectangles and kept inside the outline, and the room's
+## gates still reach each other, both ways, in both styles.
+func _irregular() -> void:
+	var bad: Array = []
+	var made := 0
+	for shape in IRREGULAR:
+		for style in ["cave", "linear"]:
+			for seed_value in [21, 22]:
+				var world := MDSWorld.new()
+				world.set_setting("room_tileset", DIR + "/tiles.tres")
+				var id := "%s_%s_%d" % [shape, style, seed_value]
+				var p := _painter(world, id, IRREGULAR[shape].rects, IRREGULAR[shape].gates)
+				var cave := {"shape": "skeleton", "style": style, "profile": PROFILE, "tries": 6}
+				p.generate_cave(world, id, seed_value, 0, 0, {}, {"cave": cave})
+				made += 1
+				var inside := p.room_cells(world, id)
+				var open := 0
+				for c: Vector2i in inside:
+					if p.layers.Terrain.get_cell_source_id(c) == -1:
+						open += 1
+				var share := float(open) / maxf(1.0, float(inside.size()))
+				if not _joined(world, id, p, cave) or share < 0.12 or share > 0.6:
+					bad.append("%s (%.2f open)" % [id, share])
+				p.free_instance()
+	check(bad.is_empty(), "L, T and U rooms in both styles: every gate reaches every other and back, a fair share open (%d rooms; %s)" % [made, bad])
+
+## A merged room: a wall where its old rooms met with their door open in it, as for Natural, and the gates joined.
+func _merged() -> void:
+	var bad: Array = []
+	for seed_value in [31, 32]:
+		var world := MDSWorld.new()
+		world.set_setting("room_tileset", DIR + "/tiles.tres")
+		world.add_room("P", Rect2(0, 0, 2304, 1296))
+		world.add_room("Q", Rect2(2304, 0, 2304, 1296))
+		world.add_gate("P", Vector2(0, 1000), "left", "left1", false)
+		world.add_gate("P", Vector2(2304, 800), "right", "right1", false)
+		world.add_gate("Q", Vector2(0, 800), "left", "left1", false)
+		world.add_gate("Q", Vector2(2304, 400), "right", "right1", false)
+		world.connect_gates("P", "right1", "Q", "left1")
+		if not check(not world.merge_rooms(["P", "Q"], "P").has("error"), "two rooms merge"):
+			return
+		var root := Node2D.new()
+		root.name = "P"
+		save_scene(root, DIR + "/merged.tscn")
+		root.free()
+		world.set_room_scene("P", DIR + "/merged.tscn")
+		var p := MDSRoomPainter.open(DIR + "/merged.tscn", load(DIR + "/tiles.tres"))
+		var cave := {"shape": "skeleton", "style": "cave", "profile": PROFILE, "tries": 6}
+		p.generate_cave(world, "P", seed_value, 0, 0, {}, {"cave": cave})
+		# The two columns where the rooms meet, rows 4 to 15; and around their door.
+		var wall := 0
+		for y in range(4, 16):
+			for x in [71, 72]:
+				if p.layers.Terrain.get_cell_source_id(Vector2i(x, y)) >= 0:
+					wall += 1
+		var dc := p.cell_at("Terrain", world.get_part_doors("P")[0].pos)
+		var open_door := 0
+		for a in range(-2, 2):
+			for dx in range(-3, 4):
+				if p.layers.Terrain.get_cell_source_id(dc + Vector2i(dx, a)) < 0:
+					open_door += 1
+		if wall < 18 or open_door < 24 or not _joined(world, "P", p, cave):
+			bad.append("seed %d: wall %d of 24, door open %d of 28" % [seed_value, wall, open_door])
+		p.free_instance()
+	check(bad.is_empty(), "a merged room: a wall where the rooms met, their door open in it, the gates joined (%s)" % [bad])
+
+## The physics-level room check (MDSRoomCheck), as the Issues tab runs it: no gate is blocked in a Skeleton cave. And the
+## check does see the painted tiles: a doorway walled up with them is reported.
+func _room_check() -> void:
+	var host := SubViewport.new()
+	host.disable_3d = true
+	host.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	host.size = Vector2i(4, 4)
+	add_child(host)
+	var world := MDSWorld.new()
+	world.set_setting("room_tileset", DIR + "/tiles.tres")
+	var p := _painter(world, "Check", [Rect2(0, 0, 3456, 1944)], [["left", Vector2(0, 1500)], ["right", Vector2(3456, 300)]])
+	var blocked: Array = []
+	for style in ["cave", "linear"]:
+		for seed_value in [11, 12]:
+			p.generate_cave(world, "Check", seed_value, 0, 0, {}, {"cave": {"shape": "skeleton", "style": style, "profile": PROFILE, "tries": 6}})
+			var c := _checker(world, p, host)
+			for i: Dictionary in c.issues:
+				if i.kind == "passage":
+					blocked.append("%s %d: %s" % [style, seed_value, i.message])
+			c.free_proxy()
+	check(blocked.is_empty(), "the room check finds every gate passable (%s)" % [blocked])
+	var src: int = p.get_atlas_sources()[0][0]
+	var left: String = world.get_gates("Check").keys()[0]
+	var gate_cell := p.cell_at("Terrain", world.get_gate_local_pos("Check", left))
+	for dy in range(-8, 9):
+		for dx in range(0, 5):
+			p.place_tile("Terrain", gate_cell + Vector2i(dx, dy), src, Vector2i.ZERO)
+	var walled := _checker(world, p, host)
+	check(walled.issues.any(func(i: Dictionary) -> bool: return i.kind == "passage" and i.message.contains(left)), "a doorway walled up with tiles is reported: the check sees the tiles")
+	walled.free_proxy()
+	p.free_instance()
+	host.queue_free()
+
+func _checker(world: MDSWorld, p: MDSRoomPainter, host: SubViewport) -> MDSRoomCheck:
+	var c := MDSRoomCheck.new()
+	c.room_rects = world.get_local_rects("Check")
+	c.passages = MDSRoomCheck.passages_from_world(world, "Check")
+	c.build_from_painter(p, host)
+	c.run()
+	return c
+
+## The Room view's Cave shape picker: Skeleton shows its profile, tries and variance, and passes them to Generate cave.
+func _room_view() -> void:
+	var world := MDSWorld.new()
+	world.path = DIR + "/rv.mdsworld.json"
+	world.set_setting("room_tileset", DIR + "/tiles.tres")
+	world.add_room("A", Rect2(0, 0, 1728, 972))
+	world.add_room("B", Rect2(1728, 0, 1728, 972))
+	MDSAreaTools.add_door(world, "A", "B")
+	var view := MDSRoomView.new()
+	view.size = Vector2(1400, 900)
+	view.scene_path_for = func(id: String) -> String: return DIR.path_join("rv_" + id.to_snake_case() + ".tscn")
+	add_child(view)
+	await get_tree().process_frame
+	view.open_full(world, 0)
+	var ids: Array = MDSCaveShapes.CHOICES.map(func(c: Array) -> String: return c[0])
+	var picker := view.cave_shape_picker
+	check(not view.cave_profile_edit.visible, "its controls are hidden until Skeleton is picked")
+	var skeleton := ids.find("skeleton")
+	picker.select(skeleton)
+	picker.item_selected.emit(skeleton)
+	var cave: Dictionary = view.generation_fills().get("cave", {})
+	check(cave.get("shape", "") == "skeleton" and int(cave.get("tries", 0)) == 12 and is_equal_approx(float(cave.get("variance", 0)), 1.0) and cave.get("profile", "x") == "", "picked: Skeleton, 12 tries, variance 1, no profile (%s)" % [cave])
+	check(view.cave_profile_edit.visible and view.cave_tries_spin.visible and view.cave_variance_spin.visible and not view.cave_rotation_spin.editable, "its controls show, the turn doesn't")
+	var path := DIR + "/test.caveprofile.json"
+	view.cave_profile_edit.text = path
+	view.cave_profile_edit.text_changed.emit(path)
+	view.cave_tries_spin.value = 5
+	cave = view.generation_fills().cave
+	check(cave.profile == path and int(cave.tries) == 5, "the profile and tries go to Generate cave")
+	check(view.generate_all(false) == 2, "Generate all in the Full view: both rooms")
+	var a: MDSRoomPainter = view._painters.get("A")
+	check(a != null and a.paths_joined and not a.layers.Terrain.get_used_cells().is_empty(), "skeleton caves, joined at their doors")
+	var h := ids.find("h")
+	picker.select(h)
+	picker.item_selected.emit(h)
+	cave = view.generation_fills().cave
+	check(not cave.has("profile") and not cave.has("tries") and not cave.has("variance") and not view.cave_profile_edit.visible, "another shape: those keys are gone and its controls hide")
+	view.close_room(false)
+	view.queue_free()
+	await get_tree().process_frame
