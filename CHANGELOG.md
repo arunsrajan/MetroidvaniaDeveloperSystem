@@ -12,6 +12,11 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
   - **Rooms of any shape:** in L, T, U and curved rooms the cave is kept inside the outline and its statistics are per cell of the room; a merged room keeps a wall where its old rooms met, as Natural does; a short room (one screen tall) keeps more rows for the cave.
   - **Two more MCP tools, 95 in all:** `mds_cave_stats` measures rooms' caves (`MDSCaveStats`: open share, floor and ledges per 100 tiles, how thick and how varied the passages are) and `mds_cave_profile` writes a profile from rooms you like.
 
+- **Stamps: a Random box and a preview of what a click places.**
+  - **Random** in the Stamps tool (on, as before: any sprite of the category, 80% to 120% of the Size, flipped and tilted a little). Off, every stamp is the one sprite picked from the list that shows then, exactly at the Size, upright and not flipped. Generate cave's Stamps follow it (`stamps.random` and `stamps.pick` in the fills' `stamps`; the stamps sit where they would have sat).
+  - **The stamp the next click places follows the mouse**, half see-through, and the click places that very stamp; nothing is placed by moving the mouse. It is hidden over a resize handle, with Shift (a click removes) and when the mouse leaves the room. The Effects tool likewise outlines the area an effect picked in the list would cover, and the Freeform tool marks where its first point would go. The Place tool's tiles and the brushes' outline, which already followed the mouse, now go when it leaves the room too.
+  - **The cave shapes' Random box is now called Random turn**: it only turns the shapes, and was mistaken for the stamps' randomness.
+
 ## [3.5.0] - 2026-11-07
 
 ### Added

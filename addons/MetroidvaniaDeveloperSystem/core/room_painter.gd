@@ -1746,7 +1746,8 @@ func clear_layer(layer_name: String) -> void:
 ##   painted with the terrain fill (autotiled or not), the background behind the cave, the
 ##   decor fill among the floors' decorations, and the foreground in front: a color or a
 ##   terrain darkens the rock deep in the walls, tiles hang from ceilings and edge floors.
-## - "stamps": {set (an [MDSStampSet]), category, group, scale}: stamps along the floors.
+## - "stamps": {set (an [MDSStampSet]), category, group, scale, random, pick}: stamps along the
+##   floors (random false: only the sprite pick, exactly at the scale; see [method _generate_stamps]).
 ## - "paths" (default true): every gate reaches every other one and back, walking, jumping and
 ##   falling (see [method climb_reach]); where the cave doesn't allow it, tunnels and shafts
 ##   with ledges to climb are carved, so a player can always go back the way they came.
@@ -2067,8 +2068,11 @@ func _generate_foreground(inside: Dictionary, solid: Dictionary, lo: Vector2i, h
 				cells.append(c)
 	paint_fill("Foreground", cells, fill, rng)
 
-## Stamps of [param stamps] ({set, category, group, scale}) along a generated cave's floors, about
-## one every ten tiles. The ones an earlier generation scattered are taken out first.
+## Stamps of [param stamps] ({set, category, group, scale, random, pick}) along a generated cave's
+## floors, about one every ten tiles. "random" (default true): any sprite of the category, 80% to
+## 120% of the scale, flipped or not. False: only the sprite "pick" (a region of the set; the
+## category's first when it is not in it), exactly at the scale, not flipped: where the stamps sit
+## does not change. The ones an earlier generation scattered are taken out first.
 func _generate_stamps(inside: Dictionary, solid: Dictionary, stamps: Dictionary, rng: RandomNumberGenerator) -> void:
 	var set_res: MDSStampSet = stamps.set
 	var picks := set_res.indices(str(stamps.get("category", "")))
@@ -2090,10 +2094,20 @@ func _generate_stamps(inside: Dictionary, solid: Dictionary, stamps: Dictionary,
 		floors[j] = t
 	var group := str(stamps.get("group", "StampsFront"))
 	var scale_value := float(stamps.get("scale", 1.0))
+	var random := bool(stamps.get("random", true))
+	var fixed := int(stamps.get("pick", -1))
+	if not fixed in picks:
+		fixed = picks[0]
 	for k in mini(floors.size() / 10, 40):
 		var r := cell_rect("Terrain", floors[k])
-		var size := scale_value * rng.randf_range(0.8, 1.2)
-		var st := add_stamp(set_res, picks[rng.randi_range(0, picks.size() - 1)], Vector2(r.get_center().x, r.end.y), Vector2(size * (-1.0 if rng.randf() < 0.5 else 1.0), size), 0.0, group)
+		var size := scale_value
+		var index := fixed
+		var flip := 1.0
+		if random:
+			size *= rng.randf_range(0.8, 1.2)
+			index = picks[rng.randi_range(0, picks.size() - 1)]
+			flip = -1.0 if rng.randf() < 0.5 else 1.0
+		var st := add_stamp(set_res, index, Vector2(r.get_center().x, r.end.y), Vector2(size * flip, size), 0.0, group)
 		st.set_meta(GENERATED_META, true)
 
 # --- Paths through a room ------------------------------------------------------------------------

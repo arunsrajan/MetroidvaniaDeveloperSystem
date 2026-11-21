@@ -165,6 +165,13 @@ var stamp_set: MDSStampSet
 var stamp_category := ""
 var stamp_group := "StampsFront"
 var stamp_scale := 1.0
+## Random on: each stamp is any sprite of the category, 80% to 120% of [member stamp_scale],
+## flipped half the time and tilted a little. Off: always [member stamp_pick], exactly at
+## [member stamp_scale], upright and not flipped.
+var stamp_random := true
+## The sprite Random off places: a region index of [member stamp_set] in [member stamp_category]
+## (the category's first one while it is not in it).
+var stamp_pick := -1
 ## Effects tool: the effect a click places ("" = none, only selecting).
 var effect_id := ""
 var selected_effect: MDSEnvironmentEffect:
@@ -268,6 +275,14 @@ var _drag_vertex := -1
 var _drag_move := Vector2.INF ## scene-local point where a shape move started
 var _drag_checkpointed := false
 var _last_stamp := Vector2.INF
+## The stamp the next click places, rolled once so the preview at the mouse shows it (see
+## [method next_stamp]), and the settings it was rolled for.
+var _stamp_next := {}
+var _stamp_key: Array = []
+var _stamp_placed_at := Vector2.INF ## where the last stamp went (screen): no preview on top of it until the mouse moves on
+var _effect_areas := {} ## effect id -> the area a new one covers (see [method _effect_area])
+var _hover := false ## the mouse is over the view: the previews at it show
+var _hover_shift := false ## ...and Shift is held (a click removes instead of placing)
 
 func _init() -> void:
 	clip_contents = true
@@ -1054,7 +1069,8 @@ func _draw_overlay() -> void:
 		_draw_select_overlay(ci, color)
 	if tool == Tool.PLACE:
 		_draw_place_overlay(ci, color)
-	if tool == Tool.STAMP and get_rect().has_point(_mouse):
+	if tool == Tool.STAMP and _hover and get_rect().has_point(_mouse):
+		_draw_stamp_ghost(ci, color)
 		ci.draw_arc(_mouse, 48.0 * stamp_scale * zoom, 0, TAU, 32, color, 1.5)
 	if _shaping and shape >= GENERATOR_BASE:
 		var d := _generated(_shape_seed)
@@ -1069,7 +1085,7 @@ func _draw_overlay() -> void:
 		var a := painter.cell_rect("Terrain", Vector2i(mini(_shape_from.x, _shape_to.x), mini(_shape_from.y, _shape_to.y)))
 		var bb := painter.cell_rect("Terrain", Vector2i(maxi(_shape_from.x, _shape_to.x), maxi(_shape_from.y, _shape_to.y)))
 		ci.draw_rect(Rect2(local_to_screen(a.position), (bb.end - a.position) * zoom), color, false, 1.0)
-	elif get_rect().has_point(_mouse) and not tool in [Tool.STAMP, Tool.EFFECT, Tool.PLACE, Tool.SELECT] and not (tool == Tool.FREEFORM and (shape == MDSTerrainShapes.Shape.BRUSH or freeform_mode == FreeformMode.EDIT)):
+	elif _hover and get_rect().has_point(_mouse) and not tool in [Tool.STAMP, Tool.EFFECT, Tool.PLACE, Tool.SELECT] and not (tool == Tool.FREEFORM and (shape == MDSTerrainShapes.Shape.BRUSH or freeform_mode == FreeformMode.EDIT)):
 		if shape == MDSTerrainShapes.Shape.BRUSH:
 			for c in _brush_cells(painter.cell_at("Terrain", screen_to_local(_mouse))):
 				var r := painter.cell_rect("Terrain", c)
@@ -1162,6 +1178,11 @@ func _draw_freeform_overlay(ci: CanvasItem, color: Color) -> void:
 			ci.draw_rect(Rect2(local_to_screen(q) - Vector2(3, 3), Vector2(6, 6)), color)
 		if _draft.size() >= 3:
 			ci.draw_arc(local_to_screen(_draft[0]), 9.0, 0, TAU, 20, Color.WHITE, 1.5)
+	elif _hover and freeform_mode == FreeformMode.DRAW and shape == MDSTerrainShapes.Shape.BRUSH and not _panning:
+		# Where a click puts the first point (not on a handle: that resizes the shape picked).
+		var hb0 := _resize_screen_box()
+		if not (hb0.has_area() and handle_at(hb0, _mouse) >= 0):
+			ci.draw_rect(Rect2(_mouse - Vector2(3, 3), Vector2(6, 6)), color)
 	if is_instance_valid(selected) and selected.is_inside_tree():
 		var outline := selected.get_outline()
 		var pts := PackedVector2Array()
@@ -1642,7 +1663,7 @@ func _drag_delta(d: Vector2) -> Vector2:
 	return d.round()
 
 func _draw_place_overlay(ci: CanvasItem, color: Color) -> void:
-	if not get_rect().has_point(_mouse) or is_instance_valid(_place_drag) or _panning:
+	if not _hover or not get_rect().has_point(_mouse) or is_instance_valid(_place_drag) or _panning:
 		return
 	var tiles := place_tiles()
 	if tiles.is_empty():
@@ -2427,7 +2448,7 @@ func _draw_effects(ci: CanvasItem, font: Font) -> void:
 			ci.draw_string(font, r.position + Vector2(4, 14), String(e.name), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, c)
 		if sel:
 			_draw_handles(ci, r, Color(0.55, 0.85, 1.0))
-	if active and get_rect().has_point(_mouse) and not effect_id.is_empty() and _effect_drag == 0:
+	if active and _hover and get_rect().has_point(_mouse) and not effect_id.is_empty() and _effect_drag == 0:
 		var icon: Texture2D = null
 		if effect_id.begins_with("gameplay:"):
 			var gp_name := effect_id.trim_prefix("gameplay:")
@@ -2439,6 +2460,38 @@ func _draw_effects(ci: CanvasItem, font: Font) -> void:
 			icon = MDSEnvironment.icon(effect_id)
 		if icon:
 			ci.draw_texture_rect(icon, Rect2(_mouse + Vector2(10, 10), Vector2(16, 16)), false)
+		# Where a click would put it: the area it would cover.
+		var ghost := effect_ghost()
+		if ghost.has_area():
+			var gr := Rect2(local_to_screen(ghost.position), ghost.size * zoom)
+			ci.draw_rect(gr, Color(0.55, 0.85, 1.0, 0.12))
+			ci.draw_rect(gr, Color(0.55, 0.85, 1.0, 0.85), false, 1.0)
+
+## The area the effect picked in the list would cover if the mouse were clicked here (scene-local,
+## as [method place_effect] puts it). No area when there is nothing to show: no effect picked, a
+## gameplay object (it stands on the floor under the click), the mouse off the view, Shift held (a
+## click selects), a drag going on, or the mouse on a handle of the selected effect.
+func effect_ghost() -> Rect2:
+	if tool != Tool.EFFECT or effect_id.is_empty() or effect_id.begins_with("gameplay:") or not painter or not _hover or _hover_shift or _effect_drag != 0:
+		return Rect2()
+	if _is_room_effect(selected_effect) and handle_at(_effect_screen_rect(selected_effect), _mouse) >= 0:
+		return Rect2()
+	var r := _effect_area(effect_id)
+	if not r.has_area():
+		return Rect2()
+	# As MDSRoomPainter.add_effect centres it, unless it stands on its position.
+	var at := screen_to_local(_mouse)
+	var pos := at if r.position != Vector2.ZERO else at - r.size * 0.5
+	return Rect2(pos + r.position, r.size)
+
+## What area a new effect of [param id] covers, in its own coordinates (made once).
+func _effect_area(id: String) -> Rect2:
+	if not _effect_areas.has(id):
+		var e := MDSEnvironment.create(id)
+		_effect_areas[id] = e.get_effect_rect() if e else Rect2()
+		if e:
+			e.free()
+	return _effect_areas[id]
 
 ## Shows the room's weather over the view (its own, else its area's, else the world's), as
 ## the game adds it. It is only a preview: nothing is saved into the scene.
@@ -2630,16 +2683,71 @@ func _on_files_dropped(files: PackedStringArray) -> void:
 
 # --- Stamps -----------------------------------------------------------------------------------
 
-## Places a random stamp of the current category at [param p] (scene-local).
+## The stamp the next click places: {index (a region of the set), scale (x is negative when
+## flipped), rotation}. It is rolled once, so the preview at the mouse is the very stamp the click
+## places, and again after a stamp is placed or when the Stamps settings change. Random on: any
+## sprite of the category, 80% to 120% of the Size, flipped or not, tilted a little. Off: the one
+## picked, exactly at the Size, upright. Empty with no stamp set or no sprite in the category.
+func next_stamp() -> Dictionary:
+	if not stamp_set:
+		return {}
+	var picks := stamp_set.indices(stamp_category)
+	if picks.is_empty():
+		return {}
+	var key := [stamp_set, stamp_category, stamp_random, stamp_pick, stamp_scale]
+	if _stamp_next.is_empty() or key != _stamp_key:
+		_stamp_key = key
+		if stamp_random:
+			var k := stamp_scale * _rng.randf_range(0.8, 1.2)
+			var index: int = picks[_rng.randi_range(0, picks.size() - 1)]
+			var flip := -1.0 if _rng.randf() < 0.5 else 1.0
+			_stamp_next = {"index": index, "scale": Vector2(k * flip, k), "rotation": _rng.randf_range(-0.12, 0.12)}
+		else:
+			_stamp_next = {"index": stamp_pick if stamp_pick in picks else picks[0], "scale": Vector2(stamp_scale, stamp_scale), "rotation": 0.0}
+	return _stamp_next
+
+## What the Stamps tool shows at the mouse: the stamp the next click places (see [method
+## next_stamp]). Empty when nothing shows: the mouse is off the view, Shift is held (a click
+## removes), a stroke or a pan or a resize is going on, the mouse is on a resize handle, or it has not
+## moved since a stamp was placed there.
+func stamp_ghost() -> Dictionary:
+	if tool != Tool.STAMP or not painter or not _hover or _hover_shift or _panning or _scale_handle >= 0 or _last_stamp != Vector2.INF:
+		return {}
+	if _mouse.distance_to(_stamp_placed_at) < 4.0:
+		return {}
+	var box := _resize_screen_box()
+	if box.has_area() and handle_at(box, _mouse) >= 0:
+		return {}
+	return next_stamp()
+
+## Draws [method stamp_ghost] at the mouse, half see-through, with its box outlined.
+func _draw_stamp_ghost(ci: CanvasItem, color: Color) -> void:
+	var st := stamp_ghost()
+	if st.is_empty():
+		return
+	var index: int = st.index
+	var scale_value: Vector2 = st.scale
+	var region := stamp_set.regions[index]
+	var box := Rect2(-stamp_set.anchor(index) * region.size, region.size)
+	ci.draw_set_transform_matrix(Transform2D(Vector2(zoom, 0), Vector2(0, zoom), pan) * Transform2D(float(st.rotation), scale_value, 0.0, screen_to_local(_mouse)))
+	ci.draw_texture_rect_region(stamp_set.texture, box, region, Color(1, 1, 1, 0.65))
+	ci.draw_rect(box, Color(color, 0.8), false, 1.5 / (zoom * absf(scale_value.y)))
+	ci.draw_set_transform_matrix(Transform2D.IDENTITY)
+
+## Places a stamp of the current category at [param p] (scene-local): the one the preview shows
+## (see [method next_stamp]).
 func place_stamp(p: Vector2) -> Sprite2D:
 	if not stamp_set:
 		status_message.emit("No stamp set: add the Mossgrove pack (or any *.stamps.tres) to the project.")
 		return null
-	var picks := stamp_set.indices(stamp_category)
-	if picks.is_empty():
+	var st := next_stamp()
+	if st.is_empty():
 		return null
-	var k := stamp_scale * _rng.randf_range(0.8, 1.2)
-	var s := painter.add_stamp(stamp_set, picks[_rng.randi_range(0, picks.size() - 1)], p, Vector2(k * (-1.0 if _rng.randf() < 0.5 else 1.0), k), _rng.randf_range(-0.12, 0.12), stamp_group)
+	var index: int = st.index
+	var scale_value: Vector2 = st.scale
+	var s := painter.add_stamp(stamp_set, index, p, scale_value, float(st.rotation), stamp_group)
+	_stamp_next = {}
+	_stamp_placed_at = local_to_screen(p)
 	# Selected, so its handles resize it.
 	set_selection([s])
 	painted.emit()
@@ -2690,6 +2798,8 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		_mouse = mb.position
+		_hover = true
+		_hover_shift = mb.shift_pressed
 		if mb.pressed and (mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 			set_zoom(zoom * (1.15 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.15), mb.position)
 		elif mb.button_index == MOUSE_BUTTON_MIDDLE or mb.button_index == MOUSE_BUTTON_RIGHT:
@@ -2748,6 +2858,10 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion:
 		var mm := event as InputEventMouseMotion
 		_mouse = mm.position
+		_hover = true
+		_hover_shift = mm.shift_pressed
+		if _mouse.distance_to(_stamp_placed_at) >= 4.0:
+			_stamp_placed_at = Vector2.INF
 		_update_cursor(mm.position)
 		if _panning:
 			pan = _pan_orig + (mm.position - _pan_start)
@@ -2771,6 +2885,10 @@ func _gui_input(event: InputEvent) -> void:
 				_last_cell = cell
 		_overlay.queue_redraw()
 		accept_event()
+	elif event is InputEventKey and (event as InputEventKey).keycode == KEY_SHIFT:
+		# Shift held: a click removes stamps, so there is no stamp to preview.
+		_hover_shift = (event as InputEventKey).pressed
+		_overlay.queue_redraw()
 	elif event is InputEventKey and event.pressed and not event.echo:
 		var key := event as InputEventKey
 		if key.ctrl_pressed and (key.keycode == KEY_Z or key.keycode == KEY_Y):
@@ -2873,6 +2991,11 @@ func _selection_key(key: InputEventKey) -> bool:
 	return false
 
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_MOUSE_EXIT and _hover:
+		# The previews at the mouse go with it.
+		_hover = false
+		if _overlay:
+			_overlay.queue_redraw()
 	if what == NOTIFICATION_RESIZED and _overlay:
 		_overlay.queue_redraw()
 		_update_depth_view()

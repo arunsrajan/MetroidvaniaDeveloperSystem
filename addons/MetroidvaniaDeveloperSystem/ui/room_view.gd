@@ -89,6 +89,8 @@ var mode_opt: OptionButton ## freeform Draw / Edit
 var role_opt: OptionButton ## freeform collision role
 var repair_row: Control ## freeform Repair / Repair all
 var size_spin: SpinBox ## stamp size
+var stamp_random_check: CheckBox ## stamps: random sprite, size, flip and tilt (off: one sprite, as is)
+var stamp_sprites: ItemList ## stamps, Random off: the sprites of the category, pick the one to place
 var _styles: Array[MDSFreeformStyle] = []
 var _stamp_sets: Array[MDSStampSet] = []
 var _shape_rows: Array[Control] = []
@@ -242,9 +244,32 @@ func _init() -> void:
 	size_spin.value = 100
 	size_spin.prefix = "Size"
 	size_spin.suffix = "%"
-	size_spin.tooltip_text = "Stamp size (each stamp also varies a little)"
-	size_spin.value_changed.connect(func(v: float) -> void: canvas.stamp_scale = v / 100.0)
+	size_spin.tooltip_text = "Stamp size. Random on: each stamp varies from 80% to 120% of it. Random off: every stamp is exactly this size"
+	size_spin.value_changed.connect(func(v: float) -> void:
+		canvas.stamp_scale = v / 100.0
+		canvas._overlay.queue_redraw())
 	controls.add_child(MDSSidePanel.fill(size_spin))
+	stamp_random_check = CheckBox.new()
+	stamp_random_check.text = "Random"
+	stamp_random_check.button_pressed = true
+	stamp_random_check.tooltip_text = "On: each stamp is a random sprite of the category, a little bigger or smaller, flipped or tilted a little. Off: the sprite picked below, exactly at the Size, upright and not flipped. The preview at the mouse is the stamp the next click places. Generate cave's Stamps follow this too"
+	stamp_random_check.toggled.connect(func(on: bool) -> void:
+		canvas.stamp_random = on
+		_update_stamp_controls()
+		canvas._overlay.queue_redraw())
+	controls.add_child(stamp_random_check)
+	stamp_sprites = ItemList.new()
+	stamp_sprites.icon_mode = ItemList.ICON_MODE_TOP
+	stamp_sprites.max_columns = 0
+	stamp_sprites.same_column_width = true
+	stamp_sprites.fixed_icon_size = Vector2i(40, 40) * int(maxf(1.0, MDSUi.editor_scale()))
+	stamp_sprites.custom_minimum_size.y = 120 * MDSUi.editor_scale()
+	stamp_sprites.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stamp_sprites.tooltip_text = "The sprite every click places (Random off): the category's sprites, the preview at the mouse shows the one picked"
+	stamp_sprites.item_selected.connect(func(i: int) -> void:
+		canvas.stamp_pick = int(stamp_sprites.get_item_metadata(i))
+		canvas._overlay.queue_redraw())
+	controls.add_child(stamp_sprites)
 	# Place and Select.
 	turn_spin = SpinBox.new()
 	turn_spin.min_value = 1
@@ -484,7 +509,7 @@ func _init() -> void:
 	generation.add_child(again)
 	var options := HFlowContainer.new()
 	generation.add_child(options)
-	for o in [["background", "Background", "Paint the Background fill behind the cave"], ["decor", "Decor", "Decorations on floors and under ceilings; most floor ones of the Decor fill"], ["foreground", "Foreground", "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"], ["stamps", "Stamps", "Stamps of the set and category picked for the Stamps tool along the floors"], ["paths", "Paths", "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"], ["parts", "Merged walls", "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"]]:
+	for o in [["background", "Background", "Paint the Background fill behind the cave"], ["decor", "Decor", "Decorations on floors and under ceilings; most floor ones of the Decor fill"], ["foreground", "Foreground", "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"], ["stamps", "Stamps", "Stamps of the set and category picked for the Stamps tool along the floors, as it places them: its Size, and its Random (off: the one sprite picked there, exactly at the Size)"], ["paths", "Paths", "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"], ["parts", "Merged walls", "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"]]:
 		var c := CheckBox.new()
 		c.text = o[1]
 		c.tooltip_text = o[2]
@@ -1426,6 +1451,7 @@ func _update_tool_controls() -> void:
 	repair_row.visible = freeform
 	_update_generator_shapes(freeform)
 	size_spin.visible = stamps
+	_update_stamp_controls()
 	brush_spin.visible = brushes and not freeform
 	shape_opt.get_parent().visible = brushes
 	curve_opt.get_parent().visible = brushes
@@ -1458,6 +1484,35 @@ func _update_tool_controls() -> void:
 		layer_opt.tooltip_text = "What clicks and boxes select: everything, the tiles of one layer (on the grid and free), or only items"
 	_filling = false
 	_update_select_hint()
+
+## The Stamps tool's Random box and sprite list (the list is for Random off).
+func _update_stamp_controls() -> void:
+	var stamps := canvas.tool == MDSRoomCanvas.Tool.STAMP
+	stamp_random_check.visible = stamps
+	stamp_random_check.set_pressed_no_signal(canvas.stamp_random)
+	stamp_sprites.visible = stamps and not canvas.stamp_random
+	if stamps:
+		_fill_stamp_sprites()
+
+## The sprite list: the thumbnails of the picked category's sprites, the one Random off places
+## selected (the category's first when the one picked is of another).
+func _fill_stamp_sprites() -> void:
+	stamp_sprites.clear()
+	var st := canvas.stamp_set
+	if not st or not st.texture:
+		return
+	var picks := st.indices(canvas.stamp_category)
+	if not picks.is_empty() and not canvas.stamp_pick in picks:
+		canvas.stamp_pick = picks[0]
+	for n in picks.size():
+		var icon := AtlasTexture.new()
+		icon.atlas = st.texture
+		icon.region = st.regions[picks[n]]
+		stamp_sprites.add_icon_item(icon)
+		stamp_sprites.set_item_metadata(n, picks[n])
+		stamp_sprites.set_item_tooltip(n, "Sprite %d of %d" % [n + 1, picks.size()])
+		if picks[n] == canvas.stamp_pick:
+			stamp_sprites.select(n)
 
 ## The Freeform tool's Shape list also offers the scenery generators (Column, Arch...).
 func _update_generator_shapes(freeform: bool) -> void:
@@ -1811,8 +1866,8 @@ func _build_cave_shape(box: Control) -> void:
 	turn.suffix = "°"
 	turn.tooltip_text = "How far the shapes are turned, clockwise, any angle from 0 to 359: a T turned 90° opens to the left, a U turned 180° is upside down, 45° slants it (made smaller to fit its room)"
 	var random := CheckBox.new()
-	random.text = "Random"
-	random.tooltip_text = "Each shape turned its own way, any angle, a new one each variation"
+	random.text = "Random turn"
+	random.tooltip_text = "Each cave shape turned its own way, any angle, a new one each variation. It only turns the shapes: the Stamps tool has its own Random for the stamps"
 	var count := SpinBox.new()
 	count.min_value = 1
 	count.max_value = 8
@@ -1912,7 +1967,7 @@ func generation_fills() -> Dictionary:
 		if bool(generate_options.get(k, true)) and not canvas.fills.get(layer_tools[k], {}).is_empty():
 			fills[k] = canvas.fills[layer_tools[k]]
 	if bool(generate_options.get("stamps", true)) and canvas.stamp_set and not canvas.stamp_category.is_empty():
-		fills.stamps = {"set": canvas.stamp_set, "category": canvas.stamp_category, "group": canvas.stamp_group, "scale": canvas.stamp_scale}
+		fills.stamps = {"set": canvas.stamp_set, "category": canvas.stamp_category, "group": canvas.stamp_group, "scale": canvas.stamp_scale, "random": canvas.stamp_random, "pick": canvas.stamp_pick}
 	return fills
 
 ## Shows the area bar for [param area]'s [param rooms] (the room open among them).
@@ -2214,6 +2269,8 @@ func _on_fill_selected(idx: int) -> void:
 		if meta is Array:
 			canvas.stamp_set = _stamp_sets[meta[0]]
 			canvas.stamp_category = meta[1]
+			_fill_stamp_sprites()
+			canvas._overlay.queue_redraw()
 		return
 	var f: Dictionary = fill_opt.get_item_metadata(idx)
 	match str(f.type):
@@ -2270,6 +2327,7 @@ func _load_styles() -> void:
 		canvas.stamp_set = _stamp_sets[0]
 		var cats := canvas.stamp_set.get_categories()
 		canvas.stamp_category = cats[0] if not cats.is_empty() else ""
+	_update_stamp_controls()
 
 ## Tiles picked in the palette: the current tool paints them (Erase, Freeform and Stamps
 ## switch to Terrain).
