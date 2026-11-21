@@ -42,16 +42,17 @@ static func rock(inside: Dictionary, lo: Vector2i, hi: Vector2i, cave: Dictionar
 	var tries := clampi(int(cave.get("tries", 1)), 1, 64)
 	var variance := clampf(float(cave.get("variance", 1.0)), 0.0, 1.0)
 	var width := int(cave.get("width", 0))
+	var parts: Dictionary = cave.get("parts", {})
 	var best: Dictionary = {}
 	var best_d := INF
 	for t in tries:
 		var sub := RandomNumberGenerator.new()
 		sub.seed = rng.randi()
 		var room := build(w, h, profile, sub, tall, variance, width)
-		room.air = _inside_only(room.air, w, h, lo, inside)
+		room.air = _inside_only(room.air, w, h, lo, inside, parts)
 		var d := 0.0
 		if not profile.is_empty():
-			d = profile.distance(MDSCaveStats.measure(room.air, w, h))
+			d = profile.distance(MDSCaveStats.measure(room.air, w, h, inside.size()))
 		if d < best_d:
 			best = room
 			best_d = d
@@ -99,7 +100,10 @@ static func build(w: int, h: int, profile: MDSCaveProfile, rng: RandomNumberGene
 	var n_levels := clampi(roundi((float(h) - 12.0) / rng.randf_range(20.0, 30.0)), 1, 6)
 	if n_levels > 1 and rng.randf() < 0.25 * variance:
 		n_levels -= 1
-	var bottom := h - 1 - rng.randi_range(5, 8)
+	# Rock under the lowest floor, less in a short room (a screen tall has no rows to spare).
+	var bottom := h - 1 - rng.randi_range(mini(5, maxi(3, h / 8)), mini(8, maxi(4, h / 5)))
+	# How far a floor may wander from its level: less in a short room, where a ramp would eat the passage.
+	var band := clampi(h / 10, 2, BAND)
 	var spacing := float(bottom - 12) / float(n_levels)
 	var floors := PackedInt32Array()
 	for k in n_levels:
@@ -108,7 +112,7 @@ static func build(w: int, h: int, profile: MDSCaveProfile, rng: RandomNumberGene
 	var caps := PackedInt32Array()
 	var heights := PackedInt32Array()
 	for k in n_levels:
-		var cap := (floors[k] - floors[k + 1] - 2 * BAND - 4) if k + 1 < n_levels else (floors[k] - BAND - 4)
+		var cap := (floors[k] - floors[k + 1] - 2 * band - 4) if k + 1 < n_levels else (floors[k] - band - 4)
 		cap = maxi(cap, min_h)
 		caps.append(cap)
 		heights.append(clampi(roundi(exp(rng.randfn(mu, sigma)) * g), min_h, cap))
@@ -204,7 +208,7 @@ static func build(w: int, h: int, profile: MDSCaveProfile, rng: RandomNumberGene
 			elif rng.randf() < 0.014 * (0.5 + variance):
 				ramp = rng.randi_range(3, 18)
 				ramp_dir = 1 if rng.randf() < 0.5 else -1
-			f = clampi(f, base - BAND, base + BAND)
+			f = clampi(f, base - band, base + band)
 			var hh := float(heights[k]) * swell[x - x0]
 			var d_left := (x - x0) if x0 > MARGIN else 99
 			var d_right := (x1 - x) if x1 < w - 1 - MARGIN else 99
@@ -265,7 +269,7 @@ static func build(w: int, h: int, profile: MDSCaveProfile, rng: RandomNumberGene
 		if f < 0:
 			continue
 		var ceil_y := f - heights[k] + 1
-		var limit := (floors[k + 1] + BAND + 6) if k + 1 < n_levels else (MARGIN + 2)
+		var limit := (floors[k + 1] + band + 6) if k + 1 < n_levels else (MARGIN + 2)
 		var y_top := maxi(ceil_y - rng.randi_range(5, 20), limit)
 		var wd := clampi(roundi(float(sw[0]) * rng.randf_range(0.5, 0.9)), min_h, 10)
 		var off := rng.randf_range(0.0, 400.0)
@@ -347,8 +351,62 @@ static func _smooth(air: PackedByteArray, w: int, h: int, passes: int) -> Packed
 	return cur
 
 
-## Only the cells inside the room, and not at its edge, in its biggest connected piece.
-static func _inside_only(air: PackedByteArray, w: int, h: int, lo: Vector2i, inside: Dictionary) -> PackedByteArray:
+## The biggest connected piece of each old room of a merged room ([param parts]: cell -> the part it is in), the rest dropped.
+@warning_ignore("integer_division")
+static func _largest_per_part(air: PackedByteArray, w: int, h: int, lo: Vector2i, parts: Dictionary) -> PackedByteArray:
+	var n := w * h
+	var label := PackedInt32Array()
+	label.resize(n)
+	var sizes: Array = [0]
+	var part_of_label: Array = [-1]
+	var next := 0
+	var stack := PackedInt32Array()
+	for i in n:
+		if air[i] == 1 and label[i] == 0:
+			next += 1
+			var size := 0
+			stack.clear()
+			stack.append(i)
+			label[i] = next
+			while not stack.is_empty():
+				var c: int = stack[stack.size() - 1]
+				stack.resize(stack.size() - 1)
+				size += 1
+				var cx := c % w
+				var cy := c / w
+				if cx > 0 and air[c - 1] == 1 and label[c - 1] == 0:
+					label[c - 1] = next
+					stack.append(c - 1)
+				if cx < w - 1 and air[c + 1] == 1 and label[c + 1] == 0:
+					label[c + 1] = next
+					stack.append(c + 1)
+				if cy > 0 and air[c - w] == 1 and label[c - w] == 0:
+					label[c - w] = next
+					stack.append(c - w)
+				if cy < h - 1 and air[c + w] == 1 and label[c + w] == 0:
+					label[c + w] = next
+					stack.append(c + w)
+			sizes.append(size)
+			part_of_label.append(int(parts.get(lo + Vector2i(i % w, i / w), -1)))
+	var best: Dictionary = {}
+	for l in range(1, next + 1):
+		var part: int = part_of_label[l]
+		if not best.has(part) or int(sizes[l]) > int(sizes[best[part]]):
+			best[part] = l
+	var keep: Dictionary = {}
+	for part in best:
+		keep[best[part]] = true
+	var out := PackedByteArray()
+	out.resize(n)
+	for i in n:
+		if label[i] != 0 and keep.has(label[i]):
+			out[i] = 1
+	return out
+
+
+## Only the cells inside the room, and not at its edge, in its biggest connected piece (a merged room: walls where
+## its old rooms met, and the biggest piece of each of them).
+static func _inside_only(air: PackedByteArray, w: int, h: int, lo: Vector2i, inside: Dictionary, parts: Dictionary = {}) -> PackedByteArray:
 	var out := PackedByteArray()
 	out.resize(w * h)
 	for y in h:
@@ -358,7 +416,18 @@ static func _inside_only(air: PackedByteArray, w: int, h: int, lo: Vector2i, ins
 			var c := lo + Vector2i(x, y)
 			if inside.has(c) and inside.has(c + Vector2i.LEFT) and inside.has(c + Vector2i.RIGHT) and inside.has(c + Vector2i.UP) and inside.has(c + Vector2i.DOWN):
 				out[y * w + x] = 1
-	return _largest(out, w, h)
+	if parts.is_empty():
+		return _largest(out, w, h)
+	# A cell next to a cell of another part is rock: a wall two cells thick where the rooms met.
+	for c: Vector2i in parts:
+		var part: int = parts[c]
+		for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			if int(parts.get(c + d, part)) != part:
+				var local := c - lo
+				if local.x >= 0 and local.y >= 0 and local.x < w and local.y < h:
+					out[local.y * w + local.x] = 0
+				break
+	return _largest_per_part(out, w, h, lo, parts)
 
 
 @warning_ignore("integer_division")

@@ -599,11 +599,12 @@ func _measure_cave(world: MDSWorld, id: String) -> Dictionary:
 	var shapes: Dictionary = _shape_cells(painter, box).get("Terrain", {})
 	var air := PackedByteArray()
 	air.resize(box.size.x * box.size.y)
-	for c: Vector2i in painter.room_cells(world, id):
+	var inside := painter.room_cells(world, id)
+	for c: Vector2i in inside:
 		if box.has_point(c) and layer.get_cell_source_id(c) == -1 and not shapes.has(c):
 			air[(c.y - box.position.y) * box.size.x + (c.x - box.position.x)] = 1
 	painter.free_instance()
-	var out := MDSCaveStats.measure(air, box.size.x, box.size.y)
+	var out := MDSCaveStats.measure(air, box.size.x, box.size.y, inside.size())
 	out["cells"] = [box.size.x, box.size.y]
 	return out
 

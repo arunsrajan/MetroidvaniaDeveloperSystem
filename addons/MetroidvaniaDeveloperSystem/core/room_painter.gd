@@ -1876,7 +1876,12 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 	elif MDSCaveShapes.wanted(cave):
 		# The open space as shapes (a T, a U, an H...): see MDSCaveShapes.
 		var climb := climb_params(world)
-		solid = MDSCaveShapes.rock(inside, lo, hi, cave, rng, int(climb.tall), int(climb.step))
+		var shaped := cave
+		if MDSCaveSkeleton.wanted(cave) and not part_of.is_empty():
+			# A merged room: a Skeleton cave leaves walls where its old rooms met, as Natural does.
+			shaped = cave.duplicate()
+			shaped["parts"] = part_of
+		solid = MDSCaveShapes.rock(inside, lo, hi, shaped, rng, int(climb.tall), int(climb.step))
 	else:
 		# Initial rock: outline band thick, thinning inwards with noise.
 		var chance := {1: 1.0, 2: 0.8, 3: 0.42, 4: 0.18, 5: 0.06}

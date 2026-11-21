@@ -2,18 +2,20 @@
 class_name MDSCaveStats
 extends RefCounted
 ## Shape statistics of a cave, the measurable half of an [MDSCaveProfile]: how open it is, how much floor and how
-## many ledges per area, how thick its passages are. [param air] holds [code]w * h[/code] bytes, row by row,
-## 1 = open and 0 = rock; one cell is one tile. A subset of the research tool cave_metrics.py (the skeleton
-## statistics, segments and width spread, need thinning and are not ported); the two agree (see
-## rea/scripts/114-proto-eval.py, "parity").
+## many ledges per area, how thick its passages are and how much that varies. [param air] holds [code]w * h[/code]
+## bytes, row by row, 1 = open and 0 = rock; one cell is one tile. [param area] is the number of cells of the room
+## when they aren't all of the box (an L, T or curved room); 0 means all of them. The statistics that need a thinned
+## skeleton (tunnel segments, width spread) aren't here.
 
 ## The keys [method measure] returns.
 const KEYS := ["air_frac", "floor_per_100u2", "ledges_per_100u2", "thickness_p10", "thickness_p50", "thickness_p90", "thickness_spread"]
 
 
 @warning_ignore("integer_division")
-static func measure(air: PackedByteArray, w: int, h: int) -> Dictionary:
+static func measure(air: PackedByteArray, w: int, h: int, area := 0) -> Dictionary:
 	var n := w * h
+	# The densities are per cell of the room: [param area] when it isn't the whole box.
+	var total := maxf(1.0, float(area) if area > 0 else float(n))
 	var open := 0
 	for i in n:
 		open += air[i]
@@ -100,9 +102,9 @@ static func measure(air: PackedByteArray, w: int, h: int) -> Dictionary:
 	var t10 := _percentile(thick, 0.1)
 	var t50 := _percentile(thick, 0.5)
 	return {
-		"air_frac": float(open) / maxf(1.0, float(n)),
-		"floor_per_100u2": float(floors) / maxf(1.0, float(n)) * 100.0,
-		"ledges_per_100u2": float(ledges) / maxf(1.0, float(n)) * 100.0,
+		"air_frac": float(open) / total,
+		"floor_per_100u2": float(floors) / total * 100.0,
+		"ledges_per_100u2": float(ledges) / total * 100.0,
 		"thickness_p10": t10,
 		"thickness_p50": t50,
 		"thickness_p90": _percentile(thick, 0.9),

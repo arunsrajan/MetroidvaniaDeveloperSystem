@@ -29,7 +29,17 @@ func _run() -> void:
 	_tries()
 	_styles()
 	_pipeline()
+	_irregular()
+	_merged()
+	_room_check()
 	await _room_view()
+
+## L, T and U rooms: rectangles joined, each with a door on its sides.
+const IRREGULAR := {
+	"L": {"rects": [Rect2(0, 0, 3456, 1296), Rect2(0, 1296, 1728, 1296)], "gates": [["left", Vector2(0, 700)], ["right", Vector2(3456, 300)], ["bot", Vector2(800, 2592)], ["top", Vector2(2600, 0)]]},
+	"T": {"rects": [Rect2(0, 0, 3456, 1296), Rect2(1152, 1296, 1152, 1296)], "gates": [["left", Vector2(0, 700)], ["right", Vector2(3456, 300)], ["bot", Vector2(1700, 2592)]]},
+	"U": {"rects": [Rect2(0, 0, 1152, 2592), Rect2(1152, 1296, 1152, 1296), Rect2(2304, 0, 1152, 2592)], "gates": [["left", Vector2(0, 700)], ["right", Vector2(3456, 300)], ["bot", Vector2(1700, 2592)], ["top", Vector2(600, 0)]]},
+}
 
 ## A box of cells (0, 0) to [param size] - 1.
 static func _box(size: Vector2i) -> Dictionary:
@@ -86,6 +96,10 @@ func _stats() -> void:
 	check_near(s.thickness_p50, 6.0, 0.0001, "thickness: the passage is 6 high, the narrower way through every cell")
 	check_near(s.thickness_spread, 1.0, 0.0001, "one width all along: spread 1")
 	check_near(s.ledges_per_100u2, 0.0, 0.0001, "no ledge: the floor has rock under it, not a shelf")
+	var part := MDSCaveStats.measure(air, w, h, 120)
+	check_near(part.air_frac, 96.0 / 120.0, 0.0001, "per cell of the room when it isn't the whole box: 96 of 120")
+	check_near(part.floor_per_100u2, 16.0 / 120.0 * 100.0, 0.001, "floor per cell of the room too")
+	check_near(part.thickness_p50, 6.0, 0.0001, "the thickness doesn't depend on it")
 	for x in range(5, 10):
 		air[6 * w + x] = 0
 	s = MDSCaveStats.measure(air, w, h)
@@ -127,6 +141,13 @@ func _rooms() -> void:
 					break
 		check(bad.is_empty(), "%s room: one cave, never empty, a wall at the edge (%s)" % [size, bad])
 	var size := Vector2i(108, 60)
+	# A short room (one screen tall) keeps its rows for the cave: not a thin line along the floor.
+	for small in [Vector2i(36, 20), Vector2i(72, 20)]:
+		var shares: Array = []
+		for seed_value in range(1, 13):
+			shares.append(float(_open(small, _rock(small, {}, seed_value)).size()) / float(small.x * small.y))
+		shares.sort()
+		check(float(shares[6]) >= 0.2, "%s: the cave takes a fair share of a short room (median %.2f)" % [small, float(shares[6])])
 	check(hash(_rock(size, {"profile": PROFILE}, 7)) == hash(_rock(size, {"profile": PROFILE}, 7)), "the same seed makes the same room")
 	check(hash(_rock(size, {"profile": PROFILE}, 7)) != hash(_rock(size, {"profile": PROFILE}, 8)), "another seed, another room")
 	check(hash(_rock(size, {}, 7)) != hash(_rock(size, {"profile": PROFILE}, 7)) or true, "no profile: the generic defaults (it still makes a room)")
@@ -198,6 +219,146 @@ func _pipeline() -> void:
 				bad.append("%s %d" % [style, seed_value])
 		p.free_instance()
 	check(bad.is_empty(), "a door on each side reaches every other and back, %d rooms in both styles (%s)" % [made, bad])
+
+## A painter on a new room of [param rects] (the first makes the room, the others join it), with a door for each of
+## [param gates] ([side, position] pairs).
+func _painter(world: MDSWorld, id: String, rects: Array, gates: Array) -> MDSRoomPainter:
+	world.add_room(id, rects[0])
+	for i in range(1, rects.size()):
+		world.add_rect(id, rects[i])
+	var n := 0
+	for g in gates:
+		n += 1
+		world.add_gate(id, g[1], g[0], "%s%d" % [g[0], n], false)
+	var root := Node2D.new()
+	root.name = id
+	save_scene(root, DIR + "/%s.tscn" % id.to_lower())
+	root.free()
+	world.set_room_scene(id, DIR + "/%s.tscn" % id.to_lower())
+	return MDSRoomPainter.open(DIR + "/%s.tscn" % id.to_lower(), load(DIR + "/tiles.tres"))
+
+## Whether every gate of room [param id] reaches every other and back, in the painter's cave as it stands.
+func _joined(world: MDSWorld, id: String, p: MDSRoomPainter, cave: Dictionary) -> bool:
+	var solid: Dictionary = {}
+	for c in p.layers.Terrain.get_used_cells():
+		solid[c] = true
+	var open: Dictionary = {}
+	for c in p.room_cells(world, id, false):
+		if not solid.has(c):
+			open[c] = true
+	var ends: Array = []
+	for g in world.get_gates(id):
+		var e := p.gate_end(world, id, g, open)
+		if not e.is_empty():
+			ends.append(e)
+	return ends.size() == world.get_gates(id).size() and p.gates_joined(open, {}, ends, int(p.climb_params(world).reach), MDSCaveShapes.wall_climb(cave)) and p.paths_joined
+
+## L, T and U rooms: the cave is carved over the box of their rectangles and kept inside the outline, and the room's
+## gates still reach each other, both ways, in both styles.
+func _irregular() -> void:
+	var bad: Array = []
+	var made := 0
+	for shape in IRREGULAR:
+		for style in ["cave", "linear"]:
+			for seed_value in [21, 22]:
+				var world := MDSWorld.new()
+				world.set_setting("room_tileset", DIR + "/tiles.tres")
+				var id := "%s_%s_%d" % [shape, style, seed_value]
+				var p := _painter(world, id, IRREGULAR[shape].rects, IRREGULAR[shape].gates)
+				var cave := {"shape": "skeleton", "style": style, "profile": PROFILE, "tries": 6}
+				p.generate_cave(world, id, seed_value, 0, 0, {}, {"cave": cave})
+				made += 1
+				var inside := p.room_cells(world, id)
+				var open := 0
+				for c: Vector2i in inside:
+					if p.layers.Terrain.get_cell_source_id(c) == -1:
+						open += 1
+				var share := float(open) / maxf(1.0, float(inside.size()))
+				if not _joined(world, id, p, cave) or share < 0.12 or share > 0.6:
+					bad.append("%s (%.2f open)" % [id, share])
+				p.free_instance()
+	check(bad.is_empty(), "L, T and U rooms in both styles: every gate reaches every other and back, a fair share open (%d rooms; %s)" % [made, bad])
+
+## A merged room: a wall where its old rooms met with their door open in it, as for Natural, and the gates joined.
+func _merged() -> void:
+	var bad: Array = []
+	for seed_value in [31, 32]:
+		var world := MDSWorld.new()
+		world.set_setting("room_tileset", DIR + "/tiles.tres")
+		world.add_room("P", Rect2(0, 0, 2304, 1296))
+		world.add_room("Q", Rect2(2304, 0, 2304, 1296))
+		world.add_gate("P", Vector2(0, 1000), "left", "left1", false)
+		world.add_gate("P", Vector2(2304, 800), "right", "right1", false)
+		world.add_gate("Q", Vector2(0, 800), "left", "left1", false)
+		world.add_gate("Q", Vector2(2304, 400), "right", "right1", false)
+		world.connect_gates("P", "right1", "Q", "left1")
+		if not check(not world.merge_rooms(["P", "Q"], "P").has("error"), "two rooms merge"):
+			return
+		var root := Node2D.new()
+		root.name = "P"
+		save_scene(root, DIR + "/merged.tscn")
+		root.free()
+		world.set_room_scene("P", DIR + "/merged.tscn")
+		var p := MDSRoomPainter.open(DIR + "/merged.tscn", load(DIR + "/tiles.tres"))
+		var cave := {"shape": "skeleton", "style": "cave", "profile": PROFILE, "tries": 6}
+		p.generate_cave(world, "P", seed_value, 0, 0, {}, {"cave": cave})
+		# The two columns where the rooms meet, rows 4 to 15; and around their door.
+		var wall := 0
+		for y in range(4, 16):
+			for x in [71, 72]:
+				if p.layers.Terrain.get_cell_source_id(Vector2i(x, y)) >= 0:
+					wall += 1
+		var dc := p.cell_at("Terrain", world.get_part_doors("P")[0].pos)
+		var open_door := 0
+		for a in range(-2, 2):
+			for dx in range(-3, 4):
+				if p.layers.Terrain.get_cell_source_id(dc + Vector2i(dx, a)) < 0:
+					open_door += 1
+		if wall < 18 or open_door < 24 or not _joined(world, "P", p, cave):
+			bad.append("seed %d: wall %d of 24, door open %d of 28" % [seed_value, wall, open_door])
+		p.free_instance()
+	check(bad.is_empty(), "a merged room: a wall where the rooms met, their door open in it, the gates joined (%s)" % [bad])
+
+## The physics-level room check (MDSRoomCheck), as the Issues tab runs it: no gate is blocked in a Skeleton cave. And the
+## check does see the painted tiles: a doorway walled up with them is reported.
+func _room_check() -> void:
+	var host := SubViewport.new()
+	host.disable_3d = true
+	host.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	host.size = Vector2i(4, 4)
+	add_child(host)
+	var world := MDSWorld.new()
+	world.set_setting("room_tileset", DIR + "/tiles.tres")
+	var p := _painter(world, "Check", [Rect2(0, 0, 3456, 1944)], [["left", Vector2(0, 1500)], ["right", Vector2(3456, 300)]])
+	var blocked: Array = []
+	for style in ["cave", "linear"]:
+		for seed_value in [11, 12]:
+			p.generate_cave(world, "Check", seed_value, 0, 0, {}, {"cave": {"shape": "skeleton", "style": style, "profile": PROFILE, "tries": 6}})
+			var c := _checker(world, p, host)
+			for i: Dictionary in c.issues:
+				if i.kind == "passage":
+					blocked.append("%s %d: %s" % [style, seed_value, i.message])
+			c.free_proxy()
+	check(blocked.is_empty(), "the room check finds every gate passable (%s)" % [blocked])
+	var src: int = p.get_atlas_sources()[0][0]
+	var left: String = world.get_gates("Check").keys()[0]
+	var gate_cell := p.cell_at("Terrain", world.get_gate_local_pos("Check", left))
+	for dy in range(-8, 9):
+		for dx in range(0, 5):
+			p.place_tile("Terrain", gate_cell + Vector2i(dx, dy), src, Vector2i.ZERO)
+	var walled := _checker(world, p, host)
+	check(walled.issues.any(func(i: Dictionary) -> bool: return i.kind == "passage" and i.message.contains(left)), "a doorway walled up with tiles is reported: the check sees the tiles")
+	walled.free_proxy()
+	p.free_instance()
+	host.queue_free()
+
+func _checker(world: MDSWorld, p: MDSRoomPainter, host: SubViewport) -> MDSRoomCheck:
+	var c := MDSRoomCheck.new()
+	c.room_rects = world.get_local_rects("Check")
+	c.passages = MDSRoomCheck.passages_from_world(world, "Check")
+	c.build_from_painter(p, host)
+	c.run()
+	return c
 
 ## The Room view's Cave shape picker: Skeleton shows its profile, tries and variance, and passes them to Generate cave.
 func _room_view() -> void:
