@@ -10,10 +10,15 @@ const DEFAULT_FILTERS_ON: PackedStringArray = ["Save Points", "Bosses"]
 const EXPORT_DIR := "res://mds_exports"
 const SETTING_WORLD_FILE := "metroidvania_developer_system/world_file"
 
+# l10n: text
 const SECTION_TOOLS := "Map tools"
+# l10n: text
 const SECTION_DISPLAY := "Map display"
+# l10n: text
 const SECTION_MARKERS := "Markers"
+# l10n: text
 const SECTION_ROOM := "Room painting"
+# l10n: text
 const SECTION_FULL := "Full view"
 
 enum WorldItem { NEW = 1000, OPEN, IMPORT_METSYS, RELOAD, IMPORT_IMAGE }
@@ -172,6 +177,7 @@ func _build_ui() -> void:
 	# World: mode switch (added by the host), world file, scenes, export.
 	toolbar = side_panel.add_section("World")
 	world_picker = OptionButton.new()
+	MDSL10n.raw(world_picker) # world files, not words of the panel
 	world_picker.fit_to_longest_item = false
 	world_picker.clip_text = true
 	world_picker.tooltip_text = "World file (.mdsworld.json)"
@@ -228,6 +234,7 @@ func _build_ui() -> void:
 	var tools := side_panel.add_section(SECTION_TOOLS)
 	var tool_grid := MDSSidePanel.grid(tools, 2)
 	var group := ButtonGroup.new()
+	# l10n: text
 	var short_names := ["Select", "Room", "Extend", "Gate", "Pin", "Paint", "Erase", "Area", "Generate", "Paint area"]
 	for i in MDSWorldCanvas.TOOL_NAMES.size():
 		var b := MDSUi.button(short_names[i], MDSWorldCanvas.TOOL_NAMES[i] + "\n" + MDSWorldCanvas.TOOL_HINTS[i])
@@ -286,6 +293,7 @@ func _build_ui() -> void:
 	style_picker.item_selected.connect(_on_style_picked)
 	MDSSidePanel.field(display, "Style", style_picker)
 	color_picker = OptionButton.new()
+	# l10n: text
 	var modes := [[MDSMapCanvas.ColorMode.AREA, "Area"], [MDSMapCanvas.ColorMode.ROOM_TYPE, "Room type"], [MDSMapCanvas.ColorMode.PROGRESSION, "Progression"], [MDSMapCanvas.ColorMode.SAVE_DISTANCE, "Save distance"], [MDSMapCanvas.ColorMode.STATUS, "Build status"]]
 	for m in modes:
 		color_picker.add_item(m[1], m[0])
@@ -297,6 +305,7 @@ func _build_ui() -> void:
 	view_menu = MDSUi.menu_button("Show on map...")
 	var vp := view_menu.get_popup()
 	vp.hide_on_checkable_item_selection = false
+	# l10n: text
 	var view_items := [
 		[ViewItem.LABELS, "Room labels", "labels"], [ViewItem.AREA_LABELS, "Area names", "area_labels"],
 		[ViewItem.TERRAIN, "Terrain silhouettes", "terrain"], [ViewItem.PREVIEWS, "Scene previews (room pictures, else live)", "previews"],
@@ -1388,6 +1397,10 @@ func _editor_files_ready() -> void:
 static func _editor_files_busy(fs: Object) -> bool:
 	return fs.is_scanning() or (fs.has_method(&"is_importing") and fs.call(&"is_importing"))
 
+## Called by the host after a change of language: what is written by code is written again.
+func refresh_language() -> void:
+	side_panel.refresh_language()
+
 func on_scene_saved(p: String) -> void:
 	if world and not world.find_room_by_scene(p).is_empty():
 		_scan_paths([p])
@@ -1808,6 +1821,7 @@ func _rebuild_area_editor() -> void:
 	MDSUi.commit_line(zone, func(t: String) -> void: world.set_area_value(a, "map_zone", t.strip_edges()))
 	# Presentation: MDSAreaTitle, MDSMusic, MDSObjectiveBanner and MDSWorldGame read these.
 	var data: Dictionary = world.get_areas()[a]
+	# l10n: text
 	var fields := [
 		["Title", "title", "", a, "Shown by MDSAreaTitle when the player arrives. Empty: the area's name"],
 		["Subtitle", "subtitle", "", "smaller line under the title", ""],
@@ -2846,6 +2860,7 @@ func _show_settings() -> void:
 	cam_title.add_theme_color_override("font_color", get_theme_color(&"accent_color", &"Editor"))
 	grid.add_child(cam_title)
 	grid.add_child(MDSUi.hint("Used by MDSRoomCamera in the game scene"))
+	# l10n: text
 	var options := [
 		["Camera backend", "backend", MDSRoomCamera.BACKEND_NAMES, "Auto uses PhantomCamera2D when the Phantom Camera addon is enabled, else Camera2D."],
 		["Irregular rooms", "confine", MDSRoomCamera.CONFINE_NAMES, "Room shape: the camera is limited to the zone (largest rectangle of the room's shape) the player is in and glides between zones, so notches of L- or U-shaped rooms stay hidden."],
@@ -2864,6 +2879,7 @@ func _show_settings() -> void:
 		var key: String = o[1]
 		opt.item_selected.connect(func(idx: int) -> void: set_cam.call(key, idx))
 		grid.add_child(opt)
+	# l10n: text
 	var numbers := [
 		["Transition time (s)", "transition_time", 0.35],
 		["Zone glide time (s)", "zone_blend_time", 0.5],

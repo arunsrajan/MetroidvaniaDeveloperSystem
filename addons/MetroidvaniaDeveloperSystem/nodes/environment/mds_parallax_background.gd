@@ -30,10 +30,12 @@ extends MDSEnvironmentEffect
 enum Preset { CUSTOM, DUSK_MOUNTAINS, MISTY_FOREST, RUINED_CITY, DESERT_DUNES, DEEP_CAVERN, SNOWY_PEAKS, VOLCANIC, NIGHT_SKY, SUNKEN_GARDEN, DUSTY_WASTES, NONE }
 ## Ids of the presets (as the Parallax fields write them), in [enum Preset] order.
 const PRESET_IDS: PackedStringArray = ["custom", "dusk_mountains", "misty_forest", "ruined_city", "desert_dunes", "deep_cavern", "snowy_peaks", "volcanic", "night_sky", "sunken_garden", "dusty_wastes", "none"]
+# l10n: text
 const PRESET_NAMES: PackedStringArray = ["Custom", "Dusk mountains", "Misty forest", "Ruined city at night", "Desert dunes", "Deep cavern", "Snowy peaks", "Volcanic", "Night sky", "Sunken garden", "Dusty wastes", "None"]
 ## Foreground starting points; CUSTOM keeps the foreground layers as they are.
 enum Foreground { NONE, CUSTOM, FOLIAGE, CAVE_ROCKS, RUINS, MIST }
 const FOREGROUND_IDS: PackedStringArray = ["none", "custom", "foliage", "cave_rocks", "ruins", "mist"]
+# l10n: text
 const FOREGROUND_NAMES: PackedStringArray = ["None", "Custom", "Foliage", "Cave rocks", "Ruins", "Mist"]
 ## The z the foreground layers draw at (not relative to the background's): over the room's
 ## foreground tiles (20), shapes (22) and stamps (24).

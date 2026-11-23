@@ -33,6 +33,7 @@ func _init() -> void:
 	box.add_child(grid)
 	grid.add_child(MDSUi.label("Keep"))
 	_keep = OptionButton.new()
+	MDSL10n.raw(_keep) # room ids: the choice is read back from the item's text
 	_keep.tooltip_text = "The room that stays: its id, its place in the map's order, its scene and its settings (names, notes and abilities it lacks come from the others). The others' gates to the rest of the map are renamed where their names are taken"
 	grid.add_child(_keep)
 	_content = CheckBox.new()

@@ -22,7 +22,9 @@ extends MDSEnvironmentEffect
 enum Style { BOKEH, AURORA, NEBULA, MOLTEN_BLOBS, DEEP_WATER, EMBER_GLOW, STORM_CLOUDS, FOREST_CANOPY, SUNSET_HAZE, CRYSTAL_CAVE, VOID_PULSE, BLOOD_MOON, ARCANE_VORTEX, FROZEN_NIGHT, SPORE_DRIFT, INFECTION, STARFIELD, HOLY_LIGHT, TOXIC_SWAMP, PICTURE }
 ## Ids of the styles (as the "Animated bg" fields write them), in [enum Style] order.
 const STYLE_IDS: PackedStringArray = ["bokeh", "aurora", "nebula", "molten_blobs", "deep_water", "ember_glow", "storm_clouds", "forest_canopy", "sunset_haze", "crystal_cave", "void_pulse", "blood_moon", "arcane_vortex", "frozen_night", "spore_drift", "infection", "starfield", "holy_light", "toxic_swamp", "picture"]
+# l10n: text
 const STYLE_NAMES: PackedStringArray = ["Bokeh lights", "Aurora", "Nebula", "Molten blobs", "Deep water", "Ember glow", "Storm clouds", "Forest canopy", "Sunset haze", "Crystal cave", "Void pulse", "Blood moon", "Arcane vortex", "Frozen night", "Spore drift", "Infection", "Starfield", "Holy light", "Toxic swamp", "Your picture, blurred"]
+# l10n: text
 ## What each style shows, in [enum Style] order.
 const STYLE_INFO: PackedStringArray = [
 	"Out-of-focus lights drifting at three depths, like a city or lanterns seen through a lens",

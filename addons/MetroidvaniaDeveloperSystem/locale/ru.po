@@ -1,0 +1,3963 @@
+# Russian translation of the Metroidvania Developer System panel.
+# Edit the strings after msgstr; keep placeholders (%s, %d, {name}), [tags] and && as they are.
+msgid ""
+msgstr ""
+"Project-Id-Version: Metroidvania Developer System\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-MDS-Status: beta\n"
+
+msgid "Rectangle or square"
+msgstr "Прямоугольник или квадрат"
+
+msgid "Irregular blocks"
+msgstr "Неправильные блоки"
+
+msgid "Freeform (curvy)"
+msgstr "Свободная форма (извилистая)"
+
+msgid "Hybrid (curves, slants and blocks)"
+msgstr "Гибрид (кривые, скосы и блоки)"
+
+msgid "Cave (nonlinear, ledges)"
+msgstr "Пещера (нелинейная, уступы)"
+
+msgid "Linear (straight, wall climb)"
+msgstr "Линейная (прямые стены, лазание по стенам)"
+
+msgid "Outdoor (open sky, hills)"
+msgstr "Открытая местность (небо, холмы)"
+
+msgid "Arena (flat floor, tiers)"
+msgstr "Арена (ровный пол, ярусы)"
+
+msgid "Natural (from the room's outline)"
+msgstr "Естественная (по контуру комнаты)"
+
+msgid "i (a shaft and its chamber)"
+msgstr "i (шахта и её зал)"
+
+msgid "Cross (+)"
+msgstr "Крест (+)"
+
+msgid "Ring (O)"
+msgstr "Кольцо (O)"
+
+msgid "S (switchbacks)"
+msgstr "S (серпантин)"
+
+msgid "Freeform"
+msgstr "Свободная форма"
+
+msgid "Skeleton (trunk and branches)"
+msgstr "Скелет (ствол и ветви)"
+
+msgid "Mixed (any)"
+msgstr "Смесь (любые)"
+
+msgid "Several picked"
+msgstr "Несколько выбранных"
+
+msgid "Nothing (paper)"
+msgstr "Ничего (бумага)"
+
+msgid "Terrain (solid)"
+msgstr "Местность (твёрдая)"
+
+msgid "Platform (one-way)"
+msgstr "Платформа (односторонняя)"
+
+msgid "Background"
+msgstr "Фон"
+
+msgid "Foreground"
+msgstr "Передний план"
+
+msgid "Freeform styles"
+msgstr "Стили свободной формы"
+
+msgid "Solid colors"
+msgstr "Сплошные цвета"
+
+msgid "Tiles (spritesheets, terrains)"
+msgstr "Тайлы (спрайт-листы, местности)"
+
+msgid "The drawing itself"
+msgstr "Сам рисунок"
+
+msgid "Passage blocked"
+msgstr "Проход закрыт"
+
+msgid "No headroom"
+msgstr "Нет места над головой"
+
+msgid "Platform can't be landed on"
+msgstr "На платформу нельзя приземлиться"
+
+msgid "Floating"
+msgstr "Висит в воздухе"
+
+msgid "Buried"
+msgstr "Утоплен в земле"
+
+msgid "Exit out of reach"
+msgstr "Выход недосягаем"
+
+msgid "Column"
+msgstr "Колонна"
+
+msgid "Arch (broken)"
+msgstr "Арка (разрушенная)"
+
+msgid "Garden wall"
+msgstr "Садовая стена"
+
+msgid "Mound"
+msgstr "Холмик"
+
+msgid "Stalactite curtain"
+msgstr "Завеса сталактитов"
+
+msgid "A broken column: plinth, a slightly swelling shaft, a jagged break at the top"
+msgstr "Сломанная колонна: основание, слегка утолщающийся ствол, неровный облом наверху"
+
+msgid "A ruined arch: one pier standing, the arch broken off partway over, the stump of the far pier"
+msgstr "Разрушенная арка: одна опора стоит, арка обломана на полпути, от дальней опоры остался обломок"
+
+msgid "A low, overgrown garden wall"
+msgstr "Низкая заросшая садовая стена"
+
+msgid "A low rounded mound of rock or earth"
+msgstr "Низкий округлый холмик из камня или земли"
+
+msgid "A row of stalactites hanging from a ceiling"
+msgstr "Ряд сталактитов, свисающих с потолка"
+
+msgid "Brush"
+msgstr "Кисть"
+
+msgid "Rectangle"
+msgstr "Прямоугольник"
+
+msgid "Irregular"
+msgstr "Неровная"
+
+msgid "Left curved"
+msgstr "Изогнутая слева"
+
+msgid "Right curved"
+msgstr "Изогнутая справа"
+
+msgid "Top curved"
+msgstr "Изогнутая сверху"
+
+msgid "Bottom curved"
+msgstr "Изогнутая снизу"
+
+msgid "Freehand brush"
+msgstr "Кисть от руки"
+
+msgid "Drag a rectangle to fill"
+msgstr "Протяните прямоугольник для заливки"
+
+msgid "Drag a box: an organic rock blob that fills it (Irregular % sets how rough)"
+msgstr "Протяните рамку: органичная глыба породы, заполняющая её (насколько она неровная, задаёт «Неровная %»)"
+
+msgid "Drag a box: a mass attached on the right whose left face follows the curve"
+msgstr "Протяните рамку: масса, примыкающая справа, левая грань которой следует кривой"
+
+msgid "Drag a box: a mass attached on the left whose right face follows the curve"
+msgstr "Протяните рамку: масса, примыкающая слева, правая грань которой следует кривой"
+
+msgid "Drag a box: ground whose surface follows the curve (hills, bowls, ramps)"
+msgstr "Протяните рамку: земля, поверхность которой следует кривой (холмы, впадины, пандусы)"
+
+msgid "Drag a box: a ceiling mass whose underside follows the curve (arches, overhangs)"
+msgstr "Протяните рамку: потолочная масса, нижняя сторона которой следует кривой (арки, навесы)"
+
+msgid "Convex (dome)"
+msgstr "Выпуклая (купол)"
+
+msgid "Concave (bowl)"
+msgstr "Вогнутая (чаша)"
+
+msgid "Slope (straight ramp)"
+msgstr "Склон (прямой пандус)"
+
+msgid "Rounded corner (convex ramp)"
+msgstr "Скруглённый угол (выпуклый пандус)"
+
+msgid "Quarter-pipe (concave ramp)"
+msgstr "Квотер-пайп (вогнутый пандус)"
+
+msgid "S-curve (eased ramp)"
+msgstr "S-кривая (плавный пандус)"
+
+msgid "Hill (bell)"
+msgstr "Холм (колокол)"
+
+msgid "Mesa (flat top)"
+msgstr "Меса (плоская вершина)"
+
+msgid "Rolling hills (wave)"
+msgstr "Пологие холмы (волна)"
+
+msgid "Steps (stairs)"
+msgstr "Ступени (лестница)"
+
+msgid "Spikes (stalagmites)"
+msgstr "Шипы (сталагмиты)"
+
+msgid "MetSys mode"
+msgstr "Режим MetSys"
+
+msgid "Non-linear mode"
+msgstr "Нелинейный режим"
+
+msgid "Fight editor"
+msgstr "Редактор боёв"
+
+msgid "Dock in bottom panel"
+msgstr "Закрепить в нижней панели"
+
+msgid "Dock in main screen (MetDevSys tab)"
+msgstr "Закрепить на главном экране (вкладка MetDevSys)"
+
+msgid "Detach to floating window"
+msgstr "Открепить в плавающее окно"
+
+msgid "Dock on the right"
+msgstr "Закрепить справа"
+
+msgid "MetSys mode: MetSys' grid map (MapData.txt).\nNon-linear mode: draw and place scenes freely on a world map (.mdsworld.json).\nFight editor: a boss's or an enemy's moves as a graph."
+msgstr "Режим MetSys: сеточная карта MetSys (MapData.txt).\nНелинейный режим: свободное рисование и размещение сцен на карте мира (.mdsworld.json).\nРедактор боёв: приёмы босса или врага в виде графа."
+
+msgid "Detach MetDevSys into its own window, or dock it in the editor"
+msgstr "Открепить MetDevSys в отдельное окно или закрепить в редакторе"
+
+msgid "MetDevSys is in the main screen. Detach it into its own window, or dock it in the editor"
+msgstr "MetDevSys на главном экране. Открепите его в отдельное окно или закрепите в редакторе"
+
+msgid "MetDevSys is in the floating window. Detach it into its own window, or dock it in the editor"
+msgstr "MetDevSys в плавающем окне. Открепите его в отдельное окно или закрепите в редакторе"
+
+msgid "MetDevSys is in the right dock. Detach it into its own window, or dock it in the editor"
+msgstr "MetDevSys в правой панели. Открепите его в отдельное окно или закрепите в редакторе"
+
+msgid "MetDevSys is in the bottom panel. Detach it into its own window, or dock it in the editor"
+msgstr "MetDevSys в нижней панели. Открепите его в отдельное окно или закрепите в редакторе"
+
+msgid "Auto (%s)"
+msgstr "Авто (%s)"
+
+msgid "Others (coming soon)"
+msgstr "Другие (скоро)"
+
+msgid "Language of the MetDevSys panel"
+msgstr "Язык панели MetDevSys"
+
+msgid "Save Points"
+msgstr "Точки сохранения"
+
+msgid "Bosses"
+msgstr "Боссы"
+
+msgid "Collectibles"
+msgstr "Предметы"
+
+msgid "Teleporters"
+msgstr "Телепорты"
+
+msgid "Shops"
+msgstr "Магазины"
+
+msgid "Enemies"
+msgstr "Враги"
+
+msgid "No MapData.txt found. Use the map picker to browse for one."
+msgstr "MapData.txt не найден. Найдите его через выбор карты."
+
+msgid "Map"
+msgstr "Карта"
+
+msgid "MapData file to show"
+msgstr "Файл MapData для показа"
+
+msgid "Reload the map file and re-run analysis"
+msgstr "Перезагрузить файл карты и заново запустить анализ"
+
+msgid "Reload"
+msgstr "Перезагрузить"
+
+msgid "Scan"
+msgstr "Сканировать"
+
+msgid "Scan room scenes for features and terrain"
+msgstr "Просканировать сцены комнат: объекты и местность"
+
+msgid "Rescan map scenes"
+msgstr "Пересканировать сцены карты"
+
+msgid "Scan project folder (finds unplaced rooms)..."
+msgstr "Сканировать папку проекта (найдёт неразмещённые комнаты)..."
+
+msgid "Find MapData files"
+msgstr "Найти файлы MapData"
+
+msgid "Check room geometry (physics)"
+msgstr "Проверить геометрию комнат (физика)"
+
+msgid "Player settings for the checks..."
+msgstr "Параметры игрока для проверок..."
+
+msgid "Export"
+msgstr "Экспорт"
+
+msgid "Map data (JSON)"
+msgstr "Данные карты (JSON)"
+
+msgid "Map image (PNG)"
+msgstr "Изображение карты (PNG)"
+
+msgid "Room graph (Graphviz .dot)"
+msgstr "Граф комнат (Graphviz .dot)"
+
+msgid "Design document (Markdown)"
+msgstr "Дизайн-документ (Markdown)"
+
+msgid "Side tabs"
+msgstr "Боковые вкладки"
+
+msgid "Show the Rooms / Inspect / Progress... tabs on the right. Hide them for a bigger map"
+msgstr "Показывать справа вкладки «Комнаты» / «Свойства» / «Прогресс»... Скройте их, чтобы увеличить карту"
+
+msgid "Map display"
+msgstr "Отображение карты"
+
+msgid "Layer"
+msgstr "Слой"
+
+msgid "Color"
+msgstr "Цвет"
+
+msgid "Show on map..."
+msgstr "Показать на карте..."
+
+msgid "Room labels"
+msgstr "Подписи комнат"
+
+msgid "Terrain silhouettes"
+msgstr "Силуэты местности"
+
+msgid "Doors, gates && one-ways"
+msgstr "Двери, переходы && односторонние"
+
+msgid "Live scene previews (slow)"
+msgstr "Живой предпросмотр сцен (медленно)"
+
+msgid "Custom elements"
+msgstr "Пользовательские элементы"
+
+msgid "Markers"
+msgstr "Маркеры"
+
+msgid "Pins"
+msgstr "Метки"
+
+msgid "Issue badges"
+msgstr "Значки проблем"
+
+msgid "Legend"
+msgstr "Легенда"
+
+msgid "Grid"
+msgstr "Сетка"
+
+msgid "Auto-scan map scenes on load"
+msgstr "Автосканирование сцен карты при загрузке"
+
+msgid "Zoom out"
+msgstr "Отдалить"
+
+msgid "Zoom in (or mouse wheel over the map)"
+msgstr "Приблизить (или колесо мыши над картой)"
+
+msgid "Fit"
+msgstr "Вписать"
+
+msgid "Fit the layer in view (F)"
+msgstr "Вписать слой в окно (F)"
+
+msgid "Clear route"
+msgstr "Очистить маршрут"
+
+msgid "Clear the highlighted route / selection highlight (Esc)"
+msgstr "Убрать подсветку маршрута / выделения (Esc)"
+
+msgid "Show markers on the map and filter the room list"
+msgstr "Показать маркеры на карте и отфильтровать список комнат"
+
+msgid "Add map pin"
+msgstr "Добавить метку на карту"
+
+msgid "Pin text, e.g. \"Hidden wall to the secret room\""
+msgstr "Текст метки, напр. «Скрытая стена в тайную комнату»"
+
+msgid "Search rooms, areas, bosses, abilities..."
+msgstr "Поиск комнат, областей, боссов, способностей..."
+
+msgid "Only rooms matching the Show filters"
+msgstr "Только комнаты, подходящие под фильтры показа"
+
+msgid "Room"
+msgstr "Комната"
+
+msgid "Area"
+msgstr "Область"
+
+msgid "Sphere"
+msgstr "Сфера"
+
+msgid "Click: select   Double-click: open scene"
+msgstr "Щелчок: выбрать   Двойной щелчок: открыть сцену"
+
+msgid "Browse..."
+msgstr "Обзор..."
+
+msgid "Map file changed on disk, reloaded."
+msgstr "Файл карты изменился на диске и перезагружен."
+
+msgid "Player for the room checks"
+msgstr "Игрок для проверок комнат"
+
+msgid "Link cancelled."
+msgstr "Связь отменена."
+
+msgid "Select a room on the map to inspect and annotate it.\n\nRight-click the map for more actions: pins, play from here, routes, links.\nShift+click a second room to show the route between them."
+msgstr "Выберите комнату на карте, чтобы просмотреть её свойства и добавить заметки.\n\nЩёлкните карту правой кнопкой для других действий: метки, запуск отсюда, маршруты, связи.\nShift+щелчок по второй комнате покажет маршрут между ними."
+
+msgid "Open scene"
+msgstr "Открыть сцену"
+
+msgid "Open the room scene in the editor"
+msgstr "Открыть сцену комнаты в редакторе"
+
+msgid "Play from here"
+msgstr "Запустить отсюда"
+
+msgid "Run the game starting in this room, at its save point if it has one. Right-click the map to start at an exact spot."
+msgstr "Запустить игру с этой комнаты, у её точки сохранения, если она есть. Щёлкните карту правой кнопкой, чтобы начать с нужного места."
+
+msgid "Start room"
+msgstr "Начальная комната"
+
+msgid "Set as start"
+msgstr "Сделать начальной"
+
+msgid "Progression spheres are computed from the start room"
+msgstr "Сферы прогрессии считаются от начальной комнаты"
+
+msgid "Center"
+msgstr "Центр"
+
+msgid "Center the map on this room"
+msgstr "Центрировать карту на этой комнате"
+
+msgid "Name"
+msgstr "Имя"
+
+msgid "Type"
+msgstr "Тип"
+
+msgid "Status"
+msgstr "Статус"
+
+msgid "(none)"
+msgstr "(нет)"
+
+msgid "Boss"
+msgstr "Босс"
+
+msgid "Grants"
+msgstr "Выдаёт"
+
+msgid "Comma separated. Abilities from mds_grants node metadata are added automatically."
+msgstr "Через запятую. Способности из метаданных узла mds_grants добавляются автоматически."
+
+msgid "Notes (TODO lines show up in Issues)"
+msgstr "Заметки (строки TODO попадают в «Проблемы»)"
+
+msgid "No passages. Paint passages in the MetSys editor."
+msgstr "Проходов нет. Нарисуйте проходы в редакторе MetSys."
+
+msgid "Links (elevators, teleports, layer transitions)"
+msgstr "Связи (лифты, телепорты, переходы между слоями)"
+
+msgid "Add link... (then click the target room)"
+msgstr "Добавить связь... (затем щёлкните целевую комнату)"
+
+msgid "Connect this room to another room, e.g. on another layer"
+msgstr "Соединить эту комнату с другой, например на другом слое"
+
+msgid "One-way out"
+msgstr "Односторонний выход"
+
+msgid "requires (e.g. dash, red_key)"
+msgstr "требует (напр. dash, red_key)"
+
+msgid "Passage only painted on one side."
+msgstr "Проход нарисован только с одной стороны."
+
+msgid "x"
+msgstr "x"
+
+msgid "Remove link"
+msgstr "Удалить связь"
+
+msgid "note (Elevator...)"
+msgstr "заметка (Лифт...)"
+
+msgid "requires"
+msgstr "требует"
+
+msgid "Run this room scene only"
+msgstr "Запустить только сцену этой комнаты"
+
+msgid "Set as start room"
+msgstr "Сделать начальной комнатой"
+
+msgid "Route from selected room to here"
+msgstr "Маршрут от выбранной комнаты сюда"
+
+msgid "Link selected room to this room"
+msgstr "Связать выбранную комнату с этой"
+
+msgid "Add pin here..."
+msgstr "Добавить метку здесь..."
+
+msgid "Remove nearest pin"
+msgstr "Удалить ближайшую метку"
+
+msgid "Copy scene UID"
+msgstr "Копировать UID сцены"
+
+msgid "Copy cell coordinates"
+msgstr "Копировать координаты ячейки"
+
+msgid "Nothing to export: no map loaded."
+msgstr "Нечего экспортировать: карта не загружена."
+
+msgid "Export already in progress..."
+msgstr "Экспорт уже выполняется..."
+
+msgid "Export failed: empty layer"
+msgstr "Ошибка экспорта: слой пуст"
+
+msgid "Rendering map image..."
+msgstr "Отрисовка изображения карты..."
+
+msgid "Your picture, blurred"
+msgstr "Ваша картинка, размытая"
+
+msgid "Toxic swamp"
+msgstr "Ядовитое болото"
+
+msgid "Holy light"
+msgstr "Священный свет"
+
+msgid "Starfield"
+msgstr "Звёздное поле"
+
+msgid "Infection"
+msgstr "Заражение"
+
+msgid "Spore drift"
+msgstr "Дрейф спор"
+
+msgid "Frozen night"
+msgstr "Морозная ночь"
+
+msgid "Arcane vortex"
+msgstr "Магический вихрь"
+
+msgid "Blood moon"
+msgstr "Кровавая луна"
+
+msgid "Void pulse"
+msgstr "Пульс пустоты"
+
+msgid "Crystal cave"
+msgstr "Кристальная пещера"
+
+msgid "Sunset haze"
+msgstr "Закатная дымка"
+
+msgid "Forest canopy"
+msgstr "Лесной полог"
+
+msgid "Storm clouds"
+msgstr "Грозовые тучи"
+
+msgid "Ember glow"
+msgstr "Свечение углей"
+
+msgid "Deep water"
+msgstr "Глубокая вода"
+
+msgid "Molten blobs"
+msgstr "Расплавленные капли"
+
+msgid "Nebula"
+msgstr "Туманность"
+
+msgid "Aurora"
+msgstr "Полярное сияние"
+
+msgid "Bokeh lights"
+msgstr "Огни боке"
+
+msgid "Out-of-focus lights drifting at three depths, like a city or lanterns seen through a lens"
+msgstr "Расфокусированные огни, плывущие на трёх глубинах, как огни города или фонарей, увиденные через объектив"
+
+msgid "Curtains of green and violet light waving over a starry night"
+msgstr "Занавесы зелёного и фиолетового света, колышущиеся над звёздной ночью"
+
+msgid "Slowly turning clouds of cosmic gas, soft stars twinkling"
+msgstr "Медленно вращающиеся облака космического газа, мягко мерцающие звёзды"
+
+msgid "Big soft blobs of molten color merging and parting, like a lava lamp"
+msgstr "Большие мягкие капли расплавленного цвета сливаются и расходятся, как в лава-лампе"
+
+msgid "Deep water: soft caustics, light rays from the surface, bubbles rising"
+msgstr "Глубокая вода: мягкие каустики, лучи света с поверхности, поднимающиеся пузырьки"
+
+msgid "A dark red heat glowing from below, smoke, blurred embers rising"
+msgstr "Тёмно-красный жар, светящийся снизу, дым, поднимающиеся размытые угли"
+
+msgid "Dark clouds rolling, lightning flashing behind them, a veil of rain"
+msgstr "Тёмные тучи ползут, за ними вспыхивают молнии, пелена дождя"
+
+msgid "Light through leaves: swaying shadows, sun flecks, soft rays"
+msgstr "Свет сквозь листву: качающиеся тени, солнечные блики, мягкие лучи"
+
+msgid "A warm sky, a big soft sun, bands of cloud drifting by"
+msgstr "Тёплое небо, большое мягкое солнце, проплывающие полосы облаков"
+
+msgid "Glowing crystal facets shimmering in the dark, sparkles"
+msgstr "Светящиеся грани кристаллов мерцают во тьме, искры"
+
+msgid "Boss: a dark void throbbing, rings rippling out from a glowing core"
+msgstr "Босс: пульсирующая тёмная пустота, кольца расходятся от светящегося ядра"
+
+msgid "Boss: a huge blood-red moon, red mist drifting across it"
+msgstr "Босс: огромная кроваво-красная луна, по ней плывёт красный туман"
+
+msgid "Boss: a spiral of arcane light turning around a bright eye"
+msgstr "Босс: спираль магического света вращается вокруг яркого глаза"
+
+msgid "A cold night, snowflakes falling out of focus, near ones large and soft"
+msgstr "Холодная ночь, расфокусированные падающие снежинки, ближние — крупные и мягкие"
+
+msgid "A teal haze, bioluminescent spores wandering"
+msgstr "Бирюзовая дымка, блуждающие биолюминесцентные споры"
+
+msgid "Boss: glowing orange veins pulsing through the dark, motes drifting up"
+msgstr "Босс: светящиеся оранжевые жилы пульсируют во тьме, частицы плывут вверх"
+
+msgid "Stars at several depths drifting slowly, a faint haze"
+msgstr "Звёзды на нескольких глубинах медленно дрейфуют, слабая дымка"
+
+msgid "Boss or shrine: golden rays falling from above, dust shining in them"
+msgstr "Босс или святилище: золотые лучи падают сверху, в них блестит пыль"
+
+msgid "A green murk swirling, bubbles rising, a sickly glow"
+msgstr "Зелёная муть клубится, поднимаются пузыри, болезненное свечение"
+
+msgid "Your own picture, blurred out of focus, drifting and breathing slowly"
+msgstr "Ваша собственная картинка, размытая вне фокуса, медленно дрейфует и «дышит»"
+
+msgid "Worms"
+msgstr "Черви"
+
+msgid "Owls"
+msgstr "Совы"
+
+msgid "Eels"
+msgstr "Угри"
+
+msgid "Glowfish"
+msgstr "Светорыбы"
+
+msgid "Jellyfish"
+msgstr "Медузы"
+
+msgid "Crabs"
+msgstr "Крабы"
+
+msgid "Snails"
+msgstr "Улитки"
+
+msgid "Centipedes"
+msgstr "Сороконожки"
+
+msgid "Beetles"
+msgstr "Жуки"
+
+msgid "Spiders"
+msgstr "Пауки"
+
+msgid "Firebirds"
+msgstr "Огненные птицы"
+
+msgid "Bats"
+msgstr "Летучие мыши"
+
+msgid "Crows"
+msgstr "Вороны"
+
+msgid "Small birds"
+msgstr "Мелкие птицы"
+
+msgid "Dragonflies"
+msgstr "Стрекозы"
+
+msgid "Butterflies"
+msgstr "Бабочки"
+
+msgid "Moths"
+msgstr "Мотыльки"
+
+msgid "Lumaflies"
+msgstr "Светомушки"
+
+msgid "Wasps"
+msgstr "Осы"
+
+msgid "Bees"
+msgstr "Пчёлы"
+
+msgid "Bees with glowing stripes swarming around their hive, the honeycomb lit amber where they pass"
+msgstr "Пчёлы со светящимися полосками роятся вокруг улья, соты освещаются янтарём там, где они пролетают"
+
+msgid "Wasps darting about a dark nest, closing in on the player when it gets busy"
+msgstr "Осы носятся у тёмного гнезда и сжимают круг вокруг игрока, когда тот занят"
+
+msgid "Lumaflies drifting through a night wood, their lanterns blinking on and off"
+msgstr "Светомушки плывут по ночному лесу, их фонарики вспыхивают и гаснут"
+
+msgid "Moths fluttering in a forest; when the player stands still they come to it, like to a flame"
+msgstr "Мотыльки порхают в лесу; когда игрок стоит на месте, они слетаются к нему, как к огню"
+
+msgid "Butterflies with glowing wing edges wandering over a marsh, scattering from the player"
+msgstr "Бабочки со светящимися краями крыльев блуждают над болотом и разлетаются от игрока"
+
+msgid "Dragonflies hovering over the reeds and darting off, glowing along their tails"
+msgstr "Стрекозы зависают над тростником и срываются с места, их хвосты светятся"
+
+msgid "A flock of small birds wheeling across a dusk sky, warm light on their breasts"
+msgstr "Стая мелких птиц кружит в сумеречном небе, на их грудках тёплый свет"
+
+msgid "Crows circling slowly against a grey sky, red eyes glinting"
+msgstr "Вороны медленно кружат на фоне серого неба, поблёскивают красные глаза"
+
+msgid "Bats flitting about a cave, eyes glowing violet, scattering as the player moves"
+msgstr "Летучие мыши мечутся по пещере, глаза светятся фиолетовым, они разлетаются, когда игрок движется"
+
+msgid "Firebirds sweeping across a red sky, trailing tails of flame"
+msgstr "Огненные птицы проносятся по красному небу, оставляя хвосты пламени"
+
+msgid "Spiders lowering themselves on silk and crawling over webbed rock; they climb away when the player is busy"
+msgstr "Пауки спускаются на нитях паутины и ползают по опутанной скале; они уползают вверх, когда игрок занят"
+
+msgid "Beetles with glowing shells crawling over the cave wall, running when the player moves"
+msgstr "Жуки со светящимися панцирями ползают по стене пещеры и убегают, когда игрок движется"
+
+msgid "Centipedes winding through the earth, their segments glowing"
+msgstr "Сороконожки извиваются в земле, их сегменты светятся"
+
+msgid "Snails gliding over damp rock, leaving glowing trails; they stop when the player is near"
+msgstr "Улитки скользят по сырой скале, оставляя светящиеся следы; они замирают, когда игрок рядом"
+
+msgid "Crabs scuttling sideways over the seabed, claws glowing"
+msgstr "Крабы бегут боком по морскому дну, клешни светятся"
+
+msgid "Jellyfish pulsing up through deep water, lighting it blue"
+msgstr "Медузы пульсируют, поднимаясь сквозь глубокую воду и освещая её синим"
+
+msgid "A school of glowfish turning together in the deep, splitting around the player"
+msgstr "Косяк светорыб поворачивает вместе в глубине и расходится вокруг игрока"
+
+msgid "Eels winding slowly through dark water, spots glowing along them"
+msgstr "Угри медленно извиваются в тёмной воде, вдоль тел светятся пятна"
+
+msgid "Owls watching from their perches, glowing eyes following the player, blinking"
+msgstr "Совы наблюдают со своих насестов, светящиеся глаза следят за игроком, моргая"
+
+msgid "Worms rising out of the earth in glowing arcs and diving back; more come up the more the player stomps about"
+msgstr "Черви выныривают из земли светящимися дугами и ныряют обратно; чем больше игрок топает, тем больше их появляется"
+
+msgid "Dust storm"
+msgstr "Пыльная буря"
+
+msgid "Banks of dust blown from one side in gusts, grit and motes driven along; the wind shoves the player downwind"
+msgstr "Волны пыли порывами дуют с одной стороны, несут песчинки и частицы; ветер толкает игрока по ветру"
+
+msgid "Rain"
+msgstr "Дождь"
+
+msgid "Slanting rain at three depths, splashes along the ground and a low mist"
+msgstr "Косой дождь на трёх глубинах, брызги по земле и низкий туман"
+
+msgid "Lightning"
+msgstr "Молния"
+
+msgid "Forked bolts behind the terrain, the sky flashing, thunder"
+msgstr "Ветвистые разряды за местностью, небо вспыхивает, гром"
+
+msgid "Snowfall"
+msgstr "Снегопад"
+
+msgid "Soft flakes drifting down; turn up Blizzard for driven snow"
+msgstr "Мягкие хлопья плавно падают; увеличьте Blizzard для вьюги"
+
+msgid "Fog / mist"
+msgstr "Туман / дымка"
+
+msgid "Drifting fog, or mist lying along the ground"
+msgstr "Плывущий туман или дымка, стелющаяся по земле"
+
+msgid "Embers / ash"
+msgstr "Угли / пепел"
+
+msgid "Embers rising and flickering out, ash drifting down, or sparks"
+msgstr "Поднимающиеся и гаснущие угли, оседающий пепел или искры"
+
+msgid "Glowing motes wandering and blinking: fireflies, spores, glitter"
+msgstr "Блуждающие и мерцающие светящиеся частицы: светлячки, споры, блёстки"
+
+msgid "Fireflies / spores"
+msgstr "Светлячки / споры"
+
+msgid "Falling leaves"
+msgstr "Листопад"
+
+msgid "Leaves or petals tumbling down on the breeze"
+msgstr "Листья или лепестки кружатся на ветру"
+
+msgid "Light shafts"
+msgstr "Лучи света"
+
+msgid "God rays slanting down from above, dust motes in them"
+msgstr "Косые лучи света, падающие сверху, в них пылинки"
+
+msgid "Heat haze"
+msgstr "Марево"
+
+msgid "Everything behind it shimmers, rippling upward"
+msgstr "Всё позади него мерцает и колышется вверх"
+
+msgid "Steam vent"
+msgstr "Паровой выброс"
+
+msgid "A vent forcing out hot steam: wisps, a warning glow, then a jet that throws and scalds"
+msgstr "Отдушина, выпускающая горячий пар: струйки, предупреждающее свечение, затем струя, которая отбрасывает и обжигает"
+
+msgid "Lava pool"
+msgstr "Лавовое озеро"
+
+msgid "Molten rock (or acid, cursed ooze) with crust, bubbles, a glow and embers; it hurts"
+msgstr "Расплавленная порода (или кислота, проклятая жижа) с коркой, пузырями, свечением и углями; причиняет урон"
+
+msgid "A sheet of water falling straight down, white water at its lip and foot, mist"
+msgstr "Пелена воды, падающая отвесно, белая вода у края и у подножия, туман"
+
+msgid "Waterfall"
+msgstr "Водопад"
+
+msgid "Hot water falls"
+msgstr "Горячий водопад"
+
+msgid "Scalding mineral water pouring straight down: steam pouring off it and billowing at its foot, a warm glow, the air wavering; it scalds"
+msgstr "Обжигающая минеральная вода, льющаяся отвесно: от неё идёт пар, клубящийся у подножия, тёплое свечение, воздух дрожит; обжигает"
+
+msgid "Lava falls"
+msgstr "Лавовый водопад"
+
+msgid "Molten rock pouring straight down over a ledge: a white-hot core, crust plates riding down and cracking, a splash of molten drops, a glow, embers; it burns"
+msgstr "Расплавленная порода, льющаяся отвесно с уступа: раскалённое добела ядро, плиты корки, сползающие вниз и трескающиеся, брызги расплавленных капель, свечение, угли; обжигает"
+
+msgid "Falling rocks"
+msgstr "Падающие камни"
+
+msgid "Rocks breaking off and crashing to the ground in dust and chips, piling up as rubble; a cave-in with PLAYER_INSIDE; can hurt"
+msgstr "Камни отрываются и падают на землю в облаке пыли и осколков, образуя груду щебня; обвал при PLAYER_INSIDE; может ранить"
+
+msgid "Water"
+msgstr "Вода"
+
+msgid "A pool: waves, what is behind bent and tinted, caustics, bubbles"
+msgstr "Водоём: волны, то, что позади, искажено и подкрашено, каустики, пузыри"
+
+msgid "Bench / save point"
+msgstr "Скамья / точка сохранения"
+
+msgid "A bench to rest on, like Silksong's: its lantern flickers and motes drift in its light. Up sits the player down: the game is saved, health restored, the bench glows and the map shows it; a restarted game continues here and dying brings the player back. Place it on a floor"
+msgstr "Скамья для отдыха, как в Silksong: её фонарь мерцает, а в его свете плывут пылинки. Нажатие «Вверх» усаживает игрока: игра сохраняется, здоровье восстанавливается, скамья светится, а карта показывает её; перезапущенная игра продолжается здесь, а после смерти игрок возвращается сюда. Ставьте её на пол"
+
+msgid "Silk threads"
+msgstr "Шёлковые нити"
+
+msgid "Strands of silk drifting and turning in the air, light running along them, threads hanging from above (Silksong's Weavenest)"
+msgstr "Пряди шёлка плывут и вращаются в воздухе, по ним бежит свет, сверху свисают нити (Weavenest из Silksong)"
+
+msgid "Ghostly flames drifting on slow paths, flickering tails licking upward, halos lighting the air (the Wisp Thicket)"
+msgstr "Призрачные огни плывут по неспешным путям, мерцающие хвосты тянутся вверх, ореолы освещают воздух (Wisp Thicket)"
+
+msgid "Will-o'-wisps"
+msgstr "Блуждающие огни"
+
+msgid "Gnat swarm"
+msgstr "Рой мошек"
+
+msgid "Clouds of tiny gnats buzzing about; a swarm gathers around the player who comes near (Bilewater)"
+msgstr "Облака крошечных мошек жужжат вокруг; рой собирается вокруг подошедшего игрока (Bilewater)"
+
+msgid "Dripping water"
+msgstr "Капающая вода"
+
+msgid "Drops gathering under the ceiling, falling and splashing on the floor (the Wormways, the Deep Docks)"
+msgstr "Капли собираются под потолком, падают и разбиваются о пол (Wormways, Deep Docks)"
+
+msgid "Hanging moss"
+msgstr "Свисающий мох"
+
+msgid "Leafy strands hanging from a ceiling, swaying, parting around the player passing through (Greymoor, the Moss Grotto)"
+msgstr "Лиственные пряди свисают с потолка, качаются и расходятся вокруг проходящего игрока (Greymoor, Moss Grotto)"
+
+msgid "Swaying grass"
+msgstr "Колышущаяся трава"
+
+msgid "Blades of grass along a floor swaying in gusts, bending away as the player walks through (the Far Fields)"
+msgstr "Травинки вдоль пола качаются на порывах ветра и отклоняются, когда игрок проходит (Far Fields)"
+
+msgid "Cobwebs"
+msgstr "Паутина"
+
+msgid "Spider webs across corners, dew glinting, trembling as the player moves through them; can slow them (the Weavenest, Shellwood)"
+msgstr "Паутина по углам, поблёскивает роса, дрожит, когда игрок проходит сквозь неё; может замедлять (Weavenest, Shellwood)"
+
+msgid "Black tendrils writhing up from a pool of darkness, a violet glow at their rims, reaching for the player; can hurt (the Abyss)"
+msgstr "Чёрные щупальца извиваются из лужи тьмы, по краям фиолетовое свечение, тянутся к игроку; могут ранить (Abyss)"
+
+msgid "Void tendrils"
+msgstr "Щупальца пустоты"
+
+msgid "Incense smoke"
+msgstr "Дым благовоний"
+
+msgid "Ribbons of smoke curling up from a censer, golden ash glinting in them (the Citadel's choral chambers)"
+msgstr "Ленты дыма завиваются над кадилом, в них поблёскивает золотой пепел (хоровые залы Citadel)"
+
+msgid "Forge sparks"
+msgstr "Искры кузницы"
+
+msgid "Sparks spraying from a forge or a grinding wheel, arcing down and bouncing off the floor, in a stream or bursts; can burn (the Deep Docks)"
+msgstr "Искры сыплются из горна или точильного круга, дугами летят вниз и отскакивают от пола, потоком или вспышками; могут обжечь (Deep Docks)"
+
+msgid "Creatures"
+msgstr "Существа"
+
+msgid "A background of glowing creatures, one kind at a time (bees, spiders, small birds, bats, jellyfish, owls... 20 kinds), soft and out of focus, each carrying a light over its habitat. They stir as the player moves about and never touch the fight: made for boss rooms"
+msgstr "Фон из светящихся существ, по одному виду за раз (пчёлы, пауки, мелкие птицы, летучие мыши, медузы, совы... 20 видов), мягкий и не в фокусе, каждое существо несёт свет над своей средой обитания. Они оживляются, когда игрок двигается, и никогда не вмешиваются в бой: созданы для комнат боссов"
+
+msgid "Machinery background"
+msgstr "Фон из механизмов"
+
+msgid "Giant machinery far behind the room, soft and out of focus, one kind at a time, moving by time alone: 20 gothic castle machines for Castlevania-style castles (giant wheels, clockwork, clock faces, pendulums, bells, chandeliers, rose windows...) and 20 alien station machines for Metroid-style worlds (turbines, reactor cores, gyro rings, pistons, specimen tanks, warp portals...). Pick the machine in the Inspector"
+msgstr "Гигантские механизмы далеко позади комнаты, мягкие и не в фокусе, по одному виду за раз, движутся только со временем: 20 готических замковых механизмов для замков в стиле Castlevania (гигантские колёса, часовой механизм, циферблаты, маятники, колокола, люстры, окна-розы...) и 20 механизмов инопланетных станций для миров в стиле Metroid (турбины, ядра реакторов, гироскопические кольца, поршни, резервуары с образцами, варп-порталы...). Выберите механизм в инспекторе"
+
+msgid "Animated background"
+msgstr "Анимированный фон"
+
+msgid "A soft, out-of-focus background in motion, drawn by a shader: bokeh lights, an aurora, a nebula, molten blobs, deep water, storm clouds, a starfield... 20 styles, some made for boss rooms (void pulse, blood moon, arcane vortex, infection, holy light). Pick the style in the Inspector; drop an image on it to show the image blurred"
+msgstr "Мягкий расфокусированный фон в движении, рисуемый шейдером: огни боке, полярное сияние, туманность, расплавленные капли, глубокая вода, грозовые тучи, звёздное поле... 20 стилей, часть из них создана для комнат боссов (пульс пустоты, кровавая луна, магический вихрь, заражение, священный свет). Выберите стиль в инспекторе; бросьте на него изображение, чтобы показать его размытым"
+
+msgid "Parallax background"
+msgstr "Фон с параллаксом"
+
+msgid "Layers behind the room moving slower the further back they are: sky, mountains, forest, city, ruins, cave rock, dunes, clouds, fog, stars or your own pictures. Drop an image on it to add a layer"
+msgstr "Слои позади комнаты, которые движутся тем медленнее, чем они дальше: небо, горы, лес, город, руины, пещерная порода, дюны, облака, туман, звёзды или ваши картинки. Бросьте на него изображение, чтобы добавить слой"
+
+msgid "A dust storm blowing toward the right over a low haze of sand"
+msgstr "Пыльная буря, дующая вправо над низкой песчаной дымкой"
+
+msgid "Sandstorm"
+msgstr "Песчаная буря"
+
+msgid "Sandstorm, blowing left"
+msgstr "Песчаная буря, дующая влево"
+
+msgid "A dust storm blowing toward the left over a low haze of sand"
+msgstr "Пыльная буря, дующая влево над низкой песчаной дымкой"
+
+msgid "Thunderstorm"
+msgstr "Гроза"
+
+msgid "Heavy slanting rain, lightning and a dark mist"
+msgstr "Сильный косой дождь, молнии и тёмный туман"
+
+msgid "Drizzle"
+msgstr "Морось"
+
+msgid "Light rain and mist"
+msgstr "Лёгкий дождь и дымка"
+
+msgid "Blizzard"
+msgstr "Метель"
+
+msgid "Driven snow and a white-out haze"
+msgstr "Снежная вьюга и белая пелена"
+
+msgid "Gentle snow"
+msgstr "Лёгкий снег"
+
+msgid "Embers rising, ash falling, heat haze and a red smoky haze"
+msgstr "Поднимающиеся угли, падающий пепел, марево и красноватая дымная пелена"
+
+msgid "Volcanic"
+msgstr "Вулканическая"
+
+msgid "Ashfall"
+msgstr "Пепелопад"
+
+msgid "Ash drifting down through a grey haze"
+msgstr "Пепел оседает сквозь серую дымку"
+
+msgid "Cave mist"
+msgstr "Пещерный туман"
+
+msgid "Mist along the floor, shafts of light from above"
+msgstr "Дымка вдоль пола, лучи света сверху"
+
+msgid "Firefly grove"
+msgstr "Роща светлячков"
+
+msgid "Fireflies, soft light and a little mist"
+msgstr "Светлячки, мягкий свет и немного дымки"
+
+msgid "Spore cavern"
+msgstr "Пещера спор"
+
+msgid "Teal spores drifting slowly in a green haze"
+msgstr "Бирюзовые споры медленно плывут в зелёной дымке"
+
+msgid "Autumn wind"
+msgstr "Осенний ветер"
+
+msgid "Leaves tumbling down on a breeze"
+msgstr "Листья кружатся на ветру"
+
+msgid "Pink petals drifting down"
+msgstr "Розовые лепестки плавно падают"
+
+msgid "Petals"
+msgstr "Лепестки"
+
+msgid "Glitter"
+msgstr "Блёстки"
+
+msgid "Pink and white glitter twinkling in the air (a stage, a fairy grove)"
+msgstr "Розовые и белые блёстки мерцают в воздухе (сцена, сказочная роща)"
+
+msgid "Weavenest"
+msgstr "Weavenest"
+
+msgid "Silk drifting and hanging in a pale, still haze (Silksong's Weavenest)"
+msgstr "Шёлк плывёт и свисает в бледной неподвижной дымке (Weavenest из Silksong)"
+
+msgid "Bilewater"
+msgstr "Bilewater"
+
+msgid "Gnats over a reeking green haze, water dripping from above"
+msgstr "Мошки над зловонной зелёной дымкой, сверху капает вода"
+
+msgid "Wisp Thicket"
+msgstr "Wisp Thicket"
+
+msgid "Will-o'-wisps drifting through a dark, smoky wood, ash falling"
+msgstr "Блуждающие огни плывут по тёмному дымному лесу, падает пепел"
+
+msgid "Deep Docks"
+msgstr "Deep Docks"
+
+msgid "Sparks and embers in the heat of the forges, a rusty haze"
+msgstr "Искры и угли в жаре кузниц, ржавая дымка"
+
+msgid "Wormways"
+msgstr "Wormways"
+
+msgid "Water dripping through a damp, dim tunnel"
+msgstr "Вода капает в сыром тусклом туннеле"
+
+msgid "Giant wheels"
+msgstr "Гигантские колёса"
+
+msgid "Clockwork gears"
+msgstr "Шестерни часового механизма"
+
+msgid "Clock faces"
+msgstr "Циферблаты"
+
+msgid "Pendulums"
+msgstr "Маятники"
+
+msgid "Bells"
+msgstr "Колокола"
+
+msgid "Chandeliers"
+msgstr "Люстры"
+
+msgid "Rose windows"
+msgstr "Окна-розы"
+
+msgid "Hanging chains"
+msgstr "Свисающие цепи"
+
+msgid "Candelabra"
+msgstr "Канделябры"
+
+msgid "Winches"
+msgstr "Лебёдки"
+
+msgid "Castle spires"
+msgstr "Шпили замка"
+
+msgid "Saw blades"
+msgstr "Пильные диски"
+
+msgid "Swinging axes"
+msgstr "Качающиеся топоры"
+
+msgid "Windmills"
+msgstr "Ветряные мельницы"
+
+msgid "Torches"
+msgstr "Факелы"
+
+msgid "Astrolabes"
+msgstr "Астролябии"
+
+msgid "Banners"
+msgstr "Знамёна"
+
+msgid "Organ pipes"
+msgstr "Трубы органа"
+
+msgid "Hourglasses"
+msgstr "Песочные часы"
+
+msgid "Spiked rollers"
+msgstr "Шипастые валы"
+
+msgid "Drills"
+msgstr "Буры"
+
+msgid "Robot arms"
+msgstr "Роботизированные руки"
+
+msgid "Ringed planets"
+msgstr "Планеты с кольцами"
+
+msgid "Holograms"
+msgstr "Голограммы"
+
+msgid "Radar dishes"
+msgstr "Радарные антенны"
+
+msgid "Energy conduits"
+msgstr "Энергопроводы"
+
+msgid "Pistons"
+msgstr "Поршни"
+
+msgid "Gyro rings"
+msgstr "Гироскопические кольца"
+
+msgid "Reactor cores"
+msgstr "Ядра реакторов"
+
+msgid "Turbines"
+msgstr "Турбины"
+
+msgid "Tesla coils"
+msgstr "Катушки Тесла"
+
+msgid "Exhaust fans"
+msgstr "Вытяжные вентиляторы"
+
+msgid "Bio pods"
+msgstr "Биокапсулы"
+
+msgid "Specimen tanks"
+msgstr "Резервуары с образцами"
+
+msgid "Data streams"
+msgstr "Потоки данных"
+
+msgid "Laser sweeps"
+msgstr "Сканирующие лазеры"
+
+msgid "Warp portals"
+msgstr "Варп-порталы"
+
+msgid "Crystal pylons"
+msgstr "Кристаллические пилоны"
+
+msgid "Press hammers"
+msgstr "Молоты-прессы"
+
+msgid "Cargo lifts"
+msgstr "Грузовые лифты"
+
+msgid "Huge spoked wheels with paddles round their rims, turning slowly"
+msgstr "Огромные спицевые колёса с лопастями по ободу, медленно вращающиеся"
+
+msgid "Toothed cogwheels with windows cut in them, turning on their axles: a clock tower's works"
+msgstr "Зубчатые шестерни с прорезанными окнами, вращающиеся на осях: механизм часовой башни"
+
+msgid "Clock faces lit from behind, their hands going round"
+msgstr "Циферблаты с подсветкой сзади, стрелки идут по кругу"
+
+msgid "Pendulums swinging from above, some with a bob, some with a blade"
+msgstr "Маятники качаются сверху, одни с грузом, другие с лезвием"
+
+msgid "Great bells swinging in their yokes, their clappers swinging after them"
+msgstr "Огромные колокола качаются в ярмах, языки качаются вслед за ними"
+
+msgid "Chandeliers swaying on their chains, their candles flickering"
+msgstr "Люстры качаются на цепях, свечи мерцают"
+
+msgid "Rose windows: stone tracery, the stained glass glowing and shimmering"
+msgstr "Окна-розы: каменные переплёты, витражи светятся и переливаются"
+
+msgid "Chains hanging from above, swaying, hooks at their ends"
+msgstr "Цепи свисают сверху, качаются, на концах крюки"
+
+msgid "Candelabra on the floor, their candles flickering"
+msgstr "Канделябры на полу, свечи мерцают"
+
+msgid "Winches: spoked wheels turning drums, chains winding up"
+msgstr "Лебёдки: спицевые колёса вращают барабаны, цепи наматываются"
+
+msgid "Spiked rollers turning on their beams"
+msgstr "Шипастые валы вращаются на своих балках"
+
+msgid "Hourglasses running out, then turned over"
+msgstr "Песочные часы пересыпаются и переворачиваются"
+
+msgid "Organ pipes along the floor, sound pulsing up them"
+msgstr "Трубы органа вдоль пола, по ним пульсирует звук"
+
+msgid "Banners hanging from their rods, waving, tattered at the bottom"
+msgstr "Знамёна свисают с древков, развеваются, внизу оборванные"
+
+msgid "Astrolabes: nested rings turning about a glowing core"
+msgstr "Астролябии: вложенные кольца вращаются вокруг светящегося ядра"
+
+msgid "Torches in wall sconces, their flames flickering"
+msgstr "Факелы в настенных держателях, пламя мерцает"
+
+msgid "Windmills on their towers, their latticed sails turning"
+msgstr "Ветряные мельницы на башнях, их решётчатые крылья вращаются"
+
+msgid "Great axe blades swinging from above"
+msgstr "Огромные лезвия топоров качаются сверху"
+
+msgid "Saw blades spinning fast, sliding along their slots"
+msgstr "Пильные диски быстро вращаются, скользя по своим пазам"
+
+msgid "Castle spires: towers, pointed roofs, lit windows, a flag flying"
+msgstr "Шпили замка: башни, остроконечные крыши, освещённые окна, развевающийся флаг"
+
+msgid "Turbines spinning in their housings, hubs glowing"
+msgstr "Турбины вращаются в корпусах, ступицы светятся"
+
+msgid "Reactor cores pulsing inside counter-turning shield rings, energy arcing off them"
+msgstr "Ядра реакторов пульсируют внутри встречно вращающихся защитных колец, от них проскакивает энергия"
+
+msgid "Gyro rings turning about each other round a glowing orb"
+msgstr "Гироскопические кольца вращаются друг относительно друга вокруг светящейся сферы"
+
+msgid "Hydraulic pistons pumping up and down, venting at the bottom of their stroke"
+msgstr "Гидравлические поршни ходят вверх и вниз, выпуская пар в нижней точке хода"
+
+msgid "Pipes with pulses of energy racing along them"
+msgstr "Трубы, по которым несутся импульсы энергии"
+
+msgid "Radar dishes on their masts, turning, feed lights blinking"
+msgstr "Радарные антенны на мачтах вращаются, огни облучателей мигают"
+
+msgid "Holograms of worlds turning above their projectors, scanlines rolling"
+msgstr "Голограммы миров вращаются над проекторами, бегут линии развёртки"
+
+msgid "Ringed planets seen through the station's windows, their bands drifting, moons going round"
+msgstr "Планеты с кольцами видны в окнах станции, их полосы дрейфуют, луны обращаются"
+
+msgid "Robot arms reaching and turning, claws opening and closing"
+msgstr "Роботизированные руки тянутся и поворачиваются, клешни раскрываются и смыкаются"
+
+msgid "Giant drills boring down, spirals turning, tips glowing hot"
+msgstr "Гигантские буры вгрызаются вниз, спирали вращаются, наконечники раскалены"
+
+msgid "Tesla coils, lightning crackling off their crowns"
+msgstr "Катушки Тесла, с их верхушек потрескивают молнии"
+
+msgid "Exhaust fans spinning behind their grilles, lit from behind"
+msgstr "Вытяжные вентиляторы вращаются за решётками, подсвеченные сзади"
+
+msgid "Organic pods breathing, their nuclei pulsing with light"
+msgstr "Органические капсулы «дышат», их ядра пульсируют светом"
+
+msgid "Specimen tanks: glowing fluid, bubbles rising, a creature floating in each"
+msgstr "Резервуары с образцами: светящаяся жидкость, поднимающиеся пузыри, в каждом плавает существо"
+
+msgid "Data panels, columns of glowing blocks streaming down them"
+msgstr "Панели данных, по ним стекают столбцы светящихся блоков"
+
+msgid "Security emitters sweeping their laser beams back and forth"
+msgstr "Излучатели охраны водят лазерными лучами туда и обратно"
+
+msgid "Warp portals: rings of runes round swirling vortices"
+msgstr "Варп-порталы: кольца рун вокруг закручивающихся вихрей"
+
+msgid "Crystal pylons floating and turning over their pedestals"
+msgstr "Кристаллические пилоны парят и вращаются над постаментами"
+
+msgid "Press hammers rising slowly, then slamming down in a flash"
+msgstr "Молоты-прессы медленно поднимаются, затем со вспышкой обрушиваются вниз"
+
+msgid "Cargo lifts riding up and down their rails, lamps blinking"
+msgstr "Грузовые лифты ездят вверх и вниз по рельсам, лампы мигают"
+
+msgid "None"
+msgstr "Нет"
+
+msgid "Dusty wastes"
+msgstr "Пыльные пустоши"
+
+msgid "Sunken garden"
+msgstr "Затонувший сад"
+
+msgid "Night sky"
+msgstr "Ночное небо"
+
+msgid "Snowy peaks"
+msgstr "Снежные вершины"
+
+msgid "Deep cavern"
+msgstr "Глубокая пещера"
+
+msgid "Desert dunes"
+msgstr "Пустынные дюны"
+
+msgid "Ruined city at night"
+msgstr "Разрушенный город ночью"
+
+msgid "Misty forest"
+msgstr "Туманный лес"
+
+msgid "Dusk mountains"
+msgstr "Горы в сумерках"
+
+msgid "Custom"
+msgstr "Пользовательский"
+
+msgid "Foliage"
+msgstr "Листва"
+
+msgid "Cave rocks"
+msgstr "Пещерные скалы"
+
+msgid "Ruins"
+msgstr "Руины"
+
+msgid "Mist"
+msgstr "Дымка"
+
+msgid "Auto (Phantom Camera if installed)"
+msgstr "Авто (Phantom Camera, если установлен)"
+
+msgid "Camera2D"
+msgstr "Camera2D"
+
+msgid "PhantomCamera2D"
+msgstr "PhantomCamera2D"
+
+msgid "Room shape (zones)"
+msgstr "Форма комнаты (зоны)"
+
+msgid "Room bounds"
+msgstr "Границы комнаты"
+
+msgid "Fade"
+msgstr "Затемнение"
+
+msgid "Cut"
+msgstr "Резкая смена"
+
+msgid "Slide"
+msgstr "Сдвиг"
+
+msgid "Blend"
+msgstr "Наплыв"
+
+msgid "Glide"
+msgstr "Плавно"
+
+msgid "Cut, never glide"
+msgstr "Резко, без плавности"
+
+msgid "Off (always Zoom)"
+msgstr "Выкл. (всегда «Масштаб»)"
+
+msgid "Per room (a room's own zoom)"
+msgstr "По комнате (собственный масштаб комнаты)"
+
+msgid "Fit the room (out in big rooms, in in small ones)"
+msgstr "Вписать комнату (отдаление в больших комнатах, приближение в малых)"
+
+msgid "MetDevSys is in the floating window."
+msgstr "MetDevSys в плавающем окне."
+
+msgid "MetDevSys is in the right dock."
+msgstr "MetDevSys в правой панели."
+
+msgid "MetDevSys is in the bottom panel."
+msgstr "MetDevSys в нижней панели."
+
+msgid "MetDevSys is in the main screen."
+msgstr "MetDevSys на главном экране."
+
+msgid "MetDevSys - Metroidvania Developer System"
+msgstr "MetDevSys - Metroidvania Developer System"
+
+msgid "Dock MetDevSys back here"
+msgstr "Вернуть MetDevSys сюда"
+
+msgid "Show it"
+msgstr "Показать"
+
+msgid "MetSys plugin should be installed and enabled in project settings for the Metroidvania Developer System MetSys mode to work."
+msgstr "Чтобы режим MetSys системы Metroidvania Developer System работал, плагин MetSys должен быть установлен и включён в параметрах проекта."
+
+msgid "Use selected room as start"
+msgstr "Использовать выбранную комнату как начальную"
+
+msgid "Progression is computed from this room"
+msgstr "Прогрессия считается от этой комнаты"
+
+msgid "Select a sphere, ability or group to highlight it on the map."
+msgstr "Выберите сферу, способность или группу, чтобы подсветить её на карте."
+
+msgid "Generate area"
+msgstr "Сгенерировать область"
+
+msgid "Generate"
+msgstr "Сгенерировать"
+
+msgid "An area made of rooms with doors between them, in the box you dragged. Cells other rooms cover are left out. It connects to the areas it touches."
+msgstr "Область из комнат с дверями между ними, внутри нарисованной вами рамки. Ячейки, которые уже заняты другими комнатами, пропускаются. Область соединяется с областями, которых касается."
+
+msgid "The area's name (an existing area's name adds the rooms to it)"
+msgstr "Название области (если назвать как существующую, комнаты добавятся в неё)"
+
+msgid "Random"
+msgstr "Случайно"
+
+msgid "Another name"
+msgstr "Другое название"
+
+msgid "Shape"
+msgstr "Форма"
+
+msgid "Rectangle or square: the whole box. Irregular: blocks joined together. Freeform: a curvy blob with corridors. Hybrid: a blob with halls, towers and corridors. Curves and Slants shape the corners of all of them"
+msgstr "Прямоугольник или квадрат: вся рамка. Неправильные блоки: соединённые блоки. Свободная форма: извилистое пятно с коридорами. Гибрид: пятно с залами, башнями и коридорами. «Скругления» и «Скосы» задают углы всех форм"
+
+msgid "Share of the outline's corners rounded into curves, and of the corridors that curve. 0 with Slants 0: straight sides and sharp corners"
+msgstr "Доля углов контура, скруглённых в кривые, и доля изгибающихся коридоров. 0 при «Скосах» 0: прямые стороны и острые углы"
+
+msgid "Curves"
+msgstr "Скругления"
+
+msgid "Share of the outline's corners cut on a slant, of the blocks with a slanted side, and of the corridors that turn at angles"
+msgstr "Доля углов контура, срезанных наискось, блоков со скошенной стороной и коридоров, поворачивающих под углом"
+
+msgid "Slants"
+msgstr "Скосы"
+
+msgid "Smallest room"
+msgstr "Наименьшая комната"
+
+msgid "Paint cells (World settings > Paint cell; a quarter of the default room size unless set)"
+msgstr "Ячейки рисования (Параметры мира > Ячейка рисования; если не задано, четверть размера комнаты по умолчанию)"
+
+msgid "Largest room"
+msgstr "Наибольшая комната"
+
+msgid "Paint cells"
+msgstr "Ячейки рисования"
+
+msgid "Irregular rooms"
+msgstr "Неправильные комнаты"
+
+msgid "Share of rooms joined with a neighbour into one L, T or U shaped room"
+msgstr "Доля комнат, объединённых с соседней в одну L-, T- или U-образную комнату"
+
+msgid "Shafts"
+msgstr "Шахты"
+
+msgid "Share of tall, narrow rooms to climb or fall through"
+msgstr "Доля высоких узких комнат, по которым поднимаются или падают"
+
+msgid "Share of the other neighbouring rooms that get a door too: more ways around. 0: one way to each room"
+msgstr "Доля остальных соседних комнат, которые тоже получают дверь: больше обходных путей. 0: в каждую комнату ведёт один путь"
+
+msgid "Loops"
+msgstr "Петли"
+
+msgid "How ragged a freeform or hybrid outline is"
+msgstr "Насколько неровен контур свободной формы или гибрида"
+
+msgid "Ragged outline"
+msgstr "Неровный контур"
+
+msgid "Corridors"
+msgstr "Коридоры"
+
+msgid "Corridors reaching out of a freeform or hybrid area"
+msgstr "Коридоры, выходящие из области свободной формы или гибрида"
+
+msgid "Seed"
+msgstr "Зерно"
+
+msgid "New"
+msgstr "Новое"
+
+msgid "Another layout"
+msgstr "Другая планировка"
+
+msgid "Connect to the areas it touches"
+msgstr "Соединить с соседними областями"
+
+msgid "A door to each area it touches, where they meet (taken out again if you drag them apart with the Area tool)"
+msgstr "Дверь к каждой области, которой она касается, в месте стыка (убирается, если раздвинуть области инструментом «Область»)"
+
+msgid "The box is full of rooms already: drag it over free space."
+msgstr "Рамка уже заполнена комнатами: протяните её по свободному месту."
+
+msgid "Convert to freeform"
+msgstr "Преобразовать в свободную форму"
+
+msgid "Convert"
+msgstr "Преобразовать"
+
+msgid "Turns the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects where it is. Platforms become one-way ledges."
+msgstr "Превращает твёрдые тайлы комнаты, статические тела и прямолинейные фигуры свободной формы в органичную скальную породу свободной формы, сохраняя на месте все проёмы, верх платформ и пол под объектами. Платформы становятся односторонними уступами."
+
+msgid "Rock style"
+msgstr "Стиль породы"
+
+msgid "Style of the solid rock"
+msgstr "Стиль твёрдой породы"
+
+msgid "Ledge style"
+msgstr "Стиль уступов"
+
+msgid "Style of the ledges made from platforms (one-way bodies and tiles)"
+msgstr "Стиль уступов, созданных из платформ (односторонние тела и тайлы)"
+
+msgid "Background tiles"
+msgstr "Тайлы фона"
+
+msgid "Turn the Background layer's tiles into freeform shapes of this style, or keep them"
+msgstr "Превратить тайлы слоя фона в фигуры свободной формы этого стиля или оставить как есть"
+
+msgid "Foreground tiles"
+msgstr "Тайлы переднего плана"
+
+msgid "Turn the Foreground layer's tiles into freeform shapes of this style, or keep them"
+msgstr "Превратить тайлы слоя переднего плана в фигуры свободной формы этого стиля или оставить как есть"
+
+msgid "Also cover the cells of the room's box outside its shape on the map with non-solid shapes of this style (deep ground over the rock's edges)"
+msgstr "Также покрыть ячейки рамки комнаты за пределами её формы на карте нетвёрдыми фигурами этого стиля (глубокий грунт поверх краёв породы)"
+
+msgid "Fill outside shape"
+msgstr "Заполнение вне формы"
+
+msgid "How much faces grow: floors in low mounds, ceilings sagging in lobes, walls bulging (0: corners rounded only)"
+msgstr "Насколько разрастаются грани: полы — низкими буграми, потолки — провисающими выступами, стены — выпуклостями (0: только скругление углов)"
+
+msgid "Growth"
+msgstr "Разрастание"
+
+msgid "Inside corners"
+msgstr "Внутренние углы"
+
+msgid "px"
+msgstr "px"
+
+msgid "Radius of the bowls rounding inside corners"
+msgstr "Радиус впадин, скругляющих внутренние углы"
+
+msgid "Outside corners"
+msgstr "Внешние углы"
+
+msgid "Radius of the lips rounding outside corners"
+msgstr "Радиус кромок, скругляющих внешние углы"
+
+msgid "Same seed, same rock"
+msgstr "То же зерно — та же порода"
+
+msgid "Old terrain"
+msgstr "Старая местность"
+
+msgid "Keep it, hidden"
+msgstr "Оставить скрытой"
+
+msgid "Remove it"
+msgstr "Удалить"
+
+msgid "Hidden: the old tiles move to a disabled <Layer>Blockout layer and old bodies are hidden without collision, all still in the scene. Remove: they go (Ctrl+Z still brings them back)"
+msgstr "Оставить скрытой: старые тайлы переносятся в отключённый слой <Layer>Blockout, а старые тела скрываются без столкновений; всё остаётся в сцене. Удалить: они исчезают (Ctrl+Z всё же вернёт их)"
+
+msgid "Convert straight-edged freeform shapes"
+msgstr "Преобразовать прямолинейные фигуры свободной формы"
+
+msgid "Solid freeform shapes with Smooth off (a blockout drawn with rectangles) become rock too"
+msgstr "Твёрдые фигуры свободной формы с выключенным сглаживанием (набросок из прямоугольников) тоже превращаются в породу"
+
+msgid "Preview"
+msgstr "Предпросмотр"
+
+msgid "Rock style, as one-way ledges"
+msgstr "Стиль породы, в виде односторонних уступов"
+
+msgid "Keep as tiles"
+msgstr "Оставить тайлами"
+
+msgid "No"
+msgstr "Нет"
+
+msgid "Decorate freeform"
+msgstr "Украсить свободные формы"
+
+msgid "Decorate"
+msgstr "Украсить"
+
+msgid "Places scenery relative to the room's freeform rock, never over doorways, platforms or anything in the room. Running it again replaces what it placed before."
+msgstr "Размещает декорации по свободной породе комнаты, но не поверх проёмов, платформ и других объектов комнаты. При повторном запуске заменяет размещённое ранее."
+
+msgid "Stamp set"
+msgstr "Набор штампов"
+
+msgid "Hanging"
+msgstr "Свисающие"
+
+msgid "Stamps hung under ceilings and ledges"
+msgstr "Штампы, свисающие с потолков и уступов"
+
+msgid "Floor plants"
+msgstr "Растения на полу"
+
+msgid "Stamps along floors: tick the categories below"
+msgstr "Штампы вдоль пола: отметьте категории ниже"
+
+msgid "Background shapes standing on flat floors (or hanging under flat ceilings): tick the kinds below"
+msgstr "Фигуры фона, стоящие на ровном полу (или свисающие с ровного потолка): отметьте виды ниже"
+
+msgid "Structures"
+msgstr "Сооружения"
+
+msgid "Structure style"
+msgstr "Стиль сооружений"
+
+msgid "Leaves on them"
+msgstr "Листья на них"
+
+msgid "Leaf silhouettes framing the room's free corners, in front of everything"
+msgstr "Силуэты листьев, обрамляющие свободные углы комнаты, поверх всего"
+
+msgid "Density"
+msgstr "Плотность"
+
+msgid "Same seed, same decoration"
+msgstr "То же зерно — тот же декор"
+
+msgid "No stamp sets (structures and leaves only)"
+msgstr "Нет наборов штампов (только сооружения и листья)"
+
+msgid "Starts only when"
+msgstr "Начинается, только когда"
+
+msgid "Stops when"
+msgstr "Прекращается, когда"
+
+msgid "Add a condition"
+msgstr "Добавить условие"
+
+msgid "flag"
+msgstr "флаг"
+
+msgid "not"
+msgstr "не"
+
+msgid "Holds when the test fails"
+msgstr "Выполняется, когда проверка не проходит"
+
+msgid "Remove this condition"
+msgstr "Удалить это условие"
+
+msgid "Fight"
+msgstr "Бой"
+
+msgid "The bosses and enemies with moves in the open scene"
+msgstr "Боссы и враги с приёмами в открытой сцене"
+
+msgid "Open .tres…"
+msgstr "Открыть .tres…"
+
+msgid "Open a phase or a move saved in a file of its own"
+msgstr "Открыть фазу или приём, сохранённые в отдельном файле"
+
+msgid "Inspect"
+msgstr "Свойства"
+
+msgid "Show the selected move in the editor's inspector"
+msgstr "Показать выбранный приём в инспекторе редактора"
+
+msgid "Replace the boss's fight with a recipe, to change. Undo brings back what it had"
+msgstr "Заменить бой босса заготовкой, чтобы изменить его. «Отменить» вернёт прежнее"
+
+msgid "Start from a recipe…"
+msgstr "Начать с заготовки…"
+
+msgid "Phases"
+msgstr "Фазы"
+
+msgid "Add a phase, starting at half the health of the last"
+msgstr "Добавить фазу, начинающуюся на половине здоровья последней"
+
+msgid "Add"
+msgstr "Добавить"
+
+msgid "Remove this phase"
+msgstr "Удалить эту фазу"
+
+msgid "Remove"
+msgstr "Удалить"
+
+msgid "Selected move"
+msgstr "Выбранный приём"
+
+msgid "Up"
+msgstr "Вверх"
+
+msgid "Move it before the one above it"
+msgstr "Переместить выше, перед предыдущим"
+
+msgid "Down"
+msgstr "Вниз"
+
+msgid "Move it after the one below it"
+msgstr "Переместить ниже, после следующего"
+
+msgid "Duplicate"
+msgstr "Дублировать"
+
+msgid "A copy of it and everything in it, right after it"
+msgstr "Копия приёма со всем его содержимым сразу после него"
+
+msgid "Make unique"
+msgstr "Сделать уникальным"
+
+msgid "It is used in more than one place: give this place a copy of its own"
+msgstr "Используется в нескольких местах: дать этому месту собственную копию"
+
+msgid "Take it out, and everything in it"
+msgstr "Убрать его вместе со всем содержимым"
+
+msgid "Add a move"
+msgstr "Добавить приём"
+
+msgid "Where a new move goes"
+msgstr "Куда пойдёт новый приём"
+
+msgid "While playing"
+msgstr "Во время игры"
+
+msgid "Which running fighter the graph follows"
+msgstr "За каким запущенным бойцом следит граф"
+
+msgid "[i]Run the game to see the fight here.[/i]"
+msgstr "[i]Запустите игру, чтобы увидеть бой здесь.[/i]"
+
+msgid "Make editable"
+msgstr "Сделать редактируемым"
+
+msgid "Copy these phases onto the boss, to change. Undo takes it back"
+msgstr "Скопировать эти фазы на босса, чтобы изменить. «Отменить» вернёт всё назад"
+
+msgid "Select an MDSMoveBoss or an MDSMoveEnemy in the scene, or open a .tres of a phase or a move."
+msgstr "Выберите в сцене MDSMoveBoss или MDSMoveEnemy либо откройте .tres фазы или приёма."
+
+msgid "⚠ see below"
+msgstr "⚠ см. ниже"
+
+msgid "After this move"
+msgstr "После этого приёма"
+
+msgid "A move can't go inside itself."
+msgstr "Приём не может находиться внутри самого себя."
+
+msgid "Select where it goes first: a move with room in it, or one to add after."
+msgstr "Сначала выберите место: приём, в который можно вложить новый, или приём, после которого его добавить."
+
+msgid "Couldn't make one: its script needs @tool."
+msgstr "Не удалось создать: его скрипту нужен @tool."
+
+msgid "No fighters in this scene"
+msgstr "В этой сцене нет бойцов"
+
+msgid "[i]Pick a running fighter above.[/i]"
+msgstr "[i]Выберите запущенного бойца выше.[/i]"
+
+msgid "Rooms"
+msgstr "Комнаты"
+
+msgid "Ellipse"
+msgstr "Эллипс"
+
+msgid "Polygon"
+msgstr "Полигон"
+
+msgid "Curvy"
+msgstr "Кривая"
+
+msgid "Gen. area"
+msgstr "Ген. область"
+
+msgid "Select rooms and outlines: click (Ctrl or Shift adds or takes out), or drag a box on empty space. Drag them to move them: rooms move in paint cells and stop against the others, with doors where they touch. Double-click a room to edit it (and the others selected) in the Room view. Delete removes them, Ctrl+A selects them all, the arrows nudge them"
+msgstr "Выбор комнат и контуров: щелчок (Ctrl или Shift добавляет или убирает) либо рамка на пустом месте. Перетащите их, чтобы переместить: комнаты движутся по ячейкам рисования и упираются в другие, а в местах касания появляются двери. Двойной щелчок по комнате открывает её (и остальные выбранные) в «Виде комнаты». Delete удаляет их, Ctrl+A выбирает все, стрелки сдвигают"
+
+msgid "Draw a room's outline: drag a rectangle (Snap to cells: on the paint cells). Generate map makes the outlines rooms on the map"
+msgstr "Нарисуйте контур комнаты: протяните прямоугольник («Привязка к ячейкам»: по ячейкам рисования). «Сгенерировать карту» превратит контуры в комнаты на карте"
+
+msgid "Draw an ellipse: drag its box (Shift: a circle). Generate map makes the outlines rooms on the map"
+msgstr "Нарисуйте эллипс: протяните его рамку (Shift: круг). «Сгенерировать карту» превратит контуры в комнаты на карте"
+
+msgid "Draw a polygon: click its corners, then click the first one, double-click or press Enter to close it. Backspace takes the last corner back, Esc drops it"
+msgstr "Нарисуйте полигон: щёлкайте по его углам, затем щёлкните по первому, дважды щёлкните или нажмите Enter, чтобы замкнуть. Backspace убирает последний угол, Esc отбрасывает полигон"
+
+msgid "Draw a curvy outline freehand: drag around it and release, it closes and is smoothed"
+msgstr "Нарисуйте кривой контур от руки: обведите его мышью и отпустите, он замкнётся и сгладится"
+
+msgid "Generate area: drag a box for the Generate area dialog, an area of rooms with an outline of its own (rectangle, blocks, curvy or hybrid), like the map's Generate area tool"
+msgstr "Генерация области: протяните рамку, чтобы открыть диалог «Сгенерировать область» — область комнат со своим контуром (прямоугольник, блоки, кривая или гибрид), как у инструмента карты «Сгенерировать область»"
+
+msgid "Nothing to generate: draw rooms first with Rectangle, Ellipse, Polygon or Curvy."
+msgstr "Нечего генерировать: сначала нарисуйте комнаты инструментами «Прямоугольник», «Эллипс», «Полигон» или «Кривая»."
+
+msgid "Polygon: click its next corners; click the first one, double-click or press Enter to close it."
+msgstr "Полигон: щёлкайте по следующим углам; щёлкните по первому, дважды щёлкните или нажмите Enter, чтобы замкнуть."
+
+msgid "Generate area needs a box of 2 x 2 paint cells or more."
+msgstr "Для генерации области нужна рамка не меньше 2 x 2 ячеек рисования."
+
+msgid "The rooms selected are against a neighbour there."
+msgstr "Выбранные комнаты в этом месте упираются в соседнюю комнату."
+
+msgid "Undone on the map."
+msgstr "Отменено на карте."
+
+msgid "Redone on the map."
+msgstr "Повторено на карте."
+
+msgctxt "list separator"
+msgid ", "
+msgstr ", "
+
+msgid "MetSys colors"
+msgstr "Цвета MetSys"
+
+msgid "Room type"
+msgstr "Тип комнаты"
+
+msgid "Progression"
+msgstr "Прогрессия"
+
+msgid "Save distance"
+msgstr "Расстояние до сохранения"
+
+msgid "Build status"
+msgstr "Статус разработки"
+
+msgid "Import map image"
+msgstr "Импорт изображения карты"
+
+msgid "Import"
+msgstr "Импорт"
+
+msgid "A picture of a map becomes rooms on the map: its grid's cells are paint cells, its colors areas, cells parted by a wall line separate rooms, a gap in a wall or a gate marker on it a door. A map drawn with no grid (Hollow Knight, Silksong) is read as a shape per area, each split into rooms with doors. Cells other rooms have are left out. One undo takes it back."
+msgstr "Изображение карты превращается в комнаты на карте: ячейки его сетки становятся ячейками рисования, цвета — областями, ячейки, разделённые линией стены, — отдельными комнатами, а проём в стене или маркер перехода на ней — дверью. Карта, нарисованная без сетки (Hollow Knight, Silksong), читается как одна фигура на область, и каждая фигура делится на комнаты с дверями. Ячейки, которые уже заняты другими комнатами, пропускаются. Одна отмена возвращает всё назад."
+
+msgid "No picture yet"
+msgstr "Изображение не выбрано"
+
+msgid "Pick..."
+msgstr "Выбрать..."
+
+msgid "Pick a picture of a map (PNG, JPG, WebP, BMP, TGA, SVG), in the project or anywhere on disk"
+msgstr "Выберите изображение карты (PNG, JPG, WebP, BMP, TGA, SVG) в проекте или в любом месте на диске"
+
+msgid "Find it"
+msgstr "Найти автоматически"
+
+msgid "Find the map's grid from where its rooms' edges are (across and down on their own). Off: the cell size and offset below. A picture MDS exported has a sidecar file that gives it exactly"
+msgstr "Найти сетку карты по краям её комнат (по горизонтали и вертикали отдельно). Выкл.: используются размер и сдвиг ячейки ниже. У изображения, экспортированного MDS, есть файл sidecar, который задаёт сетку точно"
+
+msgid "One cell of the map's grid in the picture, across and down"
+msgstr "Одна ячейка сетки карты на изображении: по горизонтали и по вертикали"
+
+msgid "Cell size (px)"
+msgstr "Размер ячейки (px)"
+
+msgid "Where a cell's top-left corner is in the picture"
+msgstr "Где на изображении находится верхний левый угол ячейки"
+
+msgid "Cell starts at (px)"
+msgstr "Начало ячейки (px)"
+
+msgid "How far apart two room colors may be and be one area (hue and saturation count, brightness less)"
+msgstr "Насколько могут различаться цвета двух комнат, чтобы считаться одной областью (оттенок и насыщенность важны, яркость — меньше)"
+
+msgid "Same area within"
+msgstr "Одна область в пределах"
+
+msgid "Ink darker than"
+msgstr "Линии темнее"
+
+msgid "Pixels darker than this are walls and outlines, not rooms"
+msgstr "Пиксели темнее этого значения — стены и контуры, а не комнаты"
+
+msgid "Room cell filled"
+msgstr "Заполненность ячейки"
+
+msgid "The share of a cell's middle that must be room color for it to be a room's"
+msgstr "Какая доля середины ячейки должна быть цвета комнаты, чтобы ячейка считалась комнатой"
+
+msgid "Parted by walls"
+msgstr "Разделённые стенами"
+
+msgid "One per color region"
+msgstr "Одна на цветовую область"
+
+msgid "One per cell"
+msgstr "Одна на ячейку"
+
+msgid "Drawn map: a shape per area"
+msgstr "Нарисованная карта: фигура на область"
+
+msgid "Parted by walls: cells of one area with no wall line between them are one room. One per color region: the cells of one area that touch. One per cell: every cell its own room. Drawn map: a map with no grid (Hollow Knight, Silksong), each area a shape filled with its color: each shape is split into rooms with doors, keeping its outline (used too when no grid is found)"
+msgstr "Разделённые стенами: ячейки одной области без линии стены между ними образуют одну комнату. Одна на цветовую область: касающиеся ячейки одной области. Одна на ячейку: каждая ячейка — отдельная комната. Нарисованная карта: карта без сетки (Hollow Knight, Silksong), где каждая область — фигура, залитая своим цветом; каждая фигура делится на комнаты с дверями с сохранением контура (применяется и тогда, когда сетка не найдена)"
+
+msgid "A map drawn with no grid: how many paint cells its width takes on the world (more: bigger rooms on the map, more of them, thin corridors kept)"
+msgstr "Карта, нарисованная без сетки: сколько ячеек рисования занимает её ширина в мире (больше: крупнее комнаты на карте, их больше, тонкие коридоры сохраняются)"
+
+msgid "Drawn map: cells across"
+msgstr "Нарисованная карта: ячеек в ширину"
+
+msgid "Paint cells per cell"
+msgstr "Ячеек рисования в ячейке"
+
+msgid "How many paint cells of the world one cell of the picture's grid covers, across and down (a MetSys map's cell is a whole screen: 4 x 4 by default)"
+msgstr "Сколько ячеек рисования мира покрывает одна ячейка сетки изображения по горизонтали и по вертикали (ячейка карты MetSys — это целый экран: по умолчанию 4 x 4)"
+
+msgid "Place"
+msgstr "Разместить"
+
+msgid "Right of the map"
+msgstr "Справа от карты"
+
+msgid "Where it was dropped"
+msgstr "Куда перетащили"
+
+msgid "Where they were (sidecar)"
+msgstr "На прежних местах (sidecar)"
+
+msgid "Right of the rooms on this layer; where the picture was dropped on the map; or, for a picture MDS exported with its sidecar, on the same paint cells as the rooms it shows"
+msgstr "Справа от комнат этого слоя; туда, куда изображение перетащили на карту; или, для изображения, экспортированного MDS вместе с файлом sidecar, на тех же ячейках рисования, что и показанные на нём комнаты"
+
+msgid "Doors: gaps in walls, gate markers"
+msgstr "Двери: проёмы в стенах, маркеры переходов"
+
+msgid "A gap in a wall between two rooms, or a gate marker (a bright square, as MDS draws gates) on it, is a door: a pair of connected gates"
+msgstr "Проём в стене между двумя комнатами или маркер перехода на ней (яркий квадрат, как MDS рисует переходы) — это дверь: пара соединённых переходов"
+
+msgid "Doors to rooms no door reaches"
+msgstr "Двери к недостижимым комнатам"
+
+msgid "Rooms no door reaches get one to a room they touch, so every room can be walked to"
+msgstr "Комнаты, к которым не ведёт ни одна дверь, получают дверь в соседнюю комнату, чтобы до каждой комнаты можно было дойти"
+
+msgid "Areas (biggest first)"
+msgstr "Области (сначала крупные)"
+
+msgid "The area's name (an existing area's name puts the rooms in it)"
+msgstr "Название области (если назвать как существующую, комнаты попадут в неё)"
+
+msgid "Flat"
+msgstr "Плоский"
+
+msgid "Hand-drawn (double line)"
+msgstr "Нарисованный от руки (двойная линия)"
+
+msgid "Blueprint"
+msgstr "Чертёж"
+
+msgid "Chunky pixel"
+msgstr "Крупный пиксель"
+
+msgid "Glowing areas (atlas)"
+msgstr "Светящиеся области (атлас)"
+
+msgid "Merge rooms"
+msgstr "Объединить комнаты"
+
+msgid "Merge"
+msgstr "Объединить"
+
+msgid "Keep"
+msgstr "Оставить"
+
+msgid "The room that stays: its id, its place in the map's order, its scene and its settings (names, notes and abilities it lacks come from the others). The others' gates to the rest of the map are renamed where their names are taken"
+msgstr "Комната, которая остаётся: её ID, место в порядке карты, сцена и параметры (недостающие названия, заметки и способности берутся из остальных). Переходы остальных комнат к остальной карте переименовываются там, где их названия заняты"
+
+msgid "Bring what is painted in their scenes into its scene"
+msgstr "Перенести нарисованное в их сценах в её сцену"
+
+msgid "Their tiles (only inside their own room; the walls where they meet drawn as one again), freeform shapes, stamps, effects, pictures and other nodes (enemies, pickups...) go into the kept room's scene, where they were on the map. Tiles of another tileset or off its grid come as free tile pieces. Their gate nodes and map guides are made anew. Their scenes stay on disk, no longer used"
+msgstr "Их тайлы (только внутри собственной комнаты; стены в местах стыка рисуются заново как единое целое), фигуры свободной формы, штампы, эффекты, изображения и другие узлы (враги, подбираемые предметы...) попадают в сцену оставшейся комнаты на те же места, где были на карте. Тайлы из другого набора тайлов или вне его сетки становятся свободными тайлами. Их узлы переходов и направляющие карты создаются заново. Их сцены остаются на диске и больше не используются"
+
+msgid "Generate a cave for the merged room"
+msgstr "Сгенерировать пещеру для объединённой комнаты"
+
+msgid "Replace its tiles with a cave built from its shape on the map, with the Room view's fills and Generate options (saved; Ctrl+Z on the map undoes the merge, not the scene)"
+msgstr "Заменить её тайлы пещерой, построенной по её форме на карте, с заливками и параметрами генерации «Вида комнаты» (сохраняется; Ctrl+Z на карте отменяет объединение, но не сцену)"
+
+msgid "Walls where the old rooms met"
+msgstr "Стены на стыке прежних комнат"
+
+msgid "The cave keeps walls where the merged rooms met, with openings where their doors were, each old room reached through them. Off: one open cave"
+msgstr "Пещера сохраняет стены на стыке объединённых комнат, с проёмами на месте их дверей, и в каждую прежнюю комнату можно попасть через них. Выкл.: одна открытая пещера"
+
+msgid "Variation"
+msgstr "Вариация"
+
+msgid "Another number, another cave (the Room view's New variation gives more)"
+msgstr "Другое число — другая пещера (больше вариантов даёт «Новая вариация» в «Виде комнаты»)"
+
+msgid "Another variation"
+msgstr "Другая вариация"
+
+msgid "Open it in the Room view"
+msgstr "Открыть в «Виде комнаты»"
+
+msgid "Edit the merged room: Generate cave and New variation there too"
+msgstr "Редактировать объединённую комнату: «Сгенерировать пещеру» и «Новая вариация» есть и там"
+
+msgid "Items only (free tiles, stamps, pictures, shapes)"
+msgstr "Только объекты (свободные тайлы, штампы, изображения, фигуры)"
+
+msgid "Decor tiles"
+msgstr "Тайлы декора"
+
+msgid "Terrain tiles"
+msgstr "Тайлы местности"
+
+msgid "Everything"
+msgstr "Всё"
+
+msgid "Terrain"
+msgstr "Местность"
+
+msgid "Style's role"
+msgstr "Роль стиля"
+
+msgid "Platform, one-way"
+msgstr "Платформа, односторонняя"
+
+msgid "Platform, two-way"
+msgstr "Платформа, двусторонняя"
+
+msgid "Decoration (no collision)"
+msgstr "Украшение (без столкновений)"
+
+msgid "Top tile (stamp, free tiles, foreground, decor, terrain, then background)"
+msgstr "Верхний тайл (штамп, свободные тайлы, передний план, декор, местность, затем фон)"
+
+msgid "Decor only"
+msgstr "Только декор"
+
+msgid "Terrain only"
+msgstr "Только местность"
+
+msgid "Background only"
+msgstr "Только фон"
+
+msgid "All layers"
+msgstr "Все слои"
+
+msgid "Foreground only"
+msgstr "Только передний план"
+
+msgid "Freeform shape removed."
+msgstr "Фигура свободной формы удалена."
+
+msgid "Pick tiles in the tile palette first (drag over them): the Place tool puts them anywhere in the room, at any angle."
+msgstr "Сначала выберите тайлы в палитре тайлов (проведите по ним мышью): инструмент «Разместить» ставит их в любое место комнаты под любым углом."
+
+msgid "Nothing selected. Click tiles, free tiles, stamps, pictures or shapes (Shift adds), or drag a box around them."
+msgstr "Ничего не выбрано. Щёлкните по тайлам, свободным тайлам, штампам, изображениям или фигурам (Shift добавляет) либо обведите их рамкой."
+
+msgid "Select free tiles first (tiles placed with Place, or moved off the grid)."
+msgstr "Сначала выберите свободные тайлы (поставленные инструментом «Разместить» или сдвинутые с сетки)."
+
+msgid "Drag an effect from the list onto the room, or pick one and click."
+msgstr "Перетащите эффект из списка в комнату или выберите его и щёлкните."
+
+msgid "No stamp set: add the Mossgrove pack (or any *.stamps.tres) to the project."
+msgstr "Нет набора штампов: добавьте в проект пакет Mossgrove (или любой *.stamps.tres)."
+
+msgid "Undone."
+msgstr "Отменено."
+
+msgid "Redone."
+msgstr "Повторено."
+
+msgid "Click in a room to paint it, or draw rooms with the Full view's Rectangle, Ellipse, Polygon or Curvy tool, then Generate map."
+msgstr "Щёлкните в комнате, чтобы рисовать в ней, или нарисуйте комнаты инструментами «Прямоугольник», «Эллипс», «Полигон» или «Кривая» в «Полном виде», затем «Сгенерировать карту»."
+
+msgid "Decor"
+msgstr "Декор"
+
+msgid "Erase"
+msgstr "Ластик"
+
+msgid "Stamps"
+msgstr "Штампы"
+
+msgid "Effects"
+msgstr "Эффекты"
+
+msgid "Select"
+msgstr "Выделение"
+
+msgid "Behind terrain"
+msgstr "За местностью"
+
+msgid "In front of terrain"
+msgstr "Перед местностью"
+
+msgid "Paint the Terrain layer (solid ground: autotiled terrain, palette tiles or colors)"
+msgstr "Рисовать слой местности (твёрдая земля: местность с автотайлингом, тайлы палитры или цвета)"
+
+msgid "Paint the Background layer (foliage, palette tiles or a solid color)"
+msgstr "Рисовать слой фона (листва, тайлы палитры или сплошной цвет)"
+
+msgid "Paint the Decor layer (grass, vines, stalactites, palette tiles...)"
+msgstr "Рисовать слой декора (трава, лианы, сталактиты, тайлы палитры...)"
+
+msgid "Erase the top item under the brush: a stamp or free tiles, else foreground, decoration, terrain, then background (palette tiles and colors too). Pick one layer or all layers in the list next to it; Shift erases background only. Works with shapes too, to carve curved caves"
+msgstr "Стирает верхний объект под кистью: штамп или свободные тайлы, иначе передний план, декор, местность, затем фон (тайлы палитры и цвета тоже). Выберите один слой или все слои в списке рядом; Shift стирает только фон. Работает и с фигурами, чтобы вырезать извилистые пещеры"
+
+msgid "Paint the Foreground layer, drawn in front of everything (dark silhouettes framing the room)"
+msgstr "Рисовать слой переднего плана, который выводится поверх всего (тёмные силуэты, обрамляющие комнату)"
+
+msgid "Freeform terrain: smooth curvy shapes instead of tiles (rounded ledges, bulging moss walls), with textured edges, clumps and exact collision. Draw by clicking points or dragging freehand, or pick a shape and drag its box. Edit mode reshapes them"
+msgstr "Местность свободной формы: гладкие извилистые фигуры вместо тайлов (округлые уступы, выпуклые мшистые стены) с текстурными краями, пучками и точными столкновениями. Рисуйте щелчками по точкам или от руки либо выберите фигуру и протяните её рамку. Режим «Править» меняет их форму"
+
+msgid "Place large clumps freely (moss bubbles, leaves, ferns, hanging moss, background bubbles, foreground silhouettes). Click or drag; Shift removes"
+msgstr "Свободно размещайте крупные скопления (моховые пузыри, листья, папоротники, свисающий мох, пузыри на фоне, силуэты на переднем плане). Щёлкайте или перетаскивайте; Shift удаляет"
+
+msgid "Environment effects: rain, snow, dust storms, lightning, fog, steam vents, lava, waterfalls, water, light shafts, embers, fireflies, leaves, heat haze. Drag one from the list onto the room (or pick one and click), drag to move, drag the corner to resize; the selected effect's settings are in the Inspector. Delete removes it"
+msgstr "Эффекты окружения: дождь, снег, пыльные бури, молнии, туман, выбросы пара, лава, водопады, вода, лучи света, угли, светлячки, листья, марево. Перетащите эффект из списка в комнату (или выберите его и щёлкните), перетаскивайте для перемещения, тяните за угол для изменения размера; параметры выбранного эффекта — в инспекторе. Delete удаляет его"
+
+msgid "Place the tiles picked in the tile palette anywhere in the room, off the grid, at the angle picked there (0 to 360 degrees; R / Shift+R turn them). Click to place, drag right away to move; Shift+click removes free tiles. They draw and collide like the tiles of the layer picked below"
+msgstr "Размещает выбранные в палитре тайлы в любом месте комнаты, вне сетки, под выбранным там углом (от 0 до 360 градусов; R / Shift+R поворачивают их). Щелчок ставит тайл, перетаскивание сразу после щелчка двигает его; Shift+щелчок удаляет свободные тайлы. Они отрисовываются и сталкиваются как тайлы слоя, выбранного ниже"
+
+msgid "Select tiles, free tiles, stamps, pictures and freeform shapes: click (Shift or Ctrl adds or removes) or drag a box around them, then drag to move them by pixels (Snap to tiles: by whole tiles). Tiles moved off the grid become free tiles. R / Shift+R turn the selection, the arrows nudge it, Delete removes it"
+msgstr "Выделение тайлов, свободных тайлов, штампов, изображений и фигур свободной формы: щёлкните (Shift или Ctrl добавляет или убирает) либо обведите рамкой, затем перетащите, чтобы сдвинуть по пикселям («Привязка к тайлам»: по целым тайлам). Тайлы, сдвинутые с сетки, становятся свободными. R / Shift+R поворачивают выделенное, стрелки сдвигают его, Delete удаляет"
+
+msgid "What the current tool paints: a terrain (autotiled), random tiles of a kind, the tiles picked in the palette, or a solid color"
+msgstr "Чем рисует текущий инструмент: местностью (автотайлинг), случайными тайлами вида, тайлами, выбранными в палитре, или сплошным цветом"
+
+msgid "Fill"
+msgstr "Заливка"
+
+msgid "Layer of new freeform shapes or stamps"
+msgstr "Слой новых фигур свободной формы или штампов"
+
+msgid "Draw"
+msgstr "Рисовать"
+
+msgid "Edit"
+msgstr "Править"
+
+msgid "Draw: click points (or drag freehand) and click the first point, double-click or press Enter to close; or pick a shape below and drag its box.\nEdit: drag points, Alt+click removes one, double-click an edge adds one, drag inside to move, Delete removes the shape."
+msgstr "Рисовать: щёлкайте по точкам (или рисуйте от руки) и щёлкните по первой точке, дважды щёлкните или нажмите Enter, чтобы замкнуть; либо выберите фигуру ниже и протяните её рамку.\nПравить: перетаскивайте точки, Alt+щелчок удаляет точку, двойной щелчок по ребру добавляет её, перетаскивание внутри двигает фигуру, Delete удаляет фигуру."
+
+msgid "Mode"
+msgstr "Режим"
+
+msgid "Collision of new freeform shapes (and of the selected one in Edit mode): the style's role, terrain, a platform (one-way ledges are jumped up through), or a decoration that never collides. Dashed tops in Edit mode mark one-way shapes"
+msgstr "Столкновения новых фигур свободной формы (и выбранной в режиме «Править»): роль стиля, местность, платформа (сквозь односторонние уступы можно запрыгнуть снизу) или украшение, которое никогда не сталкивается. Пунктирный верх в режиме «Править» отмечает односторонние фигуры"
+
+msgid "Role"
+msgstr "Роль"
+
+msgid "Repair"
+msgstr "Исправить"
+
+msgid "Untwist the selected shape: an outline that crosses itself has no fill and no collision. The largest part stays; other parts become shapes of their own; slivers go"
+msgstr "Распутать выбранную фигуру: контур, пересекающий сам себя, не имеет заливки и столкновений. Самая большая часть остаётся, остальные части становятся отдельными фигурами, а тонкие обрезки удаляются"
+
+msgid "Untwist every shape of the room whose outline crosses itself (drawn red)"
+msgstr "Распутать все фигуры комнаты, контур которых пересекает сам себя (рисуются красным)"
+
+msgid "Repair all"
+msgstr "Исправить все"
+
+msgid "Stamp size. Random on: each stamp varies from 80% to 120% of it. Random off: every stamp is exactly this size"
+msgstr "Размер штампа. «Случайно» вкл.: размер каждого штампа меняется от 80% до 120% от заданного. «Случайно» выкл.: каждый штамп точно такого размера"
+
+msgid "On: each stamp is a random sprite of the category, a little bigger or smaller, flipped or tilted a little. Off: the sprite picked below, exactly at the Size, upright and not flipped. The preview at the mouse is the stamp the next click places. Generate cave's Stamps follow this too"
+msgstr "Вкл.: каждый штамп — случайный спрайт категории, чуть больше или меньше, отражённый или слегка наклонённый. Выкл.: спрайт, выбранный ниже, точно заданного размера, прямо и без отражения. Превью у курсора — это штамп, который поставит следующий щелчок. Штампы при генерации пещеры подчиняются этому же параметру"
+
+msgid "The sprite every click places (Random off): the category's sprites, the preview at the mouse shows the one picked"
+msgstr "Спрайт, который ставит каждый щелчок (при выключенном «Случайно»): спрайты категории, превью у курсора показывает выбранный"
+
+msgid "How far the turn buttons and R / Shift+R turn: the palette's tiles under Place, the selection under Select (the palette turns its tiles to any angle, 0 to 360 degrees)"
+msgstr "На сколько поворачивают кнопки поворота и R / Shift+R: тайлы палитры при «Разместить», выделенное при «Выделении» (палитра поворачивает свои тайлы на любой угол от 0 до 360 градусов)"
+
+msgid "Turn back (Shift+R)"
+msgstr "Повернуть назад (Shift+R)"
+
+msgid "Turn clockwise (R)"
+msgstr "Повернуть по часовой стрелке (R)"
+
+msgid "Turn"
+msgstr "Поворот"
+
+msgid "Snap to tiles"
+msgstr "Привязка к тайлам"
+
+msgid "Place, move and turn by whole tiles, on the grid. Off: by pixels, anywhere in the room (grid tiles moved off the grid become free tiles; To grid puts free tiles back on it)"
+msgstr "Размещать, перемещать и поворачивать по целым тайлам, по сетке. Выкл.: по пикселям, в любом месте комнаты (тайлы сетки, сдвинутые с неё, становятся свободными; «На сетку» возвращает свободные тайлы на неё)"
+
+msgid "To grid"
+msgstr "На сетку"
+
+msgid "Put the selected free tiles back on their layer's grid, turned to the nearest right angle (Ctrl+Z undoes it)"
+msgstr "Вернуть выбранные свободные тайлы на сетку их слоя, повернув до ближайшего прямого угла (Ctrl+Z отменяет)"
+
+msgid "Delete"
+msgstr "Удалить"
+
+msgid "Remove the selected tiles and items (Delete key; Ctrl+Z undoes it)"
+msgstr "Удалить выбранные тайлы и объекты (клавиша Delete; Ctrl+Z отменяет)"
+
+msgid "Environment Effects"
+msgstr "Эффекты окружения"
+
+msgid "Gameplay Objects"
+msgstr "Игровые объекты"
+
+msgid "Drag an effect onto the room, or pick one and click in the room: it is placed, and clicks then select, move and resize effects again (the new one too). Ctrl+click keeps it picked, to place several. Click a selected effect again for the next one under it"
+msgstr "Перетащите эффект в комнату или выберите его и щёлкните в комнате: он будет размещён, и щелчки снова выделяют, двигают и изменяют размер эффектов (включая новый). Ctrl+щелчок оставляет эффект выбранным, чтобы разместить несколько. Повторный щелчок по выбранному эффекту выделяет следующий под ним"
+
+msgid "No effect (select and move)"
+msgstr "Без эффекта (выделение и перемещение)"
+
+msgid "Place nothing: click an effect in the room to select it, drag it to move it, drag the handles on its sides and corners to resize it"
+msgstr "Ничего не размещать: щёлкните эффект в комнате, чтобы выделить его, перетащите, чтобы переместить, потяните за маркеры на сторонах и углах, чтобы изменить размер"
+
+msgid "No object (select and move)"
+msgstr "Без объекта (выделение и перемещение)"
+
+msgid "Place nothing: click an object in the room to select it, drag it to move it, drag the handles on its sides and corners to resize it"
+msgstr "Ничего не размещать: щёлкните объект в комнате, чтобы выделить его, перетащите, чтобы переместить, потяните за маркеры на сторонах и углах, чтобы изменить размер"
+
+msgid "MDSAbilityPickup: grants an ability on touch and persists"
+msgstr "MDSAbilityPickup: даёт способность при касании и сохраняется"
+
+msgid "Ability pickup"
+msgstr "Подбор способности"
+
+msgid "MDSPickup: item or collectible"
+msgstr "MDSPickup: предмет или коллекционный объект"
+
+msgid "Item pickup"
+msgstr "Подбор предмета"
+
+msgid "MDSPickup: health fragment"
+msgstr "MDSPickup: фрагмент здоровья"
+
+msgid "Health fragment"
+msgstr "Фрагмент здоровья"
+
+msgid "Breakable wall"
+msgstr "Разрушаемая стена"
+
+msgid "MDSBreakable: wall that breaks on attack"
+msgstr "MDSBreakable: стена, разрушающаяся от атаки"
+
+msgid "Cracked floor"
+msgstr "Треснувший пол"
+
+msgid "MDSBreakable: floor that breaks on ground pound"
+msgstr "MDSBreakable: пол, ломающийся от падающего удара"
+
+msgid "Switch"
+msgstr "Переключатель"
+
+msgid "MDSSwitch: sets a flag on hit or interact"
+msgstr "MDSSwitch: устанавливает флаг при ударе или взаимодействии"
+
+msgid "Hazard (spikes)"
+msgstr "Опасность (шипы)"
+
+msgid "MDSHazard: spikes/thorns that hurt and respawn"
+msgstr "MDSHazard: шипы или колючки, которые ранят и возрождают игрока"
+
+msgid "Checkpoint"
+msgstr "Контрольная точка"
+
+msgid "MDSCheckpoint: respawn point in hazard rooms"
+msgstr "MDSCheckpoint: точка возрождения в комнатах с опасностями"
+
+msgid "Grapple point"
+msgstr "Точка зацепа"
+
+msgid "MDSGrapplePoint: anchor for the grapple hook"
+msgstr "MDSGrapplePoint: якорь для крюка-кошки"
+
+msgid "Enemy (Walker)"
+msgstr "Враг (ходок)"
+
+msgid "Walker template enemy"
+msgstr "Шаблонный враг: ходок"
+
+msgid "Enemy (Flyer)"
+msgstr "Враг (летун)"
+
+msgid "Flyer template enemy"
+msgstr "Шаблонный враг: летун"
+
+msgid "Turret template enemy"
+msgstr "Шаблонный враг: турель"
+
+msgid "Enemy (Turret)"
+msgstr "Враг (турель)"
+
+msgid "Enemy (Charger)"
+msgstr "Враг (таран)"
+
+msgid "Charger template enemy"
+msgstr "Шаблонный враг: таран"
+
+msgid "Ambusher template enemy"
+msgstr "Шаблонный враг: засадник"
+
+msgid "Enemy (Ambusher)"
+msgstr "Враг (засадник)"
+
+msgid "Boss arena"
+msgstr "Арена босса"
+
+msgid "MDSBossArena: locks doors during boss fight"
+msgstr "MDSBossArena: запирает двери на время боя с боссом"
+
+msgid "NPC"
+msgstr "NPC"
+
+msgid "MDSNPC: dialogue and interaction"
+msgstr "MDSNPC: диалоги и взаимодействие"
+
+msgid "Dialogue trigger"
+msgstr "Триггер диалога"
+
+msgid "MDSDialogueTrigger: a conversation with anything (a door, a sign, a statue), on interact or on touch"
+msgstr "MDSDialogueTrigger: разговор с чем угодно (дверью, табличкой, статуей) при взаимодействии или касании"
+
+msgid "No effect: click an effect in the room to select, move or resize it."
+msgstr "Без эффекта: щёлкните эффект в комнате, чтобы выделить, переместить или изменить его размер."
+
+msgid "Remove all"
+msgstr "Удалить все"
+
+msgid "Remove every effect placed in this room (Ctrl+Z undoes it)"
+msgstr "Удалить все эффекты, размещённые в этой комнате (Ctrl+Z отменяет)"
+
+msgid "No effects here"
+msgstr "Здесь нет эффектов"
+
+msgid "No weather or effects from the room's area (or the world) in this room: its weather is set to none (Inspect tab). Effects placed in the room itself stay"
+msgstr "В этой комнате нет погоды и эффектов от её области (или мира): погода комнаты — none (вкладка «Свойства»). Эффекты, размещённые в самой комнате, остаются"
+
+msgid "Drag onto the room. Click one in the room to edit it in the Inspector; drag its handles to resize it. Drop an image on a parallax background to add it as a layer, or on an animated background to show it blurred."
+msgstr "Перетащите в комнату. Щёлкните объект в комнате, чтобы изменить его в инспекторе; потяните за маркеры, чтобы изменить размер. Бросьте изображение на фон с параллаксом, чтобы добавить его как слой, или на анимированный фон, чтобы показать его размытым."
+
+msgid "Show the area's weather"
+msgstr "Показывать погоду области"
+
+msgid "Show the weather of the room's area (Areas tab > Weather), or of the room itself (Inspect tab), as the game adds it to every room of the area. Only a preview: it isn't saved into the scene"
+msgstr "Показывать погоду области комнаты (вкладка «Области» > «Погода») или самой комнаты (вкладка «Свойства») так, как игра добавляет её в каждую комнату области. Только предпросмотр: в сцену он не сохраняется"
+
+msgid "Show the backgrounds"
+msgstr "Показывать фоны"
+
+msgid "Show the parallax and animated backgrounds of the room's area (Areas tab > Parallax, Animated bg), of the boss rooms or of the room itself, behind the room as the game adds them; pan the view to see them move. Only a preview: they aren't saved into the scene"
+msgstr "Показывать фоны с параллаксом и анимированные фоны области комнаты (вкладка «Области» > «Параллакс», «Аним. фон»), комнат боссов или самой комнаты позади комнаты так, как их добавляет игра; двигайте вид, чтобы увидеть их движение. Только предпросмотр: в сцену они не сохраняются"
+
+msgid "Solid color painted by the \"Solid color\" fill"
+msgstr "Сплошной цвет, которым рисует заливка «Сплошной цвет»"
+
+msgid "Brush size in tiles ([ and ] in the view)"
+msgstr "Размер кисти в тайлах ([ и ] в виде)"
+
+msgid "Brush or shape. Shapes: drag a box in the view, release to paint it (Esc cancels)"
+msgstr "Кисть или фигура. Фигуры: протяните рамку в виде и отпустите, чтобы нарисовать (Esc отменяет)"
+
+msgid "Curve of the curved side: convex bulges out, concave dips in; ramps rise along the side (Flip mirrors them)"
+msgstr "Кривизна изогнутой стороны: выпуклая выпячивается наружу, вогнутая — внутрь; пандусы поднимаются вдоль стороны («Отразить» зеркалит их)"
+
+msgid "Curve"
+msgstr "Кривизна"
+
+msgid "Number of waves, steps or spikes"
+msgstr "Число волн, ступеней или шипов"
+
+msgid "How rough and natural the shape's edge is (0 = clean curve)"
+msgstr "Насколько неровен и естествен край фигуры (0 = чистая кривая)"
+
+msgid "Flip"
+msgstr "Отразить"
+
+msgid "Mirror the curve along the side (ramps rise the other way)"
+msgstr "Зеркально отразить кривую вдоль стороны (пандусы поднимаются в другую сторону)"
+
+msgid "Remove broken tiles"
+msgstr "Удалить недействительные тайлы"
+
+msgid "Erase the painted tiles that point at tiles the tileset no longer has (their sheet was removed, or its tile size was made bigger so fewer tiles fit). They draw nothing and have no collision, and Godot logs \"The TileSetAtlasSource atlas has no tile at ...\" for them. Saving also rewrites the tileset without the tiles it can no longer load. Ctrl+Z undoes it"
+msgstr "Стереть нарисованные тайлы, которые ссылаются на тайлы, которых больше нет в наборе тайлов (их лист удалён или размер тайла увеличили, и тайлов вмещается меньше). Они ничего не рисуют и не имеют столкновений, а Godot пишет для них в журнал «The TileSetAtlasSource atlas has no tile at ...». Сохранение также переписывает набор тайлов без тайлов, которые больше не загружаются. Ctrl+Z отменяет"
+
+msgid "Clear hidden tiles"
+msgstr "Очистить скрытые тайлы"
+
+msgid "Remove the tiles of the tile layers hidden in the scene (their eye shut in the Scene dock, or Visible off in the Inspector): they never show, but every one of them is saved in the scene. Then save. Ctrl+Z undoes it"
+msgstr "Удалить тайлы слоёв тайлов, скрытых в сцене (глаз закрыт в панели «Сцена» или «Видимый» выключен в инспекторе): они никогда не показываются, но каждый из них сохраняется в сцене. Затем сохраните. Ctrl+Z отменяет"
+
+msgid "The area's previous room"
+msgstr "Предыдущая комната области"
+
+msgid "The area's next room"
+msgstr "Следующая комната области"
+
+msgid "Caves for the area"
+msgstr "Пещеры для области"
+
+msgid "Generate a cave in every room of the area, with the fills and options here. Rooms without a scene get one. Every room's gates are joined by paths a player can walk, jump and climb both ways, so the whole area can be crossed and backtracked"
+msgstr "Сгенерировать пещеру в каждой комнате области с заливками и параметрами отсюда. Комнатам без сцены создаётся сцена. Переходы каждой комнаты соединены путями, по которым игрок может ходить, прыгать и взбираться в обе стороны, так что всю область можно пройти и вернуться обратно"
+
+msgid "Generate all"
+msgstr "Сгенерировать все"
+
+msgid "Generate a cave in every room shown, with the fills and options here, each joined to its neighbours at their doors. Ctrl+Z undoes it room by room (in the room edited); Save writes them all"
+msgstr "Сгенерировать пещеру в каждой показанной комнате с заливками и параметрами отсюда, соединив каждую с соседями у их дверей. Ctrl+Z отменяет по одной комнате (в редактируемой комнате); «Сохранить» записывает все"
+
+msgid "Generate the caves of every room shown again, with another random layout"
+msgstr "Снова сгенерировать пещеры всех показанных комнат с другой случайной планировкой"
+
+msgid "New variation for all"
+msgstr "Новая вариация для всех"
+
+msgid "Replace the tiles with a cave built from the room's shape on the map: walls, floor, ledges, openings at its gates, paths between them, then background, decorations, foreground and stamps. Uses the fills picked for each layer (and the stamps picked for the Stamps tool), as the options below say"
+msgstr "Заменить тайлы пещерой, построенной по форме комнаты на карте: стены, пол, уступы, проёмы у её переходов, пути между ними, затем фон, декор, передний план и штампы. Использует заливки, выбранные для каждого слоя (и штампы, выбранные для инструмента «Штампы»), как указано в параметрах ниже"
+
+msgid "Generate cave"
+msgstr "Сгенерировать пещеру"
+
+msgid "Generate again with another random layout"
+msgstr "Сгенерировать снова с другой случайной планировкой"
+
+msgid "New variation"
+msgstr "Новая вариация"
+
+msgid "Paint the Background fill behind the cave"
+msgstr "Нарисовать заливку фона позади пещеры"
+
+msgid "Decorations on floors and under ceilings; most floor ones of the Decor fill"
+msgstr "Декор на полах и под потолками; большая часть напольного — из заливки «Декор»"
+
+msgid "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"
+msgstr "Заливка переднего плана спереди: сплошной цвет или местность затемняют породу в глубине стен; тайлы свисают с потолков и окаймляют полы"
+
+msgid "Stamps of the set and category picked for the Stamps tool along the floors, as it places them: its Size, and its Random (off: the one sprite picked there, exactly at the Size)"
+msgstr "Штампы набора и категории, выбранных для инструмента «Штампы», вдоль полов — так, как он их размещает: с его «Размером» и его «Случайно» (выкл.: один выбранный там спрайт точно заданного размера)"
+
+msgid "Paths"
+msgstr "Пути"
+
+msgid "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"
+msgstr "Каждый переход достижим из любого другого и обратно: туннели и шахты с уступами прорезаются там, где пещера этого не допускает"
+
+msgid "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"
+msgstr "Комната, объединённая на карте из нескольких, сохраняет стены на стыке прежних комнат, с проёмами на месте их дверей (выкл.: одна открытая пещера)"
+
+msgid "Merged walls"
+msgstr "Стены объединения"
+
+msgid "Auto-decorate"
+msgstr "Автодекор"
+
+msgid "Redo grass, plants, vines, stalactites and moss on the current terrain (uses tiles tagged with those kinds)"
+msgstr "Заново создать траву, растения, лианы, сталактиты и мох на текущей местности (используются тайлы, помеченные этими видами)"
+
+msgid "Fill background"
+msgstr "Залить фон"
+
+msgid "Fill the room's shape with the Background fill (foliage, palette tiles or a solid color)"
+msgstr "Залить форму комнаты заливкой фона (листва, тайлы палитры или сплошной цвет)"
+
+msgid "Clear background"
+msgstr "Очистить фон"
+
+msgid "Remove every tile of the Background layer. A room filled from edge to edge takes many, and a hidden layer's tiles are saved in the scene all the same"
+msgstr "Удалить все тайлы слоя фона. Для комнаты, залитой от края до края, их очень много, а тайлы скрытого слоя всё равно сохраняются в сцене"
+
+msgid "Convert to freeform..."
+msgstr "Преобразовать в свободную форму..."
+
+msgid "Turn the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects. Platforms become one-way ledges. Block a room out with rectangles or tiles, then make it organic"
+msgstr "Превратить твёрдые тайлы комнаты, статические тела и прямолинейные фигуры свободной формы в органичную скальную породу свободной формы, сохраняя все проёмы, верх платформ и пол под объектами. Платформы становятся односторонними уступами. Наметьте комнату прямоугольниками или тайлами, затем сделайте её органичной"
+
+msgid "Trace drawing..."
+msgstr "Трассировка рисунка..."
+
+msgid "Draw the room from a picture: each color of a drawing (any image file, or drop one on the view) becomes freeform shapes of the style you pick. Black, grey and brown: terrain; red, orange and yellow: one-way platforms; green: background; blue and purple: foreground"
+msgstr "Нарисовать комнату по картинке: каждый цвет рисунка (любой файл изображения или перетащите его в вид) становится фигурами свободной формы выбранного стиля. Чёрный, серый и коричневый — местность; красный, оранжевый и жёлтый — односторонние платформы; зелёный — фон; синий и фиолетовый — передний план"
+
+msgid "Decorate freeform..."
+msgstr "Украсить свободные формы..."
+
+msgid "Place scenery relative to the freeform rock: stamps hung under ceilings, plants along floors, background structures (columns, broken arches, garden walls, mounds, stalactites) on flat floors, and foreground leaves in free corners. Never over doorways or anything in the room; running it again replaces it"
+msgstr "Разместить декорации по свободной породе: штампы, свисающие с потолков, растения вдоль полов, сооружения на фоне (колонны, разрушенные арки, садовые стены, холмики, сталактиты) на ровных полах и листья на переднем плане в свободных углах. Никогда не поверх проёмов и других объектов комнаты; повторный запуск заменяет размещённое"
+
+msgid "Style of Fill outside shape (deep ground)"
+msgstr "Стиль «Заполнения вне формы» (глубокий грунт)"
+
+msgid "Cover the cells of the room's box that are outside its shape on the map (its notches, which belong to neighbouring rooms) with non-solid shapes of the style picked next to it, drawn over the rock's edges. Run it again after changing the room's shape; the Room view also redoes it when it opens a room whose shape changed"
+msgstr "Покрыть ячейки рамки комнаты, лежащие за пределами её формы на карте (её вырезы, принадлежащие соседним комнатам), нетвёрдыми фигурами стиля, выбранного рядом, поверх краёв породы. Запустите снова после изменения формы комнаты; «Вид комнаты» также делает это сам при открытии комнаты с изменённой формой"
+
+msgid "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view"
+msgstr "Загрузить местность комнаты во внеэкранное физическое пространство и проверить её так, как это сделал бы игрок: все переходы открыты, на платформы можно приземлиться, и над ними хватает места, объекты стоят на земле, выходы вверх достижимы прыжком (Параметры мира > Игрок). Проблемы отмечаются в виде"
+
+msgid "Check room"
+msgstr "Проверить комнату"
+
+msgid "Reachability"
+msgstr "Достижимость"
+
+msgid "After Check room, draw the floors the player can reach from the gates in green, the others in red"
+msgstr "После «Проверить комнату» рисовать полы, до которых игрок может добраться от переходов, зелёным, остальные — красным"
+
+msgid "Fit props to floor"
+msgstr "Поставить объекты на пол"
+
+msgid "Stand every object that stands (save points, shops, NPCs, benches, spawn points: see the mds_stands group) on the floor under it, or lift it out of the ground it is sunk in, then step it along its floor out of any platform. Ctrl+Z undoes it"
+msgstr "Поставить каждый стоящий объект (точки сохранения, магазины, NPC, скамьи, точки появления: см. группу mds_stands) на пол под ним или вытащить его из земли, в которую он утоплен, затем сдвинуть по полу, чтобы он не находился внутри платформы. Ctrl+Z отменяет"
+
+msgid "Declutter"
+msgstr "Расчистить"
+
+msgid "Separate objects that stand in or behind each other: doors, machines and enemies stay; save points and shops, then everything else, step along their floor to the nearest clear spot. A decoration with nowhere to go is removed. Ctrl+Z undoes it"
+msgstr "Разнести объекты, стоящие друг в друге или друг за другом: двери, механизмы и враги остаются на месте; точки сохранения и магазины, затем всё остальное сдвигаются по своему полу к ближайшему свободному месту. Украшение, которому некуда деться, удаляется. Ctrl+Z отменяет"
+
+msgid "2.5D preview"
+msgstr "Предпросмотр 2.5D"
+
+msgid "Show the room as MDSDepth25D draws it in the game: walls and floors extruded toward the middle of the view, floors paved in perspective, lit from above (World settings > 2.5D turns it on in the game)"
+msgstr "Показать комнату так, как её рисует MDSDepth25D в игре: стены и полы выдавлены к середине вида, полы вымощены в перспективе, освещение сверху (Параметры мира > 2.5D включает это в игре)"
+
+msgid "Remove all tiles, freeform shapes and stamps"
+msgstr "Удалить все тайлы, фигуры свободной формы и штампы"
+
+msgid "Clear"
+msgstr "Очистить"
+
+msgid "Cleared."
+msgstr "Очищено."
+
+msgid "Undo"
+msgstr "Отменить"
+
+msgid "Undo the last stroke or shape (Ctrl+Z)"
+msgstr "Отменить последний мазок или фигуру (Ctrl+Z)"
+
+msgid "Redo"
+msgstr "Повторить"
+
+msgid "Redo (Ctrl+Y)"
+msgstr "Повторить (Ctrl+Y)"
+
+msgid "Write the tiles into the room scene"
+msgstr "Записать тайлы в сцену комнаты"
+
+msgid "Save"
+msgstr "Сохранить"
+
+msgid "Revert"
+msgstr "Откатить"
+
+msgid "Reload the scene, dropping unsaved painting"
+msgstr "Перезагрузить сцену, отбросив несохранённое рисование"
+
+msgid "Edit in 2D"
+msgstr "Править в 2D"
+
+msgid "Open the room scene in Godot's editor (saves first)"
+msgstr "Открыть сцену комнаты в редакторе Godot (сначала сохраняет)"
+
+msgid "Tile palette"
+msgstr "Палитра тайлов"
+
+msgid "Show the tile palette (spritesheets)"
+msgstr "Показать палитру тайлов (спрайт-листы)"
+
+msgid "One room each"
+msgstr "По комнате на контур"
+
+msgid "Each outline drawn becomes one room, its rectangles on the paint cells it covers and its outline on the map the shape drawn. Outlines that overlap are one room"
+msgstr "Каждый нарисованный контур становится одной комнатой: её прямоугольники — на покрываемых ячейках рисования, а контур на карте — нарисованной формы. Перекрывающиеся контуры образуют одну комнату"
+
+msgid "Split into rooms"
+msgstr "Разделить на комнаты"
+
+msgid "Each outline drawn is split into rooms like a generated area (rectangles, L, T and U shapes, shafts) with doors between them; those on its edge keep its curves"
+msgstr "Каждый нарисованный контур делится на комнаты, как сгенерированная область (прямоугольники, L-, T- и U-образные комнаты, шахты) с дверями между ними; комнаты на его краю сохраняют его кривые"
+
+msgid "What Generate map makes of an outline drawn (and of the outlines selected, when changed)"
+msgstr "Что «Сгенерировать карту» делает из нарисованного контура (и из выбранных контуров при изменении)"
+
+msgid "Make"
+msgstr "Создать"
+
+msgid "The area of the rooms of an outline drawn (and of the outlines selected, when changed): a new area (outlines that touch share it), none, or one of the world's"
+msgstr "Область комнат нарисованного контура (и выбранных контуров при изменении): новая область (касающиеся контуры делят её), никакой или одна из областей мира"
+
+msgid "Split into rooms: the widest room, in paint cells"
+msgstr "Разделение на комнаты: самая широкая комната, в ячейках рисования"
+
+msgid "Split into rooms: the tallest room, in paint cells"
+msgstr "Разделение на комнаты: самая высокая комната, в ячейках рисования"
+
+msgid "Snap to cells"
+msgstr "Привязка к ячейкам"
+
+msgid "Rectangles and ellipses on the paint cells' corners, polygon corners on the world grid, outlines moved by the grid. Rooms and scenes dragged in move smoothly, to the pixel, stopping against their neighbours"
+msgstr "Прямоугольники и эллипсы — по углам ячеек рисования, углы полигонов — по сетке мира, контуры сдвигаются по сетке. Перетаскиваемые комнаты и сцены движутся плавно, с точностью до пикселя, и упираются в соседей"
+
+msgid "At once"
+msgstr "Сразу"
+
+msgid "Each outline drawn becomes rooms on the map right away (off: draw them all first, then Generate map)"
+msgstr "Каждый нарисованный контур сразу становится комнатами на карте (выкл.: сначала нарисовать все, затем «Сгенерировать карту»)"
+
+msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
+msgstr "Создать комнаты на карте из выбранных контуров или из всех нарисованных: их ячейки рисования (ещё не занятые комнатами), их кривые как контуры комнат, двери между ними и к соседним комнатам, в выбранных областях. Один Ctrl+Z отменяет всё"
+
+msgid "Generate map"
+msgstr "Сгенерировать карту"
+
+msgid "Clear outlines"
+msgstr "Очистить контуры"
+
+msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
+msgstr "Удалить все контуры, нарисованные на этом слое (Ctrl+Z отменяет)"
+
+msgid "Caves too"
+msgstr "И пещеры"
+
+msgid "Generate map also makes a scene for each new room and a cave in it, joined at their doors, with the fills and Generate options below (Save writes them)"
+msgstr "«Сгенерировать карту» также создаёт сцену для каждой новой комнаты и пещеру в ней, соединённые у дверей, с заливками и параметрами генерации ниже («Сохранить» записывает их)"
+
+msgid "Edit selected"
+msgstr "Править выбранные"
+
+msgid "Edit the rooms selected (Rooms tool) in the Room view"
+msgstr "Править выбранные комнаты (инструмент «Комнаты») в «Виде комнаты»"
+
+msgid "Select rooms first with the Rooms tool (click, Ctrl+click, or drag a box)."
+msgstr "Сначала выберите комнаты инструментом «Комнаты» (щелчок, Ctrl+щелчок или рамка)."
+
+msgid "Painting: click a room to paint it (one without a scene gets one). Pick a tool above to draw or move rooms."
+msgstr "Рисование: щёлкните комнату, чтобы рисовать в ней (для комнаты без сцены она будет создана). Выберите инструмент выше, чтобы рисовать или перемещать комнаты."
+
+msgid "Click or box-select rooms and outlines, drag to move them, Delete removes them. Double-click a room (or Edit selected) for the Room view."
+msgstr "Щёлкайте или выделяйте рамкой комнаты и контуры, перетаскивайте для перемещения, Delete удаляет их. Двойной щелчок по комнате (или «Править выбранные») открывает «Вид комнаты»."
+
+msgid "Drag a box: the Generate area dialog makes an area of rooms in it."
+msgstr "Протяните рамку: диалог «Сгенерировать область» создаст в ней область из комнат."
+
+msgid "Draw at the rooms' real size, then Generate map. Overlapping outlines of one kind and area are one; cells rooms have are left out."
+msgstr "Рисуйте в реальном размере комнат, затем «Сгенерировать карту». Перекрывающиеся контуры одного вида и области считаются одним; ячейки, занятые комнатами, пропускаются."
+
+msgid "New area"
+msgstr "Новая область"
+
+msgid "No area"
+msgstr "Без области"
+
+msgid "Depth of the placed tiles: they draw and collide like the tiles of this layer"
+msgstr "Глубина размещаемых тайлов: они отрисовываются и сталкиваются как тайлы этого слоя"
+
+msgid "What clicks and boxes select: everything, the tiles of one layer (on the grid and free), or only items"
+msgstr "Что выбирают щелчки и рамки: всё, тайлы одного слоя (на сетке и свободные) или только объекты"
+
+msgid "Scenery"
+msgstr "Декорации"
+
+msgid "Select a shape first (Freeform > Edit, click it), or press Repair all."
+msgstr "Сначала выберите фигуру («Свободная форма» > «Править», щёлкните по ней) или нажмите «Исправить все»."
+
+msgid "Every object that stands is on the floor already (or has no floor under it)."
+msgstr "Все стоящие объекты уже на полу (или под ними нет пола)."
+
+msgid "No objects stand in or behind each other."
+msgstr "Объекты не стоят друг в друге или друг за другом."
+
+msgid "Open a room first (double-click it on the map), then trace a drawing into it."
+msgstr "Сначала откройте комнату (двойной щелчок по ней на карте), затем трассируйте в неё рисунок."
+
+msgid "No weather for this room's area (set it in the Areas tab)."
+msgstr "Для области этой комнаты нет погоды (задайте её на вкладке «Области»)."
+
+msgid "Weather is off in this room."
+msgstr "В этой комнате погода отключена."
+
+msgid "Click a room to edit it, or select rooms with the Rooms tool (click, Ctrl+click, a box), then Generate cave. Generate all does every room."
+msgstr "Щёлкните комнату, чтобы править её, или выберите комнаты инструментом «Комнаты» (щелчок, Ctrl+щелчок, рамка), затем «Сгенерировать пещеру». «Сгенерировать все» делает это для каждой комнаты."
+
+msgid "The cave's open space: Natural grows it from the room's outline; a shape (T, U, H, L, i, cross, ring, S, freeform, a mix, or several picked) carves it as that shape, the shapes joined by tunnels. Generate cave, New variation, Generate all and New variation for all use it, in the Room view and the Full view"
+msgstr "Открытое пространство пещеры: «Естественная» растит его от контура комнаты; форма (T, U, H, L, i, крест, кольцо, S, свободная, смесь или несколько выбранных) вырезает его в виде этой формы, формы соединяются туннелями. Используется командами «Сгенерировать пещеру», «Новая вариация», «Сгенерировать все» и «Новая вариация для всех» в «Виде комнаты» и «Полном виде»"
+
+msgid "The shapes to share out among each room's shapes (Cave shape: Several picked): each is used at least once when there are as many shapes (x), in an order of its own each generation"
+msgstr "Формы, которые распределяются между формами каждой комнаты («Форма пещеры»: «Несколько выбранных»): каждая используется хотя бы раз, если форм достаточно (x), в своём порядке при каждой генерации"
+
+msgid "How far the shapes are turned, clockwise, any angle from 0 to 359: a T turned 90° opens to the left, a U turned 180° is upside down, 45° slants it (made smaller to fit its room)"
+msgstr "На сколько повёрнуты формы по часовой стрелке, любой угол от 0 до 359: T, повёрнутая на 90°, открывается влево, U, повёрнутая на 180°, оказывается вверх ногами, 45° наклоняет её (уменьшается, чтобы поместиться в комнату)"
+
+msgid "Random turn"
+msgstr "Случайный поворот"
+
+msgid "Each cave shape turned its own way, any angle, a new one each variation. It only turns the shapes: the Stamps tool has its own Random for the stamps"
+msgstr "Каждая форма пещеры поворачивается по-своему, на любой угол, новый при каждой вариации. Поворачиваются только формы: у инструмента «Штампы» есть собственное «Случайно» для штампов"
+
+msgid "How many shapes in each room, side by side along its long side (a grid when many), joined by tunnels"
+msgstr "Сколько форм в каждой комнате, рядом друг с другом вдоль её длинной стороны (сеткой, если их много), соединённых туннелями"
+
+msgid "How wide the shapes' passages are, in tiles (0: from the room's size; never lower than the player)"
+msgstr "Ширина проходов форм в тайлах (0: по размеру комнаты; никогда не меньше игрока)"
+
+msgid "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too. Outdoor: no cave, an open world's surface: open sky over rolling hills, pits to jump and floating ledges, its sides open where another room goes on (the ground meets it). Arena: a fight room: a flat floor, walls, a ceiling and platforms in tiers, the same both sides"
+msgstr "Пещера: неровные края породы, уступы по высоким частям (нелинейная пещера). Линейная: прямые стены и ровные полы, высокие части — гладкие стены, по которым игрок взбирается (прыжок от стены или умение лазить); пути между переходами — тоже шахты, по которым нужно взбираться. Открытая местность: не пещера, а поверхность открытого мира: открытое небо над холмами, ямы для прыжков и парящие уступы, с открытыми боками там, где продолжается другая комната (земля стыкуется с ней). Арена: боевая комната: ровный пол, стены, потолок и платформы ярусами, одинаковые с обеих сторон"
+
+msgid "Skeleton: a cave profile file, the numbers its rooms are made to fit (the MCP tool mds_cave_profile writes one from rooms you like). Empty: generic widths"
+msgstr "Скелет: файл профиля пещеры — числа, под которые подгоняются её комнаты (инструмент MCP mds_cave_profile записывает его по понравившимся вам комнатам). Пусто: обобщённые ширины"
+
+msgid "Skeleton: rooms made to find one inside the profile's targets; the closest is kept"
+msgstr "Скелет: сколько комнат создаётся, чтобы найти ту, что укладывается в целевые значения профиля; сохраняется самая близкая"
+
+msgid "Skeleton: 0 to 1, how far its draws stray from the typical room"
+msgstr "Скелет: от 0 до 1, насколько его выборки отклоняются от типичной комнаты"
+
+msgid "Cave shape"
+msgstr "Форма пещеры"
+
+msgid "Style"
+msgstr "Стиль"
+
+msgid "Background filled."
+msgstr "Фон залит."
+
+msgid "Background cleared."
+msgstr "Фон очищен."
+
+msgid "Style of new freeform shapes (and of the selected one). Styles are *.freeform.tres files in the project"
+msgstr "Стиль новых фигур свободной формы (и выбранной). Стили — это файлы *.freeform.tres в проекте"
+
+msgid "No stamp sets (add the Mossgrove pack)"
+msgstr "Нет наборов штампов (добавьте пакет Mossgrove)"
+
+msgid "Stamps placed by the brush. Stamp sets are *.stamps.tres files in the project"
+msgstr "Штампы, размещаемые кистью. Наборы штампов — это файлы *.stamps.tres в проекте"
+
+msgid "What Erase removes (Shift: background only)"
+msgstr "Что стирает «Ластик» (Shift: только фон)"
+
+msgid "Pick tiles in the palette first (drag over them), or add a spritesheet with + Sheet."
+msgstr "Сначала выберите тайлы в палитре (проведите по ним мышью) или добавьте спрайт-лист кнопкой «+ Лист»."
+
+msgid "MetDevSys"
+msgstr "MetDevSys"
+
+msgid "Collapse the tool panel (more room for the map)"
+msgstr "Свернуть панель инструментов (больше места для карты)"
+
+msgid "Show the tool panel"
+msgstr "Показать панель инструментов"
+
+msgid "Spritesheet shown below"
+msgstr "Спрайт-лист, показанный ниже"
+
+msgid "Add a spritesheet (PNG, WebP, JPG...) to the room tileset"
+msgstr "Добавить спрайт-лист (PNG, WebP, JPG...) в набор тайлов комнаты"
+
+msgid "+ Sheet"
+msgstr "+ Лист"
+
+msgid "Zoom in"
+msgstr "Приблизить"
+
+msgid "Paint a random tile of the selection per cell (scatter) instead of repeating it as a pattern"
+msgstr "Рисовать случайный тайл из выделения в каждой ячейке (рассыпью) вместо повторения узором"
+
+msgid "Remove this spritesheet from the tileset (tiles painted from it disappear)"
+msgstr "Удалить этот спрайт-лист из набора тайлов (нарисованные из него тайлы исчезнут)"
+
+msgid "Drag over tiles to pick them for the brushes."
+msgstr "Проведите мышью по тайлам, чтобы выбрать их для кистей."
+
+msgid "The picked tiles, turned and mirrored as they are placed"
+msgstr "Выбранные тайлы, повёрнутые и отражённые так, как они будут размещены"
+
+msgid "Turn the picked tiles clockwise, 0 to 360 degrees. The Place tool places them at this angle, anywhere in the room; the brushes paint them on the grid, turned to the nearest right angle (R / Shift+R in the Room view turn them too)"
+msgstr "Повернуть выбранные тайлы по часовой стрелке на угол от 0 до 360 градусов. Инструмент «Разместить» ставит их под этим углом в любом месте комнаты; кисти рисуют ими по сетке, повернув до ближайшего прямого угла (R / Shift+R в «Виде комнаты» тоже их поворачивают)"
+
+msgid "Mirror"
+msgstr "Отражение"
+
+msgid "Mirror the picked tiles left to right (before they are turned)"
+msgstr "Отразить выбранные тайлы слева направо (до поворота)"
+
+msgid "Solid on/off"
+msgstr "Твёрдость вкл./выкл."
+
+msgid "Give the selected tiles full-tile collision (walkable ground), or remove it"
+msgstr "Задать выбранным тайлам столкновение на весь тайл (земля, по которой можно ходить) или убрать его"
+
+msgid "Terrain name"
+msgstr "Название местности"
+
+msgid "Make terrain"
+msgstr "Создать местность"
+
+msgid "Turn the selection into an autotiling terrain (solid). Select a 3x3 box (corners, edges, fill) or 4x4 tiles ordered by connected sides (1 right + 2 bottom + 4 left + 8 top)"
+msgstr "Превратить выделение в местность с автотайлингом (твёрдую). Выберите блок 3x3 (углы, края, середина) или 4x4 тайла, упорядоченных по соединённым сторонам (1 справа + 2 снизу + 4 слева + 8 сверху)"
+
+msgid "Kind, e.g. grass"
+msgstr "Вид, напр. grass"
+
+msgid "Kinds used by Auto-decorate and Generate cave (foliage = background)"
+msgstr "Виды, которые используют «Автодекор» и «Сгенерировать пещеру» (foliage = фон)"
+
+msgid "v"
+msgstr "v"
+
+msgid "Tag the selected tiles with this kind (empty: remove the tag). Tagged tiles show up in the brush fills and are used by Auto-decorate"
+msgstr "Пометить выбранные тайлы этим видом (пусто: убрать пометку). Помеченные тайлы появляются в заливках кистей и используются «Автодекором»"
+
+msgid "Tag"
+msgstr "Пометить"
+
+msgid "No spritesheets yet. Press + Sheet to add one."
+msgstr "Спрайт-листов пока нет. Нажмите «+ Лист», чтобы добавить."
+
+msgid "Drag over tiles to pick them for the brushes. Red dot: solid, blue dot: tagged kind, bar: terrain."
+msgstr "Проведите мышью по тайлам, чтобы выбрать их для кистей. Красная точка: твёрдый, синяя точка: помеченный вид, полоса: местность."
+
+msgid "Pick tiles in the palette first."
+msgstr "Сначала выберите тайлы в палитре."
+
+msgid "Pick a 3x3 or 4x4 block of tiles in the palette first."
+msgstr "Сначала выберите в палитре блок тайлов 3x3 или 4x4."
+
+msgid "Add a spritesheet"
+msgstr "Добавить спрайт-лист"
+
+msgid "Spritesheet"
+msgstr "Спрайт-лист"
+
+msgid "Tile size"
+msgstr "Размер тайла"
+
+msgid "Margin"
+msgstr "Отступ"
+
+msgid "Separation"
+msgstr "Разделение"
+
+msgid "Solid tiles (collision, for terrain sheets)"
+msgstr "Твёрдые тайлы (столкновения, для листов местности)"
+
+msgid "Each color becomes freeform shapes in the freeform style picked for it: textured rock, moss, ledges..."
+msgstr "Каждый цвет становится фигурами свободной формы в выбранном для него стиле свободной формы: текстурная порода, мох, уступы..."
+
+msgid "Each color becomes freeform shapes filled with a solid color: the drawing's own color, or one picked for it"
+msgstr "Каждый цвет становится фигурами свободной формы, залитыми сплошным цветом: собственным цветом рисунка или выбранным для него"
+
+msgid "Each color paints the room's tile grid: with a terrain (autotiled), tiles of a kind, the tiles picked in the tile palette (a spritesheet), or solid tiles of its own color"
+msgstr "Каждый цвет рисует по сетке тайлов комнаты: местностью (автотайлинг), тайлами вида, тайлами, выбранными в палитре тайлов (спрайт-лист), или сплошными тайлами собственного цвета"
+
+msgid "The drawing goes into the room as it is drawn: a picture behind the terrain, one at its depth and one in front, each with its layer's colors, the paper cut out. Collision gives its terrain and platforms invisible freeform shapes (one-way for platforms), like CollisionPolygon2D"
+msgstr "Рисунок попадает в комнату как есть: картинка за местностью, картинка на её глубине и картинка перед ней, каждая с цветами своего слоя, бумага вырезана. «Столкновения» дают местности и платформам невидимые фигуры свободной формы (односторонние для платформ), как у CollisionPolygon2D"
+
+msgid "Trace drawing"
+msgstr "Трассировка рисунка"
+
+msgid "Trace into room"
+msgstr "Трассировать в комнату"
+
+msgid "Draws the room from a picture. Black, grey and brown: solid terrain; red, orange and yellow: one-way platforms; green: background; blue and purple: foreground; white or transparent: nothing (paper). The drawing covers the room's box on the map. Draw it with freeform styles, solid colors, tiles from a spritesheet or terrain, or keep the drawing itself and give its terrain collision."
+msgstr "Рисует комнату по картинке. Чёрный, серый и коричневый — твёрдая местность; красный, оранжевый и жёлтый — односторонние платформы; зелёный — фон; синий и фиолетовый — передний план; белый или прозрачный — ничего (бумага). Рисунок покрывает рамку комнаты на карте. Рисуйте стилями свободной формы, сплошными цветами, тайлами из спрайт-листа или местностью либо оставьте сам рисунок и задайте его местности столкновения."
+
+msgid "Drawing"
+msgstr "Рисунок"
+
+msgid "an image file (drag one from the FileSystem dock)"
+msgstr "файл изображения (перетащите его из панели «Файловая система»)"
+
+msgid "Pick an image anywhere on this computer"
+msgstr "Выберите изображение в любом месте на этом компьютере"
+
+msgid "Choose..."
+msgstr "Выбрать..."
+
+msgid "Draw with"
+msgstr "Чем рисовать"
+
+msgid "How the drawing goes into the room"
+msgstr "Как рисунок попадает в комнату"
+
+msgid "Colors"
+msgstr "Цвета"
+
+msgid "Stretch over the room's box"
+msgstr "Растянуть на рамку комнаты"
+
+msgid "Keep its proportions"
+msgstr "Сохранить пропорции"
+
+msgid "How the drawing is laid over the room's box on the map"
+msgstr "Как рисунок накладывается на рамку комнаты на карте"
+
+msgid "Detail"
+msgstr "Детализация"
+
+msgid "Left: smooth outlines with few points. Right: follows every wiggle of the drawing"
+msgstr "Слева: гладкие контуры с малым числом точек. Справа: повторяет каждый изгиб рисунка"
+
+msgid "Shapes smaller than this across are dropped as specks"
+msgstr "Фигуры меньше этого размера в поперечнике отбрасываются как пятнышки"
+
+msgid "Smallest shape"
+msgstr "Наименьшая фигура"
+
+msgid "Shapes touching the drawing's edge run on this far past the room's edge, out of the camera's sight"
+msgstr "Фигуры, касающиеся края рисунка, продолжаются настолько далеко за край комнаты, вне поля зрения камеры"
+
+msgid "Run on past edges"
+msgstr "Продолжать за края"
+
+msgid "Fit what is drawn"
+msgstr "Вписать нарисованное"
+
+msgid "Cut off the paper around the drawing, so what is drawn fills the room's width and height (off: the whole picture covers the room)"
+msgstr "Обрезать бумагу вокруг рисунка, чтобы нарисованное занимало всю ширину и высоту комнаты (выкл.: комнату покрывает вся картинка)"
+
+msgid "Round outlines"
+msgstr "Скруглять контуры"
+
+msgid "Round the outlines through their points (off: straight edges, for a blockout)"
+msgstr "Скруглять контуры по их точкам (выкл.: прямые края, для наброска)"
+
+msgid "Replace the last trace"
+msgstr "Заменить прошлую трассировку"
+
+msgid "Remove what an earlier trace of this room made first (its shapes, pictures and tiles), so you can redraw and trace again"
+msgstr "Сначала удалить то, что создала более ранняя трассировка этой комнаты (её фигуры, картинки и тайлы), чтобы можно было перерисовать и трассировать снова"
+
+msgid "Collision for its terrain"
+msgstr "Столкновения для местности"
+
+msgid "Give the drawing's terrain colors invisible freeform shapes to collide with, following the drawing's outlines (like CollisionPolygon2D), and its platform colors one-way ones. Edit them with Freeform > Edit; the editor outlines them"
+msgstr "Дать цветам местности рисунка невидимые фигуры свободной формы для столкновений, повторяющие контуры рисунка (как CollisionPolygon2D), а цветам платформ — односторонние. Править их можно через «Свободная форма» > «Править»; редактор обводит их"
+
+msgid "Cut out the paper"
+msgstr "Вырезать бумагу"
+
+msgid "Make the paper (colors set to Nothing) transparent, so the room's background shows through it"
+msgstr "Сделать бумагу (цвета со значением «Ничего») прозрачной, чтобы сквозь неё был виден фон комнаты"
+
+msgid "Pick a drawing first."
+msgstr "Сначала выберите рисунок."
+
+msgid "What this color becomes"
+msgstr "Во что превращается этот цвет"
+
+msgid "Color the shapes of this color are filled with"
+msgstr "Цвет, которым заливаются фигуры этого цвета"
+
+msgid "Tiles this color paints: solid tiles of its color, a terrain (autotiled), random tiles of a kind, or the tiles picked in the tile palette (pick them there first)"
+msgstr "Тайлы, которыми рисует этот цвет: сплошные тайлы своего цвета, местность (автотайлинг), случайные тайлы вида или тайлы, выбранные в палитре тайлов (сначала выберите их там)"
+
+msgid "Palette tiles picked before"
+msgstr "Тайлы палитры, выбранные ранее"
+
+msgid "Freeform style of the shapes of this color"
+msgstr "Стиль свободной формы для фигур этого цвета"
+
+msgid "Weather and effects: presets (storm, sandstorm, blizzard...), effects (rain, fog(ground=1), dust_storm(blows_toward=left)...), comma-separated, or a .tscn of effect nodes. none: no weather"
+msgstr "Погода и эффекты: предустановки (storm, sandstorm, blizzard...), эффекты (rain, fog(ground=1), dust_storm(blows_toward=left)...) через запятую или .tscn с узлами эффектов. none: без погоды"
+
+msgid "Pick a weather preset, or add an effect"
+msgstr "Выберите предустановку погоды или добавьте эффект"
+
+msgid "Presets"
+msgstr "Предустановки"
+
+msgid "Add an effect"
+msgstr "Добавить эффект"
+
+msgid "None (no weather here)"
+msgstr "Нет (здесь нет погоды)"
+
+msgid "none"
+msgstr "none"
+
+msgid "Parallax background: a preset (dusk_mountains, misty_forest, ruined_city...), with a foreground in front of the room if you like (parallax(preset=misty_forest, foreground=foliage); foreground alone: parallax(preset=none, foreground=mist)), or a .tscn holding an MDSParallaxBackground with your layers. none: no background"
+msgstr "Фон с параллаксом: предустановка (dusk_mountains, misty_forest, ruined_city...), при желании с передним планом перед комнатой (parallax(preset=misty_forest, foreground=foliage); только передний план: parallax(preset=none, foreground=mist)) или .tscn с MDSParallaxBackground с вашими слоями. none: без фона"
+
+msgid "Pick a parallax background preset"
+msgstr "Выберите предустановку фона с параллаксом"
+
+msgid "In front of the room"
+msgstr "Перед комнатой"
+
+msgid "No foreground"
+msgstr "Без переднего плана"
+
+msgid "None (no background here)"
+msgstr "Нет (здесь нет фона)"
+
+msgid "Animated background, soft and out of focus, drawn by a shader: a style (bokeh, aurora, nebula, blood_moon...), with settings if you like (aurora(blur=0.8, speed=0.5)); creatures (bees, spiders, songbirds, bats, jellyfish, owls...); giant machinery (clockwork, giant_wheels, clock_faces... for castles; turbines, reactor_cores, specimen_tanks... for alien stations); a style and creatures or machinery (blood_moon, bats; storm_clouds, castle_spires); or a .tscn holding an MDSAnimatedBackground, MDSCreatures or MDSMachineryBackground. none: no background"
+msgstr "Анимированный фон, мягкий и не в фокусе, рисуется шейдером: стиль (bokeh, aurora, nebula, blood_moon...), при желании с параметрами (aurora(blur=0.8, speed=0.5)); существа (bees, spiders, songbirds, bats, jellyfish, owls...); гигантские механизмы (clockwork, giant_wheels, clock_faces... для замков; turbines, reactor_cores, specimen_tanks... для инопланетных станций); стиль вместе с существами или механизмами (blood_moon, bats; storm_clouds, castle_spires) или .tscn с MDSAnimatedBackground, MDSCreatures или MDSMachineryBackground. none: без фона"
+
+msgid "Pick an animated background style"
+msgstr "Выберите стиль анимированного фона"
+
+msgid "For boss rooms"
+msgstr "Для комнат боссов"
+
+msgid "Creatures (boss rooms)"
+msgstr "Существа (комнаты боссов)"
+
+msgid "Each on its own (not as a swarm)"
+msgstr "Каждое само по себе (не роем)"
+
+msgid "The creatures in the field go each their own way: every one wanders to places of its own, in its own direction and at its own pace, instead of moving as a swarm, a flock or a school (movement=individual). For bees, wasps, lumaflies, small birds, firebirds, crows and glowfish; the others go their own ways anyway"
+msgstr "Существа в поле движутся каждое своим путём: каждое бродит по своим местам, в своём направлении и в своём темпе, а не роем, стаей или косяком (movement=individual). Для пчёл, ос, светомушек, мелких птиц, огненных птиц, ворон и светорыб; остальные и так движутся каждое само по себе"
+
+msgid "Gothic machinery (Castlevania-style castles)"
+msgstr "Готические механизмы (замки в стиле Castlevania)"
+
+msgid "Sci-fi machinery (Metroid-style stations)"
+msgstr "Фантастические механизмы (станции в стиле Metroid)"
+
+msgid "Player size"
+msgstr "Размер игрока"
+
+msgid "32x64"
+msgstr "32x64"
+
+msgid "Width x height of the player's collision box (px), for the room checks' climb test and openings"
+msgstr "Ширина x высота области столкновений игрока (px) для проверки подъёма и проёмов при проверке комнат"
+
+msgid "Jump velocity (px/s)"
+msgstr "Скорость прыжка (px/s)"
+
+msgid "Gravity (px/s²)"
+msgstr "Гравитация (px/s²)"
+
+msgid "Max jump height (px)"
+msgstr "Макс. высота прыжка (px)"
+
+msgid "How high a jump rises: v² / 2g. Editing it sets the jump velocity"
+msgstr "Высота подъёма при прыжке: v² / 2g. Её изменение задаёт скорость прыжка"
+
+msgid "Run speed (px/s)"
+msgstr "Скорость бега (px/s)"
+
+msgid "Head clearance (px)"
+msgstr "Запас над головой (px)"
+
+msgid "Room the player needs above a platform to stand and jump"
+msgstr "Место над платформой, которое нужно игроку, чтобы стоять и прыгать"
+
+msgid "Paint area (M)"
+msgstr "Рисовать область (M)"
+
+msgid "Generate area (N)"
+msgstr "Сгенерировать область (N)"
+
+msgid "Area (A)"
+msgstr "Область (A)"
+
+msgid "Erase (X)"
+msgstr "Ластик (X)"
+
+msgid "Select (V)"
+msgstr "Выделение (V)"
+
+msgid "Draw room (R)"
+msgstr "Нарисовать комнату (R)"
+
+msgid "Extend room (E)"
+msgstr "Расширить комнату (E)"
+
+msgid "Gate (G)"
+msgstr "Переход (G)"
+
+msgid "Pin (P)"
+msgstr "Метка (P)"
+
+msgid "Paint (B)"
+msgstr "Рисовать (B)"
+
+msgid "Click to select, drag to move, drag handles to resize, drag from a gate to another gate to connect. Several rooms: Ctrl+click adds one (or takes it out), Ctrl+drag on empty space selects a box of them; drag one to move them all. A whole area: click or drag its name, or Alt+drag any of its rooms (once selected, drag any of its rooms; click one to pick just that room). Alt+drag a name moves only the name. Drop .tscn files here to place scenes, or a map image to import it."
+msgstr "Щелчок выделяет, перетаскивание перемещает, перетаскивание маркеров меняет размер, перетаскивание от перехода к другому переходу соединяет их. Несколько комнат: Ctrl+щелчок добавляет комнату (или убирает), Ctrl+перетаскивание по пустому месту выделяет рамкой; перетащите одну, чтобы переместить все. Вся область: щёлкните или перетащите её название либо Alt+перетащите любую её комнату (после выделения перетаскивайте любую её комнату; щёлкните по одной, чтобы выбрать только её). Alt+перетаскивание названия двигает только название. Бросьте сюда файлы .tscn, чтобы разместить сцены, или изображение карты, чтобы импортировать его."
+
+msgid "Drag to draw a new room."
+msgstr "Перетащите, чтобы нарисовать новую комнату."
+
+msgid "Drag to add a rectangle to the selected room (irregular shapes). With several rooms selected, the box is shared out: each extends with the part of it nearest to it."
+msgstr "Перетащите, чтобы добавить прямоугольник к выбранной комнате (неправильные формы). Если выбрано несколько комнат, рамка делится между ними: каждая расширяется ближайшей к ней частью."
+
+msgid "Click a room edge to add a gate. Drag from a gate to another gate to connect."
+msgstr "Щёлкните по краю комнаты, чтобы добавить переход. Перетащите от перехода к другому переходу, чтобы соединить."
+
+msgid "Click to place a pin."
+msgstr "Щёлкните, чтобы поставить метку."
+
+msgid "Paint the map: drag on empty space for a new room, start inside a room to grow it (Shift: always a new room). [ ] change the brush size."
+msgstr "Рисование карты: перетащите по пустому месту для новой комнаты, начните внутри комнаты, чтобы увеличить её (Shift: всегда новая комната). [ ] меняют размер кисти."
+
+msgid "Erase painted cells from any room. [ ] change the brush size."
+msgstr "Стереть нарисованные ячейки в любой комнате. [ ] меняют размер кисти."
+
+msgid "Click a room to select its whole area, drag to move the area: it stops against the areas it meets and connects to them (a door where they touch, taken out again when they part). Double-click renames it, arrows nudge it, Delete removes its rooms."
+msgstr "Щёлкните комнату, чтобы выделить всю её область, перетащите, чтобы переместить область: она упирается во встречные области и соединяется с ними (дверь там, где они касаются, убирается, когда их раздвигают). Двойной щелчок переименовывает её, стрелки сдвигают её, Delete удаляет её комнаты."
+
+msgid "Drag a box: an area is generated in it (rectangle or square, irregular, freeform or hybrid, with curved and slanted sides), split into rooms with doors between them."
+msgstr "Протяните рамку: в ней генерируется область (прямоугольник или квадрат, неправильная, свободной формы или гибрид, с изогнутыми и скошенными сторонами), разделённая на комнаты с дверями между ними."
+
+msgid "Paint an area: the stroke becomes rooms with doors between them. Start inside an area to grow it, on empty space for a new area. [ ] change the brush size."
+msgstr "Рисование области: мазок превращается в комнаты с дверями между ними. Начните внутри области, чтобы увеличить её, или на пустом месте для новой области. [ ] меняют размер кисти."
+
+msgid "Select a room first (Ctrl+click more to extend them together), then drag to add a rectangle to it."
+msgstr "Сначала выберите комнату (Ctrl+щелчок по другим расширяет их вместе), затем перетащите, чтобы добавить к ней прямоугольник."
+
+msgid "Drag a bigger box: at least 2 x 2 cells."
+msgstr "Протяните рамку побольше: не меньше 2 x 2 ячеек."
+
+msgid "Rooms cover all of that box already."
+msgstr "Эта рамка уже целиком занята комнатами."
+
+msgid "Select the rooms to merge (Ctrl+click, Ctrl+drag a box), or one room to merge with the rooms it touches, then Merge (Ctrl+M)."
+msgstr "Выберите комнаты для объединения (Ctrl+щелчок, Ctrl+перетаскивание рамки) или одну комнату, чтобы объединить её с соседними, затем «Объединить» (Ctrl+M)."
+
+msgid "Every cell of the stroke is a room already."
+msgstr "Каждая ячейка мазка уже занята комнатой."
+
+msgid "Map tools"
+msgstr "Инструменты карты"
+
+msgid "Room painting"
+msgstr "Рисование комнат"
+
+msgid "Full view"
+msgstr "Полный вид"
+
+msgid "No world yet. Use the world picker: New world... or Import from MetSys map..."
+msgstr "Мира пока нет. Воспользуйтесь выбором мира: «Новый мир...» или «Импорт из карты MetSys...»"
+
+msgid "World"
+msgstr "Мир"
+
+msgid "World file (.mdsworld.json)"
+msgstr "Файл мира (.mdsworld.json)"
+
+msgid "Scenes"
+msgstr "Сцены"
+
+msgid "Scan, place and connect scenes"
+msgstr "Сканировать, размещать и соединять сцены"
+
+msgid "Rescan world scenes"
+msgstr "Пересканировать сцены мира"
+
+msgid "Add scenes to map..."
+msgstr "Добавить сцены на карту..."
+
+msgid "Add doors between touching rooms"
+msgstr "Добавить двери между соседними комнатами"
+
+msgid "Auto-connect facing gates"
+msgstr "Автосоединение встречных переходов"
+
+msgid "Create game scene (MDSWorldGame)..."
+msgstr "Создать игровую сцену (MDSWorldGame)..."
+
+msgid "World settings..."
+msgstr "Параметры мира..."
+
+msgid "World + analysis (JSON)"
+msgstr "Мир + анализ (JSON)"
+
+msgid "View"
+msgstr "Вид"
+
+msgid "Map view"
+msgstr "Вид карты"
+
+msgid "The world map"
+msgstr "Карта мира"
+
+msgid "Every room of the layer where it is on the map, at its actual size, with its scene: draw rooms (rectangles, ellipses, polygons, curvy outlines) and generate the map from them, move rooms, drop scenes to place them, paint any room. Works on an empty world too"
+msgstr "Каждая комната слоя на своём месте на карте, в реальном размере, со своей сценой: рисуйте комнаты (прямоугольники, эллипсы, полигоны, кривые контуры) и генерируйте из них карту, перемещайте комнаты, бросайте сцены, чтобы разместить их, рисуйте в любой комнате. Работает и в пустом мире"
+
+msgid "Paint the rooms selected (on the map or in the Full view), or the selected room or area: their actual contents (terrain, background, decorations)"
+msgstr "Рисовать в выбранных комнатах (на карте или в «Полном виде») или в выбранной комнате или области: их реальное содержимое (местность, фон, декор)"
+
+msgid "Room view"
+msgstr "Вид комнаты"
+
+msgid "Show the Rooms / Scenes / Inspect... tabs on the right. Hide them for a bigger map"
+msgstr "Показывать справа вкладки «Комнаты» / «Сцены» / «Свойства»... Скройте их, чтобы увеличить карту"
+
+msgid "Paint area"
+msgstr "Рисовать область"
+
+msgid "Paint"
+msgstr "Рисовать"
+
+msgid "Pin"
+msgstr "Метка"
+
+msgid "Gate"
+msgstr "Переход"
+
+msgid "Extend"
+msgstr "Расширить"
+
+msgid "Brush size in paint cells ([ and ] on the map)"
+msgstr "Размер кисти в ячейках рисования ([ и ] на карте)"
+
+msgid "Auto doors"
+msgstr "Автодвери"
+
+msgid "Paint: a room painted onto an area gets a door to each room of the area it touches. (Generated and painted areas always get their doors; areas dragged against each other with the Area tool connect.)"
+msgstr "Рисование: комната, нарисованная в области, получает дверь к каждой соседней комнате этой области. (Сгенерированные и нарисованные области всегда получают двери; области, придвинутые друг к другу инструментом «Область», соединяются.)"
+
+msgid "Merge the rooms selected (Ctrl+click, Ctrl+drag a box) into one room; one room selected merges with the rooms it touches (of its area). They must be side by side. Asks first (which room to keep, what to do with their scenes). Ctrl+M on the map"
+msgstr "Объединить выбранные комнаты (Ctrl+щелчок, Ctrl+перетаскивание рамки) в одну; если выбрана одна комната, она объединяется с соседними (своей области). Они должны примыкать друг к другу. Сначала спрашивает, какую комнату оставить и что делать с их сценами. Ctrl+M на карте"
+
+msgid "Undo (Ctrl+Z on the map)"
+msgstr "Отменить (Ctrl+Z на карте)"
+
+msgid "Redo (Ctrl+Y on the map)"
+msgstr "Повторить (Ctrl+Y на карте)"
+
+msgid "Tileset used to draw rooms (also used by the in-game MDSWorldMapView)"
+msgstr "Набор тайлов для рисования комнат (используется и внутриигровым MDSWorldMapView)"
+
+msgid "Area names"
+msgstr "Названия областей"
+
+msgid "Scene previews (room pictures, else live)"
+msgstr "Предпросмотр сцен (картинки комнат, иначе живой)"
+
+msgid "Gates && connections"
+msgstr "Переходы && соединения"
+
+msgid "Explored in the last playtest"
+msgstr "Исследовано в последнем плейтесте"
+
+msgid "Clear the highlighted route / highlight (Esc)"
+msgstr "Убрать подсвеченный маршрут / подсветку (Esc)"
+
+msgid "MCP"
+msgstr "MCP"
+
+msgid "Pick .tscn files to place on the map (or drag them from the FileSystem dock)"
+msgstr "Выберите файлы .tscn для размещения на карте (или перетащите их из панели «Файловая система»)"
+
+msgid "Drag scenes onto the map: onto a painted room without a scene to fill it, or onto empty space to place it at its own size. Double-click places a scene in the middle of the view."
+msgstr "Перетащите сцены на карту: на нарисованную комнату без сцены, чтобы заполнить её, или на пустое место, чтобы разместить в собственном размере. Двойной щелчок размещает сцену в середине вида."
+
+msgid "Pick the scene folder"
+msgstr "Выберите папку со сценами"
+
+msgid "Reload the scene list"
+msgstr "Перезагрузить список сцен"
+
+msgid "Refresh"
+msgstr "Обновить"
+
+msgid "Hide scenes already on the map"
+msgstr "Скрыть сцены, уже размещённые на карте"
+
+msgid "Custom tileset PNG..."
+msgstr "Свой PNG набора тайлов..."
+
+msgid "Save tileset template PNG..."
+msgstr "Сохранить шаблон PNG набора тайлов..."
+
+msgid "Areas are map zones (Hollow Knight: Crossroads, Greenpath...). Rooms take their color; new rooms drawn with the Room tool join the area marked \"new rooms\"."
+msgstr "Области — это зоны карты (Hollow Knight: Crossroads, Greenpath...). Комнаты берут их цвет; новые комнаты, нарисованные инструментом «Комната», попадают в область с отметкой «новые комнаты»."
+
+msgid "New area name"
+msgstr "Название новой области"
+
+msgid "Create an area"
+msgstr "Создать область"
+
+msgid "Generate an area beside the map: rooms (rectangles and irregular ones) with doors between them. Or drag a box with the Generate tool (N), or paint one with Paint area (M)"
+msgstr "Сгенерировать область рядом с картой: комнаты (прямоугольные и неправильные) с дверями между ними. Или протяните рамку инструментом «Сгенерировать» (N), или нарисуйте область инструментом «Рисовать область» (M)"
+
+msgid "Generate..."
+msgstr "Сгенерировать..."
+
+msgid "Pin text"
+msgstr "Текст метки"
+
+msgid "Rename area"
+msgstr "Переименовать область"
+
+msgid "Generate caves for the area"
+msgstr "Сгенерировать пещеры для области"
+
+msgid "Leave rooms already painted alone"
+msgstr "Не трогать уже нарисованные комнаты"
+
+msgid "Rooms whose scene has terrain tiles keep them; only empty and new rooms get a cave"
+msgstr "Комнаты, в чьей сцене есть тайлы местности, сохраняют их; пещеру получают только пустые и новые комнаты"
+
+msgid "Nothing imported: every cell of the picture is taken on the map."
+msgstr "Ничего не импортировано: все ячейки изображения на карте заняты."
+
+msgid "Open or make a world first, then import a map image into it."
+msgstr "Сначала откройте или создайте мир, затем импортируйте в него изображение карты."
+
+msgid "World settings"
+msgstr "Параметры мира"
+
+msgid "Create game scene"
+msgstr "Создать игровую сцену"
+
+msgid "Create"
+msgstr "Создать"
+
+msgid "Include gameplay kit"
+msgstr "Включить игровой набор"
+
+msgid "Includes MDSPlayer, gameplay state, HUD, pause menu and dialogue instead of placeholder nodes."
+msgstr "Включает MDSPlayer, игровое состояние, HUD, меню паузы и диалоги вместо узлов-заглушек."
+
+msgid "New world..."
+msgstr "Новый мир..."
+
+msgid "Open world..."
+msgstr "Открыть мир..."
+
+msgid "Import from MetSys map..."
+msgstr "Импорт из карты MetSys..."
+
+msgid "Import map image..."
+msgstr "Импорт изображения карты..."
+
+msgid "World file changed on disk, reloaded."
+msgstr "Файл мира изменился на диске и перезагружен."
+
+msgid "+ Add layer"
+msgstr "+ Добавить слой"
+
+msgid "Select a room on the map first, then open the Room view."
+msgstr "Сначала выберите комнату на карте, затем откройте «Вид комнаты»."
+
+msgid "Open or make a world first (the world picker), then the Full view shows it."
+msgstr "Сначала откройте или создайте мир (выбор мира), затем «Полный вид» покажет его."
+
+msgid "Full view: no rooms yet. Draw them at their real size (Rectangle, Ellipse, Polygon, Curvy), then Generate map; or drop scenes from the Scenes tab."
+msgstr "Полный вид: комнат пока нет. Нарисуйте их в реальном размере («Прямоугольник», «Эллипс», «Полигон», «Кривая»), затем «Сгенерировать карту»; или перетащите сцены с вкладки «Сцены»."
+
+msgid "Select rooms in the Full view first (its Rooms tool: click, Ctrl+click, a box), or click one to paint it there."
+msgstr "Сначала выберите комнаты в «Полном виде» (его инструмент «Комнаты»: щелчок, Ctrl+щелчок, рамка) или щёлкните одну, чтобы рисовать в ней."
+
+msgid "Map zone"
+msgstr "Зона карты"
+
+msgid "e.g. GREENHOUSE"
+msgstr "напр. GREENHOUSE"
+
+msgid "Id your game uses for this area (Hollow Knight calls these map zones)."
+msgstr "ID, который ваша игра использует для этой области (в Hollow Knight это называется зонами карты)."
+
+msgid "Title"
+msgstr "Заголовок"
+
+msgid "Shown by MDSAreaTitle when the player arrives. Empty: the area's name"
+msgstr "Показывается MDSAreaTitle при прибытии игрока. Пусто: название области"
+
+msgid "Subtitle"
+msgstr "Подзаголовок"
+
+msgid "smaller line under the title"
+msgstr "строка поменьше под заголовком"
+
+msgid "Music"
+msgstr "Музыка"
+
+msgid "Loops while the player is in this area. MDSMusic crossfades between areas and keeps playing when two areas share it"
+msgstr "Играет по кругу, пока игрок в этой области. MDSMusic плавно переходит между областями и продолжает играть, если музыка у двух областей общая"
+
+msgid "Music volume (dB)"
+msgstr "Громкость музыки (dB)"
+
+msgid "Boss music"
+msgstr "Музыка босса"
+
+msgid "MDSMusic.play_boss() starts it from silence; end_boss() returns to the area's music"
+msgstr "MDSMusic.play_boss() запускает её из тишины; end_boss() возвращает музыку области"
+
+msgid "Backdrop"
+msgstr "Дальний фон"
+
+msgid "world default"
+msgstr "по умолчанию мира"
+
+msgid "MDSBackdrop (.tres) drawn in the distance behind the area's rooms. A room can have its own"
+msgstr "MDSBackdrop (.tres), рисуемый вдали позади комнат области. У комнаты может быть свой"
+
+msgid "Parallax background behind every room of the area (MDSWorldGame adds it as each room loads; the Room view shows it): a preset like dusk_mountains or misty_forest, or a .tscn with an MDSParallaxBackground. A room can have its own, or none"
+msgstr "Фон с параллаксом позади каждой комнаты области (MDSWorldGame добавляет его при загрузке каждой комнаты; «Вид комнаты» его показывает): предустановка вроде dusk_mountains или misty_forest либо .tscn с MDSParallaxBackground. У комнаты может быть свой или никакого"
+
+msgid "Parallax"
+msgstr "Параллакс"
+
+msgid "Animated bg"
+msgstr "Аним. фон"
+
+msgid "Animated background behind every room of the area, soft and out of focus (MDSWorldGame adds it as each room loads; the Room view shows it): a style like bokeh, aurora, nebula or deep_water, or a .tscn with an MDSAnimatedBackground. It is drawn behind the parallax background: use one without a sky to see both. A room can have its own, or none"
+msgstr "Анимированный фон позади каждой комнаты области, мягкий и не в фокусе (MDSWorldGame добавляет его при загрузке каждой комнаты; «Вид комнаты» его показывает): стиль вроде bokeh, aurora, nebula или deep_water либо .tscn с MDSAnimatedBackground. Рисуется позади фона с параллаксом: используйте параллакс без неба, чтобы были видны оба. У комнаты может быть свой или никакого"
+
+msgid "Boss room bg"
+msgstr "Фон комнат боссов"
+
+msgid "world's boss rooms"
+msgstr "комнаты боссов мира"
+
+msgid "Animated background of the area's boss rooms (type boss or mini_boss, or a boss named in the Inspect tab), instead of the area's: blood_moon, void_pulse, arcane_vortex, infection..., or creatures (bees, spiders, songbirds, bats, owls...), or both (blood_moon, bats). Empty: the world's boss rooms background, else the area's"
+msgstr "Анимированный фон комнат боссов области (тип boss или mini_boss либо босс, указанный на вкладке «Свойства») вместо фона области: blood_moon, void_pulse, arcane_vortex, infection... либо существа (bees, spiders, songbirds, bats, owls...), либо и то и другое (blood_moon, bats). Пусто: фон комнат боссов мира, иначе фон области"
+
+msgid "Weather"
+msgstr "Погода"
+
+msgid "0 lit, 0.05 to 0.8 dimmed (lights carve pools around the player and enemies). Empty: automatic, from the world's Dark room share. A room can have its own"
+msgstr "0 — освещено, от 0.05 до 0.8 — затемнено (огни вырезают световые пятна вокруг игрока и врагов). Пусто: автоматически, по доле тёмных комнат мира. У комнаты может быть своя"
+
+msgid "Darkness"
+msgstr "Темнота"
+
+msgid "Shown by MDSObjectiveBanner on arrival and on the map until done"
+msgstr "Показывается MDSObjectiveBanner при прибытии и на карте, пока не выполнена"
+
+msgid "e.g. Find the crypt key"
+msgstr "напр. Найти ключ от склепа"
+
+msgid "Objective"
+msgstr "Цель"
+
+msgid "The objective completes when the player has this ability (ability:dash or just dash), this stored object (object:Room/Node) or has defeated this boss (boss:Warden)"
+msgstr "Цель выполняется, когда у игрока есть эта способность (ability:dash или просто dash), этот сохранённый объект (object:Room/Node) или когда побеждён этот босс (boss:Warden)"
+
+msgid "ability:x, object:id or boss:name"
+msgstr "ability:x, object:id или boss:name"
+
+msgid "Done when"
+msgstr "Выполнена, когда"
+
+msgid "Rooms drawn with the Room tool join this area"
+msgstr "Комнаты, нарисованные инструментом «Комната», попадают в эту область"
+
+msgid "Use for new rooms"
+msgstr "Для новых комнат"
+
+msgid "Move the selected room into this area"
+msgstr "Переместить выбранную комнату в эту область"
+
+msgid "Assign selected room"
+msgstr "Назначить выбранную комнату"
+
+msgid "Generate a cave in every room of the area (with the Room view's fills), every room's gates joined both ways so the area can be crossed and backtracked. Rooms without a scene get one"
+msgstr "Сгенерировать пещеру в каждой комнате области (с заливками «Вида комнаты»), переходы каждой комнаты соединены в обе стороны, чтобы область можно было пройти и вернуться. Комнатам без сцены она создаётся"
+
+msgid "Generate caves..."
+msgstr "Сгенерировать пещеры..."
+
+msgid "Select on map"
+msgstr "Выделить на карте"
+
+msgid "Select the area with the Area tool, to drag it as one piece (it connects to the areas it touches)"
+msgstr "Выделить область инструментом «Область», чтобы перетаскивать её целиком (она соединяется с областями, которых касается)"
+
+msgid "Reset label position"
+msgstr "Сбросить положение подписи"
+
+msgid "Place the area name automatically again"
+msgstr "Снова разместить название области автоматически"
+
+msgid "Delete area"
+msgstr "Удалить область"
+
+msgid "Rooms keep existing but leave the area"
+msgstr "Комнаты остаются, но выходят из области"
+
+msgid "Create or open a world first."
+msgstr "Сначала создайте или откройте мир."
+
+msgid "Non-linear mode: draw rooms freely and connect them with gates, like a Hollow Knight map.\n\nOpen the world picker in the tool panel on the left:\n- New world... starts an empty map.\n- Import from MetSys map... converts a MetSys MapData.txt."
+msgstr "Нелинейный режим: свободно рисуйте комнаты и соединяйте их переходами, как на карте Hollow Knight.\n\nОткройте выбор мира на панели инструментов слева:\n- «Новый мир...» начинает пустую карту.\n- «Импорт из карты MetSys...» преобразует MapData.txt MetSys."
+
+msgid "Select a room to edit it.\n\nR: draw a room, E: extend the selected room, G: add gates, P: pins.\nDrag .tscn files from the FileSystem dock onto the map to place scenes.\nDrag from a gate to another gate to connect rooms.\nDouble-click a room to open (or create) its scene. Right-click for more."
+msgstr "Выберите комнату, чтобы править её.\n\nR: нарисовать комнату, E: расширить выбранную комнату, G: добавить переходы, P: метки.\nПеретащите файлы .tscn из панели «Файловая система» на карту, чтобы разместить сцены.\nПеретащите от перехода к другому переходу, чтобы соединить комнаты.\nДвойной щелчок по комнате открывает (или создаёт) её сцену. Щелчок правой кнопкой — другие действия."
+
+msgid "Create scene..."
+msgstr "Создать сцену..."
+
+msgid "Create a new scene for this room with bounds guides and one MDSGate per gate"
+msgstr "Создать для этой комнаты новую сцену с направляющими границ и одним MDSGate на каждый переход"
+
+msgid "Use an existing scene for this room"
+msgstr "Использовать для этой комнаты существующую сцену"
+
+msgid "Assign scene..."
+msgstr "Назначить сцену..."
+
+msgid "Progression is computed from the start room"
+msgstr "Прогрессия считается от начальной комнаты"
+
+msgid "Open the Room view to paint this room's terrain, background and decorations"
+msgstr "Открыть «Вид комнаты», чтобы рисовать местность, фон и декор этой комнаты"
+
+msgid "Paint room"
+msgstr "Рисовать в комнате"
+
+msgid "Copy this room's shape and gates (Ctrl+D)"
+msgstr "Скопировать форму и переходы этой комнаты (Ctrl+D)"
+
+msgid "Delete this room (Ctrl+Z to undo)"
+msgstr "Удалить эту комнату (Ctrl+Z отменяет)"
+
+msgid "Room ID"
+msgstr "ID комнаты"
+
+msgid "Unique id used by gates and at runtime (Hollow Knight uses scene names like Crossroads_01)."
+msgstr "Уникальный ID, который используют переходы и игра во время работы (Hollow Knight использует названия сцен вроде Crossroads_01)."
+
+msgid "MDSBackdrop (.tres) drawn in the distance behind this room. Empty: the area's, else the world's"
+msgstr "MDSBackdrop (.tres), рисуемый вдали позади этой комнаты. Пусто: от области, иначе от мира"
+
+msgid "Weather and effects in this room (MDSWorldGame adds them as it loads). Empty: the area's, else the world's; none: no weather here (a room under cover in a stormy area)"
+msgstr "Погода и эффекты в этой комнате (MDSWorldGame добавляет их при загрузке). Пусто: от области, иначе от мира; none: здесь нет погоды (комната под крышей в области с бурей)"
+
+msgid "Parallax background behind this room. Empty: the area's, else the world's; none: none here"
+msgstr "Фон с параллаксом позади этой комнаты. Пусто: от области, иначе от мира; none: здесь никакого"
+
+msgid "Animated background behind this room, soft and out of focus. Empty: for a boss room the boss rooms background, else the area's, else the world's; none: none here"
+msgstr "Анимированный фон позади этой комнаты, мягкий и не в фокусе. Пусто: для комнаты босса — фон комнат боссов, иначе от области, иначе от мира; none: здесь никакого"
+
+msgid "Camera zoom"
+msgstr "Масштаб камеры"
+
+msgid "auto"
+msgstr "авто"
+
+msgid "The camera's zoom in this room (1: as set, 2: twice as close, 0.5: twice as far) when World settings > Camera > Auto zoom is Per room or Fit. The camera glides to it as the player comes in. Empty: the world's zoom, or the fitted one"
+msgstr "Масштаб камеры в этой комнате (1: как задано, 2: вдвое ближе, 0.5: вдвое дальше), когда «Автомасштаб» в «Параметры мира» > «Камера» — «По комнате» или «Вписать». Камера плавно приходит к нему, когда игрок входит. Пусто: масштаб мира или вписанный"
+
+msgid "0 lit, 0.05 to 0.8 dimmed: a subtractive light darkens the room and the player, enemies and lanterns carry soft lights. Empty: the area's, else automatic (the world's Dark room share)"
+msgstr "0 — освещено, от 0.05 до 0.8 — затемнено: вычитающий свет затемняет комнату, а игрок, враги и фонари несут мягкие огни. Пусто: от области, иначе автоматически (доля тёмных комнат мира)"
+
+msgid "Fit to scene"
+msgstr "По размеру сцены"
+
+msgid "Resize the room to the scene's terrain"
+msgstr "Подогнать размер комнаты под местность сцены"
+
+msgid "Drag on the map to add a rectangle to this room"
+msgstr "Перетащите по карте, чтобы добавить прямоугольник к этой комнате"
+
+msgid "Extend (E)"
+msgstr "Расширить (E)"
+
+msgid "Remove this rectangle"
+msgstr "Удалить этот прямоугольник"
+
+msgid "Add a transition on a side of the room"
+msgstr "Добавить переход на одной из сторон комнаты"
+
+msgid "Add gate"
+msgstr "Добавить переход"
+
+msgid "Add/move map gates to match the scene's gate nodes (left1, right1, MDSGate...)"
+msgstr "Добавить или переместить переходы карты в соответствии с узлами переходов сцены (left1, right1, MDSGate...)"
+
+msgid "Import from scene"
+msgstr "Импорт из сцены"
+
+msgid "Write to scene"
+msgstr "Записать в сцену"
+
+msgid "Add an MDSGate node to the scene for every map gate it's missing (never deletes)"
+msgstr "Добавить в сцену узел MDSGate для каждого перехода карты, которого в ней нет (ничего не удаляет)"
+
+msgid "Gate name (Hollow Knight style: left1, right1, top1, bot1, door1)"
+msgstr "Название перехода (в стиле Hollow Knight: left1, right1, top1, bot1, door1)"
+
+msgid "Drag from this gate on the map to another gate to connect."
+msgstr "Перетащите от этого перехода на карте к другому переходу, чтобы соединить."
+
+msgid "Unlink"
+msgstr "Разъединить"
+
+msgid "Disconnect this gate"
+msgstr "Отсоединить этот переход"
+
+msgid "Delete this gate"
+msgstr "Удалить этот переход"
+
+msgid "requires (e.g. dash)"
+msgstr "требует (напр. dash)"
+
+msgid "One-way"
+msgstr "Односторонний"
+
+msgid "Players can leave through this gate but not come back (drops, collapsing floors)"
+msgstr "Игроки могут выйти через этот переход, но не вернуться (обрывы, обрушивающиеся полы)"
+
+msgid "Links (elevators, stag stations, cross-layer)"
+msgstr "Связи (лифты, станции Stag, между слоями)"
+
+msgid "note"
+msgstr "заметка"
+
+msgid "Connect rooms that have no gate between them on the map"
+msgstr "Соединить комнаты, между которыми на карте нет перехода"
+
+msgid "Fit room to scene"
+msgstr "Подогнать комнату под сцену"
+
+msgid "Paint room (actual view)"
+msgstr "Рисовать в комнате (реальный вид)"
+
+msgid "Show in the Full view"
+msgstr "Показать в «Полном виде»"
+
+msgid "Add gate here"
+msgstr "Добавить переход здесь"
+
+msgid "Merge with the rooms it touches... (Ctrl+M)"
+msgstr "Объединить с соседними комнатами... (Ctrl+M)"
+
+msgid "Duplicate room"
+msgstr "Дублировать комнату"
+
+msgid "Copy room id"
+msgstr "Копировать ID комнаты"
+
+msgid "New room here"
+msgstr "Новая комната здесь"
+
+msgid "Generate area here..."
+msgstr "Сгенерировать область здесь..."
+
+msgid "Import map image here..."
+msgstr "Импорт изображения карты сюда..."
+
+msgid "The scene has no terrain to fit to (TileMapLayer or StaticBody2D shapes)."
+msgstr "В сцене нет местности, под которую можно подогнать (TileMapLayer или фигуры StaticBody2D)."
+
+msgid "World name"
+msgstr "Название мира"
+
+msgid "Grid (px)"
+msgstr "Сетка (px)"
+
+msgid "Rooms, rects and gates snap to this. Use your tile size or a multiple of it."
+msgstr "Комнаты, прямоугольники и переходы привязываются к ней. Используйте размер вашего тайла или кратный ему."
+
+msgid "1152x648"
+msgstr "1152x648"
+
+msgid "Default room size"
+msgstr "Размер комнаты по умолчанию"
+
+msgid "Paint cell"
+msgstr "Ячейка рисования"
+
+msgid "e.g. 288x162"
+msgstr "напр. 288x162"
+
+msgid "Size of one brush cell in world pixels. Default: a quarter of the default room size."
+msgstr "Размер одной ячейки кисти в пикселях мира. По умолчанию: четверть размера комнаты по умолчанию."
+
+msgid "New scene folder"
+msgstr "Папка новых сцен"
+
+msgid "Scene template"
+msgstr "Шаблон сцены"
+
+msgid "optional .tscn used by Create scene"
+msgstr "необязательный .tscn для «Создать сцену»"
+
+msgid "Play scene"
+msgstr "Сцена запуска"
+
+msgid "auto: game scene hosting the room"
+msgstr "авто: игровая сцена, содержащая комнату"
+
+msgid "Scene that Play from here boots with the room as its start. Empty: detected automatically."
+msgstr "Сцена, которую «Запустить отсюда» загружает с этой комнатой как начальной. Пусто: определяется автоматически."
+
+msgid "Auto-add gate nodes"
+msgstr "Автодобавление узлов переходов"
+
+msgid "When gates are added or connected"
+msgstr "При добавлении или соединении переходов"
+
+msgid "Adding or connecting gates on the map adds the matching MDSGate nodes to the rooms' scenes (and turns plain gate nodes into MDSGates). Open scenes get them as an undoable edit."
+msgstr "Добавление или соединение переходов на карте добавляет соответствующие узлы MDSGate в сцены комнат (и превращает обычные узлы переходов в MDSGate). В открытых сценах это отменяемая правка."
+
+msgid "Geometry checks"
+msgstr "Проверки геометрии"
+
+msgid "Check rooms with physics"
+msgstr "Проверять комнаты физикой"
+
+msgid "Load every room's terrain into an off-screen physics space and check that gates are open, platforms have headroom, objects stand on ground and exits up can be climbed (Issues > Geometry). Uses the Player settings below"
+msgstr "Загрузить местность каждой комнаты во внеэкранное физическое пространство и проверить, что переходы открыты, над платформами хватает места, объекты стоят на земле, а выходы вверх можно преодолеть («Проблемы» > «Геометрия»). Используются параметры игрока ниже"
+
+msgid "starter mossy cave tileset"
+msgstr "стартовый набор тайлов мшистой пещеры"
+
+msgid "Room tileset"
+msgstr "Набор тайлов комнат"
+
+msgid "TileSet (.tres) the Room view paints new rooms with, e.g. an asset pack's tileset. Rooms that already have tiles keep theirs."
+msgstr "TileSet (.tres), которым «Вид комнаты» рисует новые комнаты, например набор тайлов из пакета ассетов. Комнаты, в которых уже есть тайлы, сохраняют свои."
+
+msgid "optional .freeform.tres"
+msgstr "необязательный .freeform.tres"
+
+msgid "Notch fill style"
+msgstr "Стиль заполнения вырезов"
+
+msgid "Create scene fills the cells of an irregular room's box outside its shape with non-solid shapes of this style (Room view > Fill outside shape does it for existing rooms)"
+msgstr "«Создать сцену» заполняет ячейки рамки неправильной комнаты за пределами её формы нетвёрдыми фигурами этого стиля («Вид комнаты» > «Заполнение вне формы» делает это для существующих комнат)"
+
+msgid "Save distance warning"
+msgstr "Предупреждение о расстоянии до сохранения"
+
+msgid "Main, Dream"
+msgstr "Основной, Сон"
+
+msgid "Layer names"
+msgstr "Названия слоёв"
+
+msgid "Presentation"
+msgstr "Оформление"
+
+msgid "Used by MDSWorldGame in the game scene"
+msgstr "Используется MDSWorldGame в игровой сцене"
+
+msgid "2.5D"
+msgstr "2.5D"
+
+msgid "Extrude every room (MDSDepth25D)"
+msgstr "Выдавливать каждую комнату (MDSDepth25D)"
+
+msgid "Walls, floors and platforms get the side faces of solid blocks running back to the middle of the view, floors become paved planes, faces are lit around the player and bodies cast soft shadows. Drawing only: nothing collides differently"
+msgstr "Стены, полы и платформы получают боковые грани сплошных блоков, уходящие к середине вида, полы становятся вымощенными плоскостями, грани освещаются вокруг игрока, а тела отбрасывают мягкие тени. Только отрисовка: столкновения не меняются"
+
+msgid "optional MDSDepthStyle .tres"
+msgstr "необязательный MDSDepthStyle .tres"
+
+msgid "2.5D style"
+msgstr "Стиль 2.5D"
+
+msgid "Bright daylight"
+msgstr "Яркий дневной свет"
+
+msgid "Daylight: the bright 2.5D style, and new rooms paint with the daylight tileset."
+msgstr "Дневной свет: яркий стиль 2.5D, а новые комнаты рисуются набором тайлов для дневного света."
+
+msgid "Brightness"
+msgstr "Яркость"
+
+msgid "How bright MDSWorldGame draws the rooms: 1 as they are, 1.3 brighter, 0.8 dimmer (the HUD and the backdrop aren't touched). The game's brightness export overrides it"
+msgstr "Насколько ярко MDSWorldGame рисует комнаты: 1 — как есть, 1.3 — ярче, 0.8 — тусклее (HUD и дальний фон не затрагиваются). Экспортируемая переменная brightness игры переопределяет это значение"
+
+msgid "optional MDSBackdrop .tres"
+msgstr "необязательный MDSBackdrop .tres"
+
+msgid "Distance drawn behind every room whose area and room set none (Areas tab, Inspect tab)"
+msgstr "Даль, рисуемая позади каждой комнаты, у которой ни область, ни сама комната ничего не задали (вкладки «Области», «Свойства»)"
+
+msgid "Weather and effects in every room whose area and room set none (Areas tab, Inspect tab)"
+msgstr "Погода и эффекты в каждой комнате, у которой ни область, ни сама комната ничего не задали (вкладки «Области», «Свойства»)"
+
+msgid "Parallax background behind every room whose area and room set none"
+msgstr "Фон с параллаксом позади каждой комнаты, у которой ни область, ни сама комната ничего не задали"
+
+msgid "Animated background behind every room whose area and room set none"
+msgstr "Анимированный фон позади каждой комнаты, у которой ни область, ни сама комната ничего не задали"
+
+msgid "Boss rooms bg"
+msgstr "Фон комнат боссов"
+
+msgid "Animated background of every boss room (type boss or mini_boss, or a boss named in the Inspect tab) whose area and room set none: blood_moon, void_pulse, arcane_vortex, infection, holy_light..., or creatures (bees, spiders, songbirds, bats, owls...), or both (blood_moon, bats)"
+msgstr "Анимированный фон каждой комнаты босса (тип boss или mini_boss либо босс, указанный на вкладке «Свойства»), у которой ни область, ни сама комната ничего не задали: blood_moon, void_pulse, arcane_vortex, infection, holy_light... либо существа (bees, spiders, songbirds, bats, owls...), либо и то и другое (blood_moon, bats)"
+
+msgid "Dark room share"
+msgstr "Доля тёмных комнат"
+
+msgid "0 to 1: this share of the rooms with automatic darkness (no darkness on the room or its area) is dimmed by 0.35 to 0.55. Picked from the room id, so a room is always the same"
+msgstr "От 0 до 1: эта доля комнат с автоматической темнотой (темнота не задана ни у комнаты, ни у её области) затемняется на 0.35–0.55. Выбираются по ID комнаты, поэтому комната всегда одна и та же"
+
+msgid "player, enemy, lantern"
+msgstr "player, enemy, lantern"
+
+msgid "Light groups"
+msgstr "Группы света"
+
+msgid "Nodes in these groups carry a soft light in dark rooms. Empty: MDSWorldGame's light_groups"
+msgstr "Узлы этих групп несут мягкий свет в тёмных комнатах. Пусто: light_groups из MDSWorldGame"
+
+msgid "Player"
+msgstr "Игрок"
+
+msgid "Used by the Geometry checks and the Room view's Check room"
+msgstr "Используется проверками геометрии и командой «Проверить комнату» «Вида комнаты»"
+
+msgid "Camera"
+msgstr "Камера"
+
+msgid "Used by MDSRoomCamera in the game scene"
+msgstr "Используется MDSRoomCamera в игровой сцене"
+
+msgid "Camera backend"
+msgstr "Реализация камеры"
+
+msgid "Auto uses PhantomCamera2D when the Phantom Camera addon is enabled, else Camera2D."
+msgstr "«Авто» использует PhantomCamera2D, когда включён аддон Phantom Camera, иначе Camera2D."
+
+msgid "Room shape: the camera is limited to the zone (largest rectangle of the room's shape) the player is in and glides between zones, so notches of L- or U-shaped rooms stay hidden."
+msgstr "Форма комнаты: камера ограничена зоной (наибольшим прямоугольником формы комнаты), в которой находится игрок, и плавно переходит между зонами, поэтому вырезы L- или U-образных комнат остаются скрытыми."
+
+msgid "Room transition"
+msgstr "Смена комнаты"
+
+msgid "Fade to black, cut, slide the view to the new room (player waits), or blend (the camera glides over while the player keeps moving)."
+msgstr "Затемнение до чёрного, резкая смена, сдвиг вида к новой комнате (игрок ждёт) или наплыв (камера плавно перемещается, пока игрок продолжает двигаться)."
+
+msgid "Glide, or cut and never glide: zone changes, room slides and blends, follow smoothing and the camera director's moves all cut (a camera that eases late makes the parallax late too)."
+msgstr "Плавно или резко, без плавности: смена зон, сдвиги и наплывы комнат, сглаживание слежения и движения режиссёра камеры — всё происходит резко (запаздывающая камера делает запаздывающим и параллакс)."
+
+msgid "Camera motion"
+msgstr "Движение камеры"
+
+msgid "Auto zoom"
+msgstr "Автомасштаб"
+
+msgid "Zoom between rooms, like a PhantomCamera2D per room. Per room: each room's own zoom (Inspect tab > Camera zoom). Fit: zoomed so the camera zone the player is in fills the screen (out in big rooms, in in small ones), times Zoom factor, between Min and Max zoom; a room's own zoom still wins."
+msgstr "Масштаб между комнатами, как PhantomCamera2D для каждой комнаты. По комнате: собственный масштаб каждой комнаты (вкладка «Свойства» > «Масштаб камеры»). Вписать: масштаб такой, чтобы зона камеры, в которой находится игрок, заполняла экран (отдаление в больших комнатах, приближение в малых), умноженный на «Коэффициент масштаба», в пределах «Мин. масштаба» и «Макс. масштаба»; собственный масштаб комнаты всё равно приоритетнее."
+
+msgid "Zoom changes"
+msgstr "Смена масштаба"
+
+msgid "Snap"
+msgstr "Мгновенно"
+
+msgid "Glide: the zoom glides with the room transition and zone changes (and over Zoom glide time after a cut or a fade). Snap: it changes at once."
+msgstr "Плавно: масштаб плавно меняется вместе со сменой комнаты и зон (и за «Время плавного масштаба» после резкой смены или затемнения). Мгновенно: меняется сразу."
+
+msgid "Transition time (s)"
+msgstr "Время смены (s)"
+
+msgid "Zone glide time (s)"
+msgstr "Время плавного перехода зон (s)"
+
+msgid "Zone switch margin (px)"
+msgstr "Запас переключения зон (px)"
+
+msgid "Follow smoothing (0 = off)"
+msgstr "Сглаживание слежения (0 = выкл.)"
+
+msgid "Zoom"
+msgstr "Масштаб"
+
+msgid "Zoom factor (Fit)"
+msgstr "Коэффициент масштаба (Вписать)"
+
+msgid "Min zoom (Fit)"
+msgstr "Мин. масштаб (Вписать)"
+
+msgid "Max zoom (Fit)"
+msgstr "Макс. масштаб (Вписать)"
+
+msgid "Zoom glide time (s)"
+msgstr "Время плавного масштаба (s)"
+
+msgid "Snap zoom changes under"
+msgstr "Мгновенный масштаб при изменении меньше"
+
+msgid "OK"
+msgstr "ОК"
+
+msgid "Cancel"
+msgstr "Отмена"

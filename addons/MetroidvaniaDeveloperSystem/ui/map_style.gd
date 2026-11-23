@@ -19,6 +19,7 @@ extends RefCounted
 
 enum Kind { FLAT, ATLAS, METSYS, GLOW }
 const BUILTIN: PackedStringArray = ["flat", "handdrawn", "blueprint", "chunky", "glow"]
+# l10n: text
 const BUILTIN_NAMES: PackedStringArray = ["Flat", "Hand-drawn (double line)", "Blueprint", "Chunky pixel", "Glowing areas (atlas)"]
 const TILE := 32
 const TOP := 1

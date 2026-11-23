@@ -20,7 +20,9 @@ signal generate_requested(box: Rect2i)
 signal selection_changed
 
 enum Tool { ROOMS, RECTANGLE, ELLIPSE, POLYGON, CURVY, GENERATE }
+# l10n: text
 const TOOL_NAMES: PackedStringArray = ["Rooms", "Rectangle", "Ellipse", "Polygon", "Curvy", "Gen. area"]
+# l10n: text
 const TOOL_TIPS: PackedStringArray = [
 	"Select rooms and outlines: click (Ctrl or Shift adds or takes out), or drag a box on empty space. Drag them to move them: rooms move in paint cells and stop against the others, with doors where they touch. Double-click a room to edit it (and the others selected) in the Room view. Delete removes them, Ctrl+A selects them all, the arrows nudge them",
 	"Draw a room's outline: drag a rectangle (Snap to cells: on the paint cells). Generate map makes the outlines rooms on the map",

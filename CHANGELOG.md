@@ -6,6 +6,12 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 ### Added
 
+- **Languages: the panel in Russian, Hindi and Tamil**, picked from a language menu: the language button (a translation icon and the language's code) in the tool panel's title row. The catalogs take any of the 50 languages planned (`MDSL10n`, `addons/MetroidvaniaDeveloperSystem/locale/`).
+  - **The menu:** **Auto** follows the editor's language; the others are named in their own words and in English. The choice is an Editor Setting (`metroidvania_developer_system/language`), the same in every project, and applies at once without rebuilding the panel, so no map, undo history or unsaved room is lost. A text a language lacks shows in English.
+  - **Catalogs:** `locale/mds.pot` holds every English string of the panel (about 1,300) and `locale/<code>.po` one language each, in Godot's own translation format, loaded by the panel's own translation domain. They are machine translations marked (beta) until a native speaker reviews them; `locale/README.md` says how to fix one or add a language.
+  - **Tools and tests** (`tools/l10n/`, GDScript): `extract.gd` makes the template from the scripts, `sync.gd` hands out and takes in translations and rejects any that would break the panel (a lost `%s`, a changed BBCode tag, a `&&`); `tests/test_l10n.tscn` checks the language list, the template, every catalog and the switch.
+  - **Not translated yet:** sentences put together in code (status messages with counts, the validator's issues), the Inspector, the MCP server and the game kit's text in games.
+
 - **Skeleton caves**, a Cave shape of its own (`MDSCaveSkeleton`): a trunk and branches carved out of solid rock, from shafts crossing a few levels of passages, with chambers, halls, chimneys, loops and pillars. A seed changes the room's structure, not only its edges; the other Cave shapes and their seeds are untouched.
   - **Profiles** (`MDSCaveProfile`): the ranges a room should fall in and the widths its passages are drawn from, as numbers in a JSON file. **Tries** makes up to that many rooms and keeps the first inside them, **Variance** sets how far the draws stray.
   - **In the editor and over MCP:** the Room view has a Profile field, Tries and Variance for Skeleton; `mds_room_generate` takes `profile`, `tries` and `variance`, and `mds_area_generate_caves` the same inside `cave`.

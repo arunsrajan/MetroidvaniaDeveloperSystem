@@ -31,6 +31,7 @@ const STROKES := {
 const DOTS := {"i": [Vector2(0.5, 0.12)]}
 ## Narrow passages of a shape (the neck from an i's dot down to its stem): id -> strokes.
 const NECKS := {"i": [[Vector2(0.5, 0.12), Vector2(0.5, 0.5)]]}
+# l10n: text
 ## How the shapes are carved: "cave" (nonlinear: rough rock, ledges up the tall parts) or "linear"
 ## (straight walls, flat floors, the shapes' tall parts smooth walls to wall-climb, no ledges; the
 ## shafts Generate cave carves across open space to join gates keep theirs, having no wall). Or no
@@ -39,6 +40,7 @@ const NECKS := {"i": [[Vector2(0.5, 0.12), Vector2(0.5, 0.5)]]}
 const STYLES := [["cave", "Cave (nonlinear, ledges)"], ["linear", "Linear (straight, wall climb)"], ["outdoor", "Outdoor (open sky, hills)"], ["arena", "Arena (flat floor, tiers)"]]
 ## The styles that aren't caves (see [constant STYLES]).
 const OPEN_STYLES: PackedStringArray = ["outdoor", "arena"]
+# l10n: text
 ## The shapes a picker lists, in order: [id, name]. "natural" is the cave grown from the room's
 ## outline (the shapes not used); "mixed" a shape picked at random for each.
 ## "several": the shapes picked ([code]shapes[/code]), shared out among the room's shapes.

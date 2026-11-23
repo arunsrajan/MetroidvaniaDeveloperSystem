@@ -78,7 +78,7 @@ func add_section(title: String, content: Control = null) -> Control:
 	header.toggle_mode = true
 	header.button_pressed = true
 	header.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	header.text = "▾ " + title
+	header.text = _section_text(title, true)
 	body.add_child(header)
 	if not content:
 		content = VBoxContainer.new()
@@ -86,9 +86,20 @@ func add_section(title: String, content: Control = null) -> Control:
 	body.add_child(content)
 	header.toggled.connect(func(on: bool) -> void:
 		content.visible = on
-		header.text = ("▾ " if on else "▸ ") + title)
+		header.text = _section_text(title, on))
 	_sections[title] = [header, content]
 	return content
+
+## "▾ Title" for an open section and "▸ Title" for a closed one, the title in the panel's
+## language. The sections stay known by their English title.
+static func _section_text(title: String, open: bool) -> String:
+	return ("▾ " if open else "▸ ") + MDSL10n.t(title)
+
+## Writes the sections' titles again, for a change of language.
+func refresh_language() -> void:
+	for title in _sections:
+		var header: Button = _sections[title][0]
+		header.text = _section_text(title, header.button_pressed)
 
 ## Shows or hides a whole section (header and content).
 func set_section_visible(title: String, on: bool) -> void:

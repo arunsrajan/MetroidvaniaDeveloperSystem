@@ -152,6 +152,7 @@ static func _spin(doc: MDSFightDocument, obj: Object, name: StringName, value: f
 
 ## The conditions of [param move]: a row each, with what to test and its value.
 static func build_conditions(box: Container, doc: MDSFightDocument, move: MDSMove) -> void:
+	# l10n: text
 	var titles := {&"when": "Starts only when", &"cancel_when": "Stops when"}
 	for list in CONDITION_LISTS:
 		var head := HBoxContainer.new()

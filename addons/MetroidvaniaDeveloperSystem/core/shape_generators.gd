@@ -8,7 +8,9 @@ extends RefCounted
 ## freeform and the Freeform tool's Shape list. No editor dependencies.
 
 enum Kind { COLUMN, ARCH, GARDEN_WALL, MOUND, STALACTITES }
+# l10n: text
 const NAMES: PackedStringArray = ["Column", "Arch (broken)", "Garden wall", "Mound", "Stalactite curtain"]
+# l10n: text
 const TIPS: PackedStringArray = [
 	"A broken column: plinth, a slightly swelling shaft, a jagged break at the top",
 	"A ruined arch: one pier standing, the arch broken off partway over, the stump of the far pier",

@@ -34,6 +34,7 @@ const PLAYER_DEFAULTS := {"size": [32.0, 64.0], "jump_velocity": 700.0, "gravity
 const GATE_WINDOW := 256.0
 ## The most physics steps a climb may try, per room.
 const MAX_JUMPS := 500
+# l10n: text
 const KINDS := {"passage": "Passage blocked", "headroom": "No headroom", "landing": "Platform can't be landed on", "floating": "Floating", "buried": "Buried", "climb": "Exit out of reach"}
 
 var player_size := Vector2(32, 64)

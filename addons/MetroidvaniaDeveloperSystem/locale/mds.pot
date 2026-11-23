@@ -1,0 +1,5432 @@
+# Texts of the Metroidvania Developer System panel.
+# Made by tools/l10n/extract.gd from the scripts; do not edit it by hand.
+msgid ""
+msgstr ""
+"Project-Id-Version: Metroidvania Developer System\n"
+"Report-Msgid-Bugs-To: https://github.com/arunsrajan/MetroidvaniaDeveloperSystem/issues\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: core/area_generator.gd
+msgid "Rectangle or square"
+msgstr ""
+
+#: core/area_generator.gd
+msgid "Irregular blocks"
+msgstr ""
+
+#: core/area_generator.gd
+msgid "Freeform (curvy)"
+msgstr ""
+
+#: core/area_generator.gd
+msgid "Hybrid (curves, slants and blocks)"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "Cave (nonlinear, ledges)"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "Linear (straight, wall climb)"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "Outdoor (open sky, hills)"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "Arena (flat floor, tiers)"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "Natural (from the room's outline)"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "i (a shaft and its chamber)"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "Cross (+)"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "Ring (O)"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "S (switchbacks)"
+msgstr ""
+
+#. Drawn as free, curved shapes instead of on the tile grid.
+#: core/cave_shapes.gd
+#: ui/room_view.gd
+msgid "Freeform"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "Skeleton (trunk and branches)"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "Mixed (any)"
+msgstr ""
+
+#: core/cave_shapes.gd
+msgid "Several picked"
+msgstr ""
+
+#: core/drawing_tracer.gd
+msgid "Nothing (paper)"
+msgstr ""
+
+#: core/drawing_tracer.gd
+#: ui/room_view.gd
+msgid "Terrain (solid)"
+msgstr ""
+
+#: core/drawing_tracer.gd
+msgid "Platform (one-way)"
+msgstr ""
+
+#. Drawn behind the player.
+#: core/drawing_tracer.gd
+#: ui/room_view.gd
+msgid "Background"
+msgstr ""
+
+#. Drawn in front of the player.
+#: core/drawing_tracer.gd
+#: ui/decorate_dialog.gd
+#: ui/room_view.gd
+msgid "Foreground"
+msgstr ""
+
+#: core/drawing_tracer.gd
+msgid "Freeform styles"
+msgstr ""
+
+#: core/drawing_tracer.gd
+msgid "Solid colors"
+msgstr ""
+
+#: core/drawing_tracer.gd
+msgid "Tiles (spritesheets, terrains)"
+msgstr ""
+
+#: core/drawing_tracer.gd
+msgid "The drawing itself"
+msgstr ""
+
+#: core/room_check.gd
+msgid "Passage blocked"
+msgstr ""
+
+#: core/room_check.gd
+msgid "No headroom"
+msgstr ""
+
+#: core/room_check.gd
+msgid "Platform can't be landed on"
+msgstr ""
+
+#: core/room_check.gd
+msgid "Floating"
+msgstr ""
+
+#: core/room_check.gd
+msgid "Buried"
+msgstr ""
+
+#: core/room_check.gd
+msgid "Exit out of reach"
+msgstr ""
+
+#: core/shape_generators.gd
+msgid "Column"
+msgstr ""
+
+#: core/shape_generators.gd
+msgid "Arch (broken)"
+msgstr ""
+
+#: core/shape_generators.gd
+msgid "Garden wall"
+msgstr ""
+
+#: core/shape_generators.gd
+msgid "Mound"
+msgstr ""
+
+#: core/shape_generators.gd
+msgid "Stalactite curtain"
+msgstr ""
+
+#: core/shape_generators.gd
+msgid "A broken column: plinth, a slightly swelling shaft, a jagged break at the top"
+msgstr ""
+
+#: core/shape_generators.gd
+msgid "A ruined arch: one pier standing, the arch broken off partway over, the stump of the far pier"
+msgstr ""
+
+#: core/shape_generators.gd
+msgid "A low, overgrown garden wall"
+msgstr ""
+
+#: core/shape_generators.gd
+msgid "A low rounded mound of rock or earth"
+msgstr ""
+
+#: core/shape_generators.gd
+msgid "A row of stalactites hanging from a ceiling"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Brush"
+msgstr ""
+
+#: core/terrain_shapes.gd
+#: ui/full_view_tools.gd
+msgid "Rectangle"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Irregular"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Left curved"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Right curved"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Top curved"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Bottom curved"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Freehand brush"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Drag a rectangle to fill"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Drag a box: an organic rock blob that fills it (Irregular % sets how rough)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Drag a box: a mass attached on the right whose left face follows the curve"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Drag a box: a mass attached on the left whose right face follows the curve"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Drag a box: ground whose surface follows the curve (hills, bowls, ramps)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Drag a box: a ceiling mass whose underside follows the curve (arches, overhangs)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Convex (dome)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Concave (bowl)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Slope (straight ramp)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Rounded corner (convex ramp)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Quarter-pipe (concave ramp)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "S-curve (eased ramp)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Hill (bell)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Mesa (flat top)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Rolling hills (wave)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Steps (stairs)"
+msgstr ""
+
+#: core/terrain_shapes.gd
+msgid "Spikes (stalagmites)"
+msgstr ""
+
+#: dock.gd
+msgid "MetSys mode"
+msgstr ""
+
+#: dock.gd
+msgid "Non-linear mode"
+msgstr ""
+
+#: dock.gd
+msgid "Fight editor"
+msgstr ""
+
+#: dock.gd
+msgid "Dock in bottom panel"
+msgstr ""
+
+#: dock.gd
+msgid "Dock in main screen (MetDevSys tab)"
+msgstr ""
+
+#: dock.gd
+msgid "Detach to floating window"
+msgstr ""
+
+#: dock.gd
+msgid "Dock on the right"
+msgstr ""
+
+#: dock.gd
+msgid "MetSys mode: MetSys' grid map (MapData.txt).\nNon-linear mode: draw and place scenes freely on a world map (.mdsworld.json).\nFight editor: a boss's or an enemy's moves as a graph."
+msgstr ""
+
+#: dock.gd
+msgid "Detach MetDevSys into its own window, or dock it in the editor"
+msgstr ""
+
+#: dock.gd
+msgid "MetDevSys is in the main screen. Detach it into its own window, or dock it in the editor"
+msgstr ""
+
+#: dock.gd
+msgid "MetDevSys is in the floating window. Detach it into its own window, or dock it in the editor"
+msgstr ""
+
+#: dock.gd
+msgid "MetDevSys is in the right dock. Detach it into its own window, or dock it in the editor"
+msgstr ""
+
+#: dock.gd
+msgid "MetDevSys is in the bottom panel. Detach it into its own window, or dock it in the editor"
+msgstr ""
+
+#: dock.gd
+msgid "Auto (%s)"
+msgstr ""
+
+#: dock.gd
+msgid "Others (coming soon)"
+msgstr ""
+
+#: dock.gd
+msgid "Language of the MetDevSys panel"
+msgstr ""
+
+#. Places where the player saves the game (benches).
+#: metsys_panel.gd
+msgid "Save Points"
+msgstr ""
+
+#. Boss enemies, or rooms with one.
+#: metsys_panel.gd
+msgid "Bosses"
+msgstr ""
+
+#. Items the player picks up.
+#: metsys_panel.gd
+msgid "Collectibles"
+msgstr ""
+
+#. Fast-travel points of the map.
+#: metsys_panel.gd
+msgid "Teleporters"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Shops"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Enemies"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "No MapData.txt found. Use the map picker to browse for one."
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Map"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "MapData file to show"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Reload the map file and re-run analysis"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Reload"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Scan"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Scan room scenes for features and terrain"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Rescan map scenes"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Scan project folder (finds unplaced rooms)..."
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Find MapData files"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Check room geometry (physics)"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Player settings for the checks..."
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Export"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Map data (JSON)"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Map image (PNG)"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Room graph (Graphviz .dot)"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Design document (Markdown)"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Side tabs"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Show the Rooms / Inspect / Progress... tabs on the right. Hide them for a bigger map"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Map display"
+msgstr ""
+
+#. A layer of the map or of a room.
+#: metsys_panel.gd
+#: ui/room_view.gd
+#: world_panel.gd
+msgid "Layer"
+msgstr ""
+
+#: metsys_panel.gd
+#: ui/area_generate_dialog.gd
+#: world_panel.gd
+msgid "Color"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Show on map..."
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Room labels"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Terrain silhouettes"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Doors, gates && one-ways"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Live scene previews (slow)"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Custom elements"
+msgstr ""
+
+#. Icons on the map for save points, bosses, shops...
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Markers"
+msgstr ""
+
+#. Note markers that the designer pins on the map.
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Pins"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Issue badges"
+msgstr ""
+
+#. The key that explains the colors and icons of the map.
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Legend"
+msgstr ""
+
+#: metsys_panel.gd
+#: ui/map_import_dialog.gd
+#: world_panel.gd
+msgid "Grid"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Auto-scan map scenes on load"
+msgstr ""
+
+#: metsys_panel.gd
+#: ui/tile_palette.gd
+#: world_panel.gd
+msgid "Zoom out"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Zoom in (or mouse wheel over the map)"
+msgstr ""
+
+#. Make a picture fit the room.
+#: metsys_panel.gd
+#: ui/trace_dialog.gd
+#: world_panel.gd
+msgid "Fit"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Fit the layer in view (F)"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Clear route"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Clear the highlighted route / selection highlight (Esc)"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Show markers on the map and filter the room list"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Add map pin"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Pin text, e.g. \"Hidden wall to the secret room\""
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Search rooms, areas, bosses, abilities..."
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Only rooms matching the Show filters"
+msgstr ""
+
+#. A room of the game's world map (a cave, a hall): a part of the level the player walks through. Not a hotel room.
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Room"
+msgstr ""
+
+#. A named zone of the map that groups rooms, like Greenpath in Hollow Knight.
+#: metsys_panel.gd
+#: ui/map_canvas.gd
+#: ui/room_view.gd
+# and 1 more files
+msgid "Area"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Sphere"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Click: select   Double-click: open scene"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Browse..."
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Map file changed on disk, reloaded."
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Player for the room checks"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Link cancelled."
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Select a room on the map to inspect and annotate it.\n\nRight-click the map for more actions: pins, play from here, routes, links.\nShift+click a second room to show the route between them."
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Open scene"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Open the room scene in the editor"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Play from here"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Run the game starting in this room, at its save point if it has one. Right-click the map to start at an exact spot."
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Start room"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Set as start"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Progression spheres are computed from the start room"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Center"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Center the map on this room"
+msgstr ""
+
+#: metsys_panel.gd
+#: ui/area_generate_dialog.gd
+#: world_panel.gd
+msgid "Name"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Type"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Status"
+msgstr ""
+
+#: metsys_panel.gd
+#: ui/decorate_dialog.gd
+#: world_panel.gd
+msgid "(none)"
+msgstr ""
+
+#. A boss enemy, or a room with one.
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Boss"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Grants"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Comma separated. Abilities from mds_grants node metadata are added automatically."
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Notes (TODO lines show up in Issues)"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "No passages. Paint passages in the MetSys editor."
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Links (elevators, teleports, layer transitions)"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Add link... (then click the target room)"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Connect this room to another room, e.g. on another layer"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "One-way out"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "requires (e.g. dash, red_key)"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Passage only painted on one side."
+msgstr ""
+
+#: metsys_panel.gd
+#: ui/area_generate_dialog.gd
+#: world_panel.gd
+msgid "x"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Remove link"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "note (Elevator...)"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "requires"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Run this room scene only"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Set as start room"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Route from selected room to here"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Link selected room to this room"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Add pin here..."
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Remove nearest pin"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Copy scene UID"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Copy cell coordinates"
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Nothing to export: no map loaded."
+msgstr ""
+
+#: metsys_panel.gd
+msgid "Export already in progress..."
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Export failed: empty layer"
+msgstr ""
+
+#: metsys_panel.gd
+#: world_panel.gd
+msgid "Rendering map image..."
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Your picture, blurred"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Toxic swamp"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Holy light"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Starfield"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Infection"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Spore drift"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Frozen night"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Arcane vortex"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Blood moon"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Void pulse"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Crystal cave"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Sunset haze"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Forest canopy"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Storm clouds"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Ember glow"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Deep water"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Molten blobs"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Nebula"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Aurora"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Bokeh lights"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Out-of-focus lights drifting at three depths, like a city or lanterns seen through a lens"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Curtains of green and violet light waving over a starry night"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Slowly turning clouds of cosmic gas, soft stars twinkling"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Big soft blobs of molten color merging and parting, like a lava lamp"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Deep water: soft caustics, light rays from the surface, bubbles rising"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "A dark red heat glowing from below, smoke, blurred embers rising"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Dark clouds rolling, lightning flashing behind them, a veil of rain"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Light through leaves: swaying shadows, sun flecks, soft rays"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "A warm sky, a big soft sun, bands of cloud drifting by"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Glowing crystal facets shimmering in the dark, sparkles"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Boss: a dark void throbbing, rings rippling out from a glowing core"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Boss: a huge blood-red moon, red mist drifting across it"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Boss: a spiral of arcane light turning around a bright eye"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "A cold night, snowflakes falling out of focus, near ones large and soft"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "A teal haze, bioluminescent spores wandering"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Boss: glowing orange veins pulsing through the dark, motes drifting up"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Stars at several depths drifting slowly, a faint haze"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Boss or shrine: golden rays falling from above, dust shining in them"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "A green murk swirling, bubbles rising, a sickly glow"
+msgstr ""
+
+#: nodes/environment/mds_animated_background.gd
+msgid "Your own picture, blurred out of focus, drifting and breathing slowly"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Worms"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Owls"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Eels"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Glowfish"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Jellyfish"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Crabs"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Snails"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Centipedes"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Beetles"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Spiders"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Firebirds"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Bats"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Crows"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Small birds"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Dragonflies"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Butterflies"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Moths"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Lumaflies"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Wasps"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Bees"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Bees with glowing stripes swarming around their hive, the honeycomb lit amber where they pass"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Wasps darting about a dark nest, closing in on the player when it gets busy"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Lumaflies drifting through a night wood, their lanterns blinking on and off"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Moths fluttering in a forest; when the player stands still they come to it, like to a flame"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Butterflies with glowing wing edges wandering over a marsh, scattering from the player"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Dragonflies hovering over the reeds and darting off, glowing along their tails"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "A flock of small birds wheeling across a dusk sky, warm light on their breasts"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Crows circling slowly against a grey sky, red eyes glinting"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Bats flitting about a cave, eyes glowing violet, scattering as the player moves"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Firebirds sweeping across a red sky, trailing tails of flame"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Spiders lowering themselves on silk and crawling over webbed rock; they climb away when the player is busy"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Beetles with glowing shells crawling over the cave wall, running when the player moves"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Centipedes winding through the earth, their segments glowing"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Snails gliding over damp rock, leaving glowing trails; they stop when the player is near"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Crabs scuttling sideways over the seabed, claws glowing"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Jellyfish pulsing up through deep water, lighting it blue"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "A school of glowfish turning together in the deep, splitting around the player"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Eels winding slowly through dark water, spots glowing along them"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Owls watching from their perches, glowing eyes following the player, blinking"
+msgstr ""
+
+#: nodes/environment/mds_creatures.gd
+msgid "Worms rising out of the earth in glowing arcs and diving back; more come up the more the player stomps about"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Dust storm"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Banks of dust blown from one side in gusts, grit and motes driven along; the wind shoves the player downwind"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Rain"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Slanting rain at three depths, splashes along the ground and a low mist"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Lightning"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Forked bolts behind the terrain, the sky flashing, thunder"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Snowfall"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Soft flakes drifting down; turn up Blizzard for driven snow"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Fog / mist"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Drifting fog, or mist lying along the ground"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Embers / ash"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Embers rising and flickering out, ash drifting down, or sparks"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Glowing motes wandering and blinking: fireflies, spores, glitter"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Fireflies / spores"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Falling leaves"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Leaves or petals tumbling down on the breeze"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Light shafts"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "God rays slanting down from above, dust motes in them"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Heat haze"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Everything behind it shimmers, rippling upward"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Steam vent"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "A vent forcing out hot steam: wisps, a warning glow, then a jet that throws and scalds"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Lava pool"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Molten rock (or acid, cursed ooze) with crust, bubbles, a glow and embers; it hurts"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "A sheet of water falling straight down, white water at its lip and foot, mist"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Waterfall"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Hot water falls"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Scalding mineral water pouring straight down: steam pouring off it and billowing at its foot, a warm glow, the air wavering; it scalds"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Lava falls"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Molten rock pouring straight down over a ledge: a white-hot core, crust plates riding down and cracking, a splash of molten drops, a glow, embers; it burns"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Falling rocks"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Rocks breaking off and crashing to the ground in dust and chips, piling up as rubble; a cave-in with PLAYER_INSIDE; can hurt"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Water"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "A pool: waves, what is behind bent and tinted, caustics, bubbles"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Bench / save point"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "A bench to rest on, like Silksong's: its lantern flickers and motes drift in its light. Up sits the player down: the game is saved, health restored, the bench glows and the map shows it; a restarted game continues here and dying brings the player back. Place it on a floor"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Silk threads"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Strands of silk drifting and turning in the air, light running along them, threads hanging from above (Silksong's Weavenest)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Ghostly flames drifting on slow paths, flickering tails licking upward, halos lighting the air (the Wisp Thicket)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Will-o'-wisps"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Gnat swarm"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Clouds of tiny gnats buzzing about; a swarm gathers around the player who comes near (Bilewater)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Dripping water"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Drops gathering under the ceiling, falling and splashing on the floor (the Wormways, the Deep Docks)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Hanging moss"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Leafy strands hanging from a ceiling, swaying, parting around the player passing through (Greymoor, the Moss Grotto)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Swaying grass"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Blades of grass along a floor swaying in gusts, bending away as the player walks through (the Far Fields)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Cobwebs"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Spider webs across corners, dew glinting, trembling as the player moves through them; can slow them (the Weavenest, Shellwood)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Black tendrils writhing up from a pool of darkness, a violet glow at their rims, reaching for the player; can hurt (the Abyss)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Void tendrils"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Incense smoke"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Ribbons of smoke curling up from a censer, golden ash glinting in them (the Citadel's choral chambers)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Forge sparks"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Sparks spraying from a forge or a grinding wheel, arcing down and bouncing off the floor, in a stream or bursts; can burn (the Deep Docks)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Creatures"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "A background of glowing creatures, one kind at a time (bees, spiders, small birds, bats, jellyfish, owls... 20 kinds), soft and out of focus, each carrying a light over its habitat. They stir as the player moves about and never touch the fight: made for boss rooms"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Machinery background"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Giant machinery far behind the room, soft and out of focus, one kind at a time, moving by time alone: 20 gothic castle machines for Castlevania-style castles (giant wheels, clockwork, clock faces, pendulums, bells, chandeliers, rose windows...) and 20 alien station machines for Metroid-style worlds (turbines, reactor cores, gyro rings, pistons, specimen tanks, warp portals...). Pick the machine in the Inspector"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Animated background"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "A soft, out-of-focus background in motion, drawn by a shader: bokeh lights, an aurora, a nebula, molten blobs, deep water, storm clouds, a starfield... 20 styles, some made for boss rooms (void pulse, blood moon, arcane vortex, infection, holy light). Pick the style in the Inspector; drop an image on it to show the image blurred"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Parallax background"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Layers behind the room moving slower the further back they are: sky, mountains, forest, city, ruins, cave rock, dunes, clouds, fog, stars or your own pictures. Drop an image on it to add a layer"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "A dust storm blowing toward the right over a low haze of sand"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Sandstorm"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Sandstorm, blowing left"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "A dust storm blowing toward the left over a low haze of sand"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Thunderstorm"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Heavy slanting rain, lightning and a dark mist"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Drizzle"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Light rain and mist"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Blizzard"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Driven snow and a white-out haze"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Gentle snow"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Embers rising, ash falling, heat haze and a red smoky haze"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+#: nodes/environment/mds_parallax_background.gd
+msgid "Volcanic"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Ashfall"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Ash drifting down through a grey haze"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Cave mist"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Mist along the floor, shafts of light from above"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Firefly grove"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Fireflies, soft light and a little mist"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Spore cavern"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Teal spores drifting slowly in a green haze"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Autumn wind"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Leaves tumbling down on a breeze"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Pink petals drifting down"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Petals"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Glitter"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Pink and white glitter twinkling in the air (a stage, a fairy grove)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Weavenest"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Silk drifting and hanging in a pale, still haze (Silksong's Weavenest)"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Bilewater"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Gnats over a reeking green haze, water dripping from above"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Wisp Thicket"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Will-o'-wisps drifting through a dark, smoky wood, ash falling"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Deep Docks"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Sparks and embers in the heat of the forges, a rusty haze"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Wormways"
+msgstr ""
+
+#: nodes/environment/mds_environment.gd
+msgid "Water dripping through a damp, dim tunnel"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Giant wheels"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Clockwork gears"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Clock faces"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Pendulums"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Bells"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Chandeliers"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Rose windows"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Hanging chains"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Candelabra"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Winches"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Castle spires"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Saw blades"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Swinging axes"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Windmills"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Torches"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Astrolabes"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Banners"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Organ pipes"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Hourglasses"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Spiked rollers"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Drills"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Robot arms"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Ringed planets"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Holograms"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Radar dishes"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Energy conduits"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Pistons"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Gyro rings"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Reactor cores"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Turbines"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Tesla coils"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Exhaust fans"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Bio pods"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Specimen tanks"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Data streams"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Laser sweeps"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Warp portals"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Crystal pylons"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Press hammers"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Cargo lifts"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Huge spoked wheels with paddles round their rims, turning slowly"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Toothed cogwheels with windows cut in them, turning on their axles: a clock tower's works"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Clock faces lit from behind, their hands going round"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Pendulums swinging from above, some with a bob, some with a blade"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Great bells swinging in their yokes, their clappers swinging after them"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Chandeliers swaying on their chains, their candles flickering"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Rose windows: stone tracery, the stained glass glowing and shimmering"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Chains hanging from above, swaying, hooks at their ends"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Candelabra on the floor, their candles flickering"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Winches: spoked wheels turning drums, chains winding up"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Spiked rollers turning on their beams"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Hourglasses running out, then turned over"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Organ pipes along the floor, sound pulsing up them"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Banners hanging from their rods, waving, tattered at the bottom"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Astrolabes: nested rings turning about a glowing core"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Torches in wall sconces, their flames flickering"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Windmills on their towers, their latticed sails turning"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Great axe blades swinging from above"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Saw blades spinning fast, sliding along their slots"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Castle spires: towers, pointed roofs, lit windows, a flag flying"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Turbines spinning in their housings, hubs glowing"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Reactor cores pulsing inside counter-turning shield rings, energy arcing off them"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Gyro rings turning about each other round a glowing orb"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Hydraulic pistons pumping up and down, venting at the bottom of their stroke"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Pipes with pulses of energy racing along them"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Radar dishes on their masts, turning, feed lights blinking"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Holograms of worlds turning above their projectors, scanlines rolling"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Ringed planets seen through the station's windows, their bands drifting, moons going round"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Robot arms reaching and turning, claws opening and closing"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Giant drills boring down, spirals turning, tips glowing hot"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Tesla coils, lightning crackling off their crowns"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Exhaust fans spinning behind their grilles, lit from behind"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Organic pods breathing, their nuclei pulsing with light"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Specimen tanks: glowing fluid, bubbles rising, a creature floating in each"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Data panels, columns of glowing blocks streaming down them"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Security emitters sweeping their laser beams back and forth"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Warp portals: rings of runes round swirling vortices"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Crystal pylons floating and turning over their pedestals"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Press hammers rising slowly, then slamming down in a flash"
+msgstr ""
+
+#: nodes/environment/mds_machinery_background.gd
+msgid "Cargo lifts riding up and down their rails, lamps blinking"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+#: nodes/mds_room_camera.gd
+msgid "None"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Dusty wastes"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Sunken garden"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Night sky"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Snowy peaks"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Deep cavern"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Desert dunes"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Ruined city at night"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Misty forest"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Dusk mountains"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Custom"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Foliage"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Cave rocks"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Ruins"
+msgstr ""
+
+#: nodes/environment/mds_parallax_background.gd
+msgid "Mist"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Auto (Phantom Camera if installed)"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Camera2D"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "PhantomCamera2D"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Room shape (zones)"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Room bounds"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Fade"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Cut"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Slide"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Blend"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+#: world_panel.gd
+msgid "Glide"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Cut, never glide"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Off (always Zoom)"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Per room (a room's own zoom)"
+msgstr ""
+
+#: nodes/mds_room_camera.gd
+msgid "Fit the room (out in big rooms, in in small ones)"
+msgstr ""
+
+#: plugin.gd
+msgid "MetDevSys is in the floating window."
+msgstr ""
+
+#: plugin.gd
+msgid "MetDevSys is in the right dock."
+msgstr ""
+
+#: plugin.gd
+msgid "MetDevSys is in the bottom panel."
+msgstr ""
+
+#: plugin.gd
+msgid "MetDevSys is in the main screen."
+msgstr ""
+
+#: plugin.gd
+msgid "MetDevSys - Metroidvania Developer System"
+msgstr ""
+
+#: plugin.gd
+msgid "Dock MetDevSys back here"
+msgstr ""
+
+#: plugin.gd
+msgid "Show it"
+msgstr ""
+
+#: plugin.gd
+msgid "MetSys plugin should be installed and enabled in project settings for the Metroidvania Developer System MetSys mode to work."
+msgstr ""
+
+#: ui/analysis_views.gd
+msgid "Use selected room as start"
+msgstr ""
+
+#: ui/analysis_views.gd
+msgid "Progression is computed from this room"
+msgstr ""
+
+#: ui/analysis_views.gd
+msgid "Select a sphere, ability or group to highlight it on the map."
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Generate area"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+#: world_panel.gd
+msgid "Generate"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "An area made of rooms with doors between them, in the box you dragged. Cells other rooms cover are left out. It connects to the areas it touches."
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "The area's name (an existing area's name adds the rooms to it)"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+#: ui/room_view.gd
+#: ui/tile_palette.gd
+msgid "Random"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Another name"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+#: ui/room_view.gd
+msgid "Shape"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Rectangle or square: the whole box. Irregular: blocks joined together. Freeform: a curvy blob with corridors. Hybrid: a blob with halls, towers and corridors. Curves and Slants shape the corners of all of them"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Share of the outline's corners rounded into curves, and of the corridors that curve. 0 with Slants 0: straight sides and sharp corners"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Curves"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Share of the outline's corners cut on a slant, of the blocks with a slanted side, and of the corridors that turn at angles"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Slants"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Smallest room"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Paint cells (World settings > Paint cell; a quarter of the default room size unless set)"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Largest room"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Paint cells"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+#: world_panel.gd
+msgid "Irregular rooms"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Share of rooms joined with a neighbour into one L, T or U shaped room"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Shafts"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Share of tall, narrow rooms to climb or fall through"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Share of the other neighbouring rooms that get a door too: more ways around. 0: one way to each room"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Loops"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "How ragged a freeform or hybrid outline is"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Ragged outline"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Corridors"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Corridors reaching out of a freeform or hybrid area"
+msgstr ""
+
+#. A number that makes a random generator give the same result again.
+#: ui/area_generate_dialog.gd
+#: ui/convert_dialog.gd
+#: ui/decorate_dialog.gd
+msgid "Seed"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+#: ui/merge_rooms_dialog.gd
+msgid "New"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Another layout"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "Connect to the areas it touches"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "A door to each area it touches, where they meet (taken out again if you drag them apart with the Area tool)"
+msgstr ""
+
+#: ui/area_generate_dialog.gd
+msgid "The box is full of rooms already: drag it over free space."
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Convert to freeform"
+msgstr ""
+
+#. Turn tiles into freeform shapes or the other way round.
+#: ui/convert_dialog.gd
+msgid "Convert"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Turns the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects where it is. Platforms become one-way ledges."
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Rock style"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Style of the solid rock"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Ledge style"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Style of the ledges made from platforms (one-way bodies and tiles)"
+msgstr ""
+
+#: ui/convert_dialog.gd
+#: ui/room_canvas.gd
+msgid "Background tiles"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Turn the Background layer's tiles into freeform shapes of this style, or keep them"
+msgstr ""
+
+#: ui/convert_dialog.gd
+#: ui/room_canvas.gd
+msgid "Foreground tiles"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Turn the Foreground layer's tiles into freeform shapes of this style, or keep them"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Also cover the cells of the room's box outside its shape on the map with non-solid shapes of this style (deep ground over the rock's edges)"
+msgstr ""
+
+#: ui/convert_dialog.gd
+#: ui/room_view.gd
+msgid "Fill outside shape"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "How much faces grow: floors in low mounds, ceilings sagging in lobes, walls bulging (0: corners rounded only)"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Growth"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Inside corners"
+msgstr ""
+
+#: ui/convert_dialog.gd
+#: ui/trace_dialog.gd
+msgid "px"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Radius of the bowls rounding inside corners"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Outside corners"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Radius of the lips rounding outside corners"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Same seed, same rock"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Old terrain"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Keep it, hidden"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Remove it"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Hidden: the old tiles move to a disabled <Layer>Blockout layer and old bodies are hidden without collision, all still in the scene. Remove: they go (Ctrl+Z still brings them back)"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Convert straight-edged freeform shapes"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Solid freeform shapes with Smooth off (a blockout drawn with rectangles) become rock too"
+msgstr ""
+
+#: ui/convert_dialog.gd
+#: ui/decorate_dialog.gd
+#: ui/trace_dialog.gd
+msgid "Preview"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Rock style, as one-way ledges"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "Keep as tiles"
+msgstr ""
+
+#: ui/convert_dialog.gd
+msgid "No"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Decorate freeform"
+msgstr ""
+
+#. Add decorations to a room automatically.
+#: ui/decorate_dialog.gd
+msgid "Decorate"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Places scenery relative to the room's freeform rock, never over doorways, platforms or anything in the room. Running it again replaces what it placed before."
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Stamp set"
+msgstr ""
+
+#. Stamps hung under ceilings and ledges.
+#: ui/decorate_dialog.gd
+msgid "Hanging"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Stamps hung under ceilings and ledges"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Floor plants"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Stamps along floors: tick the categories below"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Background shapes standing on flat floors (or hanging under flat ceilings): tick the kinds below"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Structures"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Structure style"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Leaves on them"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Leaf silhouettes framing the room's free corners, in front of everything"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Density"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "Same seed, same decoration"
+msgstr ""
+
+#: ui/decorate_dialog.gd
+msgid "No stamp sets (structures and leaves only)"
+msgstr ""
+
+#: ui/fight_fields.gd
+msgid "Starts only when"
+msgstr ""
+
+#: ui/fight_fields.gd
+msgid "Stops when"
+msgstr ""
+
+#: ui/fight_fields.gd
+msgid "Add a condition"
+msgstr ""
+
+#: ui/fight_fields.gd
+msgid "flag"
+msgstr ""
+
+#: ui/fight_fields.gd
+msgid "not"
+msgstr ""
+
+#: ui/fight_fields.gd
+msgid "Holds when the test fails"
+msgstr ""
+
+#: ui/fight_fields.gd
+msgid "Remove this condition"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Fight"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "The bosses and enemies with moves in the open scene"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Open .tres…"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Open a phase or a move saved in a file of its own"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Inspect"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Show the selected move in the editor's inspector"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Replace the boss's fight with a recipe, to change. Undo brings back what it had"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Start from a recipe…"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Phases"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Add a phase, starting at half the health of the last"
+msgstr ""
+
+#: ui/fight_panel.gd
+#: ui/tile_palette.gd
+#: world_panel.gd
+msgid "Add"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Remove this phase"
+msgstr ""
+
+#: ui/fight_panel.gd
+#: ui/tile_palette.gd
+msgid "Remove"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Selected move"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Up"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Move it before the one above it"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Down"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Move it after the one below it"
+msgstr ""
+
+#: ui/fight_panel.gd
+#: world_panel.gd
+msgid "Duplicate"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "A copy of it and everything in it, right after it"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Make unique"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "It is used in more than one place: give this place a copy of its own"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Take it out, and everything in it"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Add a move"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Where a new move goes"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "While playing"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Which running fighter the graph follows"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "[i]Run the game to see the fight here.[/i]"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Make editable"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Copy these phases onto the boss, to change. Undo takes it back"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Select an MDSMoveBoss or an MDSMoveEnemy in the scene, or open a .tres of a phase or a move."
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "⚠ see below"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "After this move"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "A move can't go inside itself."
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Select where it goes first: a move with room in it, or one to add after."
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Couldn't make one: its script needs @tool."
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "No fighters in this scene"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "[i]Pick a running fighter above.[/i]"
+msgstr ""
+
+#. The rooms of the game's world map (a cave, a hall); a list or a tab. Not hotel rooms.
+#: ui/full_view_tools.gd
+#: ui/map_import_dialog.gd
+msgid "Rooms"
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Ellipse"
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Polygon"
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Curvy"
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Gen. area"
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Select rooms and outlines: click (Ctrl or Shift adds or takes out), or drag a box on empty space. Drag them to move them: rooms move in paint cells and stop against the others, with doors where they touch. Double-click a room to edit it (and the others selected) in the Room view. Delete removes them, Ctrl+A selects them all, the arrows nudge them"
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Draw a room's outline: drag a rectangle (Snap to cells: on the paint cells). Generate map makes the outlines rooms on the map"
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Draw an ellipse: drag its box (Shift: a circle). Generate map makes the outlines rooms on the map"
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Draw a polygon: click its corners, then click the first one, double-click or press Enter to close it. Backspace takes the last corner back, Esc drops it"
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Draw a curvy outline freehand: drag around it and release, it closes and is smoothed"
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Generate area: drag a box for the Generate area dialog, an area of rooms with an outline of its own (rectangle, blocks, curvy or hybrid), like the map's Generate area tool"
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Nothing to generate: draw rooms first with Rectangle, Ellipse, Polygon or Curvy."
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Polygon: click its next corners; click the first one, double-click or press Enter to close it."
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Generate area needs a box of 2 x 2 paint cells or more."
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "The rooms selected are against a neighbour there."
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Undone on the map."
+msgstr ""
+
+#: ui/full_view_tools.gd
+msgid "Redone on the map."
+msgstr ""
+
+#: ui/l10n.gd
+msgctxt "list separator"
+msgid ", "
+msgstr ""
+
+#: ui/map_canvas.gd
+msgid "MetSys colors"
+msgstr ""
+
+#: ui/map_canvas.gd
+#: world_panel.gd
+msgid "Room type"
+msgstr ""
+
+#: ui/map_canvas.gd
+#: world_panel.gd
+msgid "Progression"
+msgstr ""
+
+#: ui/map_canvas.gd
+#: world_panel.gd
+msgid "Save distance"
+msgstr ""
+
+#: ui/map_canvas.gd
+#: world_panel.gd
+msgid "Build status"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Import map image"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Import"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "A picture of a map becomes rooms on the map: its grid's cells are paint cells, its colors areas, cells parted by a wall line separate rooms, a gap in a wall or a gate marker on it a door. A map drawn with no grid (Hollow Knight, Silksong) is read as a shape per area, each split into rooms with doors. Cells other rooms have are left out. One undo takes it back."
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "No picture yet"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Pick..."
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Pick a picture of a map (PNG, JPG, WebP, BMP, TGA, SVG), in the project or anywhere on disk"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Find it"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Find the map's grid from where its rooms' edges are (across and down on their own). Off: the cell size and offset below. A picture MDS exported has a sidecar file that gives it exactly"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "One cell of the map's grid in the picture, across and down"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Cell size (px)"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Where a cell's top-left corner is in the picture"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Cell starts at (px)"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "How far apart two room colors may be and be one area (hue and saturation count, brightness less)"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Same area within"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Ink darker than"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Pixels darker than this are walls and outlines, not rooms"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Room cell filled"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "The share of a cell's middle that must be room color for it to be a room's"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Parted by walls"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "One per color region"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "One per cell"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Drawn map: a shape per area"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Parted by walls: cells of one area with no wall line between them are one room. One per color region: the cells of one area that touch. One per cell: every cell its own room. Drawn map: a map with no grid (Hollow Knight, Silksong), each area a shape filled with its color: each shape is split into rooms with doors, keeping its outline (used too when no grid is found)"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "A map drawn with no grid: how many paint cells its width takes on the world (more: bigger rooms on the map, more of them, thin corridors kept)"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Drawn map: cells across"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Paint cells per cell"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "How many paint cells of the world one cell of the picture's grid covers, across and down (a MetSys map's cell is a whole screen: 4 x 4 by default)"
+msgstr ""
+
+#. A tool: put an object in the room.
+#: ui/map_import_dialog.gd
+#: ui/room_view.gd
+msgid "Place"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Right of the map"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Where it was dropped"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Where they were (sidecar)"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Right of the rooms on this layer; where the picture was dropped on the map; or, for a picture MDS exported with its sidecar, on the same paint cells as the rooms it shows"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Doors: gaps in walls, gate markers"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "A gap in a wall between two rooms, or a gate marker (a bright square, as MDS draws gates) on it, is a door: a pair of connected gates"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Doors to rooms no door reaches"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Rooms no door reaches get one to a room they touch, so every room can be walked to"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "Areas (biggest first)"
+msgstr ""
+
+#: ui/map_import_dialog.gd
+msgid "The area's name (an existing area's name puts the rooms in it)"
+msgstr ""
+
+#: ui/map_style.gd
+msgid "Flat"
+msgstr ""
+
+#: ui/map_style.gd
+msgid "Hand-drawn (double line)"
+msgstr ""
+
+#: ui/map_style.gd
+msgid "Blueprint"
+msgstr ""
+
+#: ui/map_style.gd
+msgid "Chunky pixel"
+msgstr ""
+
+#: ui/map_style.gd
+msgid "Glowing areas (atlas)"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+#: world_panel.gd
+msgid "Merge rooms"
+msgstr ""
+
+#. Join several rooms into one.
+#: ui/merge_rooms_dialog.gd
+msgid "Merge"
+msgstr ""
+
+#. Which room stays when rooms are merged.
+#: ui/merge_rooms_dialog.gd
+msgid "Keep"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+msgid "The room that stays: its id, its place in the map's order, its scene and its settings (names, notes and abilities it lacks come from the others). The others' gates to the rest of the map are renamed where their names are taken"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+msgid "Bring what is painted in their scenes into its scene"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+msgid "Their tiles (only inside their own room; the walls where they meet drawn as one again), freeform shapes, stamps, effects, pictures and other nodes (enemies, pickups...) go into the kept room's scene, where they were on the map. Tiles of another tileset or off its grid come as free tile pieces. Their gate nodes and map guides are made anew. Their scenes stay on disk, no longer used"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+msgid "Generate a cave for the merged room"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+msgid "Replace its tiles with a cave built from its shape on the map, with the Room view's fills and Generate options (saved; Ctrl+Z on the map undoes the merge, not the scene)"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+msgid "Walls where the old rooms met"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+msgid "The cave keeps walls where the merged rooms met, with openings where their doors were, each old room reached through them. Off: one open cave"
+msgstr ""
+
+#. Another random version of a generated cave.
+#: ui/merge_rooms_dialog.gd
+msgid "Variation"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+msgid "Another number, another cave (the Room view's New variation gives more)"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+msgid "Another variation"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+msgid "Open it in the Room view"
+msgstr ""
+
+#: ui/merge_rooms_dialog.gd
+msgid "Edit the merged room: Generate cave and New variation there too"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Items only (free tiles, stamps, pictures, shapes)"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Decor tiles"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Terrain tiles"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Everything"
+msgstr ""
+
+#. The solid ground and walls of a room.
+#: ui/room_canvas.gd
+#: ui/room_view.gd
+msgid "Terrain"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Style's role"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Platform, one-way"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Platform, two-way"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Decoration (no collision)"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Top tile (stamp, free tiles, foreground, decor, terrain, then background)"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Decor only"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Terrain only"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Background only"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "All layers"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Foreground only"
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Freeform shape removed."
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Pick tiles in the tile palette first (drag over them): the Place tool puts them anywhere in the room, at any angle."
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Nothing selected. Click tiles, free tiles, stamps, pictures or shapes (Shift adds), or drag a box around them."
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Select free tiles first (tiles placed with Place, or moved off the grid)."
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Drag an effect from the list onto the room, or pick one and click."
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "No stamp set: add the Mossgrove pack (or any *.stamps.tres) to the project."
+msgstr ""
+
+#: ui/room_canvas.gd
+#: ui/room_view.gd
+msgid "Undone."
+msgstr ""
+
+#: ui/room_canvas.gd
+#: ui/room_view.gd
+msgid "Redone."
+msgstr ""
+
+#: ui/room_canvas.gd
+msgid "Click in a room to paint it, or draw rooms with the Full view's Rectangle, Ellipse, Polygon or Curvy tool, then Generate map."
+msgstr ""
+
+#. Decorations on floors and under ceilings (grass, vines, stalactites).
+#: ui/room_view.gd
+msgid "Decor"
+msgstr ""
+
+#. A tool: remove what is under the brush.
+#: ui/room_view.gd
+#: world_panel.gd
+msgid "Erase"
+msgstr ""
+
+#. Decoration sprites placed on a room's walls and floors, as with rubber stamps.
+#: ui/room_view.gd
+msgid "Stamps"
+msgstr ""
+
+#. Weather, hazards and scenery in motion (rain, lava, fog...).
+#: ui/room_view.gd
+msgid "Effects"
+msgstr ""
+
+#. A tool: pick what is in the room.
+#: ui/room_view.gd
+#: world_panel.gd
+msgid "Select"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Behind terrain"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "In front of terrain"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Paint the Terrain layer (solid ground: autotiled terrain, palette tiles or colors)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Paint the Background layer (foliage, palette tiles or a solid color)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Paint the Decor layer (grass, vines, stalactites, palette tiles...)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Erase the top item under the brush: a stamp or free tiles, else foreground, decoration, terrain, then background (palette tiles and colors too). Pick one layer or all layers in the list next to it; Shift erases background only. Works with shapes too, to carve curved caves"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Paint the Foreground layer, drawn in front of everything (dark silhouettes framing the room)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Freeform terrain: smooth curvy shapes instead of tiles (rounded ledges, bulging moss walls), with textured edges, clumps and exact collision. Draw by clicking points or dragging freehand, or pick a shape and drag its box. Edit mode reshapes them"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Place large clumps freely (moss bubbles, leaves, ferns, hanging moss, background bubbles, foreground silhouettes). Click or drag; Shift removes"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Environment effects: rain, snow, dust storms, lightning, fog, steam vents, lava, waterfalls, water, light shafts, embers, fireflies, leaves, heat haze. Drag one from the list onto the room (or pick one and click), drag to move, drag the corner to resize; the selected effect's settings are in the Inspector. Delete removes it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Place the tiles picked in the tile palette anywhere in the room, off the grid, at the angle picked there (0 to 360 degrees; R / Shift+R turn them). Click to place, drag right away to move; Shift+click removes free tiles. They draw and collide like the tiles of the layer picked below"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Select tiles, free tiles, stamps, pictures and freeform shapes: click (Shift or Ctrl adds or removes) or drag a box around them, then drag to move them by pixels (Snap to tiles: by whole tiles). Tiles moved off the grid become free tiles. R / Shift+R turn the selection, the arrows nudge it, Delete removes it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "What the current tool paints: a terrain (autotiled), random tiles of a kind, the tiles picked in the palette, or a solid color"
+msgstr ""
+
+#. Cover an area with a fill (a solid color, tiles).
+#: ui/room_view.gd
+msgid "Fill"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Layer of new freeform shapes or stamps"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Draw"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Edit"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Draw: click points (or drag freehand) and click the first point, double-click or press Enter to close; or pick a shape below and drag its box.\nEdit: drag points, Alt+click removes one, double-click an edge adds one, drag inside to move, Delete removes the shape."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Mode"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Collision of new freeform shapes (and of the selected one in Edit mode): the style's role, terrain, a platform (one-way ledges are jumped up through), or a decoration that never collides. Dashed tops in Edit mode mark one-way shapes"
+msgstr ""
+
+#. What a freeform style is used for (terrain, platform, background...).
+#: ui/room_view.gd
+msgid "Role"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Repair"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Untwist the selected shape: an outline that crosses itself has no fill and no collision. The largest part stays; other parts become shapes of their own; slivers go"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Untwist every shape of the room whose outline crosses itself (drawn red)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Repair all"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Stamp size. Random on: each stamp varies from 80% to 120% of it. Random off: every stamp is exactly this size"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "On: each stamp is a random sprite of the category, a little bigger or smaller, flipped or tilted a little. Off: the sprite picked below, exactly at the Size, upright and not flipped. The preview at the mouse is the stamp the next click places. Generate cave's Stamps follow this too"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "The sprite every click places (Random off): the category's sprites, the preview at the mouse shows the one picked"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "How far the turn buttons and R / Shift+R turn: the palette's tiles under Place, the selection under Select (the palette turns its tiles to any angle, 0 to 360 degrees)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Turn back (Shift+R)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Turn clockwise (R)"
+msgstr ""
+
+#. Rotate a shape or a stamp by an angle.
+#: ui/room_view.gd
+msgid "Turn"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Snap to tiles"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Place, move and turn by whole tiles, on the grid. Off: by pixels, anywhere in the room (grid tiles moved off the grid become free tiles; To grid puts free tiles back on it)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "To grid"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Put the selected free tiles back on their layer's grid, turned to the nearest right angle (Ctrl+Z undoes it)"
+msgstr ""
+
+#: ui/room_view.gd
+#: world_panel.gd
+msgid "Delete"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Remove the selected tiles and items (Delete key; Ctrl+Z undoes it)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Environment Effects"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Gameplay Objects"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Drag an effect onto the room, or pick one and click in the room: it is placed, and clicks then select, move and resize effects again (the new one too). Ctrl+click keeps it picked, to place several. Click a selected effect again for the next one under it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "No effect (select and move)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Place nothing: click an effect in the room to select it, drag it to move it, drag the handles on its sides and corners to resize it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "No object (select and move)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Place nothing: click an object in the room to select it, drag it to move it, drag the handles on its sides and corners to resize it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSAbilityPickup: grants an ability on touch and persists"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Ability pickup"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSPickup: item or collectible"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Item pickup"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSPickup: health fragment"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Health fragment"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Breakable wall"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSBreakable: wall that breaks on attack"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Cracked floor"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSBreakable: floor that breaks on ground pound"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Switch"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSSwitch: sets a flag on hit or interact"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Hazard (spikes)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSHazard: spikes/thorns that hurt and respawn"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Checkpoint"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSCheckpoint: respawn point in hazard rooms"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Grapple point"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSGrapplePoint: anchor for the grapple hook"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Enemy (Walker)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Walker template enemy"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Enemy (Flyer)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Flyer template enemy"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Turret template enemy"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Enemy (Turret)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Enemy (Charger)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Charger template enemy"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Ambusher template enemy"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Enemy (Ambusher)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Boss arena"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSBossArena: locks doors during boss fight"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "NPC"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSNPC: dialogue and interaction"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Dialogue trigger"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSDialogueTrigger: a conversation with anything (a door, a sign, a statue), on interact or on touch"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "No effect: click an effect in the room to select, move or resize it."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Remove all"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Remove every effect placed in this room (Ctrl+Z undoes it)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "No effects here"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "No weather or effects from the room's area (or the world) in this room: its weather is set to none (Inspect tab). Effects placed in the room itself stay"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Drag onto the room. Click one in the room to edit it in the Inspector; drag its handles to resize it. Drop an image on a parallax background to add it as a layer, or on an animated background to show it blurred."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Show the area's weather"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Show the weather of the room's area (Areas tab > Weather), or of the room itself (Inspect tab), as the game adds it to every room of the area. Only a preview: it isn't saved into the scene"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Show the backgrounds"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Show the parallax and animated backgrounds of the room's area (Areas tab > Parallax, Animated bg), of the boss rooms or of the room itself, behind the room as the game adds them; pan the view to see them move. Only a preview: they aren't saved into the scene"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Solid color painted by the \"Solid color\" fill"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Brush size in tiles ([ and ] in the view)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Brush or shape. Shapes: drag a box in the view, release to paint it (Esc cancels)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Curve of the curved side: convex bulges out, concave dips in; ramps rise along the side (Flip mirrors them)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Curve"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Number of waves, steps or spikes"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "How rough and natural the shape's edge is (0 = clean curve)"
+msgstr ""
+
+#. Mirror a shape or a stamp.
+#: ui/room_view.gd
+msgid "Flip"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Mirror the curve along the side (ramps rise the other way)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Remove broken tiles"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Erase the painted tiles that point at tiles the tileset no longer has (their sheet was removed, or its tile size was made bigger so fewer tiles fit). They draw nothing and have no collision, and Godot logs \"The TileSetAtlasSource atlas has no tile at ...\" for them. Saving also rewrites the tileset without the tiles it can no longer load. Ctrl+Z undoes it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Clear hidden tiles"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Remove the tiles of the tile layers hidden in the scene (their eye shut in the Scene dock, or Visible off in the Inspector): they never show, but every one of them is saved in the scene. Then save. Ctrl+Z undoes it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "The area's previous room"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "The area's next room"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Caves for the area"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Generate a cave in every room of the area, with the fills and options here. Rooms without a scene get one. Every room's gates are joined by paths a player can walk, jump and climb both ways, so the whole area can be crossed and backtracked"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Generate all"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Generate a cave in every room shown, with the fills and options here, each joined to its neighbours at their doors. Ctrl+Z undoes it room by room (in the room edited); Save writes them all"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Generate the caves of every room shown again, with another random layout"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "New variation for all"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Replace the tiles with a cave built from the room's shape on the map: walls, floor, ledges, openings at its gates, paths between them, then background, decorations, foreground and stamps. Uses the fills picked for each layer (and the stamps picked for the Stamps tool), as the options below say"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Generate cave"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Generate again with another random layout"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "New variation"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Paint the Background fill behind the cave"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Decorations on floors and under ceilings; most floor ones of the Decor fill"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Stamps of the set and category picked for the Stamps tool along the floors, as it places them: its Size, and its Random (off: the one sprite picked there, exactly at the Size)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Paths"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Merged walls"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Auto-decorate"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Redo grass, plants, vines, stalactites and moss on the current terrain (uses tiles tagged with those kinds)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Fill background"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Fill the room's shape with the Background fill (foliage, palette tiles or a solid color)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Clear background"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Remove every tile of the Background layer. A room filled from edge to edge takes many, and a hidden layer's tiles are saved in the scene all the same"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Convert to freeform..."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Turn the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects. Platforms become one-way ledges. Block a room out with rectangles or tiles, then make it organic"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Trace drawing..."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Draw the room from a picture: each color of a drawing (any image file, or drop one on the view) becomes freeform shapes of the style you pick. Black, grey and brown: terrain; red, orange and yellow: one-way platforms; green: background; blue and purple: foreground"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Decorate freeform..."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Place scenery relative to the freeform rock: stamps hung under ceilings, plants along floors, background structures (columns, broken arches, garden walls, mounds, stalactites) on flat floors, and foreground leaves in free corners. Never over doorways or anything in the room; running it again replaces it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Style of Fill outside shape (deep ground)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Cover the cells of the room's box that are outside its shape on the map (its notches, which belong to neighbouring rooms) with non-solid shapes of the style picked next to it, drawn over the rock's edges. Run it again after changing the room's shape; the Room view also redoes it when it opens a room whose shape changed"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Check room"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Reachability"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "After Check room, draw the floors the player can reach from the gates in green, the others in red"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Fit props to floor"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Stand every object that stands (save points, shops, NPCs, benches, spawn points: see the mds_stands group) on the floor under it, or lift it out of the ground it is sunk in, then step it along its floor out of any platform. Ctrl+Z undoes it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Declutter"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Separate objects that stand in or behind each other: doors, machines and enemies stay; save points and shops, then everything else, step along their floor to the nearest clear spot. A decoration with nowhere to go is removed. Ctrl+Z undoes it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "2.5D preview"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Show the room as MDSDepth25D draws it in the game: walls and floors extruded toward the middle of the view, floors paved in perspective, lit from above (World settings > 2.5D turns it on in the game)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Remove all tiles, freeform shapes and stamps"
+msgstr ""
+
+#: ui/room_view.gd
+#: ui/ui_util.gd
+msgid "Clear"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Cleared."
+msgstr ""
+
+#: ui/room_view.gd
+#: ui/world_canvas.gd
+#: world_panel.gd
+msgid "Undo"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Undo the last stroke or shape (Ctrl+Z)"
+msgstr ""
+
+#: ui/room_view.gd
+#: ui/world_canvas.gd
+#: world_panel.gd
+msgid "Redo"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Redo (Ctrl+Y)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Write the tiles into the room scene"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Save"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Revert"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Reload the scene, dropping unsaved painting"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Edit in 2D"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Open the room scene in Godot's editor (saves first)"
+msgstr ""
+
+#: ui/room_view.gd
+#: ui/tile_palette.gd
+msgid "Tile palette"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Show the tile palette (spritesheets)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "One room each"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Each outline drawn becomes one room, its rectangles on the paint cells it covers and its outline on the map the shape drawn. Outlines that overlap are one room"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Split into rooms"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Each outline drawn is split into rooms like a generated area (rectangles, L, T and U shapes, shafts) with doors between them; those on its edge keep its curves"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "What Generate map makes of an outline drawn (and of the outlines selected, when changed)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Make"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "The area of the rooms of an outline drawn (and of the outlines selected, when changed): a new area (outlines that touch share it), none, or one of the world's"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Split into rooms: the widest room, in paint cells"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Split into rooms: the tallest room, in paint cells"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Snap to cells"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Rectangles and ellipses on the paint cells' corners, polygon corners on the world grid, outlines moved by the grid. Rooms and scenes dragged in move smoothly, to the pixel, stopping against their neighbours"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "At once"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Each outline drawn becomes rooms on the map right away (off: draw them all first, then Generate map)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Generate map"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Clear outlines"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Caves too"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Generate map also makes a scene for each new room and a cave in it, joined at their doors, with the fills and Generate options below (Save writes them)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Edit selected"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Edit the rooms selected (Rooms tool) in the Room view"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Select rooms first with the Rooms tool (click, Ctrl+click, or drag a box)."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Painting: click a room to paint it (one without a scene gets one). Pick a tool above to draw or move rooms."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Click or box-select rooms and outlines, drag to move them, Delete removes them. Double-click a room (or Edit selected) for the Room view."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Drag a box: the Generate area dialog makes an area of rooms in it."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Draw at the rooms' real size, then Generate map. Overlapping outlines of one kind and area are one; cells rooms have are left out."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "New area"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "No area"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Depth of the placed tiles: they draw and collide like the tiles of this layer"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "What clicks and boxes select: everything, the tiles of one layer (on the grid and free), or only items"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Scenery"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Select a shape first (Freeform > Edit, click it), or press Repair all."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Every object that stands is on the floor already (or has no floor under it)."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "No objects stand in or behind each other."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Open a room first (double-click it on the map), then trace a drawing into it."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "No weather for this room's area (set it in the Areas tab)."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Weather is off in this room."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Click a room to edit it, or select rooms with the Rooms tool (click, Ctrl+click, a box), then Generate cave. Generate all does every room."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "The cave's open space: Natural grows it from the room's outline; a shape (T, U, H, L, i, cross, ring, S, freeform, a mix, or several picked) carves it as that shape, the shapes joined by tunnels. Generate cave, New variation, Generate all and New variation for all use it, in the Room view and the Full view"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "The shapes to share out among each room's shapes (Cave shape: Several picked): each is used at least once when there are as many shapes (x), in an order of its own each generation"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "How far the shapes are turned, clockwise, any angle from 0 to 359: a T turned 90° opens to the left, a U turned 180° is upside down, 45° slants it (made smaller to fit its room)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Random turn"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Each cave shape turned its own way, any angle, a new one each variation. It only turns the shapes: the Stamps tool has its own Random for the stamps"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "How many shapes in each room, side by side along its long side (a grid when many), joined by tunnels"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "How wide the shapes' passages are, in tiles (0: from the room's size; never lower than the player)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too. Outdoor: no cave, an open world's surface: open sky over rolling hills, pits to jump and floating ledges, its sides open where another room goes on (the ground meets it). Arena: a fight room: a flat floor, walls, a ceiling and platforms in tiers, the same both sides"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Skeleton: a cave profile file, the numbers its rooms are made to fit (the MCP tool mds_cave_profile writes one from rooms you like). Empty: generic widths"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Skeleton: rooms made to find one inside the profile's targets; the closest is kept"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Skeleton: 0 to 1, how far its draws stray from the typical room"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Cave shape"
+msgstr ""
+
+#: ui/room_view.gd
+#: world_panel.gd
+msgid "Style"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Background filled."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Background cleared."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Style of new freeform shapes (and of the selected one). Styles are *.freeform.tres files in the project"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "No stamp sets (add the Mossgrove pack)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Stamps placed by the brush. Stamp sets are *.stamps.tres files in the project"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "What Erase removes (Shift: background only)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Pick tiles in the palette first (drag over them), or add a spritesheet with + Sheet."
+msgstr ""
+
+#: ui/side_panel.gd
+msgid "MetDevSys"
+msgstr ""
+
+#: ui/side_panel.gd
+msgid "Collapse the tool panel (more room for the map)"
+msgstr ""
+
+#: ui/side_panel.gd
+msgid "Show the tool panel"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Spritesheet shown below"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Add a spritesheet (PNG, WebP, JPG...) to the room tileset"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "+ Sheet"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Zoom in"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Paint a random tile of the selection per cell (scatter) instead of repeating it as a pattern"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Remove this spritesheet from the tileset (tiles painted from it disappear)"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Drag over tiles to pick them for the brushes."
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "The picked tiles, turned and mirrored as they are placed"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Turn the picked tiles clockwise, 0 to 360 degrees. The Place tool places them at this angle, anywhere in the room; the brushes paint them on the grid, turned to the nearest right angle (R / Shift+R in the Room view turn them too)"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Mirror"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Mirror the picked tiles left to right (before they are turned)"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Solid on/off"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Give the selected tiles full-tile collision (walkable ground), or remove it"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Terrain name"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Make terrain"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Turn the selection into an autotiling terrain (solid). Select a 3x3 box (corners, edges, fill) or 4x4 tiles ordered by connected sides (1 right + 2 bottom + 4 left + 8 top)"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Kind, e.g. grass"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Kinds used by Auto-decorate and Generate cave (foliage = background)"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "v"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Tag the selected tiles with this kind (empty: remove the tag). Tagged tiles show up in the brush fills and are used by Auto-decorate"
+msgstr ""
+
+#. A label attached to a room or a style.
+#: ui/tile_palette.gd
+msgid "Tag"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "No spritesheets yet. Press + Sheet to add one."
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Drag over tiles to pick them for the brushes. Red dot: solid, blue dot: tagged kind, bar: terrain."
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Pick tiles in the palette first."
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Pick a 3x3 or 4x4 block of tiles in the palette first."
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Add a spritesheet"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Spritesheet"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Tile size"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Margin"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Separation"
+msgstr ""
+
+#: ui/tile_palette.gd
+msgid "Solid tiles (collision, for terrain sheets)"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Each color becomes freeform shapes in the freeform style picked for it: textured rock, moss, ledges..."
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Each color becomes freeform shapes filled with a solid color: the drawing's own color, or one picked for it"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Each color paints the room's tile grid: with a terrain (autotiled), tiles of a kind, the tiles picked in the tile palette (a spritesheet), or solid tiles of its own color"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "The drawing goes into the room as it is drawn: a picture behind the terrain, one at its depth and one in front, each with its layer's colors, the paper cut out. Collision gives its terrain and platforms invisible freeform shapes (one-way for platforms), like CollisionPolygon2D"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Trace drawing"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Trace into room"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Draws the room from a picture. Black, grey and brown: solid terrain; red, orange and yellow: one-way platforms; green: background; blue and purple: foreground; white or transparent: nothing (paper). The drawing covers the room's box on the map. Draw it with freeform styles, solid colors, tiles from a spritesheet or terrain, or keep the drawing itself and give its terrain collision."
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Drawing"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "an image file (drag one from the FileSystem dock)"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Pick an image anywhere on this computer"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Choose..."
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Draw with"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "How the drawing goes into the room"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Colors"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Stretch over the room's box"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Keep its proportions"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "How the drawing is laid over the room's box on the map"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Detail"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Left: smooth outlines with few points. Right: follows every wiggle of the drawing"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Shapes smaller than this across are dropped as specks"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Smallest shape"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Shapes touching the drawing's edge run on this far past the room's edge, out of the camera's sight"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Run on past edges"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Fit what is drawn"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Cut off the paper around the drawing, so what is drawn fills the room's width and height (off: the whole picture covers the room)"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Round outlines"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Round the outlines through their points (off: straight edges, for a blockout)"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Replace the last trace"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Remove what an earlier trace of this room made first (its shapes, pictures and tiles), so you can redraw and trace again"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Collision for its terrain"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Give the drawing's terrain colors invisible freeform shapes to collide with, following the drawing's outlines (like CollisionPolygon2D), and its platform colors one-way ones. Edit them with Freeform > Edit; the editor outlines them"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Cut out the paper"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Make the paper (colors set to Nothing) transparent, so the room's background shows through it"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Pick a drawing first."
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "What this color becomes"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Color the shapes of this color are filled with"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Tiles this color paints: solid tiles of its color, a terrain (autotiled), random tiles of a kind, or the tiles picked in the tile palette (pick them there first)"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Palette tiles picked before"
+msgstr ""
+
+#: ui/trace_dialog.gd
+msgid "Freeform style of the shapes of this color"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Weather and effects: presets (storm, sandstorm, blizzard...), effects (rain, fog(ground=1), dust_storm(blows_toward=left)...), comma-separated, or a .tscn of effect nodes. none: no weather"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Pick a weather preset, or add an effect"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Presets"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Add an effect"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "None (no weather here)"
+msgstr ""
+
+#: ui/ui_util.gd
+#: world_panel.gd
+msgid "none"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Parallax background: a preset (dusk_mountains, misty_forest, ruined_city...), with a foreground in front of the room if you like (parallax(preset=misty_forest, foreground=foliage); foreground alone: parallax(preset=none, foreground=mist)), or a .tscn holding an MDSParallaxBackground with your layers. none: no background"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Pick a parallax background preset"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "In front of the room"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "No foreground"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "None (no background here)"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Animated background, soft and out of focus, drawn by a shader: a style (bokeh, aurora, nebula, blood_moon...), with settings if you like (aurora(blur=0.8, speed=0.5)); creatures (bees, spiders, songbirds, bats, jellyfish, owls...); giant machinery (clockwork, giant_wheels, clock_faces... for castles; turbines, reactor_cores, specimen_tanks... for alien stations); a style and creatures or machinery (blood_moon, bats; storm_clouds, castle_spires); or a .tscn holding an MDSAnimatedBackground, MDSCreatures or MDSMachineryBackground. none: no background"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Pick an animated background style"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "For boss rooms"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Creatures (boss rooms)"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Each on its own (not as a swarm)"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "The creatures in the field go each their own way: every one wanders to places of its own, in its own direction and at its own pace, instead of moving as a swarm, a flock or a school (movement=individual). For bees, wasps, lumaflies, small birds, firebirds, crows and glowfish; the others go their own ways anyway"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Gothic machinery (Castlevania-style castles)"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Sci-fi machinery (Metroid-style stations)"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Player size"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "32x64"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Width x height of the player's collision box (px), for the room checks' climb test and openings"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Jump velocity (px/s)"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Gravity (px/s²)"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Max jump height (px)"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "How high a jump rises: v² / 2g. Editing it sets the jump velocity"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Run speed (px/s)"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Head clearance (px)"
+msgstr ""
+
+#: ui/ui_util.gd
+msgid "Room the player needs above a platform to stand and jump"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Paint area (M)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Generate area (N)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Area (A)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Erase (X)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Select (V)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Draw room (R)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Extend room (E)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Gate (G)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Pin (P)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Paint (B)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Click to select, drag to move, drag handles to resize, drag from a gate to another gate to connect. Several rooms: Ctrl+click adds one (or takes it out), Ctrl+drag on empty space selects a box of them; drag one to move them all. A whole area: click or drag its name, or Alt+drag any of its rooms (once selected, drag any of its rooms; click one to pick just that room). Alt+drag a name moves only the name. Drop .tscn files here to place scenes, or a map image to import it."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Drag to draw a new room."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Drag to add a rectangle to the selected room (irregular shapes). With several rooms selected, the box is shared out: each extends with the part of it nearest to it."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Click a room edge to add a gate. Drag from a gate to another gate to connect."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Click to place a pin."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Paint the map: drag on empty space for a new room, start inside a room to grow it (Shift: always a new room). [ ] change the brush size."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Erase painted cells from any room. [ ] change the brush size."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Click a room to select its whole area, drag to move the area: it stops against the areas it meets and connects to them (a door where they touch, taken out again when they part). Double-click renames it, arrows nudge it, Delete removes its rooms."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Drag a box: an area is generated in it (rectangle or square, irregular, freeform or hybrid, with curved and slanted sides), split into rooms with doors between them."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Paint an area: the stroke becomes rooms with doors between them. Start inside an area to grow it, on empty space for a new area. [ ] change the brush size."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Select a room first (Ctrl+click more to extend them together), then drag to add a rectangle to it."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Drag a bigger box: at least 2 x 2 cells."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Rooms cover all of that box already."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Select the rooms to merge (Ctrl+click, Ctrl+drag a box), or one room to merge with the rooms it touches, then Merge (Ctrl+M)."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Every cell of the stroke is a room already."
+msgstr ""
+
+#: world_panel.gd
+msgid "Map tools"
+msgstr ""
+
+#: world_panel.gd
+msgid "Room painting"
+msgstr ""
+
+#: world_panel.gd
+msgid "Full view"
+msgstr ""
+
+#: world_panel.gd
+msgid "No world yet. Use the world picker: New world... or Import from MetSys map..."
+msgstr ""
+
+#: world_panel.gd
+msgid "World"
+msgstr ""
+
+#: world_panel.gd
+msgid "World file (.mdsworld.json)"
+msgstr ""
+
+#. Godot scenes (.tscn files) of the game.
+#: world_panel.gd
+msgid "Scenes"
+msgstr ""
+
+#: world_panel.gd
+msgid "Scan, place and connect scenes"
+msgstr ""
+
+#: world_panel.gd
+msgid "Rescan world scenes"
+msgstr ""
+
+#: world_panel.gd
+msgid "Add scenes to map..."
+msgstr ""
+
+#: world_panel.gd
+msgid "Add doors between touching rooms"
+msgstr ""
+
+#: world_panel.gd
+msgid "Auto-connect facing gates"
+msgstr ""
+
+#: world_panel.gd
+msgid "Create game scene (MDSWorldGame)..."
+msgstr ""
+
+#: world_panel.gd
+msgid "World settings..."
+msgstr ""
+
+#: world_panel.gd
+msgid "World + analysis (JSON)"
+msgstr ""
+
+#: world_panel.gd
+msgid "View"
+msgstr ""
+
+#: world_panel.gd
+msgid "Map view"
+msgstr ""
+
+#: world_panel.gd
+msgid "The world map"
+msgstr ""
+
+#: world_panel.gd
+msgid "Every room of the layer where it is on the map, at its actual size, with its scene: draw rooms (rectangles, ellipses, polygons, curvy outlines) and generate the map from them, move rooms, drop scenes to place them, paint any room. Works on an empty world too"
+msgstr ""
+
+#: world_panel.gd
+msgid "Paint the rooms selected (on the map or in the Full view), or the selected room or area: their actual contents (terrain, background, decorations)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Room view"
+msgstr ""
+
+#: world_panel.gd
+msgid "Show the Rooms / Scenes / Inspect... tabs on the right. Hide them for a bigger map"
+msgstr ""
+
+#: world_panel.gd
+msgid "Paint area"
+msgstr ""
+
+#. Paint tiles or colors.
+#: world_panel.gd
+msgid "Paint"
+msgstr ""
+
+#. A note marker that the designer pins on the map.
+#: world_panel.gd
+msgid "Pin"
+msgstr ""
+
+#. A door or passage that joins two rooms on the map (as in Hollow Knight). Not a garden gate.
+#: world_panel.gd
+msgid "Gate"
+msgstr ""
+
+#. A tool: make a room bigger.
+#: world_panel.gd
+msgid "Extend"
+msgstr ""
+
+#: world_panel.gd
+msgid "Brush size in paint cells ([ and ] on the map)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Auto doors"
+msgstr ""
+
+#: world_panel.gd
+msgid "Paint: a room painted onto an area gets a door to each room of the area it touches. (Generated and painted areas always get their doors; areas dragged against each other with the Area tool connect.)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Merge the rooms selected (Ctrl+click, Ctrl+drag a box) into one room; one room selected merges with the rooms it touches (of its area). They must be side by side. Asks first (which room to keep, what to do with their scenes). Ctrl+M on the map"
+msgstr ""
+
+#: world_panel.gd
+msgid "Undo (Ctrl+Z on the map)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Redo (Ctrl+Y on the map)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Tileset used to draw rooms (also used by the in-game MDSWorldMapView)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Area names"
+msgstr ""
+
+#: world_panel.gd
+msgid "Scene previews (room pictures, else live)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Gates && connections"
+msgstr ""
+
+#: world_panel.gd
+msgid "Explored in the last playtest"
+msgstr ""
+
+#: world_panel.gd
+msgid "Clear the highlighted route / highlight (Esc)"
+msgstr ""
+
+#: world_panel.gd
+msgid "MCP"
+msgstr ""
+
+#: world_panel.gd
+msgid "Pick .tscn files to place on the map (or drag them from the FileSystem dock)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Drag scenes onto the map: onto a painted room without a scene to fill it, or onto empty space to place it at its own size. Double-click places a scene in the middle of the view."
+msgstr ""
+
+#: world_panel.gd
+msgid "Pick the scene folder"
+msgstr ""
+
+#: world_panel.gd
+msgid "Reload the scene list"
+msgstr ""
+
+#: world_panel.gd
+msgid "Refresh"
+msgstr ""
+
+#: world_panel.gd
+msgid "Hide scenes already on the map"
+msgstr ""
+
+#: world_panel.gd
+msgid "Custom tileset PNG..."
+msgstr ""
+
+#: world_panel.gd
+msgid "Save tileset template PNG..."
+msgstr ""
+
+#: world_panel.gd
+msgid "Areas are map zones (Hollow Knight: Crossroads, Greenpath...). Rooms take their color; new rooms drawn with the Room tool join the area marked \"new rooms\"."
+msgstr ""
+
+#: world_panel.gd
+msgid "New area name"
+msgstr ""
+
+#: world_panel.gd
+msgid "Create an area"
+msgstr ""
+
+#: world_panel.gd
+msgid "Generate an area beside the map: rooms (rectangles and irregular ones) with doors between them. Or drag a box with the Generate tool (N), or paint one with Paint area (M)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Generate..."
+msgstr ""
+
+#: world_panel.gd
+msgid "Pin text"
+msgstr ""
+
+#: world_panel.gd
+msgid "Rename area"
+msgstr ""
+
+#: world_panel.gd
+msgid "Generate caves for the area"
+msgstr ""
+
+#: world_panel.gd
+msgid "Leave rooms already painted alone"
+msgstr ""
+
+#: world_panel.gd
+msgid "Rooms whose scene has terrain tiles keep them; only empty and new rooms get a cave"
+msgstr ""
+
+#: world_panel.gd
+msgid "Nothing imported: every cell of the picture is taken on the map."
+msgstr ""
+
+#: world_panel.gd
+msgid "Open or make a world first, then import a map image into it."
+msgstr ""
+
+#: world_panel.gd
+msgid "World settings"
+msgstr ""
+
+#: world_panel.gd
+msgid "Create game scene"
+msgstr ""
+
+#: world_panel.gd
+msgid "Create"
+msgstr ""
+
+#: world_panel.gd
+msgid "Include gameplay kit"
+msgstr ""
+
+#: world_panel.gd
+msgid "Includes MDSPlayer, gameplay state, HUD, pause menu and dialogue instead of placeholder nodes."
+msgstr ""
+
+#: world_panel.gd
+msgid "New world..."
+msgstr ""
+
+#: world_panel.gd
+msgid "Open world..."
+msgstr ""
+
+#: world_panel.gd
+msgid "Import from MetSys map..."
+msgstr ""
+
+#: world_panel.gd
+msgid "Import map image..."
+msgstr ""
+
+#: world_panel.gd
+msgid "World file changed on disk, reloaded."
+msgstr ""
+
+#: world_panel.gd
+msgid "+ Add layer"
+msgstr ""
+
+#: world_panel.gd
+msgid "Select a room on the map first, then open the Room view."
+msgstr ""
+
+#: world_panel.gd
+msgid "Open or make a world first (the world picker), then the Full view shows it."
+msgstr ""
+
+#: world_panel.gd
+msgid "Full view: no rooms yet. Draw them at their real size (Rectangle, Ellipse, Polygon, Curvy), then Generate map; or drop scenes from the Scenes tab."
+msgstr ""
+
+#: world_panel.gd
+msgid "Select rooms in the Full view first (its Rooms tool: click, Ctrl+click, a box), or click one to paint it there."
+msgstr ""
+
+#: world_panel.gd
+msgid "Map zone"
+msgstr ""
+
+#: world_panel.gd
+msgid "e.g. GREENHOUSE"
+msgstr ""
+
+#: world_panel.gd
+msgid "Id your game uses for this area (Hollow Knight calls these map zones)."
+msgstr ""
+
+#: world_panel.gd
+msgid "Title"
+msgstr ""
+
+#: world_panel.gd
+msgid "Shown by MDSAreaTitle when the player arrives. Empty: the area's name"
+msgstr ""
+
+#: world_panel.gd
+msgid "Subtitle"
+msgstr ""
+
+#: world_panel.gd
+msgid "smaller line under the title"
+msgstr ""
+
+#: world_panel.gd
+msgid "Music"
+msgstr ""
+
+#: world_panel.gd
+msgid "Loops while the player is in this area. MDSMusic crossfades between areas and keeps playing when two areas share it"
+msgstr ""
+
+#: world_panel.gd
+msgid "Music volume (dB)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Boss music"
+msgstr ""
+
+#: world_panel.gd
+msgid "MDSMusic.play_boss() starts it from silence; end_boss() returns to the area's music"
+msgstr ""
+
+#: world_panel.gd
+msgid "Backdrop"
+msgstr ""
+
+#: world_panel.gd
+msgid "world default"
+msgstr ""
+
+#: world_panel.gd
+msgid "MDSBackdrop (.tres) drawn in the distance behind the area's rooms. A room can have its own"
+msgstr ""
+
+#: world_panel.gd
+msgid "Parallax background behind every room of the area (MDSWorldGame adds it as each room loads; the Room view shows it): a preset like dusk_mountains or misty_forest, or a .tscn with an MDSParallaxBackground. A room can have its own, or none"
+msgstr ""
+
+#: world_panel.gd
+msgid "Parallax"
+msgstr ""
+
+#: world_panel.gd
+msgid "Animated bg"
+msgstr ""
+
+#: world_panel.gd
+msgid "Animated background behind every room of the area, soft and out of focus (MDSWorldGame adds it as each room loads; the Room view shows it): a style like bokeh, aurora, nebula or deep_water, or a .tscn with an MDSAnimatedBackground. It is drawn behind the parallax background: use one without a sky to see both. A room can have its own, or none"
+msgstr ""
+
+#: world_panel.gd
+msgid "Boss room bg"
+msgstr ""
+
+#: world_panel.gd
+msgid "world's boss rooms"
+msgstr ""
+
+#: world_panel.gd
+msgid "Animated background of the area's boss rooms (type boss or mini_boss, or a boss named in the Inspect tab), instead of the area's: blood_moon, void_pulse, arcane_vortex, infection..., or creatures (bees, spiders, songbirds, bats, owls...), or both (blood_moon, bats). Empty: the world's boss rooms background, else the area's"
+msgstr ""
+
+#: world_panel.gd
+msgid "Weather"
+msgstr ""
+
+#: world_panel.gd
+msgid "0 lit, 0.05 to 0.8 dimmed (lights carve pools around the player and enemies). Empty: automatic, from the world's Dark room share. A room can have its own"
+msgstr ""
+
+#: world_panel.gd
+msgid "Darkness"
+msgstr ""
+
+#: world_panel.gd
+msgid "Shown by MDSObjectiveBanner on arrival and on the map until done"
+msgstr ""
+
+#: world_panel.gd
+msgid "e.g. Find the crypt key"
+msgstr ""
+
+#: world_panel.gd
+msgid "Objective"
+msgstr ""
+
+#: world_panel.gd
+msgid "The objective completes when the player has this ability (ability:dash or just dash), this stored object (object:Room/Node) or has defeated this boss (boss:Warden)"
+msgstr ""
+
+#: world_panel.gd
+msgid "ability:x, object:id or boss:name"
+msgstr ""
+
+#: world_panel.gd
+msgid "Done when"
+msgstr ""
+
+#: world_panel.gd
+msgid "Rooms drawn with the Room tool join this area"
+msgstr ""
+
+#: world_panel.gd
+msgid "Use for new rooms"
+msgstr ""
+
+#: world_panel.gd
+msgid "Move the selected room into this area"
+msgstr ""
+
+#: world_panel.gd
+msgid "Assign selected room"
+msgstr ""
+
+#: world_panel.gd
+msgid "Generate a cave in every room of the area (with the Room view's fills), every room's gates joined both ways so the area can be crossed and backtracked. Rooms without a scene get one"
+msgstr ""
+
+#: world_panel.gd
+msgid "Generate caves..."
+msgstr ""
+
+#: world_panel.gd
+msgid "Select on map"
+msgstr ""
+
+#: world_panel.gd
+msgid "Select the area with the Area tool, to drag it as one piece (it connects to the areas it touches)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Reset label position"
+msgstr ""
+
+#: world_panel.gd
+msgid "Place the area name automatically again"
+msgstr ""
+
+#: world_panel.gd
+msgid "Delete area"
+msgstr ""
+
+#: world_panel.gd
+msgid "Rooms keep existing but leave the area"
+msgstr ""
+
+#: world_panel.gd
+msgid "Create or open a world first."
+msgstr ""
+
+#: world_panel.gd
+msgid "Non-linear mode: draw rooms freely and connect them with gates, like a Hollow Knight map.\n\nOpen the world picker in the tool panel on the left:\n- New world... starts an empty map.\n- Import from MetSys map... converts a MetSys MapData.txt."
+msgstr ""
+
+#: world_panel.gd
+msgid "Select a room to edit it.\n\nR: draw a room, E: extend the selected room, G: add gates, P: pins.\nDrag .tscn files from the FileSystem dock onto the map to place scenes.\nDrag from a gate to another gate to connect rooms.\nDouble-click a room to open (or create) its scene. Right-click for more."
+msgstr ""
+
+#: world_panel.gd
+msgid "Create scene..."
+msgstr ""
+
+#: world_panel.gd
+msgid "Create a new scene for this room with bounds guides and one MDSGate per gate"
+msgstr ""
+
+#: world_panel.gd
+msgid "Use an existing scene for this room"
+msgstr ""
+
+#: world_panel.gd
+msgid "Assign scene..."
+msgstr ""
+
+#: world_panel.gd
+msgid "Progression is computed from the start room"
+msgstr ""
+
+#: world_panel.gd
+msgid "Open the Room view to paint this room's terrain, background and decorations"
+msgstr ""
+
+#: world_panel.gd
+msgid "Paint room"
+msgstr ""
+
+#: world_panel.gd
+msgid "Copy this room's shape and gates (Ctrl+D)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Delete this room (Ctrl+Z to undo)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Room ID"
+msgstr ""
+
+#: world_panel.gd
+msgid "Unique id used by gates and at runtime (Hollow Knight uses scene names like Crossroads_01)."
+msgstr ""
+
+#: world_panel.gd
+msgid "MDSBackdrop (.tres) drawn in the distance behind this room. Empty: the area's, else the world's"
+msgstr ""
+
+#: world_panel.gd
+msgid "Weather and effects in this room (MDSWorldGame adds them as it loads). Empty: the area's, else the world's; none: no weather here (a room under cover in a stormy area)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Parallax background behind this room. Empty: the area's, else the world's; none: none here"
+msgstr ""
+
+#: world_panel.gd
+msgid "Animated background behind this room, soft and out of focus. Empty: for a boss room the boss rooms background, else the area's, else the world's; none: none here"
+msgstr ""
+
+#: world_panel.gd
+msgid "Camera zoom"
+msgstr ""
+
+#: world_panel.gd
+msgid "auto"
+msgstr ""
+
+#: world_panel.gd
+msgid "The camera's zoom in this room (1: as set, 2: twice as close, 0.5: twice as far) when World settings > Camera > Auto zoom is Per room or Fit. The camera glides to it as the player comes in. Empty: the world's zoom, or the fitted one"
+msgstr ""
+
+#: world_panel.gd
+msgid "0 lit, 0.05 to 0.8 dimmed: a subtractive light darkens the room and the player, enemies and lanterns carry soft lights. Empty: the area's, else automatic (the world's Dark room share)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Fit to scene"
+msgstr ""
+
+#: world_panel.gd
+msgid "Resize the room to the scene's terrain"
+msgstr ""
+
+#: world_panel.gd
+msgid "Drag on the map to add a rectangle to this room"
+msgstr ""
+
+#: world_panel.gd
+msgid "Extend (E)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Remove this rectangle"
+msgstr ""
+
+#: world_panel.gd
+msgid "Add a transition on a side of the room"
+msgstr ""
+
+#: world_panel.gd
+msgid "Add gate"
+msgstr ""
+
+#: world_panel.gd
+msgid "Add/move map gates to match the scene's gate nodes (left1, right1, MDSGate...)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Import from scene"
+msgstr ""
+
+#: world_panel.gd
+msgid "Write to scene"
+msgstr ""
+
+#: world_panel.gd
+msgid "Add an MDSGate node to the scene for every map gate it's missing (never deletes)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Gate name (Hollow Knight style: left1, right1, top1, bot1, door1)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Drag from this gate on the map to another gate to connect."
+msgstr ""
+
+#: world_panel.gd
+msgid "Unlink"
+msgstr ""
+
+#: world_panel.gd
+msgid "Disconnect this gate"
+msgstr ""
+
+#: world_panel.gd
+msgid "Delete this gate"
+msgstr ""
+
+#: world_panel.gd
+msgid "requires (e.g. dash)"
+msgstr ""
+
+#: world_panel.gd
+msgid "One-way"
+msgstr ""
+
+#: world_panel.gd
+msgid "Players can leave through this gate but not come back (drops, collapsing floors)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Links (elevators, stag stations, cross-layer)"
+msgstr ""
+
+#: world_panel.gd
+msgid "note"
+msgstr ""
+
+#: world_panel.gd
+msgid "Connect rooms that have no gate between them on the map"
+msgstr ""
+
+#: world_panel.gd
+msgid "Fit room to scene"
+msgstr ""
+
+#: world_panel.gd
+msgid "Paint room (actual view)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Show in the Full view"
+msgstr ""
+
+#: world_panel.gd
+msgid "Add gate here"
+msgstr ""
+
+#: world_panel.gd
+msgid "Merge with the rooms it touches... (Ctrl+M)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Duplicate room"
+msgstr ""
+
+#: world_panel.gd
+msgid "Copy room id"
+msgstr ""
+
+#: world_panel.gd
+msgid "New room here"
+msgstr ""
+
+#: world_panel.gd
+msgid "Generate area here..."
+msgstr ""
+
+#: world_panel.gd
+msgid "Import map image here..."
+msgstr ""
+
+#: world_panel.gd
+msgid "The scene has no terrain to fit to (TileMapLayer or StaticBody2D shapes)."
+msgstr ""
+
+#: world_panel.gd
+msgid "World name"
+msgstr ""
+
+#: world_panel.gd
+msgid "Grid (px)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Rooms, rects and gates snap to this. Use your tile size or a multiple of it."
+msgstr ""
+
+#: world_panel.gd
+msgid "1152x648"
+msgstr ""
+
+#: world_panel.gd
+msgid "Default room size"
+msgstr ""
+
+#: world_panel.gd
+msgid "Paint cell"
+msgstr ""
+
+#: world_panel.gd
+msgid "e.g. 288x162"
+msgstr ""
+
+#: world_panel.gd
+msgid "Size of one brush cell in world pixels. Default: a quarter of the default room size."
+msgstr ""
+
+#: world_panel.gd
+msgid "New scene folder"
+msgstr ""
+
+#: world_panel.gd
+msgid "Scene template"
+msgstr ""
+
+#: world_panel.gd
+msgid "optional .tscn used by Create scene"
+msgstr ""
+
+#: world_panel.gd
+msgid "Play scene"
+msgstr ""
+
+#: world_panel.gd
+msgid "auto: game scene hosting the room"
+msgstr ""
+
+#: world_panel.gd
+msgid "Scene that Play from here boots with the room as its start. Empty: detected automatically."
+msgstr ""
+
+#: world_panel.gd
+msgid "Auto-add gate nodes"
+msgstr ""
+
+#: world_panel.gd
+msgid "When gates are added or connected"
+msgstr ""
+
+#: world_panel.gd
+msgid "Adding or connecting gates on the map adds the matching MDSGate nodes to the rooms' scenes (and turns plain gate nodes into MDSGates). Open scenes get them as an undoable edit."
+msgstr ""
+
+#: world_panel.gd
+msgid "Geometry checks"
+msgstr ""
+
+#: world_panel.gd
+msgid "Check rooms with physics"
+msgstr ""
+
+#: world_panel.gd
+msgid "Load every room's terrain into an off-screen physics space and check that gates are open, platforms have headroom, objects stand on ground and exits up can be climbed (Issues > Geometry). Uses the Player settings below"
+msgstr ""
+
+#: world_panel.gd
+msgid "starter mossy cave tileset"
+msgstr ""
+
+#: world_panel.gd
+msgid "Room tileset"
+msgstr ""
+
+#: world_panel.gd
+msgid "TileSet (.tres) the Room view paints new rooms with, e.g. an asset pack's tileset. Rooms that already have tiles keep theirs."
+msgstr ""
+
+#: world_panel.gd
+msgid "optional .freeform.tres"
+msgstr ""
+
+#: world_panel.gd
+msgid "Notch fill style"
+msgstr ""
+
+#: world_panel.gd
+msgid "Create scene fills the cells of an irregular room's box outside its shape with non-solid shapes of this style (Room view > Fill outside shape does it for existing rooms)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Save distance warning"
+msgstr ""
+
+#: world_panel.gd
+msgid "Main, Dream"
+msgstr ""
+
+#: world_panel.gd
+msgid "Layer names"
+msgstr ""
+
+#: world_panel.gd
+msgid "Presentation"
+msgstr ""
+
+#: world_panel.gd
+msgid "Used by MDSWorldGame in the game scene"
+msgstr ""
+
+#: world_panel.gd
+msgid "2.5D"
+msgstr ""
+
+#: world_panel.gd
+msgid "Extrude every room (MDSDepth25D)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Walls, floors and platforms get the side faces of solid blocks running back to the middle of the view, floors become paved planes, faces are lit around the player and bodies cast soft shadows. Drawing only: nothing collides differently"
+msgstr ""
+
+#: world_panel.gd
+msgid "optional MDSDepthStyle .tres"
+msgstr ""
+
+#: world_panel.gd
+msgid "2.5D style"
+msgstr ""
+
+#: world_panel.gd
+msgid "Bright daylight"
+msgstr ""
+
+#: world_panel.gd
+msgid "Daylight: the bright 2.5D style, and new rooms paint with the daylight tileset."
+msgstr ""
+
+#: world_panel.gd
+msgid "Brightness"
+msgstr ""
+
+#: world_panel.gd
+msgid "How bright MDSWorldGame draws the rooms: 1 as they are, 1.3 brighter, 0.8 dimmer (the HUD and the backdrop aren't touched). The game's brightness export overrides it"
+msgstr ""
+
+#: world_panel.gd
+msgid "optional MDSBackdrop .tres"
+msgstr ""
+
+#: world_panel.gd
+msgid "Distance drawn behind every room whose area and room set none (Areas tab, Inspect tab)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Weather and effects in every room whose area and room set none (Areas tab, Inspect tab)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Parallax background behind every room whose area and room set none"
+msgstr ""
+
+#: world_panel.gd
+msgid "Animated background behind every room whose area and room set none"
+msgstr ""
+
+#: world_panel.gd
+msgid "Boss rooms bg"
+msgstr ""
+
+#: world_panel.gd
+msgid "Animated background of every boss room (type boss or mini_boss, or a boss named in the Inspect tab) whose area and room set none: blood_moon, void_pulse, arcane_vortex, infection, holy_light..., or creatures (bees, spiders, songbirds, bats, owls...), or both (blood_moon, bats)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Dark room share"
+msgstr ""
+
+#: world_panel.gd
+msgid "0 to 1: this share of the rooms with automatic darkness (no darkness on the room or its area) is dimmed by 0.35 to 0.55. Picked from the room id, so a room is always the same"
+msgstr ""
+
+#: world_panel.gd
+msgid "player, enemy, lantern"
+msgstr ""
+
+#: world_panel.gd
+msgid "Light groups"
+msgstr ""
+
+#: world_panel.gd
+msgid "Nodes in these groups carry a soft light in dark rooms. Empty: MDSWorldGame's light_groups"
+msgstr ""
+
+#: world_panel.gd
+msgid "Player"
+msgstr ""
+
+#: world_panel.gd
+msgid "Used by the Geometry checks and the Room view's Check room"
+msgstr ""
+
+#: world_panel.gd
+msgid "Camera"
+msgstr ""
+
+#: world_panel.gd
+msgid "Used by MDSRoomCamera in the game scene"
+msgstr ""
+
+#: world_panel.gd
+msgid "Camera backend"
+msgstr ""
+
+#: world_panel.gd
+msgid "Auto uses PhantomCamera2D when the Phantom Camera addon is enabled, else Camera2D."
+msgstr ""
+
+#: world_panel.gd
+msgid "Room shape: the camera is limited to the zone (largest rectangle of the room's shape) the player is in and glides between zones, so notches of L- or U-shaped rooms stay hidden."
+msgstr ""
+
+#: world_panel.gd
+msgid "Room transition"
+msgstr ""
+
+#: world_panel.gd
+msgid "Fade to black, cut, slide the view to the new room (player waits), or blend (the camera glides over while the player keeps moving)."
+msgstr ""
+
+#: world_panel.gd
+msgid "Glide, or cut and never glide: zone changes, room slides and blends, follow smoothing and the camera director's moves all cut (a camera that eases late makes the parallax late too)."
+msgstr ""
+
+#: world_panel.gd
+msgid "Camera motion"
+msgstr ""
+
+#: world_panel.gd
+msgid "Auto zoom"
+msgstr ""
+
+#: world_panel.gd
+msgid "Zoom between rooms, like a PhantomCamera2D per room. Per room: each room's own zoom (Inspect tab > Camera zoom). Fit: zoomed so the camera zone the player is in fills the screen (out in big rooms, in in small ones), times Zoom factor, between Min and Max zoom; a room's own zoom still wins."
+msgstr ""
+
+#: world_panel.gd
+msgid "Zoom changes"
+msgstr ""
+
+#. Align to the grid.
+#: world_panel.gd
+msgid "Snap"
+msgstr ""
+
+#: world_panel.gd
+msgid "Glide: the zoom glides with the room transition and zone changes (and over Zoom glide time after a cut or a fade). Snap: it changes at once."
+msgstr ""
+
+#: world_panel.gd
+msgid "Transition time (s)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Zone glide time (s)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Zone switch margin (px)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Follow smoothing (0 = off)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Zoom"
+msgstr ""
+
+#: world_panel.gd
+msgid "Zoom factor (Fit)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Min zoom (Fit)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Max zoom (Fit)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Zoom glide time (s)"
+msgstr ""
+
+#: world_panel.gd
+msgid "Snap zoom changes under"
+msgstr ""
+
+#: the buttons of Godot's dialogs
+msgid "OK"
+msgstr ""
+
+#: the buttons of Godot's dialogs
+msgid "Cancel"
+msgstr ""

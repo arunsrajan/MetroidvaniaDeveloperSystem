@@ -17,14 +17,20 @@ extends Control
 signal placement_requested(placement: int)
 
 enum Mode { METSYS, NON_LINEAR, FIGHTS }
+# l10n: text
 const MODE_NAMES: PackedStringArray = ["MetSys mode", "Non-linear mode", "Fight editor"]
 const SETTING_MODE := "metroidvania_developer_system/mode"
+# l10n: text
 const PLACEMENT_ITEMS: PackedStringArray = ["Dock in main screen (MetDevSys tab)", "Detach to floating window", "Dock on the right", "Dock in bottom panel"]
 
 var mode: int = Mode.METSYS
 var mode_switch: OptionButton
 var placement_menu: MenuButton
+## The panel's language, next to the window menu (see [MDSL10n]).
+var language_menu: MenuButton
 var placement := 0
+## Which language revision (see [member MDSL10n.revision]) each panel's text was last written for.
+var _language_revision: Dictionary = {}
 var metsys_panel: MDSMetSysPanel
 var world_panel: MDSWorldPanel
 var fight_panel: MDSFightPanel
@@ -49,6 +55,15 @@ Fight editor: a boss's or an enemy's moves as a graph."
 	for i in PLACEMENT_ITEMS.size():
 		pm.add_radio_check_item(PLACEMENT_ITEMS[i], i)
 	pm.id_pressed.connect(func(id: int) -> void: placement_requested.emit(id))
+	language_menu = MenuButton.new()
+	language_menu.flat = true
+	# It names every language in its own words: Godot must not translate any of it.
+	MDSL10n.raw(language_menu)
+	if has_theme_icon(&"Translation", &"EditorIcons"):
+		language_menu.icon = get_theme_icon(&"Translation", &"EditorIcons")
+	language_menu.get_popup().id_pressed.connect(_on_language_picked)
+	_build_language_menu()
+	MDSL10n.events.language_changed.connect(_on_language_changed)
 	set_mode(saved_mode())
 
 ## The mode chosen last; without one, MetSys mode when MetSys is installed, else non-linear.
@@ -79,9 +94,11 @@ func set_mode(new_mode: int) -> void:
 				panel = world_panel
 				panel.name = "WorldPanel"
 		add_child(panel)
+		_language_revision[panel] = MDSL10n.revision
 	for p in [metsys_panel, world_panel, fight_panel]:
 		if p:
 			p.visible = p == panel
+	_sync_language(panel)
 	# One switch, living at the start of the active panel's toolbar.
 	if mode_switch.get_parent():
 		mode_switch.get_parent().remove_child(mode_switch)
@@ -93,6 +110,11 @@ func set_mode(new_mode: int) -> void:
 		placement_menu.get_parent().remove_child(placement_menu)
 	panel.side_panel.header.add_child(placement_menu)
 	panel.side_panel.header.move_child(placement_menu, 1)
+	# And the language menu after it, before the button that collapses the panel.
+	if language_menu.get_parent():
+		language_menu.get_parent().remove_child(language_menu)
+	panel.side_panel.header.add_child(language_menu)
+	panel.side_panel.header.move_child(language_menu, 2)
 
 ## Updates the window menu's checkmarks (called by the plugin after a move).
 func set_placement_state(current: int, main_screen_available: bool) -> void:
@@ -101,7 +123,60 @@ func set_placement_state(current: int, main_screen_available: bool) -> void:
 	for i in pm.item_count:
 		pm.set_item_checked(i, pm.get_item_id(i) == current)
 	pm.set_item_disabled(pm.get_item_index(0), not main_screen_available)
-	placement_menu.tooltip_text = "MetDevSys is in the %s. Detach it into its own window, or dock it in the editor" % ["main screen", "floating window", "right dock", "bottom panel"][current]
+	# One whole sentence for each place, so that each can be translated.
+	match current:
+		0:
+			placement_menu.tooltip_text = "MetDevSys is in the main screen. Detach it into its own window, or dock it in the editor"
+		1:
+			placement_menu.tooltip_text = "MetDevSys is in the floating window. Detach it into its own window, or dock it in the editor"
+		2:
+			placement_menu.tooltip_text = "MetDevSys is in the right dock. Detach it into its own window, or dock it in the editor"
+		_:
+			placement_menu.tooltip_text = "MetDevSys is in the bottom panel. Detach it into its own window, or dock it in the editor"
+
+## Fills the language menu: Auto, then every language that has a catalog, the one shown checked.
+func _build_language_menu() -> void:
+	var pm := language_menu.get_popup()
+	pm.clear()
+	var choice := MDSL10n.get_language()
+	var auto_info := MDSL10n.language_info(MDSL10n.resolve(MDSL10n.AUTO))
+	pm.add_radio_check_item(MDSL10n.tf("Auto (%s)", [auto_info.get("native", "English")]), 0)
+	pm.set_item_metadata(0, MDSL10n.AUTO)
+	pm.set_item_checked(0, choice == MDSL10n.AUTO)
+	var id := 1
+	for l in MDSL10n.available():
+		pm.add_radio_check_item(MDSL10n.menu_label(l.code), id)
+		pm.set_item_metadata(pm.item_count - 1, l.code)
+		pm.set_item_checked(pm.item_count - 1, choice == l.code)
+		id += 1
+	# The other languages of the list have no catalog yet: a greyed entry says so.
+	pm.add_separator()
+	# l10n: text
+	pm.add_item(MDSL10n.t("Others (coming soon)"), id)
+	pm.set_item_disabled(pm.item_count - 1, true)
+	language_menu.text = MDSL10n.short_name(MDSL10n.current())
+	language_menu.tooltip_text = MDSL10n.t("Language of the MetDevSys panel")
+
+func _on_language_picked(id: int) -> void:
+	var pm := language_menu.get_popup()
+	MDSL10n.set_language(str(pm.get_item_metadata(pm.get_item_index(id))))
+
+## The language changed: the controls translate again, and the active panel writes what it
+## composes in code again. The panels that are hidden catch up when they are shown.
+func _on_language_changed(_code: String) -> void:
+	MDSL10n.refresh(self)
+	# Not while the menu that was picked from is still closing.
+	_build_language_menu.call_deferred()
+	var panel := get_active_panel()
+	if panel:
+		_sync_language(panel)
+
+func _sync_language(panel: Control) -> void:
+	if _language_revision.get(panel, -1) == MDSL10n.revision:
+		return
+	_language_revision[panel] = MDSL10n.revision
+	if panel.has_method(&"refresh_language"):
+		panel.refresh_language()
 
 func get_active_panel() -> Control:
 	match mode:

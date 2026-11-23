@@ -10,6 +10,7 @@ extends ConfirmationDialog
 signal traced(report: Dictionary)
 
 const IMAGE_FILTERS: PackedStringArray = ["*.png, *.jpg, *.jpeg, *.webp, *.bmp, *.tga, *.svg ; Images"]
+# l10n: text
 const OUTPUT_TIPS: PackedStringArray = [
 	"Each color becomes freeform shapes in the freeform style picked for it: textured rock, moss, ledges...",
 	"Each color becomes freeform shapes filled with a solid color: the drawing's own color, or one picked for it",

@@ -28,7 +28,9 @@ extends MDSEnvironmentEffect
 enum Creature { BEES, WASPS, LUMAFLIES, MOTHS, BUTTERFLIES, DRAGONFLIES, SONGBIRDS, CROWS, BATS, FIREBIRDS, SPIDERS, BEETLES, CENTIPEDES, SNAILS, CRABS, JELLYFISH, GLOWFISH, EELS, OWLS, WORMS }
 ## Ids of the creatures (as the background fields write them), in [enum Creature] order.
 const CREATURE_IDS: PackedStringArray = ["bees", "wasps", "lumaflies", "moths", "butterflies", "dragonflies", "songbirds", "crows", "bats", "firebirds", "spiders", "beetles", "centipedes", "snails", "crabs", "jellyfish", "glowfish", "eels", "owls", "worms"]
+# l10n: text
 const CREATURE_NAMES: PackedStringArray = ["Bees", "Wasps", "Lumaflies", "Moths", "Butterflies", "Dragonflies", "Small birds", "Crows", "Bats", "Firebirds", "Spiders", "Beetles", "Centipedes", "Snails", "Crabs", "Jellyfish", "Glowfish", "Eels", "Owls", "Worms"]
+# l10n: text
 const CREATURE_INFO: PackedStringArray = [
 	"Bees with glowing stripes swarming around their hive, the honeycomb lit amber where they pass",
 	"Wasps darting about a dark nest, closing in on the player when it gets busy",

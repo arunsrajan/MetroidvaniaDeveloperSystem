@@ -48,7 +48,9 @@ signal generate_requested(box: Rect2i)
 signal merge_requested(ids: Array[String], keep: String)
 
 enum Tool { SELECT, ROOM, RECT, GATE, PIN, PAINT, ERASE, AREA, GENERATE, AREA_PAINT }
+# l10n: text
 const TOOL_NAMES: PackedStringArray = ["Select (V)", "Draw room (R)", "Extend room (E)", "Gate (G)", "Pin (P)", "Paint (B)", "Erase (X)", "Area (A)", "Generate area (N)", "Paint area (M)"]
+# l10n: text
 const TOOL_HINTS: PackedStringArray = [
 	"Click to select, drag to move, drag handles to resize, drag from a gate to another gate to connect. Several rooms: Ctrl+click adds one (or takes it out), Ctrl+drag on empty space selects a box of them; drag one to move them all. A whole area: click or drag its name, or Alt+drag any of its rooms (once selected, drag any of its rooms; click one to pick just that room). Alt+drag a name moves only the name. Drop .tscn files here to place scenes, or a map image to import it.",
 	"Drag to draw a new room.",
