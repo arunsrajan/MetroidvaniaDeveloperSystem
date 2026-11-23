@@ -12,6 +12,7 @@ A Godot editor plugin for designing and building a metroidvania's world:
 - **Gameplay:** a Gameplay Kit with a player, abilities, combat, enemies, bosses, money, inventory, equipment and the game's UI, and thirty attack effects.
 - **Fights:** bosses and enemies whose fights are made of moves, with six recipes to start from, and a Fight editor that shows a fight as a graph, lit up while the game runs.
 - **AI tools:** an MCP server, off by default, lets Claude Code and other AI tools build with the plugin.
+- **Languages:** the panel in Russian, Hindi and Tamil (beta), picked from a language menu, whatever the editor's language is; see the main README.
 
 It works with or without [MetSys](https://github.com/KoBeWi/Metroidvania-System).
 

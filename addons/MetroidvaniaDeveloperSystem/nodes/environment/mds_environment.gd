@@ -32,6 +32,7 @@ const NODE_NAME := "MDSWeather"
 ## sight.
 const ROOM_MARGIN := 192.0
 
+# l10n: text
 ## id -> [name, script, covers a whole room well, what it is]. In palette order.
 const EFFECTS := {
 	"dust_storm": ["Dust storm", "mds_dust_storm.gd", true, "Banks of dust blown from one side in gusts, grit and motes driven along; the wind shoves the player downwind"],
@@ -68,6 +69,7 @@ const EFFECTS := {
 	"parallax": ["Parallax background", "mds_parallax_background.gd", false, "Layers behind the room moving slower the further back they are: sky, mountains, forest, city, ruins, cave rock, dunes, clouds, fog, stars or your own pictures. Drop an image on it to add a layer"],
 }
 
+# l10n: text
 ## id -> [name, what it is, its weather]. In menu order.
 const PRESETS := {
 	"sandstorm": ["Sandstorm", "A dust storm blowing toward the right over a low haze of sand", "dust_storm(blows_toward=right), fog(color=#a39a88, density=0.35, ground=0.7, drift=60)"],

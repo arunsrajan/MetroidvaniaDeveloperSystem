@@ -63,6 +63,7 @@ enum Tool { TERRAIN, BACKGROUND, DECOR, ERASE, FOREGROUND, FREEFORM, STAMP, EFFE
 ## What the Select tool's clicks and boxes pick: everything, the tiles of one layer (on the grid
 ## and free), or only items (free tiles, stamps, pictures, freeform shapes).
 enum PickLayer { ALL, TERRAIN, BACKGROUND, DECOR, FOREGROUND, ITEMS }
+# l10n: text
 const PICK_LAYER_NAMES: PackedStringArray = ["Everything", "Terrain tiles", "Background tiles", "Decor tiles", "Foreground tiles", "Items only (free tiles, stamps, pictures, shapes)"]
 const PICK_LAYERS := {PickLayer.ALL: ["Foreground", "Decor", "Terrain", "Background"], PickLayer.TERRAIN: ["Terrain"], PickLayer.BACKGROUND: ["Background"],
 	PickLayer.DECOR: ["Decor"], PickLayer.FOREGROUND: ["Foreground"], PickLayer.ITEMS: []}
@@ -70,8 +71,10 @@ const PICK_LAYERS := {PickLayer.ALL: ["Foreground", "Decor", "Terrain", "Backgro
 enum RoleChoice { STYLE, TERRAIN, PLATFORM_ONE_WAY, PLATFORM, DECOR }
 ## Freeform tool shapes from MDSShapeGenerators have ids from here on (Column = 100...).
 const GENERATOR_BASE := 100
+# l10n: text
 const ROLE_CHOICE_NAMES: PackedStringArray = ["Style's role", "Terrain", "Platform, one-way", "Platform, two-way", "Decoration (no collision)"]
 enum EraseMode { TOP, DECOR, TERRAIN, BACKGROUND, ALL, FOREGROUND }
+# l10n: text
 const ERASE_MODE_NAMES: PackedStringArray = ["Top tile (stamp, free tiles, foreground, decor, terrain, then background)", "Decor only", "Terrain only", "Background only", "All layers", "Foreground only"]
 const TOOL_COLORS: Array[Color] = [Color(0.5, 1, 0.4), Color(0.3, 0.8, 1), Color(1, 0.8, 0.3), Color(1, 0.35, 0.35), Color(0.75, 0.6, 1), Color(0.4, 1, 0.85), Color(1, 0.6, 0.85), Color(0.55, 0.85, 1), Color(1, 0.9, 0.45), Color(0.95, 0.95, 1)]
 ## Image files Trace drawing reads (dropped on the view).

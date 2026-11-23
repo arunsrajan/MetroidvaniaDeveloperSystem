@@ -48,11 +48,14 @@ signal generate_area_requested(box: Rect2i)
 
 const DEFAULT_TILESET := MDSTilesetFactory.DEFAULT_PATH
 const Shape := MDSTerrainShapes.Shape
+# l10n: text
 const TOOL_LAYERS: PackedStringArray = ["Terrain", "Background", "Decor", "Erase", "Foreground", "Freeform", "Stamps", "Effects", "Place", "Select"]
 ## The tile layers the Place tool puts tiles at the depth of.
 const PLACE_LAYERS: PackedStringArray = ["Background", "Terrain", "Decor", "Foreground"]
+# l10n: text
 const FREEFORM_LAYERS: PackedStringArray = ["Terrain (solid)", "Background", "Foreground"]
 const FREEFORM_GROUPS: PackedStringArray = ["Freeform", "FreeformBack", "FreeformFront"]
+# l10n: text
 const STAMP_LAYERS: PackedStringArray = ["Behind terrain", "In front of terrain", "Foreground"]
 const STAMP_GROUPS: PackedStringArray = ["StampsBack", "StampsFront", "StampsForeground"]
 ## The most paint cells a passage Generate all makes between rooms far apart may take.
@@ -192,7 +195,9 @@ func _init() -> void:
 	var tool_grid := MDSSidePanel.grid(controls, 2)
 	var group := ButtonGroup.new()
 	_tool_group = group
+	# l10n: text
 	var names := ["Terrain", "Background", "Decor", "Erase", "Foreground", "Freeform", "Stamps", "Effects", "Place", "Select"]
+	# l10n: text
 	var tips := ["Paint the Terrain layer (solid ground: autotiled terrain, palette tiles or colors)", "Paint the Background layer (foliage, palette tiles or a solid color)", "Paint the Decor layer (grass, vines, stalactites, palette tiles...)", "Erase the top item under the brush: a stamp or free tiles, else foreground, decoration, terrain, then background (palette tiles and colors too). Pick one layer or all layers in the list next to it; Shift erases background only. Works with shapes too, to carve curved caves",
 		"Paint the Foreground layer, drawn in front of everything (dark silhouettes framing the room)",
 		"Freeform terrain: smooth curvy shapes instead of tiles (rounded ledges, bulging moss walls), with textured edges, clumps and exact collision. Draw by clicking points or dragging freehand, or pick a shape and drag its box. Edit mode reshapes them",
@@ -332,6 +337,7 @@ func _init() -> void:
 			effect_list.add_item("No object (select and move)")
 			effect_list.set_item_metadata(0, "")
 			effect_list.set_item_tooltip(0, "Place nothing: click an object in the room to select it, drag it to move it, drag the handles on its sides and corners to resize it")
+			# l10n: text
 			const GAMEPLAY_ITEMS: Array = [
 				["Ability pickup", "gameplay:ability_pickup", "mds_ability_pickup.svg", "MDSAbilityPickup: grants an ability on touch and persists"],
 				["Item pickup", "gameplay:item_pickup", "mds_pickup.svg", "MDSPickup: item or collectible"],
@@ -509,6 +515,7 @@ func _init() -> void:
 	generation.add_child(again)
 	var options := HFlowContainer.new()
 	generation.add_child(options)
+	# l10n: text
 	for o in [["background", "Background", "Paint the Background fill behind the cave"], ["decor", "Decor", "Decorations on floors and under ceilings; most floor ones of the Decor fill"], ["foreground", "Foreground", "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"], ["stamps", "Stamps", "Stamps of the set and category picked for the Stamps tool along the floors, as it places them: its Size, and its Random (off: the one sprite picked there, exactly at the Size)"], ["paths", "Paths", "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"], ["parts", "Merged walls", "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"]]:
 		var c := CheckBox.new()
 		c.text = o[1]

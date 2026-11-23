@@ -1,0 +1,14 @@
+[
+	{"file": "the buttons of Godot's dialogs", "msgid": "OK"},
+	{"file": "the buttons of Godot's dialogs", "msgid": "Cancel"},
+	{"file": "ui/convert_dialog.gd", "calls": {"_option": [1, 2], "_spin": [1, 5, 6], "_fill": [1]}},
+	{"file": "ui/area_generate_dialog.gd", "calls": {"_percent": [1, 2], "_size_row": [1, 4]}},
+	{"file": "ui/decorate_dialog.gd", "calls": {"_toggle": [1, 2]}},
+	{"file": "ui/map_import_dialog.gd", "calls": {"_row": [1, 3], "_pair": [1, 4]}},
+	{"file": "ui/trace_dialog.gd", "calls": {"_spin": [1, 5, 6]}},
+	{"file": "ui/analysis_views.gd", "calls": {"_add_room_group": [1]}},
+	{"file": "metsys_panel.gd", "calls": {"_set_status": [0]}},
+	{"file": "world_panel.gd", "calls": {"_set_status": [0]}},
+	{"file": "ui/room_view.gd", "calls": {"_changed": [0]}},
+	{"file": "ui/fight_panel.gd", "calls": {"say": [0]}}
+]

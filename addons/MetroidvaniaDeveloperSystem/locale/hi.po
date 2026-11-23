@@ -1,0 +1,3963 @@
+# Hindi translation of the Metroidvania Developer System panel.
+# Edit the strings after msgstr; keep placeholders (%s, %d, {name}), [tags] and && as they are.
+msgid ""
+msgstr ""
+"Project-Id-Version: Metroidvania Developer System\n"
+"Language: hi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n==0 || n==1);\n"
+"X-MDS-Status: beta\n"
+
+msgid "Rectangle or square"
+msgstr "आयत या वर्ग"
+
+msgid "Irregular blocks"
+msgstr "अनियमित ब्लॉक"
+
+msgid "Freeform (curvy)"
+msgstr "फ़्रीफ़ॉर्म (घुमावदार)"
+
+msgid "Hybrid (curves, slants and blocks)"
+msgstr "हाइब्रिड (घुमाव, तिरछे कट और ब्लॉक)"
+
+msgid "Cave (nonlinear, ledges)"
+msgstr "गुफा (नॉन-लीनियर, कगारें)"
+
+msgid "Linear (straight, wall climb)"
+msgstr "लीनियर (सीधा, दीवार पर चढ़ाई)"
+
+msgid "Outdoor (open sky, hills)"
+msgstr "आउटडोर (खुला आसमान, पहाड़ियाँ)"
+
+msgid "Arena (flat floor, tiers)"
+msgstr "एरीना (समतल फ़र्श, स्तर)"
+
+msgid "Natural (from the room's outline)"
+msgstr "प्राकृतिक (कक्ष की आउटलाइन से)"
+
+msgid "i (a shaft and its chamber)"
+msgstr "i (एक शाफ़्ट और उसका कक्ष)"
+
+msgid "Cross (+)"
+msgstr "क्रॉस (+)"
+
+msgid "Ring (O)"
+msgstr "रिंग (O)"
+
+msgid "S (switchbacks)"
+msgstr "S (ज़िगज़ैग मोड़)"
+
+msgid "Freeform"
+msgstr "फ़्रीफ़ॉर्म"
+
+msgid "Skeleton (trunk and branches)"
+msgstr "स्केलेटन (तना और शाखाएँ)"
+
+msgid "Mixed (any)"
+msgstr "मिश्रित (कोई भी)"
+
+msgid "Several picked"
+msgstr "कई चुनी हुई"
+
+msgid "Nothing (paper)"
+msgstr "कुछ नहीं (कागज़)"
+
+msgid "Terrain (solid)"
+msgstr "भूभाग (ठोस)"
+
+msgid "Platform (one-way)"
+msgstr "प्लेटफ़ॉर्म (एकतरफ़ा)"
+
+msgid "Background"
+msgstr "पृष्ठभूमि"
+
+msgid "Foreground"
+msgstr "अग्रभूमि"
+
+msgid "Freeform styles"
+msgstr "फ़्रीफ़ॉर्म शैलियाँ"
+
+msgid "Solid colors"
+msgstr "ठोस रंग"
+
+msgid "Tiles (spritesheets, terrains)"
+msgstr "टाइलें (स्प्राइटशीट, भूभाग)"
+
+msgid "The drawing itself"
+msgstr "ड्रॉइंग स्वयं"
+
+msgid "Passage blocked"
+msgstr "रास्ता बंद"
+
+msgid "No headroom"
+msgstr "ऊपर जगह नहीं"
+
+msgid "Platform can't be landed on"
+msgstr "प्लेटफ़ॉर्म पर उतरा नहीं जा सकता"
+
+msgid "Floating"
+msgstr "हवा में तैरता"
+
+msgid "Buried"
+msgstr "ज़मीन में धँसा"
+
+msgid "Exit out of reach"
+msgstr "निकास पहुँच से बाहर"
+
+msgid "Column"
+msgstr "स्तंभ"
+
+msgid "Arch (broken)"
+msgstr "मेहराब (टूटा)"
+
+msgid "Garden wall"
+msgstr "बाग़ की दीवार"
+
+msgid "Mound"
+msgstr "टीला"
+
+msgid "Stalactite curtain"
+msgstr "स्टैलेक्टाइट पर्दा"
+
+msgid "A broken column: plinth, a slightly swelling shaft, a jagged break at the top"
+msgstr "टूटा हुआ स्तंभ: चबूतरा, थोड़ा फूलता हुआ शाफ़्ट, ऊपर दंतीला टूटा सिरा"
+
+msgid "A ruined arch: one pier standing, the arch broken off partway over, the stump of the far pier"
+msgstr "खंडहर मेहराब: एक खंभा खड़ा, मेहराब बीच में टूटा हुआ, दूसरे खंभे का ठूँठ"
+
+msgid "A low, overgrown garden wall"
+msgstr "एक नीची, झाड़ियों से ढकी बाग़ की दीवार"
+
+msgid "A low rounded mound of rock or earth"
+msgstr "चट्टान या मिट्टी का एक नीचा गोल टीला"
+
+msgid "A row of stalactites hanging from a ceiling"
+msgstr "छत से लटकते स्टैलेक्टाइट की एक पंक्ति"
+
+msgid "Brush"
+msgstr "ब्रश"
+
+msgid "Rectangle"
+msgstr "आयत"
+
+msgid "Irregular"
+msgstr "अनियमित"
+
+msgid "Left curved"
+msgstr "बायाँ घुमावदार"
+
+msgid "Right curved"
+msgstr "दायाँ घुमावदार"
+
+msgid "Top curved"
+msgstr "ऊपर से घुमावदार"
+
+msgid "Bottom curved"
+msgstr "नीचे से घुमावदार"
+
+msgid "Freehand brush"
+msgstr "हाथ से ब्रश"
+
+msgid "Drag a rectangle to fill"
+msgstr "भरने के लिए आयत खींचें"
+
+msgid "Drag a box: an organic rock blob that fills it (Irregular % sets how rough)"
+msgstr "बॉक्स खींचें: उसे भरता चट्टान का प्राकृतिक धब्बा (अनियमित % set करता है कि कितना खुरदरा हो)"
+
+msgid "Drag a box: a mass attached on the right whose left face follows the curve"
+msgstr "बॉक्स खींचें: दाईं ओर जुड़ा एक पिंड जिसका बायाँ फलक घुमाव का अनुसरण करता है"
+
+msgid "Drag a box: a mass attached on the left whose right face follows the curve"
+msgstr "बॉक्स खींचें: बाईं ओर जुड़ा एक पिंड जिसका दायाँ फलक घुमाव का अनुसरण करता है"
+
+msgid "Drag a box: ground whose surface follows the curve (hills, bowls, ramps)"
+msgstr "बॉक्स खींचें: ऐसी ज़मीन जिसकी सतह घुमाव का अनुसरण करती है (पहाड़ियाँ, कटोरे, रैंप)"
+
+msgid "Drag a box: a ceiling mass whose underside follows the curve (arches, overhangs)"
+msgstr "बॉक्स खींचें: छत का ऐसा पिंड जिसका निचला हिस्सा घुमाव का अनुसरण करता है (मेहराब, छज्जे)"
+
+msgid "Convex (dome)"
+msgstr "उत्तल (गुंबद)"
+
+msgid "Concave (bowl)"
+msgstr "अवतल (कटोरा)"
+
+msgid "Slope (straight ramp)"
+msgstr "ढलान (सीधा रैंप)"
+
+msgid "Rounded corner (convex ramp)"
+msgstr "गोल कोना (उत्तल रैंप)"
+
+msgid "Quarter-pipe (concave ramp)"
+msgstr "क्वार्टर-पाइप (अवतल रैंप)"
+
+msgid "S-curve (eased ramp)"
+msgstr "S-घुमाव (नरम रैंप)"
+
+msgid "Hill (bell)"
+msgstr "पहाड़ी (घंटी)"
+
+msgid "Mesa (flat top)"
+msgstr "मेसा (समतल शीर्ष)"
+
+msgid "Rolling hills (wave)"
+msgstr "लहराती पहाड़ियाँ (लहर)"
+
+msgid "Steps (stairs)"
+msgstr "सीढ़ियाँ"
+
+msgid "Spikes (stalagmites)"
+msgstr "नुकीले उभार (स्टैलेग्माइट)"
+
+msgid "MetSys mode"
+msgstr "MetSys मोड"
+
+msgid "Non-linear mode"
+msgstr "नॉन-लीनियर मोड"
+
+msgid "Fight editor"
+msgstr "लड़ाई एडिटर"
+
+msgid "Dock in bottom panel"
+msgstr "निचले पैनल में डॉक करें"
+
+msgid "Dock in main screen (MetDevSys tab)"
+msgstr "मुख्य स्क्रीन में डॉक करें (MetDevSys टैब)"
+
+msgid "Detach to floating window"
+msgstr "फ़्लोटिंग विंडो में अलग करें"
+
+msgid "Dock on the right"
+msgstr "दाईं ओर डॉक करें"
+
+msgid "MetSys mode: MetSys' grid map (MapData.txt).\nNon-linear mode: draw and place scenes freely on a world map (.mdsworld.json).\nFight editor: a boss's or an enemy's moves as a graph."
+msgstr "MetSys मोड: MetSys का ग्रिड मानचित्र (MapData.txt)।\nनॉन-लीनियर मोड: वर्ल्ड मानचित्र पर सीन को खुलकर बनाएँ और रखें (.mdsworld.json)।\nलड़ाई एडिटर: किसी बॉस या दुश्मन की चालें, ग्राफ़ के रूप में।"
+
+msgid "Detach MetDevSys into its own window, or dock it in the editor"
+msgstr "MetDevSys को अपनी विंडो में अलग करें, या एडिटर में डॉक करें"
+
+msgid "MetDevSys is in the main screen. Detach it into its own window, or dock it in the editor"
+msgstr "MetDevSys मुख्य स्क्रीन में है। इसे अपनी विंडो में अलग करें, या एडिटर में डॉक करें"
+
+msgid "MetDevSys is in the floating window. Detach it into its own window, or dock it in the editor"
+msgstr "MetDevSys फ़्लोटिंग विंडो में है। इसे अपनी विंडो में अलग करें, या एडिटर में डॉक करें"
+
+msgid "MetDevSys is in the right dock. Detach it into its own window, or dock it in the editor"
+msgstr "MetDevSys दाएँ डॉक में है। इसे अपनी विंडो में अलग करें, या एडिटर में डॉक करें"
+
+msgid "MetDevSys is in the bottom panel. Detach it into its own window, or dock it in the editor"
+msgstr "MetDevSys निचले पैनल में है। इसे अपनी विंडो में अलग करें, या एडिटर में डॉक करें"
+
+msgid "Auto (%s)"
+msgstr "ऑटो (%s)"
+
+msgid "Others (coming soon)"
+msgstr "अन्य (जल्द आ रही हैं)"
+
+msgid "Language of the MetDevSys panel"
+msgstr "MetDevSys पैनल की भाषा"
+
+msgid "Save Points"
+msgstr "सेव पॉइंट"
+
+msgid "Bosses"
+msgstr "बॉस"
+
+msgid "Collectibles"
+msgstr "संग्रहणीय"
+
+msgid "Teleporters"
+msgstr "टेलीपोर्टर"
+
+msgid "Shops"
+msgstr "दुकानें"
+
+msgid "Enemies"
+msgstr "दुश्मन"
+
+msgid "No MapData.txt found. Use the map picker to browse for one."
+msgstr "कोई MapData.txt नहीं मिली। मानचित्र पिकर से ब्राउज़ करके चुनें।"
+
+msgid "Map"
+msgstr "मानचित्र"
+
+msgid "MapData file to show"
+msgstr "दिखाने के लिए MapData फ़ाइल"
+
+msgid "Reload the map file and re-run analysis"
+msgstr "मानचित्र फ़ाइल फिर से लोड करें और विश्लेषण दोबारा चलाएँ"
+
+msgid "Reload"
+msgstr "रीलोड"
+
+msgid "Scan"
+msgstr "स्कैन"
+
+msgid "Scan room scenes for features and terrain"
+msgstr "विशेषताओं और भूभाग के लिए कक्ष सीन स्कैन करें"
+
+msgid "Rescan map scenes"
+msgstr "मानचित्र सीन दोबारा स्कैन करें"
+
+msgid "Scan project folder (finds unplaced rooms)..."
+msgstr "प्रोजेक्ट फ़ोल्डर स्कैन करें (मानचित्र पर न रखे गए कक्ष खोजता है)..."
+
+msgid "Find MapData files"
+msgstr "MapData फ़ाइलें खोजें"
+
+msgid "Check room geometry (physics)"
+msgstr "कक्ष की ज्यामिति जाँचें (फ़िज़िक्स)"
+
+msgid "Player settings for the checks..."
+msgstr "जाँच के लिए खिलाड़ी की सेटिंग..."
+
+msgid "Export"
+msgstr "निर्यात"
+
+msgid "Map data (JSON)"
+msgstr "मानचित्र डेटा (JSON)"
+
+msgid "Map image (PNG)"
+msgstr "मानचित्र छवि (PNG)"
+
+msgid "Room graph (Graphviz .dot)"
+msgstr "कक्ष ग्राफ़ (Graphviz .dot)"
+
+msgid "Design document (Markdown)"
+msgstr "डिज़ाइन दस्तावेज़ (Markdown)"
+
+msgid "Side tabs"
+msgstr "साइड टैब"
+
+msgid "Show the Rooms / Inspect / Progress... tabs on the right. Hide them for a bigger map"
+msgstr "दाईं ओर कक्ष / निरीक्षण / प्रगति... टैब दिखाएँ। बड़े मानचित्र के लिए इन्हें छिपाएँ"
+
+msgid "Map display"
+msgstr "मानचित्र प्रदर्शन"
+
+msgid "Layer"
+msgstr "परत"
+
+msgid "Color"
+msgstr "रंग"
+
+msgid "Show on map..."
+msgstr "मानचित्र पर दिखाएँ..."
+
+msgid "Room labels"
+msgstr "कक्ष लेबल"
+
+msgid "Terrain silhouettes"
+msgstr "भूभाग सिल्हूट"
+
+msgid "Doors, gates && one-ways"
+msgstr "दरवाज़े, द्वार && एकतरफ़ा रास्ते"
+
+msgid "Live scene previews (slow)"
+msgstr "लाइव सीन पूर्वावलोकन (धीमा)"
+
+msgid "Custom elements"
+msgstr "कस्टम तत्व"
+
+msgid "Markers"
+msgstr "मार्कर"
+
+msgid "Pins"
+msgstr "पिन"
+
+msgid "Issue badges"
+msgstr "समस्या बैज"
+
+msgid "Legend"
+msgstr "संकेत सूची"
+
+msgid "Grid"
+msgstr "ग्रिड"
+
+msgid "Auto-scan map scenes on load"
+msgstr "लोड होने पर मानचित्र सीन अपने आप स्कैन करें"
+
+msgid "Zoom out"
+msgstr "ज़ूम आउट"
+
+msgid "Zoom in (or mouse wheel over the map)"
+msgstr "ज़ूम इन (या मानचित्र पर माउस व्हील)"
+
+msgid "Fit"
+msgstr "फ़िट"
+
+msgid "Fit the layer in view (F)"
+msgstr "परत को दृश्य में फ़िट करें (F)"
+
+msgid "Clear route"
+msgstr "मार्ग साफ़ करें"
+
+msgid "Clear the highlighted route / selection highlight (Esc)"
+msgstr "हाइलाइट किया गया मार्ग / चयन हाइलाइट साफ़ करें (Esc)"
+
+msgid "Show markers on the map and filter the room list"
+msgstr "मानचित्र पर मार्कर दिखाएँ और कक्ष सूची को फ़िल्टर करें"
+
+msgid "Add map pin"
+msgstr "मानचित्र पिन जोड़ें"
+
+msgid "Pin text, e.g. \"Hidden wall to the secret room\""
+msgstr "पिन का टेक्स्ट, जैसे \"गुप्त कक्ष की ओर छिपी दीवार\""
+
+msgid "Search rooms, areas, bosses, abilities..."
+msgstr "कक्ष, क्षेत्र, बॉस, क्षमताएँ खोजें..."
+
+msgid "Only rooms matching the Show filters"
+msgstr "केवल दिखाएँ फ़िल्टर से मेल खाते कक्ष"
+
+msgid "Room"
+msgstr "कक्ष"
+
+msgid "Area"
+msgstr "क्षेत्र"
+
+msgid "Sphere"
+msgstr "स्फ़ीयर"
+
+msgid "Click: select   Double-click: open scene"
+msgstr "क्लिक: चुनें   डबल-क्लिक: सीन खोलें"
+
+msgid "Browse..."
+msgstr "ब्राउज़ करें..."
+
+msgid "Map file changed on disk, reloaded."
+msgstr "मानचित्र फ़ाइल डिस्क पर बदल गई, फिर से लोड की गई।"
+
+msgid "Player for the room checks"
+msgstr "कक्ष जाँच के लिए खिलाड़ी"
+
+msgid "Link cancelled."
+msgstr "लिंक रद्द किया गया।"
+
+msgid "Select a room on the map to inspect and annotate it.\n\nRight-click the map for more actions: pins, play from here, routes, links.\nShift+click a second room to show the route between them."
+msgstr "इसका निरीक्षण करने और इस पर टिप्पणी जोड़ने के लिए मानचित्र पर कोई कक्ष चुनें।\n\nअधिक कार्यों के लिए मानचित्र पर राइट-क्लिक करें: पिन, यहाँ से चलाएँ, मार्ग, लिंक।\nदो कक्षों के बीच का मार्ग दिखाने के लिए दूसरे कक्ष पर Shift+क्लिक करें।"
+
+msgid "Open scene"
+msgstr "सीन खोलें"
+
+msgid "Open the room scene in the editor"
+msgstr "कक्ष का सीन एडिटर में खोलें"
+
+msgid "Play from here"
+msgstr "यहाँ से चलाएँ"
+
+msgid "Run the game starting in this room, at its save point if it has one. Right-click the map to start at an exact spot."
+msgstr "इस कक्ष से गेम चलाएँ; सेव पॉइंट हो तो वहीं से। ठीक किसी जगह से शुरू करने के लिए मानचित्र पर राइट-क्लिक करें।"
+
+msgid "Start room"
+msgstr "शुरुआती कक्ष"
+
+msgid "Set as start"
+msgstr "शुरुआत बनाएँ"
+
+msgid "Progression spheres are computed from the start room"
+msgstr "प्रगति स्फ़ीयर शुरुआती कक्ष से गिने जाते हैं"
+
+msgid "Center"
+msgstr "केंद्र में लाएँ"
+
+msgid "Center the map on this room"
+msgstr "मानचित्र को इस कक्ष पर केंद्रित करें"
+
+msgid "Name"
+msgstr "नाम"
+
+msgid "Type"
+msgstr "प्रकार"
+
+msgid "Status"
+msgstr "स्थिति"
+
+msgid "(none)"
+msgstr "(कोई नहीं)"
+
+msgid "Boss"
+msgstr "बॉस"
+
+msgid "Grants"
+msgstr "देता है"
+
+msgid "Comma separated. Abilities from mds_grants node metadata are added automatically."
+msgstr "अल्पविराम से अलग करें। mds_grants नोड मेटाडेटा की क्षमताएँ अपने आप जुड़ जाती हैं।"
+
+msgid "Notes (TODO lines show up in Issues)"
+msgstr "नोट्स (TODO वाली पंक्तियाँ समस्याएँ में दिखती हैं)"
+
+msgid "No passages. Paint passages in the MetSys editor."
+msgstr "कोई रास्ता नहीं। रास्ते MetSys एडिटर में पेंट करें।"
+
+msgid "Links (elevators, teleports, layer transitions)"
+msgstr "लिंक (लिफ़्ट, टेलीपोर्ट, परत बदलाव)"
+
+msgid "Add link... (then click the target room)"
+msgstr "लिंक जोड़ें... (फिर लक्ष्य कक्ष पर क्लिक करें)"
+
+msgid "Connect this room to another room, e.g. on another layer"
+msgstr "इस कक्ष को दूसरे कक्ष से जोड़ें, जैसे किसी दूसरी परत पर"
+
+msgid "One-way out"
+msgstr "एकतरफ़ा निकास"
+
+msgid "requires (e.g. dash, red_key)"
+msgstr "आवश्यक (जैसे dash, red_key)"
+
+msgid "Passage only painted on one side."
+msgstr "रास्ता केवल एक ओर पेंट किया गया है।"
+
+msgid "x"
+msgstr "x"
+
+msgid "Remove link"
+msgstr "लिंक निकालें"
+
+msgid "note (Elevator...)"
+msgstr "नोट (लिफ़्ट...)"
+
+msgid "requires"
+msgstr "आवश्यक"
+
+msgid "Run this room scene only"
+msgstr "केवल इस कक्ष का सीन चलाएँ"
+
+msgid "Set as start room"
+msgstr "शुरुआती कक्ष बनाएँ"
+
+msgid "Route from selected room to here"
+msgstr "चुने हुए कक्ष से यहाँ तक का मार्ग"
+
+msgid "Link selected room to this room"
+msgstr "चुने हुए कक्ष को इस कक्ष से लिंक करें"
+
+msgid "Add pin here..."
+msgstr "यहाँ पिन जोड़ें..."
+
+msgid "Remove nearest pin"
+msgstr "सबसे पास का पिन निकालें"
+
+msgid "Copy scene UID"
+msgstr "सीन UID कॉपी करें"
+
+msgid "Copy cell coordinates"
+msgstr "सेल निर्देशांक कॉपी करें"
+
+msgid "Nothing to export: no map loaded."
+msgstr "निर्यात के लिए कुछ नहीं: कोई मानचित्र लोड नहीं है।"
+
+msgid "Export already in progress..."
+msgstr "निर्यात पहले से जारी है..."
+
+msgid "Export failed: empty layer"
+msgstr "निर्यात विफल: परत ख़ाली है"
+
+msgid "Rendering map image..."
+msgstr "मानचित्र छवि रेंडर हो रही है..."
+
+msgid "Your picture, blurred"
+msgstr "आपकी तस्वीर, धुंधली"
+
+msgid "Toxic swamp"
+msgstr "ज़हरीला दलदल"
+
+msgid "Holy light"
+msgstr "पवित्र रोशनी"
+
+msgid "Starfield"
+msgstr "तारों भरा आसमान"
+
+msgid "Infection"
+msgstr "संक्रमण"
+
+msgid "Spore drift"
+msgstr "बीजाणुओं का बहाव"
+
+msgid "Frozen night"
+msgstr "जमी हुई रात"
+
+msgid "Arcane vortex"
+msgstr "रहस्यमय भँवर"
+
+msgid "Blood moon"
+msgstr "ख़ूनी चाँद"
+
+msgid "Void pulse"
+msgstr "शून्य की धड़कन"
+
+msgid "Crystal cave"
+msgstr "क्रिस्टल गुफा"
+
+msgid "Sunset haze"
+msgstr "सूर्यास्त की धुंध"
+
+msgid "Forest canopy"
+msgstr "जंगल की छतरी"
+
+msgid "Storm clouds"
+msgstr "तूफ़ानी बादल"
+
+msgid "Ember glow"
+msgstr "अंगारों की चमक"
+
+msgid "Deep water"
+msgstr "गहरा पानी"
+
+msgid "Molten blobs"
+msgstr "पिघले धब्बे"
+
+msgid "Nebula"
+msgstr "नेबुला"
+
+msgid "Aurora"
+msgstr "ऑरोरा"
+
+msgid "Bokeh lights"
+msgstr "बोकेह रोशनियाँ"
+
+msgid "Out-of-focus lights drifting at three depths, like a city or lanterns seen through a lens"
+msgstr "तीन गहराइयों पर बहती फ़ोकस से बाहर की रोशनियाँ, जैसे लेंस से दिखता शहर या लालटेनें"
+
+msgid "Curtains of green and violet light waving over a starry night"
+msgstr "तारों भरी रात पर लहराते हरे और बैंगनी रोशनी के पर्दे"
+
+msgid "Slowly turning clouds of cosmic gas, soft stars twinkling"
+msgstr "ब्रह्मांडीय गैस के धीरे-धीरे घूमते बादल, टिमटिमाते नरम तारे"
+
+msgid "Big soft blobs of molten color merging and parting, like a lava lamp"
+msgstr "पिघले रंग के बड़े नरम धब्बे जो मिलते और बिछड़ते हैं, लावा लैंप की तरह"
+
+msgid "Deep water: soft caustics, light rays from the surface, bubbles rising"
+msgstr "गहरा पानी: नरम कॉस्टिक्स, सतह से आती रोशनी की किरणें, ऊपर उठते बुलबुले"
+
+msgid "A dark red heat glowing from below, smoke, blurred embers rising"
+msgstr "नीचे से चमकती गहरी लाल गर्मी, धुआँ, ऊपर उठते धुंधले अंगारे"
+
+msgid "Dark clouds rolling, lightning flashing behind them, a veil of rain"
+msgstr "घुमड़ते काले बादल, उनके पीछे कौंधती बिजली, बारिश का परदा"
+
+msgid "Light through leaves: swaying shadows, sun flecks, soft rays"
+msgstr "पत्तों से छनती रोशनी: हिलती परछाइयाँ, धूप के धब्बे, नरम किरणें"
+
+msgid "A warm sky, a big soft sun, bands of cloud drifting by"
+msgstr "गर्म आसमान, एक बड़ा नरम सूरज, तैरती बादलों की पट्टियाँ"
+
+msgid "Glowing crystal facets shimmering in the dark, sparkles"
+msgstr "अँधेरे में झिलमिलाते चमकते क्रिस्टल फलक, चमकीले कण"
+
+msgid "Boss: a dark void throbbing, rings rippling out from a glowing core"
+msgstr "बॉस: धड़कता काला शून्य, चमकते केंद्र से फैलते छल्ले"
+
+msgid "Boss: a huge blood-red moon, red mist drifting across it"
+msgstr "बॉस: एक विशाल ख़ून-लाल चाँद, उस पर तैरती लाल धुंध"
+
+msgid "Boss: a spiral of arcane light turning around a bright eye"
+msgstr "बॉस: एक चमकती आँख के चारों ओर घूमता रहस्यमय प्रकाश का सर्पिल"
+
+msgid "A cold night, snowflakes falling out of focus, near ones large and soft"
+msgstr "ठंडी रात, फ़ोकस से बाहर गिरते बर्फ़ के फाहे, पास वाले बड़े और नरम"
+
+msgid "A teal haze, bioluminescent spores wandering"
+msgstr "हरा-नीला कुहासा, भटकते जैव-दीप्त बीजाणु"
+
+msgid "Boss: glowing orange veins pulsing through the dark, motes drifting up"
+msgstr "बॉस: अँधेरे में धड़कती चमकती नारंगी नसें, ऊपर उठते कण"
+
+msgid "Stars at several depths drifting slowly, a faint haze"
+msgstr "कई गहराइयों पर धीरे-धीरे बहते तारे, हल्की धुंध"
+
+msgid "Boss or shrine: golden rays falling from above, dust shining in them"
+msgstr "बॉस या मंदिर: ऊपर से गिरती सुनहरी किरणें, उनमें चमकती धूल"
+
+msgid "A green murk swirling, bubbles rising, a sickly glow"
+msgstr "घूमता हरा कीचड़, उठते बुलबुले, बीमार-सी चमक"
+
+msgid "Your own picture, blurred out of focus, drifting and breathing slowly"
+msgstr "आपकी अपनी तस्वीर, फ़ोकस से बाहर धुंधली, धीरे-धीरे बहती और साँस लेती"
+
+msgid "Worms"
+msgstr "केंचुए"
+
+msgid "Owls"
+msgstr "उल्लू"
+
+msgid "Eels"
+msgstr "बाम मछलियाँ"
+
+msgid "Glowfish"
+msgstr "चमकती मछलियाँ"
+
+msgid "Jellyfish"
+msgstr "जेलीफ़िश"
+
+msgid "Crabs"
+msgstr "केकड़े"
+
+msgid "Snails"
+msgstr "घोंघे"
+
+msgid "Centipedes"
+msgstr "कनखजूरे"
+
+msgid "Beetles"
+msgstr "भृंग"
+
+msgid "Spiders"
+msgstr "मकड़ियाँ"
+
+msgid "Firebirds"
+msgstr "अग्निपक्षी"
+
+msgid "Bats"
+msgstr "चमगादड़"
+
+msgid "Crows"
+msgstr "कौवे"
+
+msgid "Small birds"
+msgstr "छोटी चिड़ियाँ"
+
+msgid "Dragonflies"
+msgstr "ड्रैगनफ़्लाई"
+
+msgid "Butterflies"
+msgstr "तितलियाँ"
+
+msgid "Moths"
+msgstr "पतंगे"
+
+msgid "Lumaflies"
+msgstr "ल्यूमाफ़्लाई"
+
+msgid "Wasps"
+msgstr "ततैये"
+
+msgid "Bees"
+msgstr "मधुमक्खियाँ"
+
+msgid "Bees with glowing stripes swarming around their hive, the honeycomb lit amber where they pass"
+msgstr "चमकती धारियों वाली मधुमक्खियाँ अपने छत्ते के चारों ओर मँडराती हैं, जहाँ से वे गुज़रती हैं वहाँ शहद का छत्ता अंबर रंग में रोशन होता है"
+
+msgid "Wasps darting about a dark nest, closing in on the player when it gets busy"
+msgstr "ततैये एक अँधेरे घोंसले के आसपास झपटते हैं, गतिविधि बढ़ने पर खिलाड़ी की ओर बढ़ते हैं"
+
+msgid "Lumaflies drifting through a night wood, their lanterns blinking on and off"
+msgstr "रात के जंगल में उड़ती ल्यूमाफ़्लाई, उनकी लालटेनें जलती-बुझती हैं"
+
+msgid "Moths fluttering in a forest; when the player stands still they come to it, like to a flame"
+msgstr "जंगल में फड़फड़ाते पतंगे; खिलाड़ी के स्थिर खड़े होने पर वे लौ की तरह उसकी ओर आते हैं"
+
+msgid "Butterflies with glowing wing edges wandering over a marsh, scattering from the player"
+msgstr "दलदल पर भटकती चमकते पंख-किनारों वाली तितलियाँ, खिलाड़ी से बिखर जाती हैं"
+
+msgid "Dragonflies hovering over the reeds and darting off, glowing along their tails"
+msgstr "सरकंडों पर मँडराते और झपटकर भागते ड्रैगनफ़्लाई, पूँछ चमकती हुई"
+
+msgid "A flock of small birds wheeling across a dusk sky, warm light on their breasts"
+msgstr "साँझ के आसमान में चक्कर काटता छोटी चिड़ियों का झुंड, सीनों पर गर्म रोशनी"
+
+msgid "Crows circling slowly against a grey sky, red eyes glinting"
+msgstr "स्लेटी आसमान के सामने धीरे-धीरे चक्कर लगाते कौवे, चमकती लाल आँखें"
+
+msgid "Bats flitting about a cave, eyes glowing violet, scattering as the player moves"
+msgstr "गुफा में फड़फड़ाते चमगादड़, बैंगनी चमकती आँखें, खिलाड़ी के हिलने पर बिखर जाते हैं"
+
+msgid "Firebirds sweeping across a red sky, trailing tails of flame"
+msgstr "लाल आसमान में झपटते अग्निपक्षी, पीछे लपटों की पूँछें"
+
+msgid "Spiders lowering themselves on silk and crawling over webbed rock; they climb away when the player is busy"
+msgstr "रेशम पर उतरती और जालों वाली चट्टान पर रेंगती मकड़ियाँ; खिलाड़ी के व्यस्त होने पर वे ऊपर चढ़ जाती हैं"
+
+msgid "Beetles with glowing shells crawling over the cave wall, running when the player moves"
+msgstr "गुफा की दीवार पर रेंगते चमकते खोल वाले भृंग, खिलाड़ी के हिलने पर भागते हैं"
+
+msgid "Centipedes winding through the earth, their segments glowing"
+msgstr "ज़मीन में बलखाते कनखजूरे, उनके खंड चमकते हुए"
+
+msgid "Snails gliding over damp rock, leaving glowing trails; they stop when the player is near"
+msgstr "नम चट्टान पर सरकते घोंघे, चमकती लकीरें छोड़ते; खिलाड़ी के पास आने पर रुक जाते हैं"
+
+msgid "Crabs scuttling sideways over the seabed, claws glowing"
+msgstr "समुद्र तल पर बगल-बगल दौड़ते केकड़े, पंजे चमकते हुए"
+
+msgid "Jellyfish pulsing up through deep water, lighting it blue"
+msgstr "गहरे पानी में धड़कते ऊपर उठते जेलीफ़िश, उसे नीला रोशन करते"
+
+msgid "A school of glowfish turning together in the deep, splitting around the player"
+msgstr "गहराई में एक साथ मुड़ता चमकती मछलियों का झुंड, खिलाड़ी के पास आने पर बँट जाता है"
+
+msgid "Eels winding slowly through dark water, spots glowing along them"
+msgstr "अँधेरे पानी में धीरे-धीरे बलखाती बाम मछलियाँ, उन पर चमकते धब्बे"
+
+msgid "Owls watching from their perches, glowing eyes following the player, blinking"
+msgstr "अपनी डालियों से देखते उल्लू, चमकती आँखें खिलाड़ी का पीछा करती और पलकें झपकाती हैं"
+
+msgid "Worms rising out of the earth in glowing arcs and diving back; more come up the more the player stomps about"
+msgstr "चमकते चापों में ज़मीन से निकलते और वापस गोता लगाते केंचुए; खिलाड़ी जितना धमधम चलता है, उतने ज़्यादा निकलते हैं"
+
+msgid "Dust storm"
+msgstr "धूल भरी आँधी"
+
+msgid "Banks of dust blown from one side in gusts, grit and motes driven along; the wind shoves the player downwind"
+msgstr "एक ओर से झोंकों में उड़ती धूल की परतें, किरकिरी और कण साथ बहते; हवा खिलाड़ी को हवा की दिशा में धकेलती है"
+
+msgid "Rain"
+msgstr "बारिश"
+
+msgid "Slanting rain at three depths, splashes along the ground and a low mist"
+msgstr "तीन गहराइयों पर तिरछी बारिश, ज़मीन पर छींटे और नीची धुंध"
+
+msgid "Lightning"
+msgstr "बिजली"
+
+msgid "Forked bolts behind the terrain, the sky flashing, thunder"
+msgstr "भूभाग के पीछे शाखाओं वाली बिजली, कौंधता आसमान, गरज"
+
+msgid "Snowfall"
+msgstr "बर्फ़बारी"
+
+msgid "Soft flakes drifting down; turn up Blizzard for driven snow"
+msgstr "धीरे-धीरे गिरते नरम फाहे; तेज़ बर्फ़ के लिए ब्लिज़ार्ड बढ़ाएँ"
+
+msgid "Fog / mist"
+msgstr "कोहरा / धुंध"
+
+msgid "Drifting fog, or mist lying along the ground"
+msgstr "तैरता कोहरा, या ज़मीन पर बिछी धुंध"
+
+msgid "Embers / ash"
+msgstr "अंगारे / राख"
+
+msgid "Embers rising and flickering out, ash drifting down, or sparks"
+msgstr "ऊपर उठकर बुझते अंगारे, गिरती राख, या चिंगारियाँ"
+
+msgid "Glowing motes wandering and blinking: fireflies, spores, glitter"
+msgstr "भटकते और टिमटिमाते चमकते कण: जुगनू, बीजाणु, चमक"
+
+msgid "Fireflies / spores"
+msgstr "जुगनू / बीजाणु"
+
+msgid "Falling leaves"
+msgstr "गिरते पत्ते"
+
+msgid "Leaves or petals tumbling down on the breeze"
+msgstr "हवा में लुढ़कते पत्ते या पंखुड़ियाँ"
+
+msgid "Light shafts"
+msgstr "रोशनी की किरणें"
+
+msgid "God rays slanting down from above, dust motes in them"
+msgstr "ऊपर से तिरछी उतरती ईश्वरीय किरणें, उनमें धूल के कण"
+
+msgid "Heat haze"
+msgstr "गर्मी की धुंध"
+
+msgid "Everything behind it shimmers, rippling upward"
+msgstr "उसके पीछे सब कुछ झिलमिलाता है, ऊपर की ओर लहराता"
+
+msgid "Steam vent"
+msgstr "भाप का छिद्र"
+
+msgid "A vent forcing out hot steam: wisps, a warning glow, then a jet that throws and scalds"
+msgstr "गर्म भाप फेंकता छिद्र: लकीरें, चेतावनी की चमक, फिर एक धार जो उछालती और झुलसाती है"
+
+msgid "Lava pool"
+msgstr "लावा का कुंड"
+
+msgid "Molten rock (or acid, cursed ooze) with crust, bubbles, a glow and embers; it hurts"
+msgstr "पिघली चट्टान (या तेज़ाब, शापित कीचड़) पपड़ी, बुलबुलों, चमक और अंगारों के साथ; यह चोट पहुँचाता है"
+
+msgid "A sheet of water falling straight down, white water at its lip and foot, mist"
+msgstr "सीधे नीचे गिरती पानी की चादर, उसके किनारे और तल पर सफ़ेद पानी, धुंध"
+
+msgid "Waterfall"
+msgstr "झरना"
+
+msgid "Hot water falls"
+msgstr "गर्म पानी के झरने"
+
+msgid "Scalding mineral water pouring straight down: steam pouring off it and billowing at its foot, a warm glow, the air wavering; it scalds"
+msgstr "सीधे नीचे गिरता झुलसाने वाला खनिज जल: उससे उठती भाप जो तल पर फैलती है, गर्म चमक, हिलती हवा; यह झुलसाता है"
+
+msgid "Lava falls"
+msgstr "लावा के झरने"
+
+msgid "Molten rock pouring straight down over a ledge: a white-hot core, crust plates riding down and cracking, a splash of molten drops, a glow, embers; it burns"
+msgstr "कगार से सीधे नीचे गिरती पिघली चट्टान: सफ़ेद-गर्म केंद्र, उतरती और चटकती पपड़ी की परतें, पिघली बूँदों की छींटें, चमक, अंगारे; यह जलाता है"
+
+msgid "Falling rocks"
+msgstr "गिरते पत्थर"
+
+msgid "Rocks breaking off and crashing to the ground in dust and chips, piling up as rubble; a cave-in with PLAYER_INSIDE; can hurt"
+msgstr "धूल और टुकड़ों के साथ टूटकर ज़मीन पर गिरते पत्थर, मलबे के ढेर में जमा होते; PLAYER_INSIDE के साथ गुफा का ढहना; चोट पहुँचा सकते हैं"
+
+msgid "Water"
+msgstr "पानी"
+
+msgid "A pool: waves, what is behind bent and tinted, caustics, bubbles"
+msgstr "एक कुंड: लहरें, पीछे की चीज़ें मुड़ी और रंगी हुई, कॉस्टिक्स, बुलबुले"
+
+msgid "Bench / save point"
+msgstr "बेंच / सेव पॉइंट"
+
+msgid "A bench to rest on, like Silksong's: its lantern flickers and motes drift in its light. Up sits the player down: the game is saved, health restored, the bench glows and the map shows it; a restarted game continues here and dying brings the player back. Place it on a floor"
+msgstr "आराम के लिए एक बेंच, Silksong जैसी: उसकी लालटेन टिमटिमाती है और रोशनी में कण तैरते हैं। ऊपर दबाने पर खिलाड़ी बैठता है: गेम सेव होता है, हेल्थ लौटती है, बेंच चमकती है और मानचित्र उसे दिखाता है; दोबारा शुरू किया गया गेम यहीं से जारी रहता है और मरने पर खिलाड़ी यहीं लौटता है। इसे फ़र्श पर रखें"
+
+msgid "Silk threads"
+msgstr "रेशम के धागे"
+
+msgid "Strands of silk drifting and turning in the air, light running along them, threads hanging from above (Silksong's Weavenest)"
+msgstr "हवा में तैरते और घूमते रेशम के तंतु, उन पर दौड़ती रोशनी, ऊपर से लटकते धागे (Silksong का Weavenest)"
+
+msgid "Ghostly flames drifting on slow paths, flickering tails licking upward, halos lighting the air (the Wisp Thicket)"
+msgstr "धीमे रास्तों पर तैरती भूतिया लपटें, ऊपर लपकती टिमटिमाती पूँछें, हवा को रोशन करते आभामंडल (Wisp Thicket)"
+
+msgid "Will-o'-wisps"
+msgstr "भूतिया बत्तियाँ"
+
+msgid "Gnat swarm"
+msgstr "मच्छरों का झुंड"
+
+msgid "Clouds of tiny gnats buzzing about; a swarm gathers around the player who comes near (Bilewater)"
+msgstr "भिनभिनाते नन्हे मच्छरों के बादल; पास आने वाले खिलाड़ी के आसपास झुंड जुट जाता है (Bilewater)"
+
+msgid "Dripping water"
+msgstr "टपकता पानी"
+
+msgid "Drops gathering under the ceiling, falling and splashing on the floor (the Wormways, the Deep Docks)"
+msgstr "छत के नीचे जमती, गिरती और फ़र्श पर छींटे उड़ाती बूँदें (Wormways, Deep Docks)"
+
+msgid "Hanging moss"
+msgstr "लटकती काई"
+
+msgid "Leafy strands hanging from a ceiling, swaying, parting around the player passing through (Greymoor, the Moss Grotto)"
+msgstr "छत से लटकती पत्तेदार लड़ियाँ, झूलती हुई, गुज़रते खिलाड़ी के आसपास हट जाती हैं (Greymoor, Moss Grotto)"
+
+msgid "Swaying grass"
+msgstr "लहराती घास"
+
+msgid "Blades of grass along a floor swaying in gusts, bending away as the player walks through (the Far Fields)"
+msgstr "फ़र्श पर घास की पत्तियाँ जो झोंकों में लहराती हैं और खिलाड़ी के चलने पर झुक जाती हैं (Far Fields)"
+
+msgid "Cobwebs"
+msgstr "मकड़ी के जाले"
+
+msgid "Spider webs across corners, dew glinting, trembling as the player moves through them; can slow them (the Weavenest, Shellwood)"
+msgstr "कोनों में फैले मकड़ी के जाले, चमकती ओस, खिलाड़ी के गुज़रने पर काँपते हैं; उन्हें धीमा कर सकते हैं (Weavenest, Shellwood)"
+
+msgid "Black tendrils writhing up from a pool of darkness, a violet glow at their rims, reaching for the player; can hurt (the Abyss)"
+msgstr "अँधेरे के कुंड से ऊपर बलखाते काले तंतु, किनारों पर बैंगनी चमक, खिलाड़ी की ओर बढ़ते; चोट पहुँचा सकते हैं (Abyss)"
+
+msgid "Void tendrils"
+msgstr "शून्य के तंतु"
+
+msgid "Incense smoke"
+msgstr "अगरबत्ती का धुआँ"
+
+msgid "Ribbons of smoke curling up from a censer, golden ash glinting in them (the Citadel's choral chambers)"
+msgstr "धूपदान से ऊपर घुमड़ती धुएँ की लड़ियाँ, उनमें चमकती सुनहरी राख (Citadel के गायन कक्ष)"
+
+msgid "Forge sparks"
+msgstr "भट्टी की चिंगारियाँ"
+
+msgid "Sparks spraying from a forge or a grinding wheel, arcing down and bouncing off the floor, in a stream or bursts; can burn (the Deep Docks)"
+msgstr "भट्टी या सान के पहिये से फूटती चिंगारियाँ, नीचे चाप बनाकर फ़र्श से टकराकर उछलती, धार या बौछार में; जला सकती हैं (Deep Docks)"
+
+msgid "Creatures"
+msgstr "जीव"
+
+msgid "A background of glowing creatures, one kind at a time (bees, spiders, small birds, bats, jellyfish, owls... 20 kinds), soft and out of focus, each carrying a light over its habitat. They stir as the player moves about and never touch the fight: made for boss rooms"
+msgstr "चमकते जीवों की पृष्ठभूमि, एक बार में एक प्रकार (मधुमक्खियाँ, मकड़ियाँ, छोटी चिड़ियाँ, चमगादड़, जेलीफ़िश, उल्लू... 20 प्रकार), नरम और फ़ोकस से बाहर, हर एक अपने आवास पर रोशनी लिए। वे खिलाड़ी के हिलने पर हरकत करते हैं और लड़ाई को कभी नहीं छूते: बॉस कक्षों के लिए बनाए गए"
+
+msgid "Machinery background"
+msgstr "मशीनरी पृष्ठभूमि"
+
+msgid "Giant machinery far behind the room, soft and out of focus, one kind at a time, moving by time alone: 20 gothic castle machines for Castlevania-style castles (giant wheels, clockwork, clock faces, pendulums, bells, chandeliers, rose windows...) and 20 alien station machines for Metroid-style worlds (turbines, reactor cores, gyro rings, pistons, specimen tanks, warp portals...). Pick the machine in the Inspector"
+msgstr "कक्ष के बहुत पीछे विशालकाय मशीनरी, नरम और फ़ोकस से बाहर, एक बार में एक प्रकार, केवल समय से चलती: Castlevania-शैली के किलों के लिए 20 गॉथिक किला-मशीनें (विशाल पहिये, घड़ी का तंत्र, घड़ी के चेहरे, पेंडुलम, घंटे, झूमर, गुलाब खिड़कियाँ...) और Metroid-शैली की दुनियाओं के लिए 20 एलियन स्टेशन मशीनें (टरबाइन, रिएक्टर कोर, जाइरो रिंग, पिस्टन, नमूना टैंक, वार्प पोर्टल...)। मशीन इंस्पेक्टर में चुनें"
+
+msgid "Animated background"
+msgstr "एनिमेटेड पृष्ठभूमि"
+
+msgid "A soft, out-of-focus background in motion, drawn by a shader: bokeh lights, an aurora, a nebula, molten blobs, deep water, storm clouds, a starfield... 20 styles, some made for boss rooms (void pulse, blood moon, arcane vortex, infection, holy light). Pick the style in the Inspector; drop an image on it to show the image blurred"
+msgstr "शेडर से बनी नरम, फ़ोकस से बाहर चलती पृष्ठभूमि: बोकेह रोशनियाँ, ऑरोरा, नेबुला, पिघले धब्बे, गहरा पानी, तूफ़ानी बादल, तारों भरा आसमान... 20 शैलियाँ, कुछ बॉस कक्षों के लिए (शून्य की धड़कन, ख़ूनी चाँद, रहस्यमय भँवर, संक्रमण, पवित्र रोशनी)। शैली इंस्पेक्टर में चुनें; उस पर छवि छोड़ने से वह धुंधली दिखती है"
+
+msgid "Parallax background"
+msgstr "पैरालैक्स पृष्ठभूमि"
+
+msgid "Layers behind the room moving slower the further back they are: sky, mountains, forest, city, ruins, cave rock, dunes, clouds, fog, stars or your own pictures. Drop an image on it to add a layer"
+msgstr "कक्ष के पीछे की परतें जो जितनी पीछे हों उतनी धीमी चलती हैं: आसमान, पहाड़, जंगल, शहर, खंडहर, गुफा की चट्टानें, टीले, बादल, कोहरा, तारे या आपकी अपनी तस्वीरें। परत जोड़ने के लिए उस पर छवि छोड़ें"
+
+msgid "A dust storm blowing toward the right over a low haze of sand"
+msgstr "दाईं ओर बहती धूल भरी आँधी, रेत की नीची धुंध पर"
+
+msgid "Sandstorm"
+msgstr "रेतीला तूफ़ान"
+
+msgid "Sandstorm, blowing left"
+msgstr "रेतीला तूफ़ान, बाईं ओर"
+
+msgid "A dust storm blowing toward the left over a low haze of sand"
+msgstr "बाईं ओर बहती धूल भरी आँधी, रेत की नीची धुंध पर"
+
+msgid "Thunderstorm"
+msgstr "गरज-तूफ़ान"
+
+msgid "Heavy slanting rain, lightning and a dark mist"
+msgstr "तेज़ तिरछी बारिश, बिजली और गहरी धुंध"
+
+msgid "Drizzle"
+msgstr "फुहार"
+
+msgid "Light rain and mist"
+msgstr "हल्की बारिश और धुंध"
+
+msgid "Blizzard"
+msgstr "बर्फ़ीला तूफ़ान"
+
+msgid "Driven snow and a white-out haze"
+msgstr "उड़ती बर्फ़ और सफ़ेद धुंध"
+
+msgid "Gentle snow"
+msgstr "हल्की बर्फ़"
+
+msgid "Embers rising, ash falling, heat haze and a red smoky haze"
+msgstr "ऊपर उठते अंगारे, गिरती राख, गर्मी की धुंध और लाल धुएँ वाली धुंध"
+
+msgid "Volcanic"
+msgstr "ज्वालामुखीय"
+
+msgid "Ashfall"
+msgstr "राख की बारिश"
+
+msgid "Ash drifting down through a grey haze"
+msgstr "स्लेटी धुंध में गिरती राख"
+
+msgid "Cave mist"
+msgstr "गुफा की धुंध"
+
+msgid "Mist along the floor, shafts of light from above"
+msgstr "फ़र्श पर बिछी धुंध, ऊपर से आती रोशनी की किरणें"
+
+msgid "Firefly grove"
+msgstr "जुगनुओं का कुंज"
+
+msgid "Fireflies, soft light and a little mist"
+msgstr "जुगनू, नरम रोशनी और थोड़ी धुंध"
+
+msgid "Spore cavern"
+msgstr "बीजाणु गुफा"
+
+msgid "Teal spores drifting slowly in a green haze"
+msgstr "हरी धुंध में धीरे-धीरे तैरते हरे-नीले बीजाणु"
+
+msgid "Autumn wind"
+msgstr "पतझड़ की हवा"
+
+msgid "Leaves tumbling down on a breeze"
+msgstr "हवा में लुढ़कते पत्ते"
+
+msgid "Pink petals drifting down"
+msgstr "गिरती गुलाबी पंखुड़ियाँ"
+
+msgid "Petals"
+msgstr "पंखुड़ियाँ"
+
+msgid "Glitter"
+msgstr "चमक"
+
+msgid "Pink and white glitter twinkling in the air (a stage, a fairy grove)"
+msgstr "हवा में टिमटिमाती गुलाबी और सफ़ेद चमक (मंच, परियों का कुंज)"
+
+msgid "Weavenest"
+msgstr "Weavenest"
+
+msgid "Silk drifting and hanging in a pale, still haze (Silksong's Weavenest)"
+msgstr "हल्की, स्थिर धुंध में तैरता और लटकता रेशम (Silksong का Weavenest)"
+
+msgid "Bilewater"
+msgstr "Bilewater"
+
+msgid "Gnats over a reeking green haze, water dripping from above"
+msgstr "बदबूदार हरी धुंध पर मच्छर, ऊपर से टपकता पानी"
+
+msgid "Wisp Thicket"
+msgstr "Wisp Thicket"
+
+msgid "Will-o'-wisps drifting through a dark, smoky wood, ash falling"
+msgstr "अँधेरे, धुएँ भरे जंगल में तैरती भूतिया बत्तियाँ, गिरती राख"
+
+msgid "Deep Docks"
+msgstr "Deep Docks"
+
+msgid "Sparks and embers in the heat of the forges, a rusty haze"
+msgstr "भट्टियों की गर्मी में चिंगारियाँ और अंगारे, जंग लगी धुंध"
+
+msgid "Wormways"
+msgstr "Wormways"
+
+msgid "Water dripping through a damp, dim tunnel"
+msgstr "नम, धुँधली सुरंग में टपकता पानी"
+
+msgid "Giant wheels"
+msgstr "विशाल पहिये"
+
+msgid "Clockwork gears"
+msgstr "घड़ी के गियर"
+
+msgid "Clock faces"
+msgstr "घड़ी के चेहरे"
+
+msgid "Pendulums"
+msgstr "पेंडुलम"
+
+msgid "Bells"
+msgstr "घंटे"
+
+msgid "Chandeliers"
+msgstr "झूमर"
+
+msgid "Rose windows"
+msgstr "गुलाब खिड़कियाँ"
+
+msgid "Hanging chains"
+msgstr "लटकती ज़ंजीरें"
+
+msgid "Candelabra"
+msgstr "शमादान"
+
+msgid "Winches"
+msgstr "चरखियाँ"
+
+msgid "Castle spires"
+msgstr "किले की मीनारें"
+
+msgid "Saw blades"
+msgstr "आरी के ब्लेड"
+
+msgid "Swinging axes"
+msgstr "झूलती कुल्हाड़ियाँ"
+
+msgid "Windmills"
+msgstr "पवनचक्कियाँ"
+
+msgid "Torches"
+msgstr "मशालें"
+
+msgid "Astrolabes"
+msgstr "एस्ट्रोलैब"
+
+msgid "Banners"
+msgstr "झंडे"
+
+msgid "Organ pipes"
+msgstr "ऑर्गन पाइप"
+
+msgid "Hourglasses"
+msgstr "रेतघड़ियाँ"
+
+msgid "Spiked rollers"
+msgstr "काँटेदार बेलन"
+
+msgid "Drills"
+msgstr "ड्रिल"
+
+msgid "Robot arms"
+msgstr "रोबोट भुजाएँ"
+
+msgid "Ringed planets"
+msgstr "छल्लेदार ग्रह"
+
+msgid "Holograms"
+msgstr "होलोग्राम"
+
+msgid "Radar dishes"
+msgstr "रडार डिश"
+
+msgid "Energy conduits"
+msgstr "ऊर्जा नलिकाएँ"
+
+msgid "Pistons"
+msgstr "पिस्टन"
+
+msgid "Gyro rings"
+msgstr "जाइरो रिंग"
+
+msgid "Reactor cores"
+msgstr "रिएक्टर कोर"
+
+msgid "Turbines"
+msgstr "टरबाइन"
+
+msgid "Tesla coils"
+msgstr "टेस्ला कॉइल"
+
+msgid "Exhaust fans"
+msgstr "निकास पंखे"
+
+msgid "Bio pods"
+msgstr "बायो पॉड"
+
+msgid "Specimen tanks"
+msgstr "नमूना टैंक"
+
+msgid "Data streams"
+msgstr "डेटा धाराएँ"
+
+msgid "Laser sweeps"
+msgstr "लेज़र स्वीप"
+
+msgid "Warp portals"
+msgstr "वार्प पोर्टल"
+
+msgid "Crystal pylons"
+msgstr "क्रिस्टल स्तंभ"
+
+msgid "Press hammers"
+msgstr "प्रेस हथौड़े"
+
+msgid "Cargo lifts"
+msgstr "कार्गो लिफ़्ट"
+
+msgid "Huge spoked wheels with paddles round their rims, turning slowly"
+msgstr "पहियों के किनारों पर चप्पुओं वाले विशाल तीलीदार पहिये, धीरे-धीरे घूमते"
+
+msgid "Toothed cogwheels with windows cut in them, turning on their axles: a clock tower's works"
+msgstr "खिड़कियाँ कटे दाँतेदार गियर, अपनी धुरी पर घूमते: घड़ी की मीनार का तंत्र"
+
+msgid "Clock faces lit from behind, their hands going round"
+msgstr "पीछे से रोशन घड़ी के चेहरे, उनकी सुइयाँ घूमती हुई"
+
+msgid "Pendulums swinging from above, some with a bob, some with a blade"
+msgstr "ऊपर से झूलते पेंडुलम, कुछ में गोला, कुछ में ब्लेड"
+
+msgid "Great bells swinging in their yokes, their clappers swinging after them"
+msgstr "अपने जुए में झूलती विशाल घंटियाँ, उनके लटकन उनके पीछे झूलते"
+
+msgid "Chandeliers swaying on their chains, their candles flickering"
+msgstr "अपनी ज़ंजीरों पर झूलते झूमर, उनकी मोमबत्तियाँ टिमटिमाती"
+
+msgid "Rose windows: stone tracery, the stained glass glowing and shimmering"
+msgstr "गुलाब खिड़कियाँ: पत्थर की जालियाँ, रंगीन काँच चमकता और झिलमिलाता"
+
+msgid "Chains hanging from above, swaying, hooks at their ends"
+msgstr "ऊपर से लटकती ज़ंजीरें, झूलती हुई, सिरों पर हुक"
+
+msgid "Candelabra on the floor, their candles flickering"
+msgstr "फ़र्श पर शमादान, उनकी मोमबत्तियाँ टिमटिमाती"
+
+msgid "Winches: spoked wheels turning drums, chains winding up"
+msgstr "चरखियाँ: तीलीदार पहिये ड्रम घुमाते, ज़ंजीरें लिपटती"
+
+msgid "Spiked rollers turning on their beams"
+msgstr "अपनी धरन पर घूमते काँटेदार बेलन"
+
+msgid "Hourglasses running out, then turned over"
+msgstr "रेतघड़ियाँ ख़त्म होती हुईं, फिर पलटी जाती हुईं"
+
+msgid "Organ pipes along the floor, sound pulsing up them"
+msgstr "फ़र्श पर ऑर्गन पाइप, उनमें ऊपर चढ़ती ध्वनि की धड़कन"
+
+msgid "Banners hanging from their rods, waving, tattered at the bottom"
+msgstr "अपनी छड़ों से लटके झंडे, लहराते, नीचे से फटे हुए"
+
+msgid "Astrolabes: nested rings turning about a glowing core"
+msgstr "एस्ट्रोलैब: चमकते केंद्र के चारों ओर घूमते एक-दूसरे में बैठे छल्ले"
+
+msgid "Torches in wall sconces, their flames flickering"
+msgstr "दीवार की चौकियों में मशालें, उनकी लपटें टिमटिमाती"
+
+msgid "Windmills on their towers, their latticed sails turning"
+msgstr "अपनी मीनारों पर पवनचक्कियाँ, उनके जालीदार पाल घूमते"
+
+msgid "Great axe blades swinging from above"
+msgstr "ऊपर से झूलते विशाल कुल्हाड़ी के ब्लेड"
+
+msgid "Saw blades spinning fast, sliding along their slots"
+msgstr "तेज़ घूमते आरी के ब्लेड, अपनी खाँचों में सरकते"
+
+msgid "Castle spires: towers, pointed roofs, lit windows, a flag flying"
+msgstr "किले की मीनारें: बुर्ज, नुकीली छतें, रोशन खिड़कियाँ, लहराता झंडा"
+
+msgid "Turbines spinning in their housings, hubs glowing"
+msgstr "अपने खोलों में घूमती टरबाइन, केंद्र चमकते हुए"
+
+msgid "Reactor cores pulsing inside counter-turning shield rings, energy arcing off them"
+msgstr "उलटी दिशा में घूमते कवच-छल्लों के भीतर धड़कते रिएक्टर कोर, उनसे ऊर्जा की चाप फूटती"
+
+msgid "Gyro rings turning about each other round a glowing orb"
+msgstr "चमकते गोले के चारों ओर एक-दूसरे के गिर्द घूमते जाइरो रिंग"
+
+msgid "Hydraulic pistons pumping up and down, venting at the bottom of their stroke"
+msgstr "ऊपर-नीचे चलते हाइड्रोलिक पिस्टन, अपने स्ट्रोक के निचले सिरे पर भाप छोड़ते"
+
+msgid "Pipes with pulses of energy racing along them"
+msgstr "पाइप जिनमें ऊर्जा की धड़कनें दौड़ती हैं"
+
+msgid "Radar dishes on their masts, turning, feed lights blinking"
+msgstr "अपने मस्तूलों पर घूमते रडार डिश, फ़ीड लाइटें जलती-बुझती"
+
+msgid "Holograms of worlds turning above their projectors, scanlines rolling"
+msgstr "अपने प्रोजेक्टरों के ऊपर घूमते दुनियाओं के होलोग्राम, स्कैनलाइनें लुढ़कती"
+
+msgid "Ringed planets seen through the station's windows, their bands drifting, moons going round"
+msgstr "स्टेशन की खिड़कियों से दिखते छल्लेदार ग्रह, उनकी पट्टियाँ बहती, चाँद घूमते"
+
+msgid "Robot arms reaching and turning, claws opening and closing"
+msgstr "आगे बढ़ती और घूमती रोबोट भुजाएँ, पंजे खुलते और बंद होते"
+
+msgid "Giant drills boring down, spirals turning, tips glowing hot"
+msgstr "नीचे छेद करते विशाल ड्रिल, सर्पिल घूमते, नोकें तपकर चमकती"
+
+msgid "Tesla coils, lightning crackling off their crowns"
+msgstr "टेस्ला कॉइल, उनके शिखरों से बिजली कड़कती"
+
+msgid "Exhaust fans spinning behind their grilles, lit from behind"
+msgstr "अपनी जालियों के पीछे घूमते निकास पंखे, पीछे से रोशन"
+
+msgid "Organic pods breathing, their nuclei pulsing with light"
+msgstr "साँस लेते जैविक पॉड, उनके केंद्रक रोशनी से धड़कते"
+
+msgid "Specimen tanks: glowing fluid, bubbles rising, a creature floating in each"
+msgstr "नमूना टैंक: चमकता तरल, ऊपर उठते बुलबुले, हर एक में तैरता एक जीव"
+
+msgid "Data panels, columns of glowing blocks streaming down them"
+msgstr "डेटा पैनल, उन पर बहते चमकते ब्लॉकों के स्तंभ"
+
+msgid "Security emitters sweeping their laser beams back and forth"
+msgstr "अपनी लेज़र किरणें आगे-पीछे घुमाते सुरक्षा उत्सर्जक"
+
+msgid "Warp portals: rings of runes round swirling vortices"
+msgstr "वार्प पोर्टल: घूमते भँवरों के चारों ओर रूनों के छल्ले"
+
+msgid "Crystal pylons floating and turning over their pedestals"
+msgstr "अपने आधारों के ऊपर तैरते और घूमते क्रिस्टल स्तंभ"
+
+msgid "Press hammers rising slowly, then slamming down in a flash"
+msgstr "प्रेस हथौड़े धीरे-धीरे उठते, फिर चमक के साथ ज़ोर से गिरते"
+
+msgid "Cargo lifts riding up and down their rails, lamps blinking"
+msgstr "अपनी पटरियों पर ऊपर-नीचे चलती कार्गो लिफ़्ट, लैंप जलते-बुझते"
+
+msgid "None"
+msgstr "कोई नहीं"
+
+msgid "Dusty wastes"
+msgstr "धूल भरे बंजर"
+
+msgid "Sunken garden"
+msgstr "डूबा हुआ बाग़"
+
+msgid "Night sky"
+msgstr "रात का आसमान"
+
+msgid "Snowy peaks"
+msgstr "बर्फ़ीली चोटियाँ"
+
+msgid "Deep cavern"
+msgstr "गहरी गुफा"
+
+msgid "Desert dunes"
+msgstr "रेगिस्तानी टीले"
+
+msgid "Ruined city at night"
+msgstr "रात में खंडहर शहर"
+
+msgid "Misty forest"
+msgstr "धुंध भरा जंगल"
+
+msgid "Dusk mountains"
+msgstr "साँझ के पहाड़"
+
+msgid "Custom"
+msgstr "कस्टम"
+
+msgid "Foliage"
+msgstr "पत्तियाँ"
+
+msgid "Cave rocks"
+msgstr "गुफा की चट्टानें"
+
+msgid "Ruins"
+msgstr "खंडहर"
+
+msgid "Mist"
+msgstr "धुंध"
+
+msgid "Auto (Phantom Camera if installed)"
+msgstr "ऑटो (इंस्टॉल हो तो Phantom Camera)"
+
+msgid "Camera2D"
+msgstr "Camera2D"
+
+msgid "PhantomCamera2D"
+msgstr "PhantomCamera2D"
+
+msgid "Room shape (zones)"
+msgstr "कक्ष की आकृति (ज़ोन)"
+
+msgid "Room bounds"
+msgstr "कक्ष की सीमाएँ"
+
+msgid "Fade"
+msgstr "फ़ेड"
+
+msgid "Cut"
+msgstr "कट"
+
+msgid "Slide"
+msgstr "स्लाइड"
+
+msgid "Blend"
+msgstr "ब्लेंड"
+
+msgid "Glide"
+msgstr "ग्लाइड"
+
+msgid "Cut, never glide"
+msgstr "कट, कभी ग्लाइड नहीं"
+
+msgid "Off (always Zoom)"
+msgstr "बंद (हमेशा ज़ूम)"
+
+msgid "Per room (a room's own zoom)"
+msgstr "प्रति कक्ष (कक्ष का अपना ज़ूम)"
+
+msgid "Fit the room (out in big rooms, in in small ones)"
+msgstr "कक्ष में फ़िट (बड़े कक्षों में ज़ूम आउट, छोटों में ज़ूम इन)"
+
+msgid "MetDevSys is in the floating window."
+msgstr "MetDevSys फ़्लोटिंग विंडो में है।"
+
+msgid "MetDevSys is in the right dock."
+msgstr "MetDevSys दाएँ डॉक में है।"
+
+msgid "MetDevSys is in the bottom panel."
+msgstr "MetDevSys निचले पैनल में है।"
+
+msgid "MetDevSys is in the main screen."
+msgstr "MetDevSys मुख्य स्क्रीन में है।"
+
+msgid "MetDevSys - Metroidvania Developer System"
+msgstr "MetDevSys - Metroidvania Developer System"
+
+msgid "Dock MetDevSys back here"
+msgstr "MetDevSys को वापस यहाँ डॉक करें"
+
+msgid "Show it"
+msgstr "इसे दिखाएँ"
+
+msgid "MetSys plugin should be installed and enabled in project settings for the Metroidvania Developer System MetSys mode to work."
+msgstr "Metroidvania Developer System का MetSys मोड चलने के लिए MetSys प्लगइन इंस्टॉल होना चाहिए और प्रोजेक्ट सेटिंग में चालू होना चाहिए।"
+
+msgid "Use selected room as start"
+msgstr "चुने हुए कक्ष को शुरुआत बनाएँ"
+
+msgid "Progression is computed from this room"
+msgstr "प्रगति इसी कक्ष से गिनी जाती है"
+
+msgid "Select a sphere, ability or group to highlight it on the map."
+msgstr "मानचित्र पर हाइलाइट करने के लिए कोई स्फ़ीयर, क्षमता या समूह चुनें।"
+
+msgid "Generate area"
+msgstr "क्षेत्र जनरेट करें"
+
+msgid "Generate"
+msgstr "जनरेट करें"
+
+msgid "An area made of rooms with doors between them, in the box you dragged. Cells other rooms cover are left out. It connects to the areas it touches."
+msgstr "आपके खींचे गए बॉक्स में कक्षों से बना एक क्षेत्र, जिनके बीच दरवाज़े हैं। जिन सेल पर दूसरे कक्ष हैं उन्हें छोड़ दिया जाता है। यह उन क्षेत्रों से जुड़ जाता है जिन्हें यह छूता है।"
+
+msgid "The area's name (an existing area's name adds the rooms to it)"
+msgstr "क्षेत्र का नाम (मौजूदा क्षेत्र का नाम देने पर कक्ष उसी में जुड़ जाते हैं)"
+
+msgid "Random"
+msgstr "रैंडम"
+
+msgid "Another name"
+msgstr "दूसरा नाम"
+
+msgid "Shape"
+msgstr "आकृति"
+
+msgid "Rectangle or square: the whole box. Irregular: blocks joined together. Freeform: a curvy blob with corridors. Hybrid: a blob with halls, towers and corridors. Curves and Slants shape the corners of all of them"
+msgstr "आयत या वर्ग: पूरा बॉक्स। अनियमित: आपस में जुड़े ब्लॉक। फ़्रीफ़ॉर्म: गलियारों वाली अनगढ़ घुमावदार आकृति। हाइब्रिड: हॉल, टावर और गलियारों वाली अनगढ़ आकृति। घुमाव और तिरछे कट इन सभी के कोनों को आकार देते हैं"
+
+msgid "Share of the outline's corners rounded into curves, and of the corridors that curve. 0 with Slants 0: straight sides and sharp corners"
+msgstr "आउटलाइन के गोल किए गए कोनों और मुड़ने वाले गलियारों का अनुपात। 0 और तिरछे कट 0: सीधे किनारे और तीखे कोने"
+
+msgid "Curves"
+msgstr "घुमाव"
+
+msgid "Share of the outline's corners cut on a slant, of the blocks with a slanted side, and of the corridors that turn at angles"
+msgstr "आउटलाइन के तिरछे काटे गए कोनों, तिरछी भुजा वाले ब्लॉकों और कोण पर मुड़ने वाले गलियारों का अनुपात"
+
+msgid "Slants"
+msgstr "तिरछे कट"
+
+msgid "Smallest room"
+msgstr "सबसे छोटा कक्ष"
+
+msgid "Paint cells (World settings > Paint cell; a quarter of the default room size unless set)"
+msgstr "पेंट सेल में (वर्ल्ड सेटिंग > पेंट सेल; सेट न हो तो डिफ़ॉल्ट कक्ष आकार का चौथाई भाग)"
+
+msgid "Largest room"
+msgstr "सबसे बड़ा कक्ष"
+
+msgid "Paint cells"
+msgstr "पेंट सेल"
+
+msgid "Irregular rooms"
+msgstr "अनियमित कक्ष"
+
+msgid "Share of rooms joined with a neighbour into one L, T or U shaped room"
+msgstr "पड़ोसी से जुड़कर एक L, T या U आकार का कक्ष बनने वाले कक्षों का अनुपात"
+
+msgid "Shafts"
+msgstr "शाफ़्ट"
+
+msgid "Share of tall, narrow rooms to climb or fall through"
+msgstr "चढ़ने या नीचे गिरने के लिए ऊँचे, संकरे कक्षों का अनुपात"
+
+msgid "Share of the other neighbouring rooms that get a door too: more ways around. 0: one way to each room"
+msgstr "बाकी पड़ोसी कक्षों में से जिन्हें भी दरवाज़ा मिलता है उनका अनुपात: घूमकर जाने के और रास्ते। 0: हर कक्ष तक एक ही रास्ता"
+
+msgid "Loops"
+msgstr "लूप"
+
+msgid "How ragged a freeform or hybrid outline is"
+msgstr "फ़्रीफ़ॉर्म या हाइब्रिड आउटलाइन कितनी ऊबड़-खाबड़ है"
+
+msgid "Ragged outline"
+msgstr "ऊबड़-खाबड़ आउटलाइन"
+
+msgid "Corridors"
+msgstr "गलियारे"
+
+msgid "Corridors reaching out of a freeform or hybrid area"
+msgstr "फ़्रीफ़ॉर्म या हाइब्रिड क्षेत्र से बाहर निकलते गलियारे"
+
+msgid "Seed"
+msgstr "सीड"
+
+msgid "New"
+msgstr "नया"
+
+msgid "Another layout"
+msgstr "दूसरा लेआउट"
+
+msgid "Connect to the areas it touches"
+msgstr "छूने वाले क्षेत्रों से जोड़ें"
+
+msgid "A door to each area it touches, where they meet (taken out again if you drag them apart with the Area tool)"
+msgstr "जहाँ दो क्षेत्र मिलते हैं, वहाँ छूने वाले हर क्षेत्र के लिए एक दरवाज़ा (क्षेत्र टूल से उन्हें अलग खींचने पर यह फिर हट जाता है)"
+
+msgid "The box is full of rooms already: drag it over free space."
+msgstr "बॉक्स में पहले से कक्ष भरे हैं: इसे ख़ाली जगह पर खींचें।"
+
+msgid "Convert to freeform"
+msgstr "फ़्रीफ़ॉर्म में रूपांतरित करें"
+
+msgid "Convert"
+msgstr "रूपांतरित करें"
+
+msgid "Turns the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects where it is. Platforms become one-way ledges."
+msgstr "कक्ष की ठोस टाइलों, स्टैटिक बॉडी और सीधे किनारों वाली फ़्रीफ़ॉर्म आकृतियों को प्राकृतिक फ़्रीफ़ॉर्म चट्टान में बदलता है; हर दरवाज़े, प्लेटफ़ॉर्म की ऊपरी सतह और वस्तुओं के नीचे के फ़र्श को अपनी जगह पर ही रखता है। प्लेटफ़ॉर्म एकतरफ़ा कगार बन जाते हैं।"
+
+msgid "Rock style"
+msgstr "चट्टान शैली"
+
+msgid "Style of the solid rock"
+msgstr "ठोस चट्टान की शैली"
+
+msgid "Ledge style"
+msgstr "कगार शैली"
+
+msgid "Style of the ledges made from platforms (one-way bodies and tiles)"
+msgstr "प्लेटफ़ॉर्म (एकतरफ़ा बॉडी और टाइलें) से बनी कगारों की शैली"
+
+msgid "Background tiles"
+msgstr "पृष्ठभूमि टाइलें"
+
+msgid "Turn the Background layer's tiles into freeform shapes of this style, or keep them"
+msgstr "पृष्ठभूमि परत की टाइलों को इस शैली की फ़्रीफ़ॉर्म आकृतियों में बदलें, या उन्हें रहने दें"
+
+msgid "Foreground tiles"
+msgstr "अग्रभूमि टाइलें"
+
+msgid "Turn the Foreground layer's tiles into freeform shapes of this style, or keep them"
+msgstr "अग्रभूमि परत की टाइलों को इस शैली की फ़्रीफ़ॉर्म आकृतियों में बदलें, या उन्हें रहने दें"
+
+msgid "Also cover the cells of the room's box outside its shape on the map with non-solid shapes of this style (deep ground over the rock's edges)"
+msgstr "कक्ष के बॉक्स के उन सेल को भी, जो मानचित्र पर उसकी आकृति के बाहर हैं, इस शैली की गैर-ठोस आकृतियों से ढकें (चट्टान के किनारों पर गहरी ज़मीन)"
+
+msgid "Fill outside shape"
+msgstr "आकृति के बाहर भरें"
+
+msgid "How much faces grow: floors in low mounds, ceilings sagging in lobes, walls bulging (0: corners rounded only)"
+msgstr "सतहें कितनी उभरती हैं: फ़र्श नीचे टीलों में, छतें लटकती पालियों में, दीवारें बाहर की ओर फूलती हुई (0: केवल कोने गोल होते हैं)"
+
+msgid "Growth"
+msgstr "उभार"
+
+msgid "Inside corners"
+msgstr "भीतरी कोने"
+
+msgid "px"
+msgstr "px"
+
+msgid "Radius of the bowls rounding inside corners"
+msgstr "भीतरी कोनों को गोल करने वाले कटोरों की त्रिज्या"
+
+msgid "Outside corners"
+msgstr "बाहरी कोने"
+
+msgid "Radius of the lips rounding outside corners"
+msgstr "बाहरी कोनों को गोल करने वाले उभरे किनारों की त्रिज्या"
+
+msgid "Same seed, same rock"
+msgstr "वही सीड, वही चट्टान"
+
+msgid "Old terrain"
+msgstr "पुराना भूभाग"
+
+msgid "Keep it, hidden"
+msgstr "रखें, छिपाकर"
+
+msgid "Remove it"
+msgstr "इसे निकालें"
+
+msgid "Hidden: the old tiles move to a disabled <Layer>Blockout layer and old bodies are hidden without collision, all still in the scene. Remove: they go (Ctrl+Z still brings them back)"
+msgstr "छिपाकर: पुरानी टाइलें एक अक्षम <Layer>Blockout परत में चली जाती हैं और पुरानी बॉडी कोलिज़न के बिना छिपा दी जाती हैं; सब कुछ सीन में ही रहता है। निकालें: वे हट जाती हैं (Ctrl+Z से वापस आ जाती हैं)"
+
+msgid "Convert straight-edged freeform shapes"
+msgstr "सीधे किनारों वाली फ़्रीफ़ॉर्म आकृतियाँ रूपांतरित करें"
+
+msgid "Solid freeform shapes with Smooth off (a blockout drawn with rectangles) become rock too"
+msgstr "Smooth बंद वाली ठोस फ़्रीफ़ॉर्म आकृतियाँ (आयतों से बना ब्लॉकआउट) भी चट्टान बन जाती हैं"
+
+msgid "Preview"
+msgstr "पूर्वावलोकन"
+
+msgid "Rock style, as one-way ledges"
+msgstr "चट्टान शैली, एकतरफ़ा कगारों के रूप में"
+
+msgid "Keep as tiles"
+msgstr "टाइलों के रूप में रखें"
+
+msgid "No"
+msgstr "नहीं"
+
+msgid "Decorate freeform"
+msgstr "फ़्रीफ़ॉर्म सजाएँ"
+
+msgid "Decorate"
+msgstr "सजाएँ"
+
+msgid "Places scenery relative to the room's freeform rock, never over doorways, platforms or anything in the room. Running it again replaces what it placed before."
+msgstr "कक्ष की फ़्रीफ़ॉर्म चट्टान के हिसाब से सजावट लगाता है, दरवाज़ों, प्लेटफ़ॉर्म या कक्ष की किसी भी चीज़ के ऊपर कभी नहीं। दोबारा चलाने पर पहले लगाई गई सजावट बदल जाती है।"
+
+msgid "Stamp set"
+msgstr "स्टैम्प सेट"
+
+msgid "Hanging"
+msgstr "लटकते स्टैम्प"
+
+msgid "Stamps hung under ceilings and ledges"
+msgstr "छतों और कगारों के नीचे लटकाए गए स्टैम्प"
+
+msgid "Floor plants"
+msgstr "फ़र्श के पौधे"
+
+msgid "Stamps along floors: tick the categories below"
+msgstr "फ़र्श के साथ-साथ स्टैम्प: नीचे की श्रेणियों पर टिक करें"
+
+msgid "Background shapes standing on flat floors (or hanging under flat ceilings): tick the kinds below"
+msgstr "सपाट फ़र्श पर खड़ी (या सपाट छतों से लटकती) पृष्ठभूमि की आकृतियाँ: नीचे के प्रकारों पर टिक करें"
+
+msgid "Structures"
+msgstr "संरचनाएँ"
+
+msgid "Structure style"
+msgstr "संरचना शैली"
+
+msgid "Leaves on them"
+msgstr "उन पर पत्ते"
+
+msgid "Leaf silhouettes framing the room's free corners, in front of everything"
+msgstr "कक्ष के ख़ाली कोनों को घेरते पत्तों के सिल्हूट, सबसे आगे"
+
+msgid "Density"
+msgstr "घनत्व"
+
+msgid "Same seed, same decoration"
+msgstr "वही सीड, वही सजावट"
+
+msgid "No stamp sets (structures and leaves only)"
+msgstr "कोई स्टैम्प सेट नहीं (केवल संरचनाएँ और पत्ते)"
+
+msgid "Starts only when"
+msgstr "केवल तभी शुरू होता है जब"
+
+msgid "Stops when"
+msgstr "तब रुकता है जब"
+
+msgid "Add a condition"
+msgstr "शर्त जोड़ें"
+
+msgid "flag"
+msgstr "फ़्लैग"
+
+msgid "not"
+msgstr "नहीं"
+
+msgid "Holds when the test fails"
+msgstr "तब सही मानी जाती है जब जाँच विफल हो"
+
+msgid "Remove this condition"
+msgstr "यह शर्त निकालें"
+
+msgid "Fight"
+msgstr "लड़ाई"
+
+msgid "The bosses and enemies with moves in the open scene"
+msgstr "खुले सीन में चालों वाले बॉस और दुश्मन"
+
+msgid "Open .tres…"
+msgstr ".tres खोलें…"
+
+msgid "Open a phase or a move saved in a file of its own"
+msgstr "अपनी अलग फ़ाइल में सहेजा गया चरण या चाल खोलें"
+
+msgid "Inspect"
+msgstr "निरीक्षण"
+
+msgid "Show the selected move in the editor's inspector"
+msgstr "चुनी हुई चाल को एडिटर के इंस्पेक्टर में दिखाएँ"
+
+msgid "Replace the boss's fight with a recipe, to change. Undo brings back what it had"
+msgstr "बदलाव करने के लिए बॉस की लड़ाई को किसी रेसिपी से बदलें। पूर्ववत करने पर पहले वाली लड़ाई वापस आ जाती है"
+
+msgid "Start from a recipe…"
+msgstr "रेसिपी से शुरू करें…"
+
+msgid "Phases"
+msgstr "चरण"
+
+msgid "Add a phase, starting at half the health of the last"
+msgstr "एक चरण जोड़ें, जो पिछले चरण के आधे हेल्थ से शुरू होता है"
+
+msgid "Add"
+msgstr "जोड़ें"
+
+msgid "Remove this phase"
+msgstr "यह चरण निकालें"
+
+msgid "Remove"
+msgstr "निकालें"
+
+msgid "Selected move"
+msgstr "चुनी हुई चाल"
+
+msgid "Up"
+msgstr "ऊपर"
+
+msgid "Move it before the one above it"
+msgstr "इसे ऊपर वाली चाल से पहले ले जाएँ"
+
+msgid "Down"
+msgstr "नीचे"
+
+msgid "Move it after the one below it"
+msgstr "इसे नीचे वाली चाल के बाद ले जाएँ"
+
+msgid "Duplicate"
+msgstr "डुप्लिकेट करें"
+
+msgid "A copy of it and everything in it, right after it"
+msgstr "इसकी और इसके अंदर की हर चीज़ की एक प्रति, ठीक इसके बाद"
+
+msgid "Make unique"
+msgstr "यूनिक बनाएँ"
+
+msgid "It is used in more than one place: give this place a copy of its own"
+msgstr "यह एक से ज़्यादा जगह इस्तेमाल हो रहा है: इस जगह को इसकी अपनी प्रति दें"
+
+msgid "Take it out, and everything in it"
+msgstr "इसे और इसके अंदर की हर चीज़ को निकाल दें"
+
+msgid "Add a move"
+msgstr "चाल जोड़ें"
+
+msgid "Where a new move goes"
+msgstr "नई चाल कहाँ जाएगी"
+
+msgid "While playing"
+msgstr "खेलते समय"
+
+msgid "Which running fighter the graph follows"
+msgstr "ग्राफ़ चल रहे किस लड़ाके का अनुसरण करता है"
+
+msgid "[i]Run the game to see the fight here.[/i]"
+msgstr "[i]यहाँ लड़ाई देखने के लिए गेम चलाएँ।[/i]"
+
+msgid "Make editable"
+msgstr "संपादन योग्य बनाएँ"
+
+msgid "Copy these phases onto the boss, to change. Undo takes it back"
+msgstr "बदलाव करने के लिए इन चरणों को बॉस पर कॉपी करें। पूर्ववत करने पर यह वापस हो जाता है"
+
+msgid "Select an MDSMoveBoss or an MDSMoveEnemy in the scene, or open a .tres of a phase or a move."
+msgstr "सीन में कोई MDSMoveBoss या MDSMoveEnemy चुनें, या किसी चरण या चाल की .tres खोलें।"
+
+msgid "⚠ see below"
+msgstr "⚠ नीचे देखें"
+
+msgid "After this move"
+msgstr "इस चाल के बाद"
+
+msgid "A move can't go inside itself."
+msgstr "कोई चाल अपने अंदर नहीं जा सकती।"
+
+msgid "Select where it goes first: a move with room in it, or one to add after."
+msgstr "पहले चुनें कि यह कहाँ जाएगा: ऐसी चाल जिसमें जगह हो, या जिसके बाद जोड़ना हो।"
+
+msgid "Couldn't make one: its script needs @tool."
+msgstr "एक बनाया नहीं जा सका: इसकी स्क्रिप्ट में @tool होना ज़रूरी है।"
+
+msgid "No fighters in this scene"
+msgstr "इस सीन में कोई लड़ाका नहीं"
+
+msgid "[i]Pick a running fighter above.[/i]"
+msgstr "[i]ऊपर से कोई चल रहा लड़ाका चुनें।[/i]"
+
+msgid "Rooms"
+msgstr "कक्ष"
+
+msgid "Ellipse"
+msgstr "दीर्घवृत्त"
+
+msgid "Polygon"
+msgstr "बहुभुज"
+
+msgid "Curvy"
+msgstr "घुमावदार"
+
+msgid "Gen. area"
+msgstr "क्षेत्र जनरेट"
+
+msgid "Select rooms and outlines: click (Ctrl or Shift adds or takes out), or drag a box on empty space. Drag them to move them: rooms move in paint cells and stop against the others, with doors where they touch. Double-click a room to edit it (and the others selected) in the Room view. Delete removes them, Ctrl+A selects them all, the arrows nudge them"
+msgstr "कक्ष और आउटलाइन चुनें: क्लिक करें (Ctrl या Shift से जोड़ें या निकालें), या ख़ाली जगह पर बॉक्स खींचें। उन्हें खींचकर हिलाएँ: कक्ष पेंट सेल में हिलते हैं और दूसरों से टकराकर रुक जाते हैं, जहाँ वे छूते हैं वहाँ दरवाज़े बन जाते हैं। किसी कक्ष (और चुने हुए बाकी कक्षों) को कक्ष दृश्य में संपादित करने के लिए उस पर डबल-क्लिक करें। Delete उन्हें हटाता है, Ctrl+A सबको चुनता है, ऐरो कुंजियाँ उन्हें थोड़ा खिसकाती हैं"
+
+msgid "Draw a room's outline: drag a rectangle (Snap to cells: on the paint cells). Generate map makes the outlines rooms on the map"
+msgstr "कक्ष की आउटलाइन बनाएँ: आयत खींचें (सेल पर स्नैप: पेंट सेल पर)। मानचित्र जनरेट करें आउटलाइन को मानचित्र पर कक्ष बना देता है"
+
+msgid "Draw an ellipse: drag its box (Shift: a circle). Generate map makes the outlines rooms on the map"
+msgstr "दीर्घवृत्त बनाएँ: उसका बॉक्स खींचें (Shift: वृत्त)। मानचित्र जनरेट करें आउटलाइन को मानचित्र पर कक्ष बना देता है"
+
+msgid "Draw a polygon: click its corners, then click the first one, double-click or press Enter to close it. Backspace takes the last corner back, Esc drops it"
+msgstr "बहुभुज बनाएँ: उसके कोनों पर क्लिक करें, फिर बंद करने के लिए पहले कोने पर क्लिक करें, डबल-क्लिक करें या Enter दबाएँ। Backspace आख़िरी कोना वापस लेता है, Esc उसे छोड़ देता है"
+
+msgid "Draw a curvy outline freehand: drag around it and release, it closes and is smoothed"
+msgstr "घुमावदार आउटलाइन हाथ से बनाएँ: उसके चारों ओर खींचें और छोड़ दें, वह बंद हो जाती है और चिकनी कर दी जाती है"
+
+msgid "Generate area: drag a box for the Generate area dialog, an area of rooms with an outline of its own (rectangle, blocks, curvy or hybrid), like the map's Generate area tool"
+msgstr "क्षेत्र जनरेट करें: क्षेत्र जनरेट करें डायलॉग के लिए बॉक्स खींचें; यह अपनी आउटलाइन वाले कक्षों का एक क्षेत्र बनाता है (आयत, ब्लॉक, घुमावदार या हाइब्रिड), जैसे मानचित्र का क्षेत्र जनरेट करें टूल"
+
+msgid "Nothing to generate: draw rooms first with Rectangle, Ellipse, Polygon or Curvy."
+msgstr "जनरेट करने के लिए कुछ नहीं: पहले आयत, दीर्घवृत्त, बहुभुज या घुमावदार से कक्ष बनाएँ।"
+
+msgid "Polygon: click its next corners; click the first one, double-click or press Enter to close it."
+msgstr "बहुभुज: उसके अगले कोनों पर क्लिक करें; बंद करने के लिए पहले कोने पर क्लिक करें, डबल-क्लिक करें या Enter दबाएँ।"
+
+msgid "Generate area needs a box of 2 x 2 paint cells or more."
+msgstr "क्षेत्र जनरेट करने के लिए कम से कम 2 x 2 पेंट सेल का बॉक्स चाहिए।"
+
+msgid "The rooms selected are against a neighbour there."
+msgstr "चुने हुए कक्ष वहाँ किसी पड़ोसी से सटे हैं।"
+
+msgid "Undone on the map."
+msgstr "मानचित्र पर पूर्ववत किया गया।"
+
+msgid "Redone on the map."
+msgstr "मानचित्र पर फिर से किया गया।"
+
+msgctxt "list separator"
+msgid ", "
+msgstr ", "
+
+msgid "MetSys colors"
+msgstr "MetSys रंग"
+
+msgid "Room type"
+msgstr "कक्ष का प्रकार"
+
+msgid "Progression"
+msgstr "प्रगति"
+
+msgid "Save distance"
+msgstr "सेव दूरी"
+
+msgid "Build status"
+msgstr "बिल्ड स्थिति"
+
+msgid "Import map image"
+msgstr "मानचित्र छवि आयात करें"
+
+msgid "Import"
+msgstr "आयात करें"
+
+msgid "A picture of a map becomes rooms on the map: its grid's cells are paint cells, its colors areas, cells parted by a wall line separate rooms, a gap in a wall or a gate marker on it a door. A map drawn with no grid (Hollow Knight, Silksong) is read as a shape per area, each split into rooms with doors. Cells other rooms have are left out. One undo takes it back."
+msgstr "मानचित्र की तस्वीर मानचित्र पर कक्ष बन जाती है: उसकी ग्रिड के सेल पेंट सेल बनते हैं, उसके रंग क्षेत्र, दीवार की रेखा से बँटे सेल अलग कक्ष, और दीवार में ख़ाली जगह या उस पर द्वार मार्कर एक दरवाज़ा। बिना ग्रिड वाला बनाया हुआ मानचित्र (Hollow Knight, Silksong) हर क्षेत्र के लिए एक आकृति के रूप में पढ़ा जाता है, जिसे दरवाज़ों वाले कक्षों में बाँटा जाता है। जिन सेल पर दूसरे कक्ष हैं उन्हें छोड़ दिया जाता है। एक बार पूर्ववत करने से सब वापस हो जाता है।"
+
+msgid "No picture yet"
+msgstr "अभी कोई तस्वीर नहीं"
+
+msgid "Pick..."
+msgstr "चुनें..."
+
+msgid "Pick a picture of a map (PNG, JPG, WebP, BMP, TGA, SVG), in the project or anywhere on disk"
+msgstr "मानचित्र की तस्वीर चुनें (PNG, JPG, WebP, BMP, TGA, SVG), प्रोजेक्ट में या डिस्क पर कहीं से भी"
+
+msgid "Find it"
+msgstr "अपने आप खोजें"
+
+msgid "Find the map's grid from where its rooms' edges are (across and down on their own). Off: the cell size and offset below. A picture MDS exported has a sidecar file that gives it exactly"
+msgstr "मानचित्र की ग्रिड उसके कक्षों के किनारों की जगह से खोजें (आड़े और खड़े, अलग-अलग)। बंद होने पर: नीचे दिए सेल आकार और ऑफ़सेट का उपयोग होता है। MDS की निर्यात की हुई तस्वीर के साथ एक साइडकार फ़ाइल होती है जो इसे ठीक-ठीक बता देती है"
+
+msgid "One cell of the map's grid in the picture, across and down"
+msgstr "तस्वीर में मानचित्र की ग्रिड का एक सेल, आड़ा और खड़ा"
+
+msgid "Cell size (px)"
+msgstr "सेल आकार (px)"
+
+msgid "Where a cell's top-left corner is in the picture"
+msgstr "तस्वीर में सेल का ऊपरी-बायाँ कोना कहाँ है"
+
+msgid "Cell starts at (px)"
+msgstr "सेल यहाँ से शुरू (px)"
+
+msgid "How far apart two room colors may be and be one area (hue and saturation count, brightness less)"
+msgstr "दो कक्षों के रंग कितने अलग हो सकते हैं और फिर भी एक ही क्षेत्र माने जाएँ (ह्यू और सैचुरेशन गिने जाते हैं, चमक कम)"
+
+msgid "Same area within"
+msgstr "इतने अंतर तक एक ही क्षेत्र"
+
+msgid "Ink darker than"
+msgstr "इससे गहरी स्याही"
+
+msgid "Pixels darker than this are walls and outlines, not rooms"
+msgstr "इससे गहरे पिक्सेल दीवारें और आउटलाइन हैं, कक्ष नहीं"
+
+msgid "Room cell filled"
+msgstr "कक्ष सेल भरा हुआ"
+
+msgid "The share of a cell's middle that must be room color for it to be a room's"
+msgstr "किसी सेल के बीच का वह हिस्सा जो कक्ष के रंग का होना चाहिए, ताकि वह कक्ष का माना जाए"
+
+msgid "Parted by walls"
+msgstr "दीवारों से बँटे"
+
+msgid "One per color region"
+msgstr "हर रंग क्षेत्र का एक"
+
+msgid "One per cell"
+msgstr "हर सेल का एक"
+
+msgid "Drawn map: a shape per area"
+msgstr "बनाया हुआ मानचित्र: हर क्षेत्र की एक आकृति"
+
+msgid "Parted by walls: cells of one area with no wall line between them are one room. One per color region: the cells of one area that touch. One per cell: every cell its own room. Drawn map: a map with no grid (Hollow Knight, Silksong), each area a shape filled with its color: each shape is split into rooms with doors, keeping its outline (used too when no grid is found)"
+msgstr "दीवारों से बँटे: एक क्षेत्र के जिन सेल के बीच दीवार की रेखा नहीं है, वे एक कक्ष हैं। हर रंग क्षेत्र का एक: एक क्षेत्र के वे सेल जो आपस में छूते हैं। हर सेल का एक: हर सेल अपना अलग कक्ष। बनाया हुआ मानचित्र: बिना ग्रिड वाला मानचित्र (Hollow Knight, Silksong), जिसमें हर क्षेत्र अपने रंग से भरी एक आकृति है: हर आकृति अपनी आउटलाइन बनाए रखते हुए दरवाज़ों वाले कक्षों में बाँटी जाती है (ग्रिड न मिलने पर भी यही होता है)"
+
+msgid "A map drawn with no grid: how many paint cells its width takes on the world (more: bigger rooms on the map, more of them, thin corridors kept)"
+msgstr "बिना ग्रिड वाला बनाया हुआ मानचित्र: उसकी चौड़ाई वर्ल्ड के कितने पेंट सेल घेरती है (ज़्यादा: मानचित्र पर बड़े और ज़्यादा कक्ष, पतले गलियारे बने रहते हैं)"
+
+msgid "Drawn map: cells across"
+msgstr "बनाया हुआ मानचित्र: आड़े सेल"
+
+msgid "Paint cells per cell"
+msgstr "प्रति सेल पेंट सेल"
+
+msgid "How many paint cells of the world one cell of the picture's grid covers, across and down (a MetSys map's cell is a whole screen: 4 x 4 by default)"
+msgstr "तस्वीर की ग्रिड का एक सेल वर्ल्ड के कितने पेंट सेल को ढकता है, आड़े और खड़े (MetSys मानचित्र का सेल पूरी स्क्रीन होता है: डिफ़ॉल्ट रूप से 4 x 4)"
+
+msgid "Place"
+msgstr "लगाएँ"
+
+msgid "Right of the map"
+msgstr "मानचित्र के दाईं ओर"
+
+msgid "Where it was dropped"
+msgstr "जहाँ छोड़ा गया"
+
+msgid "Where they were (sidecar)"
+msgstr "जहाँ वे थे (साइडकार)"
+
+msgid "Right of the rooms on this layer; where the picture was dropped on the map; or, for a picture MDS exported with its sidecar, on the same paint cells as the rooms it shows"
+msgstr "इस परत के कक्षों के दाईं ओर; जहाँ तस्वीर मानचित्र पर छोड़ी गई थी; या MDS की साइडकार के साथ निर्यात की गई तस्वीर के लिए, उन्हीं पेंट सेल पर जिन पर वे कक्ष हैं जो वह दिखाती है"
+
+msgid "Doors: gaps in walls, gate markers"
+msgstr "दरवाज़े: दीवारों में ख़ाली जगह, द्वार मार्कर"
+
+msgid "A gap in a wall between two rooms, or a gate marker (a bright square, as MDS draws gates) on it, is a door: a pair of connected gates"
+msgstr "दो कक्षों के बीच की दीवार में ख़ाली जगह, या उस पर एक द्वार मार्कर (एक चमकीला वर्ग, जैसा MDS द्वार बनाता है), एक दरवाज़ा है: जुड़े हुए द्वारों की एक जोड़ी"
+
+msgid "Doors to rooms no door reaches"
+msgstr "उन कक्षों के दरवाज़े जहाँ कोई दरवाज़ा नहीं पहुँचता"
+
+msgid "Rooms no door reaches get one to a room they touch, so every room can be walked to"
+msgstr "जिन कक्षों तक कोई दरवाज़ा नहीं पहुँचता, उन्हें अपने सटे हुए किसी कक्ष का दरवाज़ा मिलता है, ताकि हर कक्ष तक पैदल पहुँचा जा सके"
+
+msgid "Areas (biggest first)"
+msgstr "क्षेत्र (सबसे बड़े पहले)"
+
+msgid "The area's name (an existing area's name puts the rooms in it)"
+msgstr "क्षेत्र का नाम (मौजूदा क्षेत्र का नाम देने पर कक्ष उसी में रखे जाते हैं)"
+
+msgid "Flat"
+msgstr "सपाट"
+
+msgid "Hand-drawn (double line)"
+msgstr "हाथ से बना (दोहरी रेखा)"
+
+msgid "Blueprint"
+msgstr "ब्लूप्रिंट"
+
+msgid "Chunky pixel"
+msgstr "मोटे पिक्सेल"
+
+msgid "Glowing areas (atlas)"
+msgstr "चमकते क्षेत्र (एटलस)"
+
+msgid "Merge rooms"
+msgstr "कक्ष मर्ज करें"
+
+msgid "Merge"
+msgstr "मर्ज करें"
+
+msgid "Keep"
+msgstr "रखें"
+
+msgid "The room that stays: its id, its place in the map's order, its scene and its settings (names, notes and abilities it lacks come from the others). The others' gates to the rest of the map are renamed where their names are taken"
+msgstr "जो कक्ष रहेगा: उसकी ID, मानचित्र के क्रम में उसकी जगह, उसका सीन और उसकी सेटिंग (जो नाम, नोट और क्षमताएँ उसमें नहीं हैं वे बाकी कक्षों से आती हैं)। बाकी कक्षों के जो द्वार मानचित्र के बाक़ी हिस्से से जुड़ते हैं, उनके नाम बदले जाते हैं जहाँ वे नाम पहले से लिए हुए हैं"
+
+msgid "Bring what is painted in their scenes into its scene"
+msgstr "उनके सीन में जो पेंट किया गया है उसे इसके सीन में लाएँ"
+
+msgid "Their tiles (only inside their own room; the walls where they meet drawn as one again), freeform shapes, stamps, effects, pictures and other nodes (enemies, pickups...) go into the kept room's scene, where they were on the map. Tiles of another tileset or off its grid come as free tile pieces. Their gate nodes and map guides are made anew. Their scenes stay on disk, no longer used"
+msgstr "उनकी टाइलें (केवल उनके अपने कक्ष के अंदर की; जहाँ वे मिलते हैं वहाँ की दीवारें फिर से एक बनाकर खींची जाती हैं), फ़्रीफ़ॉर्म आकृतियाँ, स्टैम्प, प्रभाव, तस्वीरें और अन्य नोड (दुश्मन, पिकअप...) रखे गए कक्ष के सीन में चले जाते हैं, उसी जगह जहाँ वे मानचित्र पर थे। किसी दूसरे टाइलसेट की या ग्रिड से बाहर की टाइलें फ़्री टाइल के टुकड़ों के रूप में आती हैं। उनके द्वार नोड और मानचित्र गाइड नए सिरे से बनाए जाते हैं। उनके सीन डिस्क पर बने रहते हैं, पर अब उपयोग में नहीं रहते"
+
+msgid "Generate a cave for the merged room"
+msgstr "मर्ज किए गए कक्ष के लिए गुफा जनरेट करें"
+
+msgid "Replace its tiles with a cave built from its shape on the map, with the Room view's fills and Generate options (saved; Ctrl+Z on the map undoes the merge, not the scene)"
+msgstr "इसकी टाइलों को मानचित्र पर इसकी आकृति से बनी गुफा से बदलें, कक्ष दृश्य के फ़िल और जनरेट विकल्पों के साथ (सहेजा जाता है; मानचित्र पर Ctrl+Z मर्ज को पूर्ववत करता है, सीन को नहीं)"
+
+msgid "Walls where the old rooms met"
+msgstr "जहाँ पुराने कक्ष मिलते थे वहाँ दीवारें"
+
+msgid "The cave keeps walls where the merged rooms met, with openings where their doors were, each old room reached through them. Off: one open cave"
+msgstr "गुफा में उन जगहों पर दीवारें रहती हैं जहाँ मर्ज किए गए कक्ष मिलते थे, और जहाँ उनके दरवाज़े थे वहाँ खुले रास्ते, जिनसे हर पुराने कक्ष तक पहुँचा जाता है। बंद होने पर: एक खुली गुफा"
+
+msgid "Variation"
+msgstr "वैरिएशन"
+
+msgid "Another number, another cave (the Room view's New variation gives more)"
+msgstr "दूसरी संख्या, दूसरी गुफा (कक्ष दृश्य का नया वैरिएशन और देता है)"
+
+msgid "Another variation"
+msgstr "दूसरा वैरिएशन"
+
+msgid "Open it in the Room view"
+msgstr "इसे कक्ष दृश्य में खोलें"
+
+msgid "Edit the merged room: Generate cave and New variation there too"
+msgstr "मर्ज किए गए कक्ष को संपादित करें: वहाँ भी गुफा जनरेट करें और नया वैरिएशन"
+
+msgid "Items only (free tiles, stamps, pictures, shapes)"
+msgstr "केवल वस्तुएँ (फ़्री टाइलें, स्टैम्प, तस्वीरें, आकृतियाँ)"
+
+msgid "Decor tiles"
+msgstr "सजावट टाइलें"
+
+msgid "Terrain tiles"
+msgstr "भूभाग टाइलें"
+
+msgid "Everything"
+msgstr "सब कुछ"
+
+msgid "Terrain"
+msgstr "भूभाग"
+
+msgid "Style's role"
+msgstr "शैली की भूमिका"
+
+msgid "Platform, one-way"
+msgstr "प्लेटफ़ॉर्म, एकतरफ़ा"
+
+msgid "Platform, two-way"
+msgstr "प्लेटफ़ॉर्म, दोतरफ़ा"
+
+msgid "Decoration (no collision)"
+msgstr "सजावट (कोलिज़न नहीं)"
+
+msgid "Top tile (stamp, free tiles, foreground, decor, terrain, then background)"
+msgstr "ऊपरी टाइल (स्टैम्प, फ़्री टाइलें, अग्रभूमि, सजावट, भूभाग, फिर पृष्ठभूमि)"
+
+msgid "Decor only"
+msgstr "केवल सजावट"
+
+msgid "Terrain only"
+msgstr "केवल भूभाग"
+
+msgid "Background only"
+msgstr "केवल पृष्ठभूमि"
+
+msgid "All layers"
+msgstr "सभी परतें"
+
+msgid "Foreground only"
+msgstr "केवल अग्रभूमि"
+
+msgid "Freeform shape removed."
+msgstr "फ़्रीफ़ॉर्म आकृति निकाल दी गई।"
+
+msgid "Pick tiles in the tile palette first (drag over them): the Place tool puts them anywhere in the room, at any angle."
+msgstr "पहले टाइल पैलेट में टाइलें चुनें (उन पर खींचें): लगाएँ टूल उन्हें कक्ष में कहीं भी, किसी भी कोण पर रखता है।"
+
+msgid "Nothing selected. Click tiles, free tiles, stamps, pictures or shapes (Shift adds), or drag a box around them."
+msgstr "कुछ चुना नहीं गया। टाइलों, फ़्री टाइलों, स्टैम्प, तस्वीरों या आकृतियों पर क्लिक करें (Shift से जुड़ता है), या उनके चारों ओर बॉक्स खींचें।"
+
+msgid "Select free tiles first (tiles placed with Place, or moved off the grid)."
+msgstr "पहले फ़्री टाइलें चुनें (लगाएँ से रखी गई, या ग्रिड से बाहर हटाई गई टाइलें)।"
+
+msgid "Drag an effect from the list onto the room, or pick one and click."
+msgstr "सूची से कोई प्रभाव कक्ष पर खींचें, या एक चुनें और क्लिक करें।"
+
+msgid "No stamp set: add the Mossgrove pack (or any *.stamps.tres) to the project."
+msgstr "कोई स्टैम्प सेट नहीं: प्रोजेक्ट में Mossgrove पैक (या कोई भी *.stamps.tres) जोड़ें।"
+
+msgid "Undone."
+msgstr "पूर्ववत किया गया।"
+
+msgid "Redone."
+msgstr "फिर से किया गया।"
+
+msgid "Click in a room to paint it, or draw rooms with the Full view's Rectangle, Ellipse, Polygon or Curvy tool, then Generate map."
+msgstr "किसी कक्ष में क्लिक करके उसे पेंट करें, या पूर्ण दृश्य के आयत, दीर्घवृत्त, बहुभुज या घुमावदार टूल से कक्ष बनाएँ, फिर मानचित्र जनरेट करें।"
+
+msgid "Decor"
+msgstr "सजावट"
+
+msgid "Erase"
+msgstr "मिटाएँ"
+
+msgid "Stamps"
+msgstr "स्टैम्प"
+
+msgid "Effects"
+msgstr "प्रभाव"
+
+msgid "Select"
+msgstr "चुनें"
+
+msgid "Behind terrain"
+msgstr "भूभाग के पीछे"
+
+msgid "In front of terrain"
+msgstr "भूभाग के आगे"
+
+msgid "Paint the Terrain layer (solid ground: autotiled terrain, palette tiles or colors)"
+msgstr "भूभाग परत पेंट करें (ठोस ज़मीन: ऑटोटाइल भूभाग, पैलेट टाइलें या रंग)"
+
+msgid "Paint the Background layer (foliage, palette tiles or a solid color)"
+msgstr "पृष्ठभूमि परत पेंट करें (पत्तियाँ, पैलेट टाइलें या ठोस रंग)"
+
+msgid "Paint the Decor layer (grass, vines, stalactites, palette tiles...)"
+msgstr "सजावट परत पेंट करें (घास, बेलें, स्टैलेक्टाइट, पैलेट टाइलें...)"
+
+msgid "Erase the top item under the brush: a stamp or free tiles, else foreground, decoration, terrain, then background (palette tiles and colors too). Pick one layer or all layers in the list next to it; Shift erases background only. Works with shapes too, to carve curved caves"
+msgstr "ब्रश के नीचे की सबसे ऊपरी चीज़ मिटाएँ: स्टैम्प या फ़्री टाइलें, नहीं तो अग्रभूमि, सजावट, भूभाग, फिर पृष्ठभूमि (पैलेट टाइलें और रंग भी)। बगल की सूची में एक परत या सभी परतें चुनें; Shift केवल पृष्ठभूमि मिटाता है। आकृतियों के साथ भी काम करता है, घुमावदार गुफाएँ तराशने के लिए"
+
+msgid "Paint the Foreground layer, drawn in front of everything (dark silhouettes framing the room)"
+msgstr "अग्रभूमि परत पेंट करें, जो सबसे आगे बनती है (कक्ष को घेरते गहरे सिल्हूट)"
+
+msgid "Freeform terrain: smooth curvy shapes instead of tiles (rounded ledges, bulging moss walls), with textured edges, clumps and exact collision. Draw by clicking points or dragging freehand, or pick a shape and drag its box. Edit mode reshapes them"
+msgstr "फ़्रीफ़ॉर्म भूभाग: टाइलों की जगह चिकनी घुमावदार आकृतियाँ (गोल कगारें, उभरी हुई काई वाली दीवारें), जिनके किनारे टेक्सचर वाले हैं, गुच्छे हैं और कोलिज़न सटीक है। बिंदुओं पर क्लिक करके या हाथ से खींचकर बनाएँ, या कोई आकृति चुनकर उसका बॉक्स खींचें। संपादित करें मोड उन्हें नया आकार देता है"
+
+msgid "Place large clumps freely (moss bubbles, leaves, ferns, hanging moss, background bubbles, foreground silhouettes). Click or drag; Shift removes"
+msgstr "बड़े गुच्छे खुलकर लगाएँ (काई के बुलबुले, पत्ते, फ़र्न, लटकती काई, पृष्ठभूमि के बुलबुले, अग्रभूमि के सिल्हूट)। क्लिक करें या खींचें; Shift से निकलते हैं"
+
+msgid "Environment effects: rain, snow, dust storms, lightning, fog, steam vents, lava, waterfalls, water, light shafts, embers, fireflies, leaves, heat haze. Drag one from the list onto the room (or pick one and click), drag to move, drag the corner to resize; the selected effect's settings are in the Inspector. Delete removes it"
+msgstr "पर्यावरण प्रभाव: बारिश, बर्फ़, धूल भरी आँधियाँ, बिजली, कोहरा, भाप के छिद्र, लावा, झरने, पानी, रोशनी की किरणें, अंगारे, जुगनू, पत्ते, गर्मी की धुंध। सूची से एक को कक्ष पर खींचें (या एक चुनकर क्लिक करें), हिलाने के लिए खींचें, आकार बदलने के लिए कोना खींचें; चुने हुए प्रभाव की सेटिंग इंस्पेक्टर में हैं। Delete उसे हटाता है"
+
+msgid "Place the tiles picked in the tile palette anywhere in the room, off the grid, at the angle picked there (0 to 360 degrees; R / Shift+R turn them). Click to place, drag right away to move; Shift+click removes free tiles. They draw and collide like the tiles of the layer picked below"
+msgstr "टाइल पैलेट में चुनी गई टाइलों को कक्ष में कहीं भी, ग्रिड से बाहर, वहाँ चुने गए कोण पर लगाएँ (0 से 360 डिग्री; R / Shift+R उन्हें घुमाते हैं)। लगाने के लिए क्लिक करें, तुरंत खींचने पर वे हिलती हैं; Shift+क्लिक फ़्री टाइलें निकालता है। वे नीचे चुनी गई परत की टाइलों की तरह दिखती हैं और टकराती हैं"
+
+msgid "Select tiles, free tiles, stamps, pictures and freeform shapes: click (Shift or Ctrl adds or removes) or drag a box around them, then drag to move them by pixels (Snap to tiles: by whole tiles). Tiles moved off the grid become free tiles. R / Shift+R turn the selection, the arrows nudge it, Delete removes it"
+msgstr "टाइलें, फ़्री टाइलें, स्टैम्प, तस्वीरें और फ़्रीफ़ॉर्म आकृतियाँ चुनें: क्लिक करें (Shift या Ctrl से जुड़ता या निकलता है) या उनके चारों ओर बॉक्स खींचें, फिर पिक्सेल-पिक्सेल हिलाने के लिए खींचें (टाइलों पर स्नैप: पूरी टाइल के हिसाब से)। ग्रिड से बाहर हटाई गई टाइलें फ़्री टाइलें बन जाती हैं। R / Shift+R चयन को घुमाते हैं, ऐरो कुंजियाँ उसे थोड़ा खिसकाती हैं, Delete उसे हटाता है"
+
+msgid "What the current tool paints: a terrain (autotiled), random tiles of a kind, the tiles picked in the palette, or a solid color"
+msgstr "मौजूदा टूल क्या पेंट करता है: कोई भूभाग (ऑटोटाइल), किसी प्रकार की रैंडम टाइलें, पैलेट में चुनी गई टाइलें, या ठोस रंग"
+
+msgid "Fill"
+msgstr "फ़िल"
+
+msgid "Layer of new freeform shapes or stamps"
+msgstr "नई फ़्रीफ़ॉर्म आकृतियों या स्टैम्प की परत"
+
+msgid "Draw"
+msgstr "बनाएँ"
+
+msgid "Edit"
+msgstr "संपादित करें"
+
+msgid "Draw: click points (or drag freehand) and click the first point, double-click or press Enter to close; or pick a shape below and drag its box.\nEdit: drag points, Alt+click removes one, double-click an edge adds one, drag inside to move, Delete removes the shape."
+msgstr "बनाएँ: बिंदुओं पर क्लिक करें (या हाथ से खींचें) और बंद करने के लिए पहले बिंदु पर क्लिक करें, डबल-क्लिक करें या Enter दबाएँ; या नीचे कोई आकृति चुनकर उसका बॉक्स खींचें।\nसंपादित करें: बिंदु खींचें, Alt+क्लिक एक बिंदु निकालता है, किसी किनारे पर डबल-क्लिक एक बिंदु जोड़ता है, हिलाने के लिए अंदर खींचें, Delete आकृति को हटाता है।"
+
+msgid "Mode"
+msgstr "मोड"
+
+msgid "Collision of new freeform shapes (and of the selected one in Edit mode): the style's role, terrain, a platform (one-way ledges are jumped up through), or a decoration that never collides. Dashed tops in Edit mode mark one-way shapes"
+msgstr "नई फ़्रीफ़ॉर्म आकृतियों का कोलिज़न (और संपादित करें मोड में चुनी हुई आकृति का): शैली की भूमिका, भूभाग, प्लेटफ़ॉर्म (एकतरफ़ा कगारों में नीचे से कूदकर ऊपर जाया जाता है), या ऐसी सजावट जो कभी टकराती नहीं। संपादित करें मोड में डैश वाले ऊपरी किनारे एकतरफ़ा आकृतियों को दर्शाते हैं"
+
+msgid "Role"
+msgstr "भूमिका"
+
+msgid "Repair"
+msgstr "मरम्मत करें"
+
+msgid "Untwist the selected shape: an outline that crosses itself has no fill and no collision. The largest part stays; other parts become shapes of their own; slivers go"
+msgstr "चुनी हुई आकृति का उलझाव सुलझाएँ: जो आउटलाइन ख़ुद को काटती है उसमें न फ़िल होता है न कोलिज़न। सबसे बड़ा हिस्सा रहता है; बाकी हिस्से अपनी अलग आकृतियाँ बन जाते हैं; बारीक टुकड़े हट जाते हैं"
+
+msgid "Untwist every shape of the room whose outline crosses itself (drawn red)"
+msgstr "कक्ष की हर उस आकृति का उलझाव सुलझाएँ जिसकी आउटलाइन ख़ुद को काटती है (लाल रंग में दिखती है)"
+
+msgid "Repair all"
+msgstr "सभी की मरम्मत करें"
+
+msgid "Stamp size. Random on: each stamp varies from 80% to 120% of it. Random off: every stamp is exactly this size"
+msgstr "स्टैम्प का आकार। रैंडम चालू: हर स्टैम्प इसके 80% से 120% तक बदलता है। रैंडम बंद: हर स्टैम्प ठीक इसी आकार का होता है"
+
+msgid "On: each stamp is a random sprite of the category, a little bigger or smaller, flipped or tilted a little. Off: the sprite picked below, exactly at the Size, upright and not flipped. The preview at the mouse is the stamp the next click places. Generate cave's Stamps follow this too"
+msgstr "चालू: हर स्टैम्प श्रेणी का कोई रैंडम स्प्राइट होता है, थोड़ा बड़ा या छोटा, थोड़ा पलटा या झुका हुआ। बंद: नीचे चुना गया स्प्राइट, ठीक आकार के अनुसार, सीधा और बिना पलटे। माउस पर दिखने वाला पूर्वावलोकन वही स्टैम्प है जो अगला क्लिक लगाएगा। गुफा जनरेट करें के स्टैम्प भी इसी का पालन करते हैं"
+
+msgid "The sprite every click places (Random off): the category's sprites, the preview at the mouse shows the one picked"
+msgstr "हर क्लिक पर लगने वाला स्प्राइट (रैंडम बंद): श्रेणी के स्प्राइट, माउस पर दिखने वाला पूर्वावलोकन चुने हुए स्प्राइट को दिखाता है"
+
+msgid "How far the turn buttons and R / Shift+R turn: the palette's tiles under Place, the selection under Select (the palette turns its tiles to any angle, 0 to 360 degrees)"
+msgstr "घुमाने वाले बटन और R / Shift+R कितना घुमाते हैं: लगाएँ के तहत पैलेट की टाइलें, चुनें के तहत चयन (पैलेट अपनी टाइलों को किसी भी कोण पर घुमाता है, 0 से 360 डिग्री)"
+
+msgid "Turn back (Shift+R)"
+msgstr "वापस घुमाएँ (Shift+R)"
+
+msgid "Turn clockwise (R)"
+msgstr "घड़ी की दिशा में घुमाएँ (R)"
+
+msgid "Turn"
+msgstr "घुमाएँ"
+
+msgid "Snap to tiles"
+msgstr "टाइलों पर स्नैप"
+
+msgid "Place, move and turn by whole tiles, on the grid. Off: by pixels, anywhere in the room (grid tiles moved off the grid become free tiles; To grid puts free tiles back on it)"
+msgstr "पूरी टाइल के हिसाब से, ग्रिड पर लगाएँ, हिलाएँ और घुमाएँ। बंद होने पर: पिक्सेल के हिसाब से, कक्ष में कहीं भी (ग्रिड से बाहर हटाई गई ग्रिड टाइलें फ़्री टाइलें बन जाती हैं; ग्रिड पर बटन फ़्री टाइलों को वापस ग्रिड पर रखता है)"
+
+msgid "To grid"
+msgstr "ग्रिड पर"
+
+msgid "Put the selected free tiles back on their layer's grid, turned to the nearest right angle (Ctrl+Z undoes it)"
+msgstr "चुनी हुई फ़्री टाइलों को उनकी परत की ग्रिड पर वापस रखें, निकटतम समकोण पर घुमाकर (Ctrl+Z इसे पूर्ववत करता है)"
+
+msgid "Delete"
+msgstr "हटाएँ"
+
+msgid "Remove the selected tiles and items (Delete key; Ctrl+Z undoes it)"
+msgstr "चुनी हुई टाइलें और वस्तुएँ निकालें (Delete कुंजी; Ctrl+Z इसे पूर्ववत करता है)"
+
+msgid "Environment Effects"
+msgstr "पर्यावरण प्रभाव"
+
+msgid "Gameplay Objects"
+msgstr "गेमप्ले ऑब्जेक्ट"
+
+msgid "Drag an effect onto the room, or pick one and click in the room: it is placed, and clicks then select, move and resize effects again (the new one too). Ctrl+click keeps it picked, to place several. Click a selected effect again for the next one under it"
+msgstr "किसी प्रभाव को कक्ष पर खींचें, या एक चुनकर कक्ष में क्लिक करें: वह लग जाता है, और फिर क्लिक से प्रभाव दोबारा चुने, हिलाए और आकार में बदले जाते हैं (नया वाला भी)। कई लगाने के लिए Ctrl+क्लिक उसे चुना हुआ रखता है। उसके नीचे वाले अगले प्रभाव के लिए चुने हुए प्रभाव पर फिर से क्लिक करें"
+
+msgid "No effect (select and move)"
+msgstr "कोई प्रभाव नहीं (चुनें और हिलाएँ)"
+
+msgid "Place nothing: click an effect in the room to select it, drag it to move it, drag the handles on its sides and corners to resize it"
+msgstr "कुछ न लगाएँ: कक्ष में किसी प्रभाव को चुनने के लिए उस पर क्लिक करें, हिलाने के लिए उसे खींचें, आकार बदलने के लिए उसके किनारों और कोनों के हैंडल खींचें"
+
+msgid "No object (select and move)"
+msgstr "कोई ऑब्जेक्ट नहीं (चुनें और हिलाएँ)"
+
+msgid "Place nothing: click an object in the room to select it, drag it to move it, drag the handles on its sides and corners to resize it"
+msgstr "कुछ न लगाएँ: कक्ष में किसी ऑब्जेक्ट को चुनने के लिए उस पर क्लिक करें, हिलाने के लिए उसे खींचें, आकार बदलने के लिए उसके किनारों और कोनों के हैंडल खींचें"
+
+msgid "MDSAbilityPickup: grants an ability on touch and persists"
+msgstr "MDSAbilityPickup: छूने पर क्षमता देता है और स्थायी रूप से दर्ज रहता है"
+
+msgid "Ability pickup"
+msgstr "क्षमता पिकअप"
+
+msgid "MDSPickup: item or collectible"
+msgstr "MDSPickup: आइटम या संग्रहणीय वस्तु"
+
+msgid "Item pickup"
+msgstr "आइटम पिकअप"
+
+msgid "MDSPickup: health fragment"
+msgstr "MDSPickup: हेल्थ फ़्रैगमेंट"
+
+msgid "Health fragment"
+msgstr "हेल्थ फ़्रैगमेंट"
+
+msgid "Breakable wall"
+msgstr "टूटने वाली दीवार"
+
+msgid "MDSBreakable: wall that breaks on attack"
+msgstr "MDSBreakable: हमला करने पर टूटने वाली दीवार"
+
+msgid "Cracked floor"
+msgstr "दरार वाला फ़र्श"
+
+msgid "MDSBreakable: floor that breaks on ground pound"
+msgstr "MDSBreakable: ग्राउंड पाउंड करने पर टूटने वाला फ़र्श"
+
+msgid "Switch"
+msgstr "स्विच"
+
+msgid "MDSSwitch: sets a flag on hit or interact"
+msgstr "MDSSwitch: वार लगने या इंटरैक्ट करने पर एक फ़्लैग सेट करता है"
+
+msgid "Hazard (spikes)"
+msgstr "ख़तरा (काँटे)"
+
+msgid "MDSHazard: spikes/thorns that hurt and respawn"
+msgstr "MDSHazard: काँटे या शूल जो चोट पहुँचाते हैं और खिलाड़ी को रीस्पॉन करते हैं"
+
+msgid "Checkpoint"
+msgstr "चेकपॉइंट"
+
+msgid "MDSCheckpoint: respawn point in hazard rooms"
+msgstr "MDSCheckpoint: ख़तरे वाले कक्षों में रीस्पॉन बिंदु"
+
+msgid "Grapple point"
+msgstr "ग्रैपल पॉइंट"
+
+msgid "MDSGrapplePoint: anchor for the grapple hook"
+msgstr "MDSGrapplePoint: ग्रैपल हुक का सहारा बिंदु"
+
+msgid "Enemy (Walker)"
+msgstr "दुश्मन (वॉकर)"
+
+msgid "Walker template enemy"
+msgstr "वॉकर टेम्पलेट दुश्मन"
+
+msgid "Enemy (Flyer)"
+msgstr "दुश्मन (फ़्लायर)"
+
+msgid "Flyer template enemy"
+msgstr "फ़्लायर टेम्पलेट दुश्मन"
+
+msgid "Turret template enemy"
+msgstr "टरेट टेम्पलेट दुश्मन"
+
+msgid "Enemy (Turret)"
+msgstr "दुश्मन (टरेट)"
+
+msgid "Enemy (Charger)"
+msgstr "दुश्मन (चार्जर)"
+
+msgid "Charger template enemy"
+msgstr "चार्जर टेम्पलेट दुश्मन"
+
+msgid "Ambusher template enemy"
+msgstr "एम्बुशर टेम्पलेट दुश्मन"
+
+msgid "Enemy (Ambusher)"
+msgstr "दुश्मन (एम्बुशर)"
+
+msgid "Boss arena"
+msgstr "बॉस एरीना"
+
+msgid "MDSBossArena: locks doors during boss fight"
+msgstr "MDSBossArena: बॉस की लड़ाई के दौरान दरवाज़े बंद कर देता है"
+
+msgid "NPC"
+msgstr "NPC"
+
+msgid "MDSNPC: dialogue and interaction"
+msgstr "MDSNPC: संवाद और इंटरैक्शन"
+
+msgid "Dialogue trigger"
+msgstr "संवाद ट्रिगर"
+
+msgid "MDSDialogueTrigger: a conversation with anything (a door, a sign, a statue), on interact or on touch"
+msgstr "MDSDialogueTrigger: किसी भी चीज़ (दरवाज़ा, साइनबोर्ड, मूर्ति) के साथ बातचीत, इंटरैक्ट करने पर या छूने पर"
+
+msgid "No effect: click an effect in the room to select, move or resize it."
+msgstr "कोई प्रभाव नहीं: किसी प्रभाव को चुनने, हिलाने या आकार बदलने के लिए कक्ष में उस पर क्लिक करें।"
+
+msgid "Remove all"
+msgstr "सभी निकालें"
+
+msgid "Remove every effect placed in this room (Ctrl+Z undoes it)"
+msgstr "इस कक्ष में लगा हर प्रभाव निकालें (Ctrl+Z इसे पूर्ववत करता है)"
+
+msgid "No effects here"
+msgstr "यहाँ कोई प्रभाव नहीं"
+
+msgid "No weather or effects from the room's area (or the world) in this room: its weather is set to none (Inspect tab). Effects placed in the room itself stay"
+msgstr "इस कक्ष में कक्ष के क्षेत्र (या वर्ल्ड) का कोई मौसम या प्रभाव नहीं है: इसका मौसम none पर सेट है (निरीक्षण टैब)। कक्ष में ही लगाए गए प्रभाव बने रहते हैं"
+
+msgid "Drag onto the room. Click one in the room to edit it in the Inspector; drag its handles to resize it. Drop an image on a parallax background to add it as a layer, or on an animated background to show it blurred."
+msgstr "कक्ष पर खींचें। किसी को इंस्पेक्टर में संपादित करने के लिए कक्ष में उस पर क्लिक करें; आकार बदलने के लिए उसके हैंडल खींचें। पैरालैक्स पृष्ठभूमि पर कोई छवि छोड़ने से वह एक परत के रूप में जुड़ जाती है, और एनिमेटेड पृष्ठभूमि पर छोड़ने से वह धुंधली दिखती है।"
+
+msgid "Show the area's weather"
+msgstr "क्षेत्र का मौसम दिखाएँ"
+
+msgid "Show the weather of the room's area (Areas tab > Weather), or of the room itself (Inspect tab), as the game adds it to every room of the area. Only a preview: it isn't saved into the scene"
+msgstr "कक्ष के क्षेत्र का मौसम (क्षेत्र टैब > मौसम), या कक्ष का अपना मौसम (निरीक्षण टैब) दिखाएँ, जैसा गेम उसे क्षेत्र के हर कक्ष में जोड़ता है। यह केवल पूर्वावलोकन है: यह सीन में सहेजा नहीं जाता"
+
+msgid "Show the backgrounds"
+msgstr "पृष्ठभूमियाँ दिखाएँ"
+
+msgid "Show the parallax and animated backgrounds of the room's area (Areas tab > Parallax, Animated bg), of the boss rooms or of the room itself, behind the room as the game adds them; pan the view to see them move. Only a preview: they aren't saved into the scene"
+msgstr "कक्ष के क्षेत्र (क्षेत्र टैब > पैरालैक्स, एनिमेटेड पृष्ठभूमि), बॉस कक्षों या कक्ष की अपनी पैरालैक्स और एनिमेटेड पृष्ठभूमियाँ कक्ष के पीछे दिखाएँ, जैसा गेम उन्हें जोड़ता है; उन्हें हिलते देखने के लिए दृश्य को पैन करें। यह केवल पूर्वावलोकन है: वे सीन में सहेजी नहीं जातीं"
+
+msgid "Solid color painted by the \"Solid color\" fill"
+msgstr "\"Solid color\" फ़िल से पेंट होने वाला ठोस रंग"
+
+msgid "Brush size in tiles ([ and ] in the view)"
+msgstr "टाइलों में ब्रश का आकार (दृश्य में [ और ])"
+
+msgid "Brush or shape. Shapes: drag a box in the view, release to paint it (Esc cancels)"
+msgstr "ब्रश या आकृति। आकृतियाँ: दृश्य में बॉक्स खींचें, पेंट करने के लिए छोड़ दें (Esc रद्द करता है)"
+
+msgid "Curve of the curved side: convex bulges out, concave dips in; ramps rise along the side (Flip mirrors them)"
+msgstr "घुमावदार तरफ़ का घुमाव: उत्तल बाहर उभरता है, अवतल अंदर धँसता है; रैंप उस तरफ़ के साथ ऊपर उठते हैं (पलटें उन्हें मिरर करता है)"
+
+msgid "Curve"
+msgstr "घुमाव"
+
+msgid "Number of waves, steps or spikes"
+msgstr "लहरों, सीढ़ियों या नुकीले उभारों की संख्या"
+
+msgid "How rough and natural the shape's edge is (0 = clean curve)"
+msgstr "आकृति का किनारा कितना खुरदरा और प्राकृतिक है (0 = साफ़ घुमाव)"
+
+msgid "Flip"
+msgstr "पलटें"
+
+msgid "Mirror the curve along the side (ramps rise the other way)"
+msgstr "घुमाव को उस तरफ़ के साथ मिरर करें (रैंप दूसरी ओर उठते हैं)"
+
+msgid "Remove broken tiles"
+msgstr "टूटी टाइलें निकालें"
+
+msgid "Erase the painted tiles that point at tiles the tileset no longer has (their sheet was removed, or its tile size was made bigger so fewer tiles fit). They draw nothing and have no collision, and Godot logs \"The TileSetAtlasSource atlas has no tile at ...\" for them. Saving also rewrites the tileset without the tiles it can no longer load. Ctrl+Z undoes it"
+msgstr "उन पेंट की गई टाइलों को मिटाएँ जो ऐसी टाइलों की ओर इशारा करती हैं जो टाइलसेट में अब नहीं हैं (उनकी शीट हटा दी गई, या टाइल का आकार बड़ा कर दिया गया जिससे कम टाइलें समाती हैं)। वे कुछ नहीं बनातीं और उनमें कोलिज़न नहीं होता, और Godot उनके लिए \"The TileSetAtlasSource atlas has no tile at ...\" लॉग करता है। सहेजने पर टाइलसेट उन टाइलों के बिना फिर से लिखा जाता है जिन्हें वह अब लोड नहीं कर सकता। Ctrl+Z इसे पूर्ववत करता है"
+
+msgid "Clear hidden tiles"
+msgstr "छिपी टाइलें साफ़ करें"
+
+msgid "Remove the tiles of the tile layers hidden in the scene (their eye shut in the Scene dock, or Visible off in the Inspector): they never show, but every one of them is saved in the scene. Then save. Ctrl+Z undoes it"
+msgstr "सीन में छिपी टाइल परतों की टाइलें निकालें (सीन डॉक में उनकी आँख बंद है, या इंस्पेक्टर में Visible बंद है): वे कभी दिखती नहीं, फिर भी उनमें से हर एक सीन में सहेजी जाती है। फिर सहेजें। Ctrl+Z इसे पूर्ववत करता है"
+
+msgid "The area's previous room"
+msgstr "क्षेत्र का पिछला कक्ष"
+
+msgid "The area's next room"
+msgstr "क्षेत्र का अगला कक्ष"
+
+msgid "Caves for the area"
+msgstr "क्षेत्र के लिए गुफाएँ"
+
+msgid "Generate a cave in every room of the area, with the fills and options here. Rooms without a scene get one. Every room's gates are joined by paths a player can walk, jump and climb both ways, so the whole area can be crossed and backtracked"
+msgstr "क्षेत्र के हर कक्ष में, यहाँ के फ़िल और विकल्पों के साथ, एक गुफा जनरेट करें। जिन कक्षों का सीन नहीं है उन्हें एक सीन मिलता है। हर कक्ष के द्वार ऐसे रास्तों से जुड़े होते हैं जिन पर खिलाड़ी दोनों दिशाओं में चल, कूद और चढ़ सकता है, ताकि पूरा क्षेत्र पार किया जा सके और वापस लौटा जा सके"
+
+msgid "Generate all"
+msgstr "सभी जनरेट करें"
+
+msgid "Generate a cave in every room shown, with the fills and options here, each joined to its neighbours at their doors. Ctrl+Z undoes it room by room (in the room edited); Save writes them all"
+msgstr "दिखाए गए हर कक्ष में, यहाँ के फ़िल और विकल्पों के साथ, एक गुफा जनरेट करें, जो हर एक अपने पड़ोसियों से उनके दरवाज़ों पर जुड़ी हो। Ctrl+Z इसे कक्ष-दर-कक्ष पूर्ववत करता है (जिस कक्ष का संपादन हो रहा है उसमें); सहेजें सबको लिखता है"
+
+msgid "Generate the caves of every room shown again, with another random layout"
+msgstr "दिखाए गए हर कक्ष की गुफाएँ दूसरे रैंडम लेआउट के साथ फिर से जनरेट करें"
+
+msgid "New variation for all"
+msgstr "सबके लिए नया वैरिएशन"
+
+msgid "Replace the tiles with a cave built from the room's shape on the map: walls, floor, ledges, openings at its gates, paths between them, then background, decorations, foreground and stamps. Uses the fills picked for each layer (and the stamps picked for the Stamps tool), as the options below say"
+msgstr "टाइलों को मानचित्र पर कक्ष की आकृति से बनी गुफा से बदलें: दीवारें, फ़र्श, कगारें, द्वारों पर खुले रास्ते, उनके बीच के रास्ते, फिर पृष्ठभूमि, सजावट, अग्रभूमि और स्टैम्प। यह हर परत के लिए चुने गए फ़िल (और स्टैम्प टूल के लिए चुने गए स्टैम्प) का उपयोग करता है, जैसा नीचे के विकल्प बताते हैं"
+
+msgid "Generate cave"
+msgstr "गुफा जनरेट करें"
+
+msgid "Generate again with another random layout"
+msgstr "दूसरे रैंडम लेआउट के साथ फिर से जनरेट करें"
+
+msgid "New variation"
+msgstr "नया वैरिएशन"
+
+msgid "Paint the Background fill behind the cave"
+msgstr "गुफा के पीछे पृष्ठभूमि फ़िल पेंट करें"
+
+msgid "Decorations on floors and under ceilings; most floor ones of the Decor fill"
+msgstr "फ़र्श पर और छतों के नीचे सजावट; फ़र्श की ज़्यादातर सजावट सजावट-परत के फ़िल से आती है"
+
+msgid "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"
+msgstr "सामने अग्रभूमि फ़िल: ठोस रंग या भूभाग दीवारों में गहरी चट्टान को गहरा करता है; टाइलें छतों से लटकती हैं और फ़र्श के किनारों पर लगती हैं"
+
+msgid "Stamps of the set and category picked for the Stamps tool along the floors, as it places them: its Size, and its Random (off: the one sprite picked there, exactly at the Size)"
+msgstr "फ़र्श के साथ-साथ स्टैम्प टूल के लिए चुने गए सेट और श्रेणी के स्टैम्प, ठीक वैसे जैसे वह उन्हें लगाता है: उसका आकार और उसका रैंडम (बंद: वहाँ चुना गया एक स्प्राइट, ठीक आकार के अनुसार)"
+
+msgid "Paths"
+msgstr "रास्ते"
+
+msgid "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"
+msgstr "हर द्वार हर दूसरे द्वार तक पहुँचता है और वापस भी: जहाँ गुफा इसकी अनुमति नहीं देती वहाँ कगारों वाली सुरंगें और शाफ़्ट तराशे जाते हैं"
+
+msgid "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"
+msgstr "मानचित्र पर कई कक्षों को मर्ज करके बना कक्ष उन जगहों पर दीवारें रखता है जहाँ उसके पुराने कक्ष मिलते थे, और जहाँ उनके दरवाज़े थे वहाँ खुले रास्ते (बंद: एक खुली गुफा)"
+
+msgid "Merged walls"
+msgstr "मर्ज की दीवारें"
+
+msgid "Auto-decorate"
+msgstr "ऑटो-सजावट"
+
+msgid "Redo grass, plants, vines, stalactites and moss on the current terrain (uses tiles tagged with those kinds)"
+msgstr "मौजूदा भूभाग पर घास, पौधे, बेलें, स्टैलेक्टाइट और काई फिर से बनाएँ (उन प्रकारों से टैग की गई टाइलों का उपयोग करता है)"
+
+msgid "Fill background"
+msgstr "पृष्ठभूमि भरें"
+
+msgid "Fill the room's shape with the Background fill (foliage, palette tiles or a solid color)"
+msgstr "कक्ष की आकृति को पृष्ठभूमि फ़िल से भरें (पत्तियाँ, पैलेट टाइलें या ठोस रंग)"
+
+msgid "Clear background"
+msgstr "पृष्ठभूमि साफ़ करें"
+
+msgid "Remove every tile of the Background layer. A room filled from edge to edge takes many, and a hidden layer's tiles are saved in the scene all the same"
+msgstr "पृष्ठभूमि परत की हर टाइल निकालें। किनारे से किनारे तक भरे कक्ष में बहुत सारी होती हैं, और छिपी परत की टाइलें भी सीन में सहेजी ही जाती हैं"
+
+msgid "Convert to freeform..."
+msgstr "फ़्रीफ़ॉर्म में रूपांतरित करें..."
+
+msgid "Turn the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects. Platforms become one-way ledges. Block a room out with rectangles or tiles, then make it organic"
+msgstr "कक्ष की ठोस टाइलों, स्टैटिक बॉडी और सीधे किनारों वाली फ़्रीफ़ॉर्म आकृतियों को प्राकृतिक फ़्रीफ़ॉर्म चट्टान में बदलें; हर दरवाज़े, प्लेटफ़ॉर्म की ऊपरी सतह और ऑब्जेक्ट के नीचे के फ़र्श को वैसा ही रखें। प्लेटफ़ॉर्म एकतरफ़ा कगार बन जाते हैं। पहले कक्ष का ढाँचा आयतों या टाइलों से बनाएँ, फिर उसे प्राकृतिक बनाएँ"
+
+msgid "Trace drawing..."
+msgstr "ड्रॉइंग ट्रेस करें..."
+
+msgid "Draw the room from a picture: each color of a drawing (any image file, or drop one on the view) becomes freeform shapes of the style you pick. Black, grey and brown: terrain; red, orange and yellow: one-way platforms; green: background; blue and purple: foreground"
+msgstr "तस्वीर से कक्ष बनाएँ: ड्रॉइंग (कोई भी छवि फ़ाइल, या दृश्य पर कोई छोड़ें) का हर रंग आपकी चुनी शैली की फ़्रीफ़ॉर्म आकृतियाँ बन जाता है। काला, स्लेटी और भूरा: भूभाग; लाल, नारंगी और पीला: एकतरफ़ा प्लेटफ़ॉर्म; हरा: पृष्ठभूमि; नीला और बैंगनी: अग्रभूमि"
+
+msgid "Decorate freeform..."
+msgstr "फ़्रीफ़ॉर्म सजाएँ..."
+
+msgid "Place scenery relative to the freeform rock: stamps hung under ceilings, plants along floors, background structures (columns, broken arches, garden walls, mounds, stalactites) on flat floors, and foreground leaves in free corners. Never over doorways or anything in the room; running it again replaces it"
+msgstr "फ़्रीफ़ॉर्म चट्टान के हिसाब से सजावट लगाएँ: छतों के नीचे लटकते स्टैम्प, फ़र्श के साथ पौधे, सपाट फ़र्श पर पृष्ठभूमि की संरचनाएँ (स्तंभ, टूटे मेहराब, बाग़ की दीवारें, टीले, स्टैलेक्टाइट), और ख़ाली कोनों में अग्रभूमि के पत्ते। दरवाज़ों या कक्ष की किसी चीज़ के ऊपर कभी नहीं; दोबारा चलाने पर यह बदल जाती है"
+
+msgid "Style of Fill outside shape (deep ground)"
+msgstr "आकृति के बाहर भरने की शैली (गहरी ज़मीन)"
+
+msgid "Cover the cells of the room's box that are outside its shape on the map (its notches, which belong to neighbouring rooms) with non-solid shapes of the style picked next to it, drawn over the rock's edges. Run it again after changing the room's shape; the Room view also redoes it when it opens a room whose shape changed"
+msgstr "कक्ष के बॉक्स के उन सेल को, जो मानचित्र पर उसकी आकृति के बाहर हैं (उसके खाँचे, जो पड़ोसी कक्षों के हैं), बगल में चुनी शैली की गैर-ठोस आकृतियों से ढकें, जो चट्टान के किनारों पर बनाई जाती हैं। कक्ष की आकृति बदलने के बाद इसे फिर से चलाएँ; कक्ष दृश्य भी ऐसा कक्ष खोलने पर इसे दोबारा करता है जिसकी आकृति बदली हो"
+
+msgid "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view"
+msgstr "कक्ष के भूभाग को स्क्रीन से बाहर के फ़िज़िक्स स्पेस में लोड करें और उसे वैसे जाँचें जैसे खिलाड़ी जाँचेगा: हर द्वार खुला, प्लेटफ़ॉर्म पर ऊपर जगह के साथ उतरा जा सके, ऑब्जेक्ट ज़मीन पर, ऊपर के निकास कूदकर पहुँचने लायक (वर्ल्ड सेटिंग > खिलाड़ी)। समस्याएँ दृश्य में चिह्नित की जाती हैं"
+
+msgid "Check room"
+msgstr "कक्ष जाँचें"
+
+msgid "Reachability"
+msgstr "पहुँच"
+
+msgid "After Check room, draw the floors the player can reach from the gates in green, the others in red"
+msgstr "कक्ष जाँचें के बाद, द्वारों से खिलाड़ी जिन फ़र्शों तक पहुँच सकता है उन्हें हरे रंग में और बाकी को लाल रंग में दिखाएँ"
+
+msgid "Fit props to floor"
+msgstr "प्रॉप्स फ़र्श पर फ़िट करें"
+
+msgid "Stand every object that stands (save points, shops, NPCs, benches, spawn points: see the mds_stands group) on the floor under it, or lift it out of the ground it is sunk in, then step it along its floor out of any platform. Ctrl+Z undoes it"
+msgstr "खड़े होने वाले हर ऑब्जेक्ट (सेव पॉइंट, दुकानें, NPC, बेंच, स्पॉन पॉइंट: mds_stands ग्रुप देखें) को उसके नीचे के फ़र्श पर खड़ा करें, या ज़मीन में धँसा हो तो उसे ऊपर उठाएँ, फिर उसे उसके फ़र्श के साथ खिसकाकर किसी भी प्लेटफ़ॉर्म से बाहर करें। Ctrl+Z इसे पूर्ववत करता है"
+
+msgid "Declutter"
+msgstr "अव्यवस्था हटाएँ"
+
+msgid "Separate objects that stand in or behind each other: doors, machines and enemies stay; save points and shops, then everything else, step along their floor to the nearest clear spot. A decoration with nowhere to go is removed. Ctrl+Z undoes it"
+msgstr "एक-दूसरे में या पीछे खड़े ऑब्जेक्ट को अलग करें: दरवाज़े, मशीनें और दुश्मन अपनी जगह रहते हैं; सेव पॉइंट और दुकानें, फिर बाकी सब कुछ, अपने फ़र्श के साथ खिसककर सबसे पास की ख़ाली जगह पर जाते हैं। जिस सजावट को जाने की जगह नहीं मिलती वह निकाल दी जाती है। Ctrl+Z इसे पूर्ववत करता है"
+
+msgid "2.5D preview"
+msgstr "2.5D पूर्वावलोकन"
+
+msgid "Show the room as MDSDepth25D draws it in the game: walls and floors extruded toward the middle of the view, floors paved in perspective, lit from above (World settings > 2.5D turns it on in the game)"
+msgstr "कक्ष को वैसे दिखाएँ जैसे MDSDepth25D उसे गेम में बनाता है: दीवारें और फ़र्श दृश्य के बीच की ओर एक्सट्रूड किए हुए, फ़र्श परिप्रेक्ष्य में बिछे हुए, ऊपर से रोशन (वर्ल्ड सेटिंग > 2.5D इसे गेम में चालू करता है)"
+
+msgid "Remove all tiles, freeform shapes and stamps"
+msgstr "सभी टाइलें, फ़्रीफ़ॉर्म आकृतियाँ और स्टैम्प निकालें"
+
+msgid "Clear"
+msgstr "साफ़ करें"
+
+msgid "Cleared."
+msgstr "साफ़ किया गया।"
+
+msgid "Undo"
+msgstr "पूर्ववत करें"
+
+msgid "Undo the last stroke or shape (Ctrl+Z)"
+msgstr "आख़िरी स्ट्रोक या आकृति पूर्ववत करें (Ctrl+Z)"
+
+msgid "Redo"
+msgstr "फिर से करें"
+
+msgid "Redo (Ctrl+Y)"
+msgstr "फिर से करें (Ctrl+Y)"
+
+msgid "Write the tiles into the room scene"
+msgstr "टाइलें कक्ष के सीन में लिखें"
+
+msgid "Save"
+msgstr "सहेजें"
+
+msgid "Revert"
+msgstr "वापस लाएँ"
+
+msgid "Reload the scene, dropping unsaved painting"
+msgstr "सीन फिर से लोड करें, बिना सहेजी पेंटिंग छोड़ते हुए"
+
+msgid "Edit in 2D"
+msgstr "2D में संपादित करें"
+
+msgid "Open the room scene in Godot's editor (saves first)"
+msgstr "कक्ष का सीन Godot के एडिटर में खोलें (पहले सहेजता है)"
+
+msgid "Tile palette"
+msgstr "टाइल पैलेट"
+
+msgid "Show the tile palette (spritesheets)"
+msgstr "टाइल पैलेट दिखाएँ (स्प्राइटशीट)"
+
+msgid "One room each"
+msgstr "हर एक का एक कक्ष"
+
+msgid "Each outline drawn becomes one room, its rectangles on the paint cells it covers and its outline on the map the shape drawn. Outlines that overlap are one room"
+msgstr "बनाई गई हर आउटलाइन एक कक्ष बनती है, उसके आयत उन पेंट सेल पर जिन्हें वह ढकती है और मानचित्र पर उसकी आउटलाइन वही आकृति जो बनाई गई। जो आउटलाइन एक-दूसरे पर आती हैं वे एक कक्ष हैं"
+
+msgid "Split into rooms"
+msgstr "कक्षों में बाँटें"
+
+msgid "Each outline drawn is split into rooms like a generated area (rectangles, L, T and U shapes, shafts) with doors between them; those on its edge keep its curves"
+msgstr "बनाई गई हर आउटलाइन जनरेट किए गए क्षेत्र की तरह कक्षों में बाँटी जाती है (आयत, L, T और U आकृतियाँ, शाफ़्ट), जिनके बीच दरवाज़े होते हैं; उसके किनारे वाले कक्ष उसके घुमाव बनाए रखते हैं"
+
+msgid "What Generate map makes of an outline drawn (and of the outlines selected, when changed)"
+msgstr "बनाई गई आउटलाइन (और बदलने पर चुनी हुई आउटलाइन) से मानचित्र जनरेट करें क्या बनाता है"
+
+msgid "Make"
+msgstr "बनाएँ"
+
+msgid "The area of the rooms of an outline drawn (and of the outlines selected, when changed): a new area (outlines that touch share it), none, or one of the world's"
+msgstr "बनाई गई आउटलाइन (और बदलने पर चुनी हुई आउटलाइन) के कक्षों का क्षेत्र: एक नया क्षेत्र (जो आउटलाइन छूती हैं वे उसे साझा करती हैं), कोई नहीं, या वर्ल्ड का कोई क्षेत्र"
+
+msgid "Split into rooms: the widest room, in paint cells"
+msgstr "कक्षों में बाँटें: सबसे चौड़ा कक्ष, पेंट सेल में"
+
+msgid "Split into rooms: the tallest room, in paint cells"
+msgstr "कक्षों में बाँटें: सबसे ऊँचा कक्ष, पेंट सेल में"
+
+msgid "Snap to cells"
+msgstr "सेल पर स्नैप"
+
+msgid "Rectangles and ellipses on the paint cells' corners, polygon corners on the world grid, outlines moved by the grid. Rooms and scenes dragged in move smoothly, to the pixel, stopping against their neighbours"
+msgstr "आयत और दीर्घवृत्त पेंट सेल के कोनों पर, बहुभुज के कोने वर्ल्ड ग्रिड पर, आउटलाइन ग्रिड के हिसाब से हिलती हैं। खींचकर लाए गए कक्ष और सीन पिक्सेल तक सहजता से हिलते हैं और पड़ोसियों से टकराकर रुकते हैं"
+
+msgid "At once"
+msgstr "तुरंत"
+
+msgid "Each outline drawn becomes rooms on the map right away (off: draw them all first, then Generate map)"
+msgstr "बनाई गई हर आउटलाइन तुरंत मानचित्र पर कक्ष बन जाती है (बंद: पहले सब बनाएँ, फिर मानचित्र जनरेट करें)"
+
+msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
+msgstr "चुनी हुई आउटलाइन, या बनाई गई हर आउटलाइन के मानचित्र पर कक्ष बनाएँ: उनके पेंट सेल (जिन पर अभी कोई कक्ष नहीं), उनके घुमाव कक्षों की आउटलाइन के रूप में, उनके बीच और उनके छूने वाले कक्षों तक दरवाज़े, चुने हुए क्षेत्रों में। एक Ctrl+Z इसे वापस ले लेता है"
+
+msgid "Generate map"
+msgstr "मानचित्र जनरेट करें"
+
+msgid "Clear outlines"
+msgstr "आउटलाइन साफ़ करें"
+
+msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
+msgstr "इस परत पर बनी हर आउटलाइन निकालें (Ctrl+Z इसे पूर्ववत करता है)"
+
+msgid "Caves too"
+msgstr "गुफाएँ भी"
+
+msgid "Generate map also makes a scene for each new room and a cave in it, joined at their doors, with the fills and Generate options below (Save writes them)"
+msgstr "मानचित्र जनरेट करें हर नए कक्ष के लिए एक सीन और उसमें एक गुफा भी बनाता है, जो उनके दरवाज़ों पर जुड़ी होती हैं, नीचे के फ़िल और जनरेट विकल्पों के साथ (सहेजें उन्हें लिखता है)"
+
+msgid "Edit selected"
+msgstr "चुने हुए संपादित करें"
+
+msgid "Edit the rooms selected (Rooms tool) in the Room view"
+msgstr "चुने हुए कक्षों (कक्ष टूल) को कक्ष दृश्य में संपादित करें"
+
+msgid "Select rooms first with the Rooms tool (click, Ctrl+click, or drag a box)."
+msgstr "पहले कक्ष टूल से कक्ष चुनें (क्लिक, Ctrl+क्लिक, या बॉक्स खींचें)।"
+
+msgid "Painting: click a room to paint it (one without a scene gets one). Pick a tool above to draw or move rooms."
+msgstr "पेंटिंग: किसी कक्ष को पेंट करने के लिए उस पर क्लिक करें (जिसका सीन नहीं है उसे एक मिल जाता है)। कक्ष बनाने या हिलाने के लिए ऊपर से कोई टूल चुनें।"
+
+msgid "Click or box-select rooms and outlines, drag to move them, Delete removes them. Double-click a room (or Edit selected) for the Room view."
+msgstr "कक्ष और आउटलाइन को क्लिक करके या बॉक्स से चुनें, हिलाने के लिए खींचें, Delete उन्हें हटाता है। कक्ष दृश्य के लिए किसी कक्ष पर डबल-क्लिक करें (या चुने हुए संपादित करें)।"
+
+msgid "Drag a box: the Generate area dialog makes an area of rooms in it."
+msgstr "बॉक्स खींचें: क्षेत्र जनरेट करें डायलॉग उसमें कक्षों का एक क्षेत्र बनाता है।"
+
+msgid "Draw at the rooms' real size, then Generate map. Overlapping outlines of one kind and area are one; cells rooms have are left out."
+msgstr "कक्षों के असली आकार में बनाएँ, फिर मानचित्र जनरेट करें। एक ही प्रकार और क्षेत्र की एक-दूसरे पर आती आउटलाइन एक मानी जाती हैं; जिन सेल पर कक्ष हैं उन्हें छोड़ दिया जाता है।"
+
+msgid "New area"
+msgstr "नया क्षेत्र"
+
+msgid "No area"
+msgstr "कोई क्षेत्र नहीं"
+
+msgid "Depth of the placed tiles: they draw and collide like the tiles of this layer"
+msgstr "लगाई गई टाइलों की गहराई: वे इस परत की टाइलों की तरह दिखती और टकराती हैं"
+
+msgid "What clicks and boxes select: everything, the tiles of one layer (on the grid and free), or only items"
+msgstr "क्लिक और बॉक्स क्या चुनते हैं: सब कुछ, किसी एक परत की टाइलें (ग्रिड पर और फ़्री), या केवल वस्तुएँ"
+
+msgid "Scenery"
+msgstr "सजावटी ढाँचे"
+
+msgid "Select a shape first (Freeform > Edit, click it), or press Repair all."
+msgstr "पहले कोई आकृति चुनें (फ़्रीफ़ॉर्म > संपादित करें, उस पर क्लिक करें), या सभी की मरम्मत करें दबाएँ।"
+
+msgid "Every object that stands is on the floor already (or has no floor under it)."
+msgstr "खड़े होने वाला हर ऑब्जेक्ट पहले से फ़र्श पर है (या उसके नीचे फ़र्श नहीं है)।"
+
+msgid "No objects stand in or behind each other."
+msgstr "कोई ऑब्जेक्ट एक-दूसरे में या पीछे खड़ा नहीं है।"
+
+msgid "Open a room first (double-click it on the map), then trace a drawing into it."
+msgstr "पहले कोई कक्ष खोलें (मानचित्र पर उस पर डबल-क्लिक करें), फिर उसमें कोई ड्रॉइंग ट्रेस करें।"
+
+msgid "No weather for this room's area (set it in the Areas tab)."
+msgstr "इस कक्ष के क्षेत्र का कोई मौसम नहीं (इसे क्षेत्र टैब में सेट करें)।"
+
+msgid "Weather is off in this room."
+msgstr "इस कक्ष में मौसम बंद है।"
+
+msgid "Click a room to edit it, or select rooms with the Rooms tool (click, Ctrl+click, a box), then Generate cave. Generate all does every room."
+msgstr "किसी कक्ष को संपादित करने के लिए उस पर क्लिक करें, या कक्ष टूल से कक्ष चुनें (क्लिक, Ctrl+क्लिक, बॉक्स), फिर गुफा जनरेट करें। सभी जनरेट करें हर कक्ष के लिए करता है।"
+
+msgid "The cave's open space: Natural grows it from the room's outline; a shape (T, U, H, L, i, cross, ring, S, freeform, a mix, or several picked) carves it as that shape, the shapes joined by tunnels. Generate cave, New variation, Generate all and New variation for all use it, in the Room view and the Full view"
+msgstr "गुफा की खुली जगह: प्राकृतिक उसे कक्ष की आउटलाइन से उगाता है; कोई आकृति (T, U, H, L, i, क्रॉस, रिंग, S, फ़्रीफ़ॉर्म, मिश्रित, या कई चुनी हुई) उसे उसी आकृति में तराशती है, आकृतियाँ सुरंगों से जुड़ी होती हैं। गुफा जनरेट करें, नया वैरिएशन, सभी जनरेट करें और सबके लिए नया वैरिएशन इसका उपयोग करते हैं, कक्ष दृश्य और पूर्ण दृश्य दोनों में"
+
+msgid "The shapes to share out among each room's shapes (Cave shape: Several picked): each is used at least once when there are as many shapes (x), in an order of its own each generation"
+msgstr "हर कक्ष की आकृतियों में बाँटने के लिए आकृतियाँ (गुफा आकृति: कई चुनी हुई): जितनी आकृतियाँ चुनी गई हैं उतनी (x) होने पर हर आकृति कम से कम एक बार इस्तेमाल होती है, और हर जनरेशन में उनका क्रम अलग होता है"
+
+msgid "How far the shapes are turned, clockwise, any angle from 0 to 359: a T turned 90° opens to the left, a U turned 180° is upside down, 45° slants it (made smaller to fit its room)"
+msgstr "आकृतियाँ घड़ी की दिशा में कितनी घुमाई जाती हैं, 0 से 359 तक कोई भी कोण: 90° घुमाया T बाईं ओर खुलता है, 180° घुमाया U उलटा हो जाता है, 45° उसे तिरछा कर देता है (कक्ष में समाने के लिए छोटा किया जाता है)"
+
+msgid "Random turn"
+msgstr "रैंडम घुमाव"
+
+msgid "Each cave shape turned its own way, any angle, a new one each variation. It only turns the shapes: the Stamps tool has its own Random for the stamps"
+msgstr "हर गुफा आकृति अपने ढंग से घुमाई जाती है, कोई भी कोण, हर वैरिएशन में नया। यह केवल आकृतियों को घुमाता है: स्टैम्प के लिए स्टैम्प टूल का अपना रैंडम है"
+
+msgid "How many shapes in each room, side by side along its long side (a grid when many), joined by tunnels"
+msgstr "हर कक्ष में कितनी आकृतियाँ, उसकी लंबी तरफ़ साथ-साथ (ज़्यादा हों तो ग्रिड में), सुरंगों से जुड़ी हुई"
+
+msgid "How wide the shapes' passages are, in tiles (0: from the room's size; never lower than the player)"
+msgstr "आकृतियों के रास्ते कितने चौड़े हैं, टाइलों में (0: कक्ष के आकार से तय; खिलाड़ी से कभी कम नहीं)"
+
+msgid "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too. Outdoor: no cave, an open world's surface: open sky over rolling hills, pits to jump and floating ledges, its sides open where another room goes on (the ground meets it). Arena: a fight room: a flat floor, walls, a ceiling and platforms in tiers, the same both sides"
+msgstr "गुफा: खुरदरे चट्टानी किनारे, ऊँचे हिस्सों पर कगारें (एक नॉन-लीनियर गुफा)। लीनियर: सीधी दीवारें और सपाट फ़र्श, ऊँचे हिस्से चिकनी दीवारें जिन पर खिलाड़ी चढ़ता है (वॉल जंप या चढ़ने की क्षमता); द्वारों के बीच के रास्ते भी चढ़ने वाले शाफ़्ट हैं। आउटडोर: कोई गुफा नहीं, एक खुली दुनिया की सतह: लहराती पहाड़ियों पर खुला आसमान, कूदने के गड्ढे और तैरती कगारें, जहाँ कोई दूसरा कक्ष आगे जाता है वहाँ उसके किनारे खुले (ज़मीन उससे मिलती है)। एरीना: लड़ाई का कक्ष: समतल फ़र्श, दीवारें, छत और स्तरों में प्लेटफ़ॉर्म, दोनों तरफ़ एक जैसे"
+
+msgid "Skeleton: a cave profile file, the numbers its rooms are made to fit (the MCP tool mds_cave_profile writes one from rooms you like). Empty: generic widths"
+msgstr "स्केलेटन: गुफा प्रोफ़ाइल फ़ाइल, यानी वे संख्याएँ जिनके अनुरूप इसके कक्ष बनाए जाते हैं (MCP टूल mds_cave_profile आपके पसंदीदा कक्षों से एक लिखता है)। ख़ाली: सामान्य चौड़ाइयाँ"
+
+msgid "Skeleton: rooms made to find one inside the profile's targets; the closest is kept"
+msgstr "स्केलेटन: प्रोफ़ाइल के लक्ष्यों के भीतर आने वाला कक्ष खोजने के लिए कई कक्ष बनाए जाते हैं; जो सबसे क़रीब हो वह रखा जाता है"
+
+msgid "Skeleton: 0 to 1, how far its draws stray from the typical room"
+msgstr "स्केलेटन: 0 से 1, इसके बनाए कक्ष सामान्य कक्ष से कितना भटकते हैं"
+
+msgid "Cave shape"
+msgstr "गुफा आकृति"
+
+msgid "Style"
+msgstr "शैली"
+
+msgid "Background filled."
+msgstr "पृष्ठभूमि भर दी गई।"
+
+msgid "Background cleared."
+msgstr "पृष्ठभूमि साफ़ कर दी गई।"
+
+msgid "Style of new freeform shapes (and of the selected one). Styles are *.freeform.tres files in the project"
+msgstr "नई फ़्रीफ़ॉर्म आकृतियों (और चुनी हुई आकृति) की शैली। शैलियाँ प्रोजेक्ट की *.freeform.tres फ़ाइलें हैं"
+
+msgid "No stamp sets (add the Mossgrove pack)"
+msgstr "कोई स्टैम्प सेट नहीं (Mossgrove पैक जोड़ें)"
+
+msgid "Stamps placed by the brush. Stamp sets are *.stamps.tres files in the project"
+msgstr "ब्रश से लगाए जाने वाले स्टैम्प। स्टैम्प सेट प्रोजेक्ट की *.stamps.tres फ़ाइलें हैं"
+
+msgid "What Erase removes (Shift: background only)"
+msgstr "मिटाएँ क्या हटाता है (Shift: केवल पृष्ठभूमि)"
+
+msgid "Pick tiles in the palette first (drag over them), or add a spritesheet with + Sheet."
+msgstr "पहले पैलेट में टाइलें चुनें (उन पर खींचें), या + शीट से स्प्राइटशीट जोड़ें।"
+
+msgid "MetDevSys"
+msgstr "MetDevSys"
+
+msgid "Collapse the tool panel (more room for the map)"
+msgstr "टूल पैनल समेटें (मानचित्र के लिए ज़्यादा जगह)"
+
+msgid "Show the tool panel"
+msgstr "टूल पैनल दिखाएँ"
+
+msgid "Spritesheet shown below"
+msgstr "नीचे दिखाई गई स्प्राइटशीट"
+
+msgid "Add a spritesheet (PNG, WebP, JPG...) to the room tileset"
+msgstr "कक्ष टाइलसेट में एक स्प्राइटशीट (PNG, WebP, JPG...) जोड़ें"
+
+msgid "+ Sheet"
+msgstr "+ शीट"
+
+msgid "Zoom in"
+msgstr "ज़ूम इन"
+
+msgid "Paint a random tile of the selection per cell (scatter) instead of repeating it as a pattern"
+msgstr "चयन को पैटर्न की तरह दोहराने की बजाय हर सेल में चयन की एक रैंडम टाइल पेंट करें (बिखराव)"
+
+msgid "Remove this spritesheet from the tileset (tiles painted from it disappear)"
+msgstr "इस स्प्राइटशीट को टाइलसेट से निकालें (इससे पेंट की गई टाइलें ग़ायब हो जाती हैं)"
+
+msgid "Drag over tiles to pick them for the brushes."
+msgstr "ब्रश के लिए चुनने के लिए टाइलों पर खींचें।"
+
+msgid "The picked tiles, turned and mirrored as they are placed"
+msgstr "चुनी हुई टाइलें, जैसी वे लगाई जाती हैं: घुमाई और मिरर की हुई"
+
+msgid "Turn the picked tiles clockwise, 0 to 360 degrees. The Place tool places them at this angle, anywhere in the room; the brushes paint them on the grid, turned to the nearest right angle (R / Shift+R in the Room view turn them too)"
+msgstr "चुनी हुई टाइलों को घड़ी की दिशा में घुमाएँ, 0 से 360 डिग्री। लगाएँ टूल उन्हें इसी कोण पर कक्ष में कहीं भी लगाता है; ब्रश उन्हें ग्रिड पर पेंट करते हैं, निकटतम समकोण पर घुमाकर (कक्ष दृश्य में R / Shift+R भी उन्हें घुमाते हैं)"
+
+msgid "Mirror"
+msgstr "मिरर"
+
+msgid "Mirror the picked tiles left to right (before they are turned)"
+msgstr "चुनी हुई टाइलों को बाएँ से दाएँ मिरर करें (घुमाने से पहले)"
+
+msgid "Solid on/off"
+msgstr "ठोस चालू/बंद"
+
+msgid "Give the selected tiles full-tile collision (walkable ground), or remove it"
+msgstr "चुनी हुई टाइलों को पूरी-टाइल कोलिज़न दें (चलने लायक ज़मीन), या उसे हटाएँ"
+
+msgid "Terrain name"
+msgstr "भूभाग का नाम"
+
+msgid "Make terrain"
+msgstr "भूभाग बनाएँ"
+
+msgid "Turn the selection into an autotiling terrain (solid). Select a 3x3 box (corners, edges, fill) or 4x4 tiles ordered by connected sides (1 right + 2 bottom + 4 left + 8 top)"
+msgstr "चयन को ऑटोटाइलिंग भूभाग (ठोस) में बदलें। 3x3 का बॉक्स चुनें (कोने, किनारे, फ़िल) या जुड़ी भुजाओं के क्रम में 4x4 टाइलें (1 दाएँ + 2 नीचे + 4 बाएँ + 8 ऊपर)"
+
+msgid "Kind, e.g. grass"
+msgstr "प्रकार, जैसे grass"
+
+msgid "Kinds used by Auto-decorate and Generate cave (foliage = background)"
+msgstr "ऑटो-सजावट और गुफा जनरेट करें में उपयोग होने वाले प्रकार (foliage = पृष्ठभूमि)"
+
+msgid "v"
+msgstr "v"
+
+msgid "Tag the selected tiles with this kind (empty: remove the tag). Tagged tiles show up in the brush fills and are used by Auto-decorate"
+msgstr "चुनी हुई टाइलों को इस प्रकार से टैग करें (ख़ाली: टैग हटाएँ)। टैग की गई टाइलें ब्रश फ़िल में दिखती हैं और ऑटो-सजावट उनका उपयोग करती है"
+
+msgid "Tag"
+msgstr "टैग"
+
+msgid "No spritesheets yet. Press + Sheet to add one."
+msgstr "अभी कोई स्प्राइटशीट नहीं। जोड़ने के लिए + शीट दबाएँ।"
+
+msgid "Drag over tiles to pick them for the brushes. Red dot: solid, blue dot: tagged kind, bar: terrain."
+msgstr "ब्रश के लिए चुनने के लिए टाइलों पर खींचें। लाल बिंदु: ठोस, नीला बिंदु: टैग किया हुआ प्रकार, पट्टी: भूभाग।"
+
+msgid "Pick tiles in the palette first."
+msgstr "पहले पैलेट में टाइलें चुनें।"
+
+msgid "Pick a 3x3 or 4x4 block of tiles in the palette first."
+msgstr "पहले पैलेट में टाइलों का 3x3 या 4x4 ब्लॉक चुनें।"
+
+msgid "Add a spritesheet"
+msgstr "स्प्राइटशीट जोड़ें"
+
+msgid "Spritesheet"
+msgstr "स्प्राइटशीट"
+
+msgid "Tile size"
+msgstr "टाइल का आकार"
+
+msgid "Margin"
+msgstr "मार्जिन"
+
+msgid "Separation"
+msgstr "अंतराल"
+
+msgid "Solid tiles (collision, for terrain sheets)"
+msgstr "ठोस टाइलें (कोलिज़न, भूभाग शीट के लिए)"
+
+msgid "Each color becomes freeform shapes in the freeform style picked for it: textured rock, moss, ledges..."
+msgstr "हर रंग अपने लिए चुनी गई फ़्रीफ़ॉर्म शैली की फ़्रीफ़ॉर्म आकृतियाँ बन जाता है: टेक्सचर वाली चट्टान, काई, कगारें..."
+
+msgid "Each color becomes freeform shapes filled with a solid color: the drawing's own color, or one picked for it"
+msgstr "हर रंग ठोस रंग से भरी फ़्रीफ़ॉर्म आकृतियाँ बन जाता है: ड्रॉइंग का अपना रंग, या उसके लिए चुना गया कोई रंग"
+
+msgid "Each color paints the room's tile grid: with a terrain (autotiled), tiles of a kind, the tiles picked in the tile palette (a spritesheet), or solid tiles of its own color"
+msgstr "हर रंग कक्ष की टाइल ग्रिड को पेंट करता है: किसी भूभाग (ऑटोटाइल) से, किसी प्रकार की टाइलों से, टाइल पैलेट (स्प्राइटशीट) में चुनी टाइलों से, या अपने ही रंग की ठोस टाइलों से"
+
+msgid "The drawing goes into the room as it is drawn: a picture behind the terrain, one at its depth and one in front, each with its layer's colors, the paper cut out. Collision gives its terrain and platforms invisible freeform shapes (one-way for platforms), like CollisionPolygon2D"
+msgstr "ड्रॉइंग कक्ष में वैसी ही जाती है जैसी बनी है: भूभाग के पीछे एक तस्वीर, उसकी गहराई पर एक और सामने एक, हर एक अपनी परत के रंगों के साथ, कागज़ कटा हुआ। कोलिज़न उसके भूभाग और प्लेटफ़ॉर्म को अदृश्य फ़्रीफ़ॉर्म आकृतियाँ देता है (प्लेटफ़ॉर्म के लिए एकतरफ़ा), CollisionPolygon2D की तरह"
+
+msgid "Trace drawing"
+msgstr "ड्रॉइंग ट्रेस करें"
+
+msgid "Trace into room"
+msgstr "कक्ष में ट्रेस करें"
+
+msgid "Draws the room from a picture. Black, grey and brown: solid terrain; red, orange and yellow: one-way platforms; green: background; blue and purple: foreground; white or transparent: nothing (paper). The drawing covers the room's box on the map. Draw it with freeform styles, solid colors, tiles from a spritesheet or terrain, or keep the drawing itself and give its terrain collision."
+msgstr "तस्वीर से कक्ष बनाता है। काला, स्लेटी और भूरा: ठोस भूभाग; लाल, नारंगी और पीला: एकतरफ़ा प्लेटफ़ॉर्म; हरा: पृष्ठभूमि; नीला और बैंगनी: अग्रभूमि; सफ़ेद या पारदर्शी: कुछ नहीं (कागज़)। ड्रॉइंग मानचित्र पर कक्ष के बॉक्स को ढकती है। इसे फ़्रीफ़ॉर्म शैलियों, ठोस रंगों, स्प्राइटशीट की टाइलों या भूभाग से बनाएँ, या ड्रॉइंग को ही रखें और उसके भूभाग को कोलिज़न दें।"
+
+msgid "Drawing"
+msgstr "ड्रॉइंग"
+
+msgid "an image file (drag one from the FileSystem dock)"
+msgstr "एक छवि फ़ाइल (FileSystem डॉक से खींचकर लाएँ)"
+
+msgid "Pick an image anywhere on this computer"
+msgstr "इस कंप्यूटर में कहीं से भी कोई छवि चुनें"
+
+msgid "Choose..."
+msgstr "चुनें..."
+
+msgid "Draw with"
+msgstr "इससे बनाएँ"
+
+msgid "How the drawing goes into the room"
+msgstr "ड्रॉइंग कक्ष में कैसे जाती है"
+
+msgid "Colors"
+msgstr "रंग"
+
+msgid "Stretch over the room's box"
+msgstr "कक्ष के बॉक्स पर फैलाएँ"
+
+msgid "Keep its proportions"
+msgstr "अनुपात बनाए रखें"
+
+msgid "How the drawing is laid over the room's box on the map"
+msgstr "मानचित्र पर कक्ष के बॉक्स पर ड्रॉइंग कैसे बिछाई जाती है"
+
+msgid "Detail"
+msgstr "विवरण"
+
+msgid "Left: smooth outlines with few points. Right: follows every wiggle of the drawing"
+msgstr "बाएँ: कम बिंदुओं वाली चिकनी आउटलाइन। दाएँ: ड्रॉइंग के हर घुमाव का अनुसरण करती है"
+
+msgid "Shapes smaller than this across are dropped as specks"
+msgstr "इससे छोटे आर-पार वाली आकृतियाँ धब्बे मानकर छोड़ दी जाती हैं"
+
+msgid "Smallest shape"
+msgstr "सबसे छोटी आकृति"
+
+msgid "Shapes touching the drawing's edge run on this far past the room's edge, out of the camera's sight"
+msgstr "ड्रॉइंग के किनारे को छूने वाली आकृतियाँ कक्ष के किनारे से इतनी दूर आगे तक जाती हैं, कैमरे की नज़र से बाहर"
+
+msgid "Run on past edges"
+msgstr "किनारों से आगे बढ़ाएँ"
+
+msgid "Fit what is drawn"
+msgstr "बने हिस्से में फ़िट करें"
+
+msgid "Cut off the paper around the drawing, so what is drawn fills the room's width and height (off: the whole picture covers the room)"
+msgstr "ड्रॉइंग के चारों ओर का कागज़ काट दें, ताकि जो बना है वह कक्ष की पूरी चौड़ाई और ऊँचाई भर दे (बंद: पूरी तस्वीर कक्ष को ढकती है)"
+
+msgid "Round outlines"
+msgstr "आउटलाइन गोल करें"
+
+msgid "Round the outlines through their points (off: straight edges, for a blockout)"
+msgstr "आउटलाइन को उनके बिंदुओं से होकर गोल करें (बंद: सीधे किनारे, ब्लॉकआउट के लिए)"
+
+msgid "Replace the last trace"
+msgstr "पिछला ट्रेस बदलें"
+
+msgid "Remove what an earlier trace of this room made first (its shapes, pictures and tiles), so you can redraw and trace again"
+msgstr "पहले इस कक्ष के पिछले ट्रेस की बनाई चीज़ें (उसकी आकृतियाँ, तस्वीरें और टाइलें) निकालें, ताकि आप दोबारा बनाकर फिर से ट्रेस कर सकें"
+
+msgid "Collision for its terrain"
+msgstr "इसके भूभाग के लिए कोलिज़न"
+
+msgid "Give the drawing's terrain colors invisible freeform shapes to collide with, following the drawing's outlines (like CollisionPolygon2D), and its platform colors one-way ones. Edit them with Freeform > Edit; the editor outlines them"
+msgstr "ड्रॉइंग के भूभाग वाले रंगों को टकराने के लिए अदृश्य फ़्रीफ़ॉर्म आकृतियाँ दें, जो ड्रॉइंग की आउटलाइन का अनुसरण करती हैं (CollisionPolygon2D की तरह), और उसके प्लेटफ़ॉर्म वाले रंगों को एकतरफ़ा आकृतियाँ। उन्हें फ़्रीफ़ॉर्म > संपादित करें से संपादित करें; एडिटर उनकी आउटलाइन दिखाता है"
+
+msgid "Cut out the paper"
+msgstr "कागज़ काट दें"
+
+msgid "Make the paper (colors set to Nothing) transparent, so the room's background shows through it"
+msgstr "कागज़ (कुछ नहीं पर सेट रंग) को पारदर्शी बनाएँ, ताकि कक्ष की पृष्ठभूमि उसमें से दिखे"
+
+msgid "Pick a drawing first."
+msgstr "पहले कोई ड्रॉइंग चुनें।"
+
+msgid "What this color becomes"
+msgstr "यह रंग क्या बनता है"
+
+msgid "Color the shapes of this color are filled with"
+msgstr "इस रंग की आकृतियाँ जिस रंग से भरी जाती हैं"
+
+msgid "Tiles this color paints: solid tiles of its color, a terrain (autotiled), random tiles of a kind, or the tiles picked in the tile palette (pick them there first)"
+msgstr "यह रंग जो टाइलें पेंट करता है: अपने रंग की ठोस टाइलें, कोई भूभाग (ऑटोटाइल), किसी प्रकार की रैंडम टाइलें, या टाइल पैलेट में चुनी टाइलें (पहले उन्हें वहाँ चुनें)"
+
+msgid "Palette tiles picked before"
+msgstr "पहले चुनी गई पैलेट टाइलें"
+
+msgid "Freeform style of the shapes of this color"
+msgstr "इस रंग की आकृतियों की फ़्रीफ़ॉर्म शैली"
+
+msgid "Weather and effects: presets (storm, sandstorm, blizzard...), effects (rain, fog(ground=1), dust_storm(blows_toward=left)...), comma-separated, or a .tscn of effect nodes. none: no weather"
+msgstr "मौसम और प्रभाव: प्रीसेट (storm, sandstorm, blizzard...), प्रभाव (rain, fog(ground=1), dust_storm(blows_toward=left)...), अल्पविराम से अलग, या प्रभाव नोड की एक .tscn। none: कोई मौसम नहीं"
+
+msgid "Pick a weather preset, or add an effect"
+msgstr "कोई मौसम प्रीसेट चुनें, या प्रभाव जोड़ें"
+
+msgid "Presets"
+msgstr "प्रीसेट"
+
+msgid "Add an effect"
+msgstr "प्रभाव जोड़ें"
+
+msgid "None (no weather here)"
+msgstr "कोई नहीं (यहाँ कोई मौसम नहीं)"
+
+msgid "none"
+msgstr "none"
+
+msgid "Parallax background: a preset (dusk_mountains, misty_forest, ruined_city...), with a foreground in front of the room if you like (parallax(preset=misty_forest, foreground=foliage); foreground alone: parallax(preset=none, foreground=mist)), or a .tscn holding an MDSParallaxBackground with your layers. none: no background"
+msgstr "पैरालैक्स पृष्ठभूमि: एक प्रीसेट (dusk_mountains, misty_forest, ruined_city...), चाहें तो कक्ष के सामने अग्रभूमि के साथ (parallax(preset=misty_forest, foreground=foliage); केवल अग्रभूमि: parallax(preset=none, foreground=mist)), या आपकी परतों वाले MDSParallaxBackground की एक .tscn। none: कोई पृष्ठभूमि नहीं"
+
+msgid "Pick a parallax background preset"
+msgstr "पैरालैक्स पृष्ठभूमि का प्रीसेट चुनें"
+
+msgid "In front of the room"
+msgstr "कक्ष के सामने"
+
+msgid "No foreground"
+msgstr "कोई अग्रभूमि नहीं"
+
+msgid "None (no background here)"
+msgstr "कोई नहीं (यहाँ कोई पृष्ठभूमि नहीं)"
+
+msgid "Animated background, soft and out of focus, drawn by a shader: a style (bokeh, aurora, nebula, blood_moon...), with settings if you like (aurora(blur=0.8, speed=0.5)); creatures (bees, spiders, songbirds, bats, jellyfish, owls...); giant machinery (clockwork, giant_wheels, clock_faces... for castles; turbines, reactor_cores, specimen_tanks... for alien stations); a style and creatures or machinery (blood_moon, bats; storm_clouds, castle_spires); or a .tscn holding an MDSAnimatedBackground, MDSCreatures or MDSMachineryBackground. none: no background"
+msgstr "एनिमेटेड पृष्ठभूमि, नरम और फ़ोकस से बाहर, जो शेडर से बनती है: कोई शैली (bokeh, aurora, nebula, blood_moon...), चाहें तो सेटिंग के साथ (aurora(blur=0.8, speed=0.5)); जीव (bees, spiders, songbirds, bats, jellyfish, owls...); विशालकाय मशीनरी (clockwork, giant_wheels, clock_faces... किलों के लिए; turbines, reactor_cores, specimen_tanks... एलियन स्टेशनों के लिए); कोई शैली और जीव या मशीनरी (blood_moon, bats; storm_clouds, castle_spires); या MDSAnimatedBackground, MDSCreatures या MDSMachineryBackground वाली एक .tscn। none: कोई पृष्ठभूमि नहीं"
+
+msgid "Pick an animated background style"
+msgstr "एनिमेटेड पृष्ठभूमि की शैली चुनें"
+
+msgid "For boss rooms"
+msgstr "बॉस कक्षों के लिए"
+
+msgid "Creatures (boss rooms)"
+msgstr "जीव (बॉस कक्ष)"
+
+msgid "Each on its own (not as a swarm)"
+msgstr "हर एक अलग-अलग (झुंड के रूप में नहीं)"
+
+msgid "The creatures in the field go each their own way: every one wanders to places of its own, in its own direction and at its own pace, instead of moving as a swarm, a flock or a school (movement=individual). For bees, wasps, lumaflies, small birds, firebirds, crows and glowfish; the others go their own ways anyway"
+msgstr "पृष्ठभूमि के जीव हर एक अपने रास्ते जाते हैं: हर कोई अपनी जगहों पर, अपनी दिशा में और अपनी रफ़्तार से घूमता है, झुंड, टोली या समूह में चलने की बजाय (movement=individual)। मधुमक्खियों, ततैयों, ल्यूमाफ़्लाई, छोटी चिड़ियों, अग्निपक्षियों, कौवों और चमकती मछलियों के लिए; बाकी वैसे भी अपनी-अपनी राह चलते हैं"
+
+msgid "Gothic machinery (Castlevania-style castles)"
+msgstr "गॉथिक मशीनरी (Castlevania-शैली के किले)"
+
+msgid "Sci-fi machinery (Metroid-style stations)"
+msgstr "साइ-फ़ाई मशीनरी (Metroid-शैली के स्टेशन)"
+
+msgid "Player size"
+msgstr "खिलाड़ी का आकार"
+
+msgid "32x64"
+msgstr "32x64"
+
+msgid "Width x height of the player's collision box (px), for the room checks' climb test and openings"
+msgstr "खिलाड़ी के कोलिज़न बॉक्स की चौड़ाई x ऊँचाई (px), कक्ष जाँच के चढ़ाई परीक्षण और खुले रास्तों के लिए"
+
+msgid "Jump velocity (px/s)"
+msgstr "कूद का वेग (px/s)"
+
+msgid "Gravity (px/s²)"
+msgstr "गुरुत्वाकर्षण (px/s²)"
+
+msgid "Max jump height (px)"
+msgstr "अधिकतम कूद ऊँचाई (px)"
+
+msgid "How high a jump rises: v² / 2g. Editing it sets the jump velocity"
+msgstr "कूद कितनी ऊँची उठती है: v² / 2g। इसे बदलने से कूद का वेग तय होता है"
+
+msgid "Run speed (px/s)"
+msgstr "दौड़ने की गति (px/s)"
+
+msgid "Head clearance (px)"
+msgstr "सिर के ऊपर जगह (px)"
+
+msgid "Room the player needs above a platform to stand and jump"
+msgstr "प्लेटफ़ॉर्म पर खड़े होने और कूदने के लिए खिलाड़ी को ऊपर जितनी जगह चाहिए"
+
+msgid "Paint area (M)"
+msgstr "क्षेत्र पेंट करें (M)"
+
+msgid "Generate area (N)"
+msgstr "क्षेत्र जनरेट करें (N)"
+
+msgid "Area (A)"
+msgstr "क्षेत्र (A)"
+
+msgid "Erase (X)"
+msgstr "मिटाएँ (X)"
+
+msgid "Select (V)"
+msgstr "चुनें (V)"
+
+msgid "Draw room (R)"
+msgstr "कक्ष बनाएँ (R)"
+
+msgid "Extend room (E)"
+msgstr "कक्ष बढ़ाएँ (E)"
+
+msgid "Gate (G)"
+msgstr "द्वार (G)"
+
+msgid "Pin (P)"
+msgstr "पिन (P)"
+
+msgid "Paint (B)"
+msgstr "पेंट करें (B)"
+
+msgid "Click to select, drag to move, drag handles to resize, drag from a gate to another gate to connect. Several rooms: Ctrl+click adds one (or takes it out), Ctrl+drag on empty space selects a box of them; drag one to move them all. A whole area: click or drag its name, or Alt+drag any of its rooms (once selected, drag any of its rooms; click one to pick just that room). Alt+drag a name moves only the name. Drop .tscn files here to place scenes, or a map image to import it."
+msgstr "चुनने के लिए क्लिक करें, हिलाने के लिए खींचें, आकार बदलने के लिए हैंडल खींचें, जोड़ने के लिए एक द्वार से दूसरे द्वार तक खींचें। कई कक्ष: Ctrl+क्लिक एक जोड़ता है (या निकालता है), ख़ाली जगह पर Ctrl+खींचना उनका एक बॉक्स चुनता है; सबको हिलाने के लिए किसी एक को खींचें। पूरा क्षेत्र: उसके नाम पर क्लिक करें या उसे खींचें, या उसके किसी भी कक्ष को Alt+खींचें (एक बार चुने जाने के बाद उसके किसी भी कक्ष को खींचें; केवल उसी कक्ष को चुनने के लिए उस पर क्लिक करें)। नाम को Alt+खींचना केवल नाम को हिलाता है। सीन रखने के लिए यहाँ .tscn फ़ाइलें छोड़ें, या आयात करने के लिए कोई मानचित्र छवि।"
+
+msgid "Drag to draw a new room."
+msgstr "नया कक्ष बनाने के लिए खींचें।"
+
+msgid "Drag to add a rectangle to the selected room (irregular shapes). With several rooms selected, the box is shared out: each extends with the part of it nearest to it."
+msgstr "चुने हुए कक्ष में एक आयत जोड़ने के लिए खींचें (अनियमित आकृतियाँ)। कई कक्ष चुने हों तो बॉक्स बाँट दिया जाता है: हर कक्ष उसके अपने सबसे पास वाले हिस्से से बढ़ता है।"
+
+msgid "Click a room edge to add a gate. Drag from a gate to another gate to connect."
+msgstr "द्वार जोड़ने के लिए कक्ष के किनारे पर क्लिक करें। जोड़ने के लिए एक द्वार से दूसरे द्वार तक खींचें।"
+
+msgid "Click to place a pin."
+msgstr "पिन लगाने के लिए क्लिक करें।"
+
+msgid "Paint the map: drag on empty space for a new room, start inside a room to grow it (Shift: always a new room). [ ] change the brush size."
+msgstr "मानचित्र पेंट करें: नया कक्ष बनाने के लिए ख़ाली जगह पर खींचें, किसी कक्ष को बढ़ाने के लिए उसके अंदर से शुरू करें (Shift: हमेशा नया कक्ष)। [ ] ब्रश का आकार बदलते हैं।"
+
+msgid "Erase painted cells from any room. [ ] change the brush size."
+msgstr "किसी भी कक्ष से पेंट किए गए सेल मिटाएँ। [ ] ब्रश का आकार बदलते हैं।"
+
+msgid "Click a room to select its whole area, drag to move the area: it stops against the areas it meets and connects to them (a door where they touch, taken out again when they part). Double-click renames it, arrows nudge it, Delete removes its rooms."
+msgstr "किसी कक्ष पर क्लिक करके उसका पूरा क्षेत्र चुनें, क्षेत्र को हिलाने के लिए खींचें: वह जिन क्षेत्रों से मिलता है उनसे टकराकर रुक जाता है और उनसे जुड़ जाता है (जहाँ वे छूते हैं वहाँ दरवाज़ा, अलग होने पर फिर हट जाता है)। डबल-क्लिक उसका नाम बदलता है, ऐरो कुंजियाँ उसे थोड़ा खिसकाती हैं, Delete उसके कक्ष हटाता है।"
+
+msgid "Drag a box: an area is generated in it (rectangle or square, irregular, freeform or hybrid, with curved and slanted sides), split into rooms with doors between them."
+msgstr "बॉक्स खींचें: उसमें एक क्षेत्र जनरेट होता है (आयत या वर्ग, अनियमित, फ़्रीफ़ॉर्म या हाइब्रिड, घुमावदार और तिरछे किनारों के साथ), जो दरवाज़ों वाले कक्षों में बँटा होता है।"
+
+msgid "Paint an area: the stroke becomes rooms with doors between them. Start inside an area to grow it, on empty space for a new area. [ ] change the brush size."
+msgstr "क्षेत्र पेंट करें: स्ट्रोक दरवाज़ों वाले कक्ष बन जाता है। किसी क्षेत्र को बढ़ाने के लिए उसके अंदर से शुरू करें, नया क्षेत्र बनाने के लिए ख़ाली जगह से। [ ] ब्रश का आकार बदलते हैं।"
+
+msgid "Select a room first (Ctrl+click more to extend them together), then drag to add a rectangle to it."
+msgstr "पहले कोई कक्ष चुनें (उन्हें साथ बढ़ाने के लिए और कक्षों पर Ctrl+क्लिक करें), फिर उसमें आयत जोड़ने के लिए खींचें।"
+
+msgid "Drag a bigger box: at least 2 x 2 cells."
+msgstr "बड़ा बॉक्स खींचें: कम से कम 2 x 2 सेल।"
+
+msgid "Rooms cover all of that box already."
+msgstr "उस बॉक्स को कक्ष पहले ही पूरी तरह ढके हुए हैं।"
+
+msgid "Select the rooms to merge (Ctrl+click, Ctrl+drag a box), or one room to merge with the rooms it touches, then Merge (Ctrl+M)."
+msgstr "मर्ज करने के लिए कक्ष चुनें (Ctrl+क्लिक, Ctrl+बॉक्स खींचें), या जिन कक्षों को वह छूता है उनसे मर्ज करने के लिए एक कक्ष, फिर मर्ज करें (Ctrl+M)।"
+
+msgid "Every cell of the stroke is a room already."
+msgstr "स्ट्रोक का हर सेल पहले से एक कक्ष है।"
+
+msgid "Map tools"
+msgstr "मानचित्र उपकरण"
+
+msgid "Room painting"
+msgstr "कक्ष पेंटिंग"
+
+msgid "Full view"
+msgstr "पूर्ण दृश्य"
+
+msgid "No world yet. Use the world picker: New world... or Import from MetSys map..."
+msgstr "अभी कोई वर्ल्ड नहीं। वर्ल्ड पिकर इस्तेमाल करें: नया वर्ल्ड... या MetSys मानचित्र से आयात करें..."
+
+msgid "World"
+msgstr "वर्ल्ड"
+
+msgid "World file (.mdsworld.json)"
+msgstr "वर्ल्ड फ़ाइल (.mdsworld.json)"
+
+msgid "Scenes"
+msgstr "सीन"
+
+msgid "Scan, place and connect scenes"
+msgstr "सीन स्कैन करें, रखें और जोड़ें"
+
+msgid "Rescan world scenes"
+msgstr "वर्ल्ड सीन दोबारा स्कैन करें"
+
+msgid "Add scenes to map..."
+msgstr "मानचित्र में सीन जोड़ें..."
+
+msgid "Add doors between touching rooms"
+msgstr "छूते कक्षों के बीच दरवाज़े जोड़ें"
+
+msgid "Auto-connect facing gates"
+msgstr "आमने-सामने के द्वार अपने आप जोड़ें"
+
+msgid "Create game scene (MDSWorldGame)..."
+msgstr "गेम सीन बनाएँ (MDSWorldGame)..."
+
+msgid "World settings..."
+msgstr "वर्ल्ड सेटिंग..."
+
+msgid "World + analysis (JSON)"
+msgstr "वर्ल्ड + विश्लेषण (JSON)"
+
+msgid "View"
+msgstr "दृश्य"
+
+msgid "Map view"
+msgstr "मानचित्र दृश्य"
+
+msgid "The world map"
+msgstr "वर्ल्ड मानचित्र"
+
+msgid "Every room of the layer where it is on the map, at its actual size, with its scene: draw rooms (rectangles, ellipses, polygons, curvy outlines) and generate the map from them, move rooms, drop scenes to place them, paint any room. Works on an empty world too"
+msgstr "परत का हर कक्ष वहीं जहाँ वह मानचित्र पर है, अपने असली आकार में, अपने सीन के साथ: कक्ष बनाएँ (आयत, दीर्घवृत्त, बहुभुज, घुमावदार आउटलाइन) और उनसे मानचित्र जनरेट करें, कक्ष हिलाएँ, सीन छोड़कर उन्हें रखें, किसी भी कक्ष को पेंट करें। ख़ाली वर्ल्ड पर भी काम करता है"
+
+msgid "Paint the rooms selected (on the map or in the Full view), or the selected room or area: their actual contents (terrain, background, decorations)"
+msgstr "चुने हुए कक्षों (मानचित्र पर या पूर्ण दृश्य में), या चुने हुए कक्ष या क्षेत्र को पेंट करें: उनकी असली सामग्री (भूभाग, पृष्ठभूमि, सजावट)"
+
+msgid "Room view"
+msgstr "कक्ष दृश्य"
+
+msgid "Show the Rooms / Scenes / Inspect... tabs on the right. Hide them for a bigger map"
+msgstr "दाईं ओर कक्ष / सीन / निरीक्षण... टैब दिखाएँ। बड़े मानचित्र के लिए इन्हें छिपाएँ"
+
+msgid "Paint area"
+msgstr "क्षेत्र पेंट करें"
+
+msgid "Paint"
+msgstr "पेंट करें"
+
+msgid "Pin"
+msgstr "पिन"
+
+msgid "Gate"
+msgstr "द्वार"
+
+msgid "Extend"
+msgstr "बढ़ाएँ"
+
+msgid "Brush size in paint cells ([ and ] on the map)"
+msgstr "पेंट सेल में ब्रश का आकार (मानचित्र पर [ और ])"
+
+msgid "Auto doors"
+msgstr "ऑटो दरवाज़े"
+
+msgid "Paint: a room painted onto an area gets a door to each room of the area it touches. (Generated and painted areas always get their doors; areas dragged against each other with the Area tool connect.)"
+msgstr "पेंट: किसी क्षेत्र पर पेंट किए गए कक्ष को उस क्षेत्र के हर उस कक्ष का दरवाज़ा मिलता है जिसे वह छूता है। (जनरेट और पेंट किए गए क्षेत्रों को उनके दरवाज़े हमेशा मिलते हैं; क्षेत्र टूल से एक-दूसरे से सटाकर खींचे गए क्षेत्र जुड़ जाते हैं।)"
+
+msgid "Merge the rooms selected (Ctrl+click, Ctrl+drag a box) into one room; one room selected merges with the rooms it touches (of its area). They must be side by side. Asks first (which room to keep, what to do with their scenes). Ctrl+M on the map"
+msgstr "चुने हुए कक्षों (Ctrl+क्लिक, Ctrl+बॉक्स खींचें) को एक कक्ष में मर्ज करें; एक कक्ष चुना हो तो वह अपने क्षेत्र के उन कक्षों से मर्ज होता है जिन्हें वह छूता है। उनका साथ-साथ होना ज़रूरी है। पहले पूछता है (कौन-सा कक्ष रखना है, उनके सीन का क्या करना है)। मानचित्र पर Ctrl+M"
+
+msgid "Undo (Ctrl+Z on the map)"
+msgstr "पूर्ववत करें (मानचित्र पर Ctrl+Z)"
+
+msgid "Redo (Ctrl+Y on the map)"
+msgstr "फिर से करें (मानचित्र पर Ctrl+Y)"
+
+msgid "Tileset used to draw rooms (also used by the in-game MDSWorldMapView)"
+msgstr "कक्ष बनाने के लिए उपयोग होने वाला टाइलसेट (गेम के भीतर का MDSWorldMapView भी इसका उपयोग करता है)"
+
+msgid "Area names"
+msgstr "क्षेत्र के नाम"
+
+msgid "Scene previews (room pictures, else live)"
+msgstr "सीन पूर्वावलोकन (कक्ष की तस्वीरें, नहीं तो लाइव)"
+
+msgid "Gates && connections"
+msgstr "द्वार && कनेक्शन"
+
+msgid "Explored in the last playtest"
+msgstr "पिछले प्लेटेस्ट में खोजा गया"
+
+msgid "Clear the highlighted route / highlight (Esc)"
+msgstr "हाइलाइट किया गया मार्ग / हाइलाइट साफ़ करें (Esc)"
+
+msgid "MCP"
+msgstr "MCP"
+
+msgid "Pick .tscn files to place on the map (or drag them from the FileSystem dock)"
+msgstr "मानचित्र पर रखने के लिए .tscn फ़ाइलें चुनें (या उन्हें FileSystem डॉक से खींचें)"
+
+msgid "Drag scenes onto the map: onto a painted room without a scene to fill it, or onto empty space to place it at its own size. Double-click places a scene in the middle of the view."
+msgstr "सीन को मानचित्र पर खींचें: बिना सीन वाले पेंट किए कक्ष पर उसे भरने के लिए, या ख़ाली जगह पर उसे उसके अपने आकार में रखने के लिए। डबल-क्लिक सीन को दृश्य के बीच में रखता है।"
+
+msgid "Pick the scene folder"
+msgstr "सीन फ़ोल्डर चुनें"
+
+msgid "Reload the scene list"
+msgstr "सीन सूची फिर से लोड करें"
+
+msgid "Refresh"
+msgstr "ताज़ा करें"
+
+msgid "Hide scenes already on the map"
+msgstr "मानचित्र पर पहले से मौजूद सीन छिपाएँ"
+
+msgid "Custom tileset PNG..."
+msgstr "कस्टम टाइलसेट PNG..."
+
+msgid "Save tileset template PNG..."
+msgstr "टाइलसेट टेम्पलेट PNG सहेजें..."
+
+msgid "Areas are map zones (Hollow Knight: Crossroads, Greenpath...). Rooms take their color; new rooms drawn with the Room tool join the area marked \"new rooms\"."
+msgstr "क्षेत्र मानचित्र ज़ोन होते हैं (Hollow Knight: Crossroads, Greenpath...)। कक्ष उनका रंग लेते हैं; कक्ष बनाएँ टूल से बनाए गए नए कक्ष उस क्षेत्र में जुड़ते हैं जिस पर \"new rooms\" का निशान है।"
+
+msgid "New area name"
+msgstr "नए क्षेत्र का नाम"
+
+msgid "Create an area"
+msgstr "क्षेत्र बनाएँ"
+
+msgid "Generate an area beside the map: rooms (rectangles and irregular ones) with doors between them. Or drag a box with the Generate tool (N), or paint one with Paint area (M)"
+msgstr "मानचित्र के बगल में एक क्षेत्र जनरेट करें: दरवाज़ों वाले कक्ष (आयताकार और अनियमित)। या क्षेत्र जनरेट करें टूल (N) से बॉक्स खींचें, या क्षेत्र पेंट करें (M) से एक पेंट करें"
+
+msgid "Generate..."
+msgstr "जनरेट करें..."
+
+msgid "Pin text"
+msgstr "पिन का टेक्स्ट"
+
+msgid "Rename area"
+msgstr "क्षेत्र का नाम बदलें"
+
+msgid "Generate caves for the area"
+msgstr "क्षेत्र के लिए गुफाएँ जनरेट करें"
+
+msgid "Leave rooms already painted alone"
+msgstr "पहले से पेंट किए कक्षों को न छेड़ें"
+
+msgid "Rooms whose scene has terrain tiles keep them; only empty and new rooms get a cave"
+msgstr "जिन कक्षों के सीन में भूभाग की टाइलें हैं वे उन्हें रखते हैं; केवल ख़ाली और नए कक्षों को गुफा मिलती है"
+
+msgid "Nothing imported: every cell of the picture is taken on the map."
+msgstr "कुछ आयात नहीं हुआ: तस्वीर का हर सेल मानचित्र पर पहले से लिया हुआ है।"
+
+msgid "Open or make a world first, then import a map image into it."
+msgstr "पहले कोई वर्ल्ड खोलें या बनाएँ, फिर उसमें मानचित्र छवि आयात करें।"
+
+msgid "World settings"
+msgstr "वर्ल्ड सेटिंग"
+
+msgid "Create game scene"
+msgstr "गेम सीन बनाएँ"
+
+msgid "Create"
+msgstr "बनाएँ"
+
+msgid "Include gameplay kit"
+msgstr "गेमप्ले किट शामिल करें"
+
+msgid "Includes MDSPlayer, gameplay state, HUD, pause menu and dialogue instead of placeholder nodes."
+msgstr "प्लेसहोल्डर नोड की जगह MDSPlayer, गेमप्ले स्टेट, HUD, पॉज़ मेन्यू और संवाद शामिल करता है।"
+
+msgid "New world..."
+msgstr "नया वर्ल्ड..."
+
+msgid "Open world..."
+msgstr "वर्ल्ड खोलें..."
+
+msgid "Import from MetSys map..."
+msgstr "MetSys मानचित्र से आयात करें..."
+
+msgid "Import map image..."
+msgstr "मानचित्र छवि आयात करें..."
+
+msgid "World file changed on disk, reloaded."
+msgstr "वर्ल्ड फ़ाइल डिस्क पर बदल गई, फिर से लोड की गई।"
+
+msgid "+ Add layer"
+msgstr "+ परत जोड़ें"
+
+msgid "Select a room on the map first, then open the Room view."
+msgstr "पहले मानचित्र पर कोई कक्ष चुनें, फिर कक्ष दृश्य खोलें।"
+
+msgid "Open or make a world first (the world picker), then the Full view shows it."
+msgstr "पहले कोई वर्ल्ड खोलें या बनाएँ (वर्ल्ड पिकर), फिर पूर्ण दृश्य उसे दिखाता है।"
+
+msgid "Full view: no rooms yet. Draw them at their real size (Rectangle, Ellipse, Polygon, Curvy), then Generate map; or drop scenes from the Scenes tab."
+msgstr "पूर्ण दृश्य: अभी कोई कक्ष नहीं। उन्हें उनके असली आकार में बनाएँ (आयत, दीर्घवृत्त, बहुभुज, घुमावदार), फिर मानचित्र जनरेट करें; या सीन टैब से सीन छोड़ें।"
+
+msgid "Select rooms in the Full view first (its Rooms tool: click, Ctrl+click, a box), or click one to paint it there."
+msgstr "पहले पूर्ण दृश्य में कक्ष चुनें (उसका कक्ष टूल: क्लिक, Ctrl+क्लिक, बॉक्स), या उसे वहाँ पेंट करने के लिए किसी एक पर क्लिक करें।"
+
+msgid "Map zone"
+msgstr "मानचित्र ज़ोन"
+
+msgid "e.g. GREENHOUSE"
+msgstr "जैसे GREENHOUSE"
+
+msgid "Id your game uses for this area (Hollow Knight calls these map zones)."
+msgstr "आपका गेम इस क्षेत्र के लिए जो ID उपयोग करता है (Hollow Knight इन्हें मानचित्र ज़ोन कहता है)।"
+
+msgid "Title"
+msgstr "शीर्षक"
+
+msgid "Shown by MDSAreaTitle when the player arrives. Empty: the area's name"
+msgstr "खिलाड़ी के पहुँचने पर MDSAreaTitle इसे दिखाता है। ख़ाली: क्षेत्र का नाम"
+
+msgid "Subtitle"
+msgstr "उपशीर्षक"
+
+msgid "smaller line under the title"
+msgstr "शीर्षक के नीचे की छोटी पंक्ति"
+
+msgid "Music"
+msgstr "संगीत"
+
+msgid "Loops while the player is in this area. MDSMusic crossfades between areas and keeps playing when two areas share it"
+msgstr "खिलाड़ी के इस क्षेत्र में रहने तक दोहराया जाता है। MDSMusic क्षेत्रों के बीच क्रॉसफ़ेड करता है और दो क्षेत्रों के साझा करने पर चलता रहता है"
+
+msgid "Music volume (dB)"
+msgstr "संगीत की आवाज़ (dB)"
+
+msgid "Boss music"
+msgstr "बॉस संगीत"
+
+msgid "MDSMusic.play_boss() starts it from silence; end_boss() returns to the area's music"
+msgstr "MDSMusic.play_boss() इसे ख़ामोशी से शुरू करता है; end_boss() क्षेत्र के संगीत पर लौटाता है"
+
+msgid "Backdrop"
+msgstr "बैकड्रॉप"
+
+msgid "world default"
+msgstr "वर्ल्ड डिफ़ॉल्ट"
+
+msgid "MDSBackdrop (.tres) drawn in the distance behind the area's rooms. A room can have its own"
+msgstr "क्षेत्र के कक्षों के पीछे दूर बनाया जाने वाला MDSBackdrop (.tres)। किसी कक्ष का अपना भी हो सकता है"
+
+msgid "Parallax background behind every room of the area (MDSWorldGame adds it as each room loads; the Room view shows it): a preset like dusk_mountains or misty_forest, or a .tscn with an MDSParallaxBackground. A room can have its own, or none"
+msgstr "क्षेत्र के हर कक्ष के पीछे पैरालैक्स पृष्ठभूमि (हर कक्ष के लोड होने पर MDSWorldGame इसे जोड़ता है; कक्ष दृश्य इसे दिखाता है): dusk_mountains या misty_forest जैसा प्रीसेट, या MDSParallaxBackground वाली .tscn। किसी कक्ष की अपनी हो सकती है, या कोई नहीं"
+
+msgid "Parallax"
+msgstr "पैरालैक्स"
+
+msgid "Animated bg"
+msgstr "एनिमेटेड पृष्ठभूमि"
+
+msgid "Animated background behind every room of the area, soft and out of focus (MDSWorldGame adds it as each room loads; the Room view shows it): a style like bokeh, aurora, nebula or deep_water, or a .tscn with an MDSAnimatedBackground. It is drawn behind the parallax background: use one without a sky to see both. A room can have its own, or none"
+msgstr "क्षेत्र के हर कक्ष के पीछे एनिमेटेड पृष्ठभूमि, नरम और फ़ोकस से बाहर (हर कक्ष के लोड होने पर MDSWorldGame इसे जोड़ता है; कक्ष दृश्य इसे दिखाता है): bokeh, aurora, nebula या deep_water जैसी शैली, या MDSAnimatedBackground वाली .tscn। यह पैरालैक्स पृष्ठभूमि के पीछे बनती है: दोनों देखने के लिए बिना आसमान वाली पैरालैक्स इस्तेमाल करें। किसी कक्ष की अपनी हो सकती है, या कोई नहीं"
+
+msgid "Boss room bg"
+msgstr "बॉस कक्ष पृष्ठभूमि"
+
+msgid "world's boss rooms"
+msgstr "वर्ल्ड के बॉस कक्ष"
+
+msgid "Animated background of the area's boss rooms (type boss or mini_boss, or a boss named in the Inspect tab), instead of the area's: blood_moon, void_pulse, arcane_vortex, infection..., or creatures (bees, spiders, songbirds, bats, owls...), or both (blood_moon, bats). Empty: the world's boss rooms background, else the area's"
+msgstr "क्षेत्र के बॉस कक्षों की एनिमेटेड पृष्ठभूमि (प्रकार boss या mini_boss, या निरीक्षण टैब में नामित कोई बॉस), क्षेत्र की पृष्ठभूमि की जगह: blood_moon, void_pulse, arcane_vortex, infection..., या जीव (bees, spiders, songbirds, bats, owls...), या दोनों (blood_moon, bats)। ख़ाली: वर्ल्ड के बॉस कक्षों की पृष्ठभूमि, नहीं तो क्षेत्र की"
+
+msgid "Weather"
+msgstr "मौसम"
+
+msgid "0 lit, 0.05 to 0.8 dimmed (lights carve pools around the player and enemies). Empty: automatic, from the world's Dark room share. A room can have its own"
+msgstr "0 रोशन, 0.05 से 0.8 मंद (रोशनियाँ खिलाड़ी और दुश्मनों के आसपास उजाले के घेरे बनाती हैं)। ख़ाली: अपने आप, वर्ल्ड के अँधेरे कक्षों के अनुपात से। किसी कक्ष का अपना भी हो सकता है"
+
+msgid "Darkness"
+msgstr "अँधेरा"
+
+msgid "Shown by MDSObjectiveBanner on arrival and on the map until done"
+msgstr "पहुँचने पर और पूरा होने तक मानचित्र पर MDSObjectiveBanner इसे दिखाता है"
+
+msgid "e.g. Find the crypt key"
+msgstr "जैसे क्रिप्ट की चाबी ढूँढें"
+
+msgid "Objective"
+msgstr "उद्देश्य"
+
+msgid "The objective completes when the player has this ability (ability:dash or just dash), this stored object (object:Room/Node) or has defeated this boss (boss:Warden)"
+msgstr "उद्देश्य तब पूरा होता है जब खिलाड़ी के पास यह क्षमता हो (ability:dash या सिर्फ़ dash), यह संग्रहीत ऑब्जेक्ट हो (object:Room/Node) या उसने इस बॉस को हरा दिया हो (boss:Warden)"
+
+msgid "ability:x, object:id or boss:name"
+msgstr "ability:x, object:id या boss:name"
+
+msgid "Done when"
+msgstr "पूरा होता है जब"
+
+msgid "Rooms drawn with the Room tool join this area"
+msgstr "कक्ष बनाएँ टूल से बनाए गए कक्ष इस क्षेत्र में जुड़ते हैं"
+
+msgid "Use for new rooms"
+msgstr "नए कक्षों के लिए उपयोग करें"
+
+msgid "Move the selected room into this area"
+msgstr "चुने हुए कक्ष को इस क्षेत्र में ले जाएँ"
+
+msgid "Assign selected room"
+msgstr "चुना हुआ कक्ष सौंपें"
+
+msgid "Generate a cave in every room of the area (with the Room view's fills), every room's gates joined both ways so the area can be crossed and backtracked. Rooms without a scene get one"
+msgstr "क्षेत्र के हर कक्ष में एक गुफा जनरेट करें (कक्ष दृश्य के फ़िल के साथ), हर कक्ष के द्वार दोनों दिशाओं में जुड़े ताकि क्षेत्र पार किया जा सके और वापस लौटा जा सके। जिन कक्षों का सीन नहीं है उन्हें एक सीन मिलता है"
+
+msgid "Generate caves..."
+msgstr "गुफाएँ जनरेट करें..."
+
+msgid "Select on map"
+msgstr "मानचित्र पर चुनें"
+
+msgid "Select the area with the Area tool, to drag it as one piece (it connects to the areas it touches)"
+msgstr "क्षेत्र को क्षेत्र टूल से चुनें, ताकि उसे एक टुकड़े की तरह खींचा जा सके (वह जिन क्षेत्रों को छूता है उनसे जुड़ जाता है)"
+
+msgid "Reset label position"
+msgstr "लेबल की जगह रीसेट करें"
+
+msgid "Place the area name automatically again"
+msgstr "क्षेत्र का नाम फिर से अपने आप रखें"
+
+msgid "Delete area"
+msgstr "क्षेत्र हटाएँ"
+
+msgid "Rooms keep existing but leave the area"
+msgstr "कक्ष बने रहते हैं पर क्षेत्र छोड़ देते हैं"
+
+msgid "Create or open a world first."
+msgstr "पहले कोई वर्ल्ड बनाएँ या खोलें।"
+
+msgid "Non-linear mode: draw rooms freely and connect them with gates, like a Hollow Knight map.\n\nOpen the world picker in the tool panel on the left:\n- New world... starts an empty map.\n- Import from MetSys map... converts a MetSys MapData.txt."
+msgstr "नॉन-लीनियर मोड: कक्षों को खुलकर बनाएँ और द्वारों से जोड़ें, Hollow Knight के मानचित्र की तरह।\n\nबाईं ओर के टूल पैनल में वर्ल्ड पिकर खोलें:\n- नया वर्ल्ड... एक ख़ाली मानचित्र शुरू करता है।\n- MetSys मानचित्र से आयात करें... MetSys की MapData.txt को बदलता है।"
+
+msgid "Select a room to edit it.\n\nR: draw a room, E: extend the selected room, G: add gates, P: pins.\nDrag .tscn files from the FileSystem dock onto the map to place scenes.\nDrag from a gate to another gate to connect rooms.\nDouble-click a room to open (or create) its scene. Right-click for more."
+msgstr "संपादित करने के लिए कोई कक्ष चुनें।\n\nR: कक्ष बनाएँ, E: चुने हुए कक्ष को बढ़ाएँ, G: द्वार जोड़ें, P: पिन।\nसीन रखने के लिए FileSystem डॉक से .tscn फ़ाइलें मानचित्र पर खींचें।\nकक्षों को जोड़ने के लिए एक द्वार से दूसरे द्वार तक खींचें।\nकिसी कक्ष का सीन खोलने (या बनाने) के लिए उस पर डबल-क्लिक करें। और विकल्पों के लिए राइट-क्लिक करें।"
+
+msgid "Create scene..."
+msgstr "सीन बनाएँ..."
+
+msgid "Create a new scene for this room with bounds guides and one MDSGate per gate"
+msgstr "इस कक्ष के लिए सीमा गाइड और हर द्वार के लिए एक MDSGate के साथ नया सीन बनाएँ"
+
+msgid "Use an existing scene for this room"
+msgstr "इस कक्ष के लिए कोई मौजूदा सीन उपयोग करें"
+
+msgid "Assign scene..."
+msgstr "सीन सौंपें..."
+
+msgid "Progression is computed from the start room"
+msgstr "प्रगति शुरुआती कक्ष से गिनी जाती है"
+
+msgid "Open the Room view to paint this room's terrain, background and decorations"
+msgstr "इस कक्ष का भूभाग, पृष्ठभूमि और सजावट पेंट करने के लिए कक्ष दृश्य खोलें"
+
+msgid "Paint room"
+msgstr "कक्ष पेंट करें"
+
+msgid "Copy this room's shape and gates (Ctrl+D)"
+msgstr "इस कक्ष की आकृति और द्वार कॉपी करें (Ctrl+D)"
+
+msgid "Delete this room (Ctrl+Z to undo)"
+msgstr "यह कक्ष हटाएँ (पूर्ववत करने के लिए Ctrl+Z)"
+
+msgid "Room ID"
+msgstr "कक्ष ID"
+
+msgid "Unique id used by gates and at runtime (Hollow Knight uses scene names like Crossroads_01)."
+msgstr "द्वारों और रनटाइम में उपयोग होने वाली अनूठी ID (Hollow Knight Crossroads_01 जैसे सीन नाम उपयोग करता है)।"
+
+msgid "MDSBackdrop (.tres) drawn in the distance behind this room. Empty: the area's, else the world's"
+msgstr "इस कक्ष के पीछे दूर बनाया जाने वाला MDSBackdrop (.tres)। ख़ाली: क्षेत्र का, नहीं तो वर्ल्ड का"
+
+msgid "Weather and effects in this room (MDSWorldGame adds them as it loads). Empty: the area's, else the world's; none: no weather here (a room under cover in a stormy area)"
+msgstr "इस कक्ष में मौसम और प्रभाव (लोड होते समय MDSWorldGame उन्हें जोड़ता है)। ख़ाली: क्षेत्र का, नहीं तो वर्ल्ड का; none: यहाँ कोई मौसम नहीं (तूफ़ानी क्षेत्र में छत के नीचे का कक्ष)"
+
+msgid "Parallax background behind this room. Empty: the area's, else the world's; none: none here"
+msgstr "इस कक्ष के पीछे पैरालैक्स पृष्ठभूमि। ख़ाली: क्षेत्र की, नहीं तो वर्ल्ड की; none: यहाँ कोई नहीं"
+
+msgid "Animated background behind this room, soft and out of focus. Empty: for a boss room the boss rooms background, else the area's, else the world's; none: none here"
+msgstr "इस कक्ष के पीछे एनिमेटेड पृष्ठभूमि, नरम और फ़ोकस से बाहर। ख़ाली: बॉस कक्ष के लिए बॉस कक्षों की पृष्ठभूमि, नहीं तो क्षेत्र की, नहीं तो वर्ल्ड की; none: यहाँ कोई नहीं"
+
+msgid "Camera zoom"
+msgstr "कैमरा ज़ूम"
+
+msgid "auto"
+msgstr "ऑटो"
+
+msgid "The camera's zoom in this room (1: as set, 2: twice as close, 0.5: twice as far) when World settings > Camera > Auto zoom is Per room or Fit. The camera glides to it as the player comes in. Empty: the world's zoom, or the fitted one"
+msgstr "इस कक्ष में कैमरे का ज़ूम (1: जैसा सेट है, 2: दोगुना पास, 0.5: दोगुना दूर) जब वर्ल्ड सेटिंग > कैमरा > ऑटो ज़ूम प्रति कक्ष या फ़िट हो। खिलाड़ी के आते ही कैमरा उस तक सरक जाता है। ख़ाली: वर्ल्ड का ज़ूम, या फ़िट किया हुआ"
+
+msgid "0 lit, 0.05 to 0.8 dimmed: a subtractive light darkens the room and the player, enemies and lanterns carry soft lights. Empty: the area's, else automatic (the world's Dark room share)"
+msgstr "0 रोशन, 0.05 से 0.8 मंद: एक घटाने वाली रोशनी कक्ष को गहरा करती है और खिलाड़ी, दुश्मन और लालटेनें नरम रोशनियाँ लिए रहती हैं। ख़ाली: क्षेत्र का, नहीं तो अपने आप (वर्ल्ड का अँधेरे कक्षों का अनुपात)"
+
+msgid "Fit to scene"
+msgstr "सीन में फ़िट करें"
+
+msgid "Resize the room to the scene's terrain"
+msgstr "कक्ष का आकार सीन के भूभाग के अनुसार बदलें"
+
+msgid "Drag on the map to add a rectangle to this room"
+msgstr "इस कक्ष में आयत जोड़ने के लिए मानचित्र पर खींचें"
+
+msgid "Extend (E)"
+msgstr "बढ़ाएँ (E)"
+
+msgid "Remove this rectangle"
+msgstr "यह आयत निकालें"
+
+msgid "Add a transition on a side of the room"
+msgstr "कक्ष की किसी तरफ़ एक ट्रांज़िशन जोड़ें"
+
+msgid "Add gate"
+msgstr "द्वार जोड़ें"
+
+msgid "Add/move map gates to match the scene's gate nodes (left1, right1, MDSGate...)"
+msgstr "सीन के द्वार नोड (left1, right1, MDSGate...) से मिलाने के लिए मानचित्र के द्वार जोड़ें/हिलाएँ"
+
+msgid "Import from scene"
+msgstr "सीन से आयात करें"
+
+msgid "Write to scene"
+msgstr "सीन में लिखें"
+
+msgid "Add an MDSGate node to the scene for every map gate it's missing (never deletes)"
+msgstr "मानचित्र के हर उस द्वार के लिए सीन में MDSGate नोड जोड़ें जो उसमें नहीं है (कभी हटाता नहीं)"
+
+msgid "Gate name (Hollow Knight style: left1, right1, top1, bot1, door1)"
+msgstr "द्वार का नाम (Hollow Knight शैली: left1, right1, top1, bot1, door1)"
+
+msgid "Drag from this gate on the map to another gate to connect."
+msgstr "जोड़ने के लिए मानचित्र पर इस द्वार से दूसरे द्वार तक खींचें।"
+
+msgid "Unlink"
+msgstr "अनलिंक"
+
+msgid "Disconnect this gate"
+msgstr "इस द्वार को अलग करें"
+
+msgid "Delete this gate"
+msgstr "यह द्वार हटाएँ"
+
+msgid "requires (e.g. dash)"
+msgstr "आवश्यक (जैसे dash)"
+
+msgid "One-way"
+msgstr "एकतरफ़ा"
+
+msgid "Players can leave through this gate but not come back (drops, collapsing floors)"
+msgstr "खिलाड़ी इस द्वार से निकल सकते हैं पर लौट नहीं सकते (गिरावट, ढहते फ़र्श)"
+
+msgid "Links (elevators, stag stations, cross-layer)"
+msgstr "लिंक (लिफ़्ट, स्टैग स्टेशन, परतों के बीच)"
+
+msgid "note"
+msgstr "नोट"
+
+msgid "Connect rooms that have no gate between them on the map"
+msgstr "उन कक्षों को जोड़ें जिनके बीच मानचित्र पर कोई द्वार नहीं है"
+
+msgid "Fit room to scene"
+msgstr "कक्ष को सीन में फ़िट करें"
+
+msgid "Paint room (actual view)"
+msgstr "कक्ष पेंट करें (असली दृश्य)"
+
+msgid "Show in the Full view"
+msgstr "पूर्ण दृश्य में दिखाएँ"
+
+msgid "Add gate here"
+msgstr "यहाँ द्वार जोड़ें"
+
+msgid "Merge with the rooms it touches... (Ctrl+M)"
+msgstr "छूने वाले कक्षों से मर्ज करें... (Ctrl+M)"
+
+msgid "Duplicate room"
+msgstr "कक्ष डुप्लिकेट करें"
+
+msgid "Copy room id"
+msgstr "कक्ष ID कॉपी करें"
+
+msgid "New room here"
+msgstr "यहाँ नया कक्ष"
+
+msgid "Generate area here..."
+msgstr "यहाँ क्षेत्र जनरेट करें..."
+
+msgid "Import map image here..."
+msgstr "यहाँ मानचित्र छवि आयात करें..."
+
+msgid "The scene has no terrain to fit to (TileMapLayer or StaticBody2D shapes)."
+msgstr "सीन में फ़िट करने के लिए कोई भूभाग नहीं है (TileMapLayer या StaticBody2D आकृतियाँ)।"
+
+msgid "World name"
+msgstr "वर्ल्ड का नाम"
+
+msgid "Grid (px)"
+msgstr "ग्रिड (px)"
+
+msgid "Rooms, rects and gates snap to this. Use your tile size or a multiple of it."
+msgstr "कक्ष, आयत और द्वार इस पर स्नैप होते हैं। अपनी टाइल का आकार या उसका कोई गुणज उपयोग करें।"
+
+msgid "1152x648"
+msgstr "1152x648"
+
+msgid "Default room size"
+msgstr "डिफ़ॉल्ट कक्ष आकार"
+
+msgid "Paint cell"
+msgstr "पेंट सेल"
+
+msgid "e.g. 288x162"
+msgstr "जैसे 288x162"
+
+msgid "Size of one brush cell in world pixels. Default: a quarter of the default room size."
+msgstr "वर्ल्ड पिक्सेल में एक ब्रश सेल का आकार। डिफ़ॉल्ट: डिफ़ॉल्ट कक्ष आकार का चौथाई।"
+
+msgid "New scene folder"
+msgstr "नए सीन का फ़ोल्डर"
+
+msgid "Scene template"
+msgstr "सीन टेम्पलेट"
+
+msgid "optional .tscn used by Create scene"
+msgstr "वैकल्पिक .tscn जो सीन बनाएँ उपयोग करता है"
+
+msgid "Play scene"
+msgstr "चलाने का सीन"
+
+msgid "auto: game scene hosting the room"
+msgstr "ऑटो: कक्ष को होस्ट करने वाला गेम सीन"
+
+msgid "Scene that Play from here boots with the room as its start. Empty: detected automatically."
+msgstr "वह सीन जिसे यहाँ से चलाएँ कक्ष को शुरुआत मानकर बूट करता है। ख़ाली: अपने आप पहचाना जाता है।"
+
+msgid "Auto-add gate nodes"
+msgstr "द्वार नोड अपने आप जोड़ें"
+
+msgid "When gates are added or connected"
+msgstr "जब द्वार जोड़े या कनेक्ट किए जाएँ"
+
+msgid "Adding or connecting gates on the map adds the matching MDSGate nodes to the rooms' scenes (and turns plain gate nodes into MDSGates). Open scenes get them as an undoable edit."
+msgstr "मानचित्र पर द्वार जोड़ने या कनेक्ट करने से कक्षों के सीन में मेल खाते MDSGate नोड जुड़ जाते हैं (और साधारण द्वार नोड MDSGate बन जाते हैं)। खुले सीन में वे ऐसे बदलाव के रूप में जुड़ते हैं जिसे पूर्ववत किया जा सकता है।"
+
+msgid "Geometry checks"
+msgstr "ज्यामिति जाँच"
+
+msgid "Check rooms with physics"
+msgstr "फ़िज़िक्स से कक्ष जाँचें"
+
+msgid "Load every room's terrain into an off-screen physics space and check that gates are open, platforms have headroom, objects stand on ground and exits up can be climbed (Issues > Geometry). Uses the Player settings below"
+msgstr "हर कक्ष के भूभाग को स्क्रीन से बाहर के फ़िज़िक्स स्पेस में लोड करें और जाँचें कि द्वार खुले हैं, प्लेटफ़ॉर्म के ऊपर जगह है, ऑब्जेक्ट ज़मीन पर खड़े हैं और ऊपर के निकासों पर चढ़ा जा सकता है (समस्याएँ > ज्यामिति)। नीचे की खिलाड़ी सेटिंग का उपयोग करता है"
+
+msgid "starter mossy cave tileset"
+msgstr "शुरुआती काई वाली गुफा का टाइलसेट"
+
+msgid "Room tileset"
+msgstr "कक्ष टाइलसेट"
+
+msgid "TileSet (.tres) the Room view paints new rooms with, e.g. an asset pack's tileset. Rooms that already have tiles keep theirs."
+msgstr "TileSet (.tres) जिससे कक्ष दृश्य नए कक्ष पेंट करता है, जैसे किसी असेट पैक का टाइलसेट। जिन कक्षों में पहले से टाइलें हैं वे अपनी ही रखते हैं।"
+
+msgid "optional .freeform.tres"
+msgstr "वैकल्पिक .freeform.tres"
+
+msgid "Notch fill style"
+msgstr "खाँचा फ़िल शैली"
+
+msgid "Create scene fills the cells of an irregular room's box outside its shape with non-solid shapes of this style (Room view > Fill outside shape does it for existing rooms)"
+msgstr "सीन बनाएँ किसी अनियमित कक्ष के बॉक्स के उन सेल को जो उसकी आकृति के बाहर हैं, इस शैली की गैर-ठोस आकृतियों से भरता है (कक्ष दृश्य > आकृति के बाहर भरें यह मौजूदा कक्षों के लिए करता है)"
+
+msgid "Save distance warning"
+msgstr "सेव दूरी की चेतावनी"
+
+msgid "Main, Dream"
+msgstr "Main, Dream"
+
+msgid "Layer names"
+msgstr "परतों के नाम"
+
+msgid "Presentation"
+msgstr "प्रस्तुति"
+
+msgid "Used by MDSWorldGame in the game scene"
+msgstr "गेम सीन में MDSWorldGame द्वारा उपयोग किया जाता है"
+
+msgid "2.5D"
+msgstr "2.5D"
+
+msgid "Extrude every room (MDSDepth25D)"
+msgstr "हर कक्ष को एक्सट्रूड करें (MDSDepth25D)"
+
+msgid "Walls, floors and platforms get the side faces of solid blocks running back to the middle of the view, floors become paved planes, faces are lit around the player and bodies cast soft shadows. Drawing only: nothing collides differently"
+msgstr "दीवारों, फ़र्शों और प्लेटफ़ॉर्म को ठोस ब्लॉकों के बगल वाले फलक मिलते हैं जो दृश्य के बीच तक पीछे जाते हैं, फ़र्श बिछे हुए तल बन जाते हैं, फलक खिलाड़ी के आसपास रोशन होते हैं और बॉडी नरम परछाइयाँ डालती हैं। केवल ड्रॉइंग: कोलिज़न में कुछ अलग नहीं होता"
+
+msgid "optional MDSDepthStyle .tres"
+msgstr "वैकल्पिक MDSDepthStyle .tres"
+
+msgid "2.5D style"
+msgstr "2.5D शैली"
+
+msgid "Bright daylight"
+msgstr "तेज़ दिन की रोशनी"
+
+msgid "Daylight: the bright 2.5D style, and new rooms paint with the daylight tileset."
+msgstr "दिन की रोशनी: तेज़ 2.5D शैली, और नए कक्ष दिन की रोशनी वाले टाइलसेट से पेंट होते हैं।"
+
+msgid "Brightness"
+msgstr "चमक"
+
+msgid "How bright MDSWorldGame draws the rooms: 1 as they are, 1.3 brighter, 0.8 dimmer (the HUD and the backdrop aren't touched). The game's brightness export overrides it"
+msgstr "MDSWorldGame कक्षों को कितना चमकीला बनाता है: 1 जैसे हैं, 1.3 ज़्यादा चमकीले, 0.8 ज़्यादा मंद (HUD और बैकड्रॉप को छुआ नहीं जाता)। गेम का brightness export इसे ओवरराइड करता है"
+
+msgid "optional MDSBackdrop .tres"
+msgstr "वैकल्पिक MDSBackdrop .tres"
+
+msgid "Distance drawn behind every room whose area and room set none (Areas tab, Inspect tab)"
+msgstr "हर उस कक्ष के पीछे बनने वाला दूर का दृश्य जिसके क्षेत्र और कक्ष ने कुछ तय नहीं किया (क्षेत्र टैब, निरीक्षण टैब)"
+
+msgid "Weather and effects in every room whose area and room set none (Areas tab, Inspect tab)"
+msgstr "हर उस कक्ष में मौसम और प्रभाव जिसके क्षेत्र और कक्ष ने कुछ तय नहीं किया (क्षेत्र टैब, निरीक्षण टैब)"
+
+msgid "Parallax background behind every room whose area and room set none"
+msgstr "हर उस कक्ष के पीछे पैरालैक्स पृष्ठभूमि जिसके क्षेत्र और कक्ष ने कुछ तय नहीं किया"
+
+msgid "Animated background behind every room whose area and room set none"
+msgstr "हर उस कक्ष के पीछे एनिमेटेड पृष्ठभूमि जिसके क्षेत्र और कक्ष ने कुछ तय नहीं किया"
+
+msgid "Boss rooms bg"
+msgstr "बॉस कक्ष पृष्ठभूमि"
+
+msgid "Animated background of every boss room (type boss or mini_boss, or a boss named in the Inspect tab) whose area and room set none: blood_moon, void_pulse, arcane_vortex, infection, holy_light..., or creatures (bees, spiders, songbirds, bats, owls...), or both (blood_moon, bats)"
+msgstr "हर बॉस कक्ष की एनिमेटेड पृष्ठभूमि (प्रकार boss या mini_boss, या निरीक्षण टैब में नामित कोई बॉस) जिसके क्षेत्र और कक्ष ने कुछ तय नहीं किया: blood_moon, void_pulse, arcane_vortex, infection, holy_light..., या जीव (bees, spiders, songbirds, bats, owls...), या दोनों (blood_moon, bats)"
+
+msgid "Dark room share"
+msgstr "अँधेरे कक्षों का अनुपात"
+
+msgid "0 to 1: this share of the rooms with automatic darkness (no darkness on the room or its area) is dimmed by 0.35 to 0.55. Picked from the room id, so a room is always the same"
+msgstr "0 से 1: स्वचालित अँधेरे वाले कक्षों (जिन कक्षों या उनके क्षेत्र पर अँधेरा तय नहीं) का इतना अनुपात 0.35 से 0.55 तक मंद किया जाता है। कक्ष की ID से चुना जाता है, इसलिए कोई कक्ष हमेशा एक जैसा रहता है"
+
+msgid "player, enemy, lantern"
+msgstr "player, enemy, lantern"
+
+msgid "Light groups"
+msgstr "लाइट ग्रुप"
+
+msgid "Nodes in these groups carry a soft light in dark rooms. Empty: MDSWorldGame's light_groups"
+msgstr "इन ग्रुप के नोड अँधेरे कक्षों में नरम रोशनी लिए रहते हैं। ख़ाली: MDSWorldGame के light_groups"
+
+msgid "Player"
+msgstr "खिलाड़ी"
+
+msgid "Used by the Geometry checks and the Room view's Check room"
+msgstr "ज्यामिति जाँच और कक्ष दृश्य के कक्ष जाँचें द्वारा उपयोग किया जाता है"
+
+msgid "Camera"
+msgstr "कैमरा"
+
+msgid "Used by MDSRoomCamera in the game scene"
+msgstr "गेम सीन में MDSRoomCamera द्वारा उपयोग किया जाता है"
+
+msgid "Camera backend"
+msgstr "कैमरा बैकएंड"
+
+msgid "Auto uses PhantomCamera2D when the Phantom Camera addon is enabled, else Camera2D."
+msgstr "Phantom Camera ऐडऑन चालू होने पर ऑटो PhantomCamera2D उपयोग करता है, नहीं तो Camera2D।"
+
+msgid "Room shape: the camera is limited to the zone (largest rectangle of the room's shape) the player is in and glides between zones, so notches of L- or U-shaped rooms stay hidden."
+msgstr "कक्ष की आकृति: कैमरा उस ज़ोन तक सीमित रहता है (कक्ष की आकृति का सबसे बड़ा आयत) जिसमें खिलाड़ी है और ज़ोन के बीच सरकता है, इसलिए L या U आकार के कक्षों के खाँचे छिपे रहते हैं।"
+
+msgid "Room transition"
+msgstr "कक्ष ट्रांज़िशन"
+
+msgid "Fade to black, cut, slide the view to the new room (player waits), or blend (the camera glides over while the player keeps moving)."
+msgstr "काले में फ़ेड, कट, दृश्य को नए कक्ष तक स्लाइड (खिलाड़ी रुकता है), या ब्लेंड (खिलाड़ी के चलते रहने पर कैमरा सरककर पहुँचता है)।"
+
+msgid "Glide, or cut and never glide: zone changes, room slides and blends, follow smoothing and the camera director's moves all cut (a camera that eases late makes the parallax late too)."
+msgstr "ग्लाइड, या कट और कभी ग्लाइड नहीं: ज़ोन बदलाव, कक्ष स्लाइड और ब्लेंड, फ़ॉलो स्मूदिंग और कैमरा डायरेक्टर की चालें सब कट हो जाती हैं (देर से सरकने वाला कैमरा पैरालैक्स को भी देर से सरकाता है)।"
+
+msgid "Camera motion"
+msgstr "कैमरा गति"
+
+msgid "Auto zoom"
+msgstr "ऑटो ज़ूम"
+
+msgid "Zoom between rooms, like a PhantomCamera2D per room. Per room: each room's own zoom (Inspect tab > Camera zoom). Fit: zoomed so the camera zone the player is in fills the screen (out in big rooms, in in small ones), times Zoom factor, between Min and Max zoom; a room's own zoom still wins."
+msgstr "कक्षों के बीच ज़ूम, हर कक्ष पर एक PhantomCamera2D की तरह। प्रति कक्ष: हर कक्ष का अपना ज़ूम (निरीक्षण टैब > कैमरा ज़ूम)। फ़िट: इतना ज़ूम कि खिलाड़ी जिस कैमरा ज़ोन में है वह स्क्रीन भर दे (बड़े कक्षों में ज़ूम आउट, छोटों में ज़ूम इन), ज़ूम गुणक से गुणा, न्यूनतम और अधिकतम ज़ूम के बीच; कक्ष का अपना ज़ूम फिर भी मान्य रहता है।"
+
+msgid "Zoom changes"
+msgstr "ज़ूम बदलाव"
+
+msgid "Snap"
+msgstr "स्नैप"
+
+msgid "Glide: the zoom glides with the room transition and zone changes (and over Zoom glide time after a cut or a fade). Snap: it changes at once."
+msgstr "ग्लाइड: ज़ूम कक्ष ट्रांज़िशन और ज़ोन बदलाव के साथ सरकता है (और कट या फ़ेड के बाद ज़ूम ग्लाइड समय में)। स्नैप: यह तुरंत बदल जाता है।"
+
+msgid "Transition time (s)"
+msgstr "ट्रांज़िशन समय (s)"
+
+msgid "Zone glide time (s)"
+msgstr "ज़ोन ग्लाइड समय (s)"
+
+msgid "Zone switch margin (px)"
+msgstr "ज़ोन बदलने का मार्जिन (px)"
+
+msgid "Follow smoothing (0 = off)"
+msgstr "फ़ॉलो स्मूदिंग (0 = बंद)"
+
+msgid "Zoom"
+msgstr "ज़ूम"
+
+msgid "Zoom factor (Fit)"
+msgstr "ज़ूम गुणक (फ़िट)"
+
+msgid "Min zoom (Fit)"
+msgstr "न्यूनतम ज़ूम (फ़िट)"
+
+msgid "Max zoom (Fit)"
+msgstr "अधिकतम ज़ूम (फ़िट)"
+
+msgid "Zoom glide time (s)"
+msgstr "ज़ूम ग्लाइड समय (s)"
+
+msgid "Snap zoom changes under"
+msgstr "इससे कम के ज़ूम बदलाव स्नैप करें"
+
+msgid "OK"
+msgstr "ठीक है"
+
+msgid "Cancel"
+msgstr "रद्द करें"

@@ -19,6 +19,7 @@ signal hovered_changed(room_id: String, cell: Vector3i)
 signal view_changed
 
 enum ColorMode { METSYS, ROOM_TYPE, AREA, PROGRESSION, SAVE_DISTANCE, STATUS }
+# l10n: text
 const COLOR_MODE_NAMES: PackedStringArray = ["MetSys colors", "Room type", "Area", "Progression", "Save distance", "Build status"]
 
 const TYPE_COLORS := {

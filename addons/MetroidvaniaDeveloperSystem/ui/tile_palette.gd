@@ -456,6 +456,7 @@ func _ask_import(path: String) -> void:
 		var g := GridContainer.new()
 		g.columns = 3
 		box.add_child(g)
+		# l10n: text
 		for f in ["Tile size", "Margin", "Separation"]:
 			g.add_child(MDSUi.label(f))
 			for axis in ["x", "y"]:

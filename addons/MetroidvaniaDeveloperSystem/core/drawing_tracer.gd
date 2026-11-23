@@ -40,6 +40,7 @@ extends RefCounted
 ## [/codeblock]
 
 enum Layer { IGNORE, TERRAIN, PLATFORM, BACKGROUND, FOREGROUND }
+# l10n: text
 const LAYER_NAMES: PackedStringArray = ["Nothing (paper)", "Terrain (solid)", "Platform (one-way)", "Background", "Foreground"]
 ## How the drawing goes into the room:
 ## - [code]STYLES[/code]: freeform shapes, in the style picked for each color ("style");
@@ -53,6 +54,7 @@ const LAYER_NAMES: PackedStringArray = ["Nothing (paper)", "Terrain (solid)", "P
 ##   out ([member cut_paper]); with [member collision], its terrain and platforms get invisible
 ##   freeform shapes to collide with.
 enum Output { STYLES, COLORS, TILES, PICTURE }
+# l10n: text
 const OUTPUT_NAMES: PackedStringArray = ["Freeform styles", "Solid colors", "Tiles (spritesheets, terrains)", "The drawing itself"]
 ## The freeform group (Room view layer) each layer's shapes go to.
 const LAYER_GROUPS := {Layer.TERRAIN: "Freeform", Layer.PLATFORM: "Freeform", Layer.BACKGROUND: "FreeformBack", Layer.FOREGROUND: "FreeformFront"}

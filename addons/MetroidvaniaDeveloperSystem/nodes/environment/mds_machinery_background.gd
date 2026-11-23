@@ -48,12 +48,14 @@ const MACHINE_IDS: PackedStringArray = [
 	"turbines", "reactor_cores", "gyro_rings", "pistons", "energy_conduits", "radar_dishes", "holograms", "ringed_planets", "robot_arms", "drills",
 	"tesla_coils", "exhaust_fans", "bio_pods", "specimen_tanks", "data_streams", "laser_sweeps", "warp_portals", "crystal_pylons", "press_hammers", "cargo_lifts",
 ]
+# l10n: text
 const MACHINE_NAMES: PackedStringArray = [
 	"Giant wheels", "Clockwork gears", "Clock faces", "Pendulums", "Bells", "Chandeliers", "Rose windows", "Hanging chains", "Candelabra", "Winches",
 	"Spiked rollers", "Hourglasses", "Organ pipes", "Banners", "Astrolabes", "Torches", "Windmills", "Swinging axes", "Saw blades", "Castle spires",
 	"Turbines", "Reactor cores", "Gyro rings", "Pistons", "Energy conduits", "Radar dishes", "Holograms", "Ringed planets", "Robot arms", "Drills",
 	"Tesla coils", "Exhaust fans", "Bio pods", "Specimen tanks", "Data streams", "Laser sweeps", "Warp portals", "Crystal pylons", "Press hammers", "Cargo lifts",
 ]
+# l10n: text
 const MACHINE_INFO: PackedStringArray = [
 	"Huge spoked wheels with paddles round their rims, turning slowly",
 	"Toothed cogwheels with windows cut in them, turning on their axles: a clock tower's works",

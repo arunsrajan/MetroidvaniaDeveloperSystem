@@ -7,6 +7,7 @@ extends Control
 ## Layout: a tool panel on the left (like MetSys' editor), the map canvas in the middle and a sidebar
 ## with Rooms / Inspect / Progress / Issues / Stats tabs.
 
+# l10n: text
 const DEFAULT_FILTERS: PackedStringArray = ["Save Points", "Bosses", "Collectibles", "Teleporters", "Shops", "Enemies"]
 const DEFAULT_FILTERS_ON: PackedStringArray = ["Save Points", "Bosses"]
 const EXPORT_DIR := "res://mds_exports"
@@ -159,6 +160,7 @@ func _build_ui() -> void:
 	# Map file ---------------------------------------------------------------------------
 	toolbar = side_panel.add_section("Map")
 	map_picker = OptionButton.new()
+	MDSL10n.raw(map_picker) # file names, not words of the panel
 	map_picker.tooltip_text = "MapData file to show"
 	map_picker.fit_to_longest_item = false
 	map_picker.clip_text = true
@@ -216,6 +218,7 @@ func _build_ui() -> void:
 	view_menu.flat = false
 	var vp := view_menu.get_popup()
 	vp.hide_on_checkable_item_selection = false
+	# l10n: text
 	var view_items := [
 		[ViewItem.LABELS, "Room labels", "labels"], [ViewItem.TERRAIN, "Terrain silhouettes", "terrain"],
 		[ViewItem.PREVIEWS, "Live scene previews (slow)", "previews"], [ViewItem.DOORS, "Doors, gates && one-ways", "doors"],
@@ -647,6 +650,10 @@ func _scan_map_scenes() -> void:
 		if not room.scene_path.is_empty() and not room.scene_path in paths:
 			paths.append(room.scene_path)
 	_run_scan(paths, false)
+
+## Called by the host after a change of language: what is written by code is written again.
+func refresh_language() -> void:
+	side_panel.refresh_language()
 
 ## Called by the plugin when a scene is saved, so edited rooms refresh their markers,
 ## terrain and gates without a full rescan.

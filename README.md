@@ -73,6 +73,22 @@ Like MetSys' own editor, MetDevSys keeps its buttons in a **tool panel on the le
 - **Middle: the canvas.** It shows the map or the Room view.
 - **Right: the tabs.** Rooms, Scenes, Inspect, Areas, Progress, Issues, Stats and, in the Room view, Tiles. Untick **Side tabs** to hide them for a full-width map, or drag the splitter.
 
+### Language
+
+The language button in the tool panel's title row (a translation icon and the language's code, such as `EN`), next to the **⧉** menu, sets the language of MetDevSys: its tool panel, tabs, dialogs, tooltips and the names in its pickers. The choice applies at once, without rebuilding anything, and is kept for you in every project (the Editor Setting `metroidvania_developer_system/language`), whatever the editor's own language is.
+
+- **Auto** (the default) follows the editor's language (Editor Settings > Interface > Editor > Editor Language) to the nearest language in the menu, and is English when there is none.
+- Each language is named in its own words, then in English, so you can find yours when the panel is in a language you don't read. **(beta)** after a name means a machine translation that no native speaker has reviewed yet.
+- A text a language doesn't have yet shows in English. Not translated: the Inspector and the editor's own file dialogs (they follow the editor's language), the MCP server (it answers AI tools in English), and the game kit's text inside games.
+
+| Language | Code | Status |
+|---|---|---|
+| Russian (Русский) | `ru` | beta |
+| Hindi (हिन्दी) | `hi` | beta |
+| Tamil (தமிழ்) | `ta` | beta |
+
+More languages are added as their translations are done; the list is in `addons/MetroidvaniaDeveloperSystem/ui/l10n.gd`. To fix a translation or add a language, see [the locale folder's README](addons/MetroidvaniaDeveloperSystem/locale/README.md).
+
 ---
 
 ## Non-linear mode

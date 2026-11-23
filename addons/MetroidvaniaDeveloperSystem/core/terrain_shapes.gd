@@ -11,7 +11,9 @@ extends RefCounted
 ## the left. Convex bulges out of the base, concave dips into it.
 
 enum Shape { BRUSH, RECT, IRREGULAR, LEFT, RIGHT, TOP, BOTTOM }
+# l10n: text
 const SHAPE_NAMES: PackedStringArray = ["Brush", "Rectangle", "Irregular", "Left curved", "Right curved", "Top curved", "Bottom curved"]
+# l10n: text
 const SHAPE_TIPS: PackedStringArray = [
 	"Freehand brush",
 	"Drag a rectangle to fill",
@@ -23,6 +25,7 @@ const SHAPE_TIPS: PackedStringArray = [
 ]
 
 enum CurveType { CONVEX, CONCAVE, SLOPE, ROUNDED, QUARTER_PIPE, S_CURVE, HILL, MESA, WAVE, STEPS, SPIKES }
+# l10n: text
 const CURVE_NAMES: PackedStringArray = [
 	"Convex (dome)", "Concave (bowl)", "Slope (straight ramp)", "Rounded corner (convex ramp)",
 	"Quarter-pipe (concave ramp)", "S-curve (eased ramp)", "Hill (bell)", "Mesa (flat top)",

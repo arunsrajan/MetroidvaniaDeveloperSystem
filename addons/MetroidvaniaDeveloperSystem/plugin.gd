@@ -46,6 +46,10 @@ func _enter_tree() -> void:
 	MDSGameplaySetup.ensure_layer_names()
 	_movement_inspector = MDSMovementInspectorPlugin.new()
 	add_inspector_plugin(_movement_inspector)
+	# The panel's language: its own choice, whatever the editor's language is.
+	MDSL10n.setup()
+	MDSL10n.events.language_changed.connect(_on_language_changed)
+	EditorInterface.get_editor_settings().settings_changed.connect(MDSL10n.sync_from_settings)
 	_init_plugin()
 	scene_saved.connect(_on_scene_saved)
 	_mcp = MDSMcpEditor.new(func() -> Variant: return dock_instance.world_panel if dock_instance else null)
@@ -81,6 +85,7 @@ func _init_plugin() -> void:
 		return
 	_in_main_screen = _has_main_screen()
 	dock_instance = preload("res://addons/MetroidvaniaDeveloperSystem/dock.tscn").instantiate()
+	MDSL10n.apply(dock_instance)
 	dock_instance.set_undo_manager(get_undo_redo())
 	_fight_debugger = MDSFightDebugger.new()
 	_fight_debugger.fight_reported.connect(dock_instance.on_fight_reported)
@@ -89,6 +94,7 @@ func _init_plugin() -> void:
 	dock_instance.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if _in_main_screen:
 		_placeholder = _build_placeholder()
+		MDSL10n.apply(_placeholder)
 		EditorInterface.get_editor_main_screen().add_child(_placeholder)
 		_placeholder.hide()
 	var saved := int(ProjectSettings.get_setting(SETTING_PLACEMENT, Placement.MAIN_SCREEN if _in_main_screen else Placement.RIGHT_DOCK))
@@ -96,6 +102,14 @@ func _init_plugin() -> void:
 	if dock_instance.has_signal(&"placement_requested"):
 		dock_instance.placement_requested.connect(set_placement)
 	_check_metsys()
+	# `godot -e -- --mds-language=ru` is for looking at a language, so it opens the panel too,
+	# a little later: the editor brings back its last screen once it has loaded the scenes.
+	if MDSL10n.is_session_choice() and placement == Placement.MAIN_SCREEN:
+		get_tree().create_timer(8.0).timeout.connect(_show_main_screen)
+
+func _show_main_screen() -> void:
+	if placement == Placement.MAIN_SCREEN:
+		EditorInterface.set_main_screen_editor(_get_plugin_name())
 
 ## Moves the panel: into the main screen tab, a floating window, the right dock or the
 ## bottom panel. The choice is remembered for the project.
@@ -130,7 +144,17 @@ func set_placement(new_placement: int, focus := true) -> void:
 			make_bottom_panel_item_visible(dock_instance)
 	if _placeholder:
 		_placeholder.visible = _main_visible and placement != Placement.MAIN_SCREEN
-		_placeholder.get_node("Box/Text").text = "MetDevSys is in the %s." % ["main screen", "floating window", "right dock", "bottom panel"][placement]
+		# One whole sentence for each place, so that each can be translated.
+		var where: Label = _placeholder.get_node("Box/Text")
+		match placement:
+			Placement.WINDOW:
+				where.text = "MetDevSys is in the floating window."
+			Placement.RIGHT_DOCK:
+				where.text = "MetDevSys is in the right dock."
+			Placement.BOTTOM_PANEL:
+				where.text = "MetDevSys is in the bottom panel."
+			_:
+				where.text = "MetDevSys is in the main screen."
 	if dock_instance.has_method("set_placement_state"):
 		dock_instance.set_placement_state(placement, _in_main_screen)
 	if int(ProjectSettings.get_setting(SETTING_PLACEMENT, -1)) != placement:
@@ -259,7 +283,8 @@ func _check_metsys() -> void:
 	if EditorInterface.is_plugin_enabled(MET_SYS_PLUGIN_NAME) or EditorInterface.is_plugin_enabled(MET_SYS_PLUGIN):
 		_clear_check_timer()
 		return
-	EditorInterface.get_editor_toaster().push_toast("MetSys plugin should be installed and enabled in project settings for the Metroidvania Developer System MetSys mode to work.", EditorToaster.SEVERITY_WARNING)
+	# The toaster is the editor's, outside the panel's domain: translated here.
+	EditorInterface.get_editor_toaster().push_toast(MDSL10n.t("MetSys plugin should be installed and enabled in project settings for the Metroidvania Developer System MetSys mode to work."), EditorToaster.SEVERITY_WARNING)
 	if not _metsys_check_timer:
 		_metsys_check_timer = Timer.new()
 		_metsys_check_timer.wait_time = 30.0
@@ -267,7 +292,14 @@ func _check_metsys() -> void:
 		_metsys_check_timer.autostart = true
 		add_child(_metsys_check_timer)
 
+## The panel's language changed: the placeholder translates again (the dock does it itself).
+func _on_language_changed(_code: String) -> void:
+	MDSL10n.refresh(_placeholder)
+
 func _clean_plugin() -> void:
+	var settings := EditorInterface.get_editor_settings()
+	if settings.settings_changed.is_connected(MDSL10n.sync_from_settings):
+		settings.settings_changed.disconnect(MDSL10n.sync_from_settings)
 	if _mcp:
 		remove_child(_mcp)
 		_mcp.free()
@@ -290,6 +322,7 @@ func _clean_plugin() -> void:
 		_placeholder.get_parent().remove_child(_placeholder)
 		_placeholder.free()
 	_placeholder = null
+	MDSL10n.shutdown()
 
 func _clear_check_timer() -> void:
 	if _metsys_check_timer:

@@ -38,10 +38,15 @@ enum Transition { FADE, CUT, SLIDE, BLEND }
 enum Motion { GLIDE, CUT }
 enum AutoZoom { OFF, ROOM, FIT }
 
+# l10n: text
 const BACKEND_NAMES: PackedStringArray = ["Auto (Phantom Camera if installed)", "Camera2D", "PhantomCamera2D"]
+# l10n: text
 const CONFINE_NAMES: PackedStringArray = ["Room shape (zones)", "Room bounds", "None"]
+# l10n: text
 const TRANSITION_NAMES: PackedStringArray = ["Fade", "Cut", "Slide", "Blend"]
+# l10n: text
 const MOTION_NAMES: PackedStringArray = ["Glide", "Cut, never glide"]
+# l10n: text
 const AUTO_ZOOM_NAMES: PackedStringArray = ["Off (always Zoom)", "Per room (a room's own zoom)", "Fit the room (out in big rooms, in in small ones)"]
 ## Settings read from the world file's settings.camera.
 const SETTING_KEYS: PackedStringArray = ["backend", "confine", "room_transition", "transition_style", "transition_time", "zone_blend_time", "zone_hysteresis", "follow_smoothing", "zoom", "auto_zoom", "zoom_factor", "min_zoom", "max_zoom", "zoom_tween", "zoom_time", "zoom_tween_threshold"]

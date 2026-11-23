@@ -22,6 +22,7 @@ extends RefCounted
 
 enum Shape { RECTANGLE, IRREGULAR, FREEFORM, HYBRID }
 const SHAPE_IDS: PackedStringArray = ["rectangle", "irregular", "freeform", "hybrid"]
+# l10n: text
 const SHAPE_NAMES: PackedStringArray = ["Rectangle or square", "Irregular blocks", "Freeform (curvy)", "Hybrid (curves, slants and blocks)"]
 ## Cells the outline covers less of than this are left out.
 const MIN_COVER := 0.04

@@ -107,6 +107,7 @@ func _build() -> void:
 func _build_side() -> void:
 	toolbar = side_panel.add_section("Fight")
 	fighter_picker = OptionButton.new()
+	MDSL10n.raw(fighter_picker) # the game's own nodes
 	fighter_picker.clip_text = true
 	fighter_picker.fit_to_longest_item = false
 	fighter_picker.tooltip_text = "The bosses and enemies with moves in the open scene"
@@ -122,6 +123,7 @@ func _build_side() -> void:
 		MDSFightFields.inspect(doc.entry(selected_path).get("res")))
 	MDSSidePanel.row(toolbar, [open, inspect])
 	recipe_picker = OptionButton.new()
+	MDSL10n.raw(recipe_picker) # recipe ids: start_from_recipe() reads the item's text
 	recipe_picker.name = "RecipePicker"
 	recipe_picker.clip_text = true
 	recipe_picker.tooltip_text = "Replace the boss's fight with a recipe, to change. Undo brings back what it had"
@@ -162,6 +164,7 @@ func _build_side() -> void:
 	_build_add_buttons()
 	var live_box := side_panel.add_section("While playing")
 	live_picker = OptionButton.new()
+	MDSL10n.raw(live_picker) # the game's own nodes
 	live_picker.clip_text = true
 	live_picker.tooltip_text = "Which running fighter the graph follows"
 	live_picker.item_selected.connect(func(i: int) -> void:
@@ -652,6 +655,10 @@ func _collect(at: Node) -> void:
 		_fighters.append(at)
 	for c in at.get_children():
 		_collect(c)
+
+## Called by the host after a change of language: what is written by code is written again.
+func refresh_language() -> void:
+	side_panel.refresh_language()
 
 ## Forwarded by the host when a scene is saved.
 func on_scene_saved(_path: String) -> void:
