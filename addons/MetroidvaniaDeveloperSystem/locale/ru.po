@@ -2150,14 +2150,74 @@ msgstr "Повторено."
 msgid "Click in a room to paint it, or draw rooms with the Full view's Rectangle, Ellipse, Polygon or Curvy tool, then Generate map."
 msgstr "Щёлкните в комнате, чтобы рисовать в ней, или нарисуйте комнаты инструментами «Прямоугольник», «Эллипс», «Полигон» или «Кривая» в «Полном виде», затем «Сгенерировать карту»."
 
+msgid "Background effects"
+msgstr "Эффекты фона"
+
+msgid "Stamps (back)"
+msgstr "Штампы (сзади)"
+
 msgid "Decor"
 msgstr "Декор"
 
-msgid "Erase"
-msgstr "Ластик"
-
 msgid "Stamps"
 msgstr "Штампы"
+
+msgid "Stamps (foreground)"
+msgstr "Штампы (передний план)"
+
+msgid "Foreground effects"
+msgstr "Эффекты переднего плана"
+
+msgid "Parallax foreground"
+msgstr "Передний план параллакса"
+
+msgid "Objects"
+msgstr "Объекты"
+
+msgid "Guides"
+msgstr "Направляющие"
+
+msgid "The room's parallax and animated backgrounds, behind everything."
+msgstr "Фоны комнаты с параллаксом и анимацией, позади всего."
+
+msgid "Effects behind the tiles: placed ones set to Background (or with a negative z) and the weather's."
+msgstr "Эффекты позади тайлов: размещённые с глубиной «Фон» (или с отрицательным z) и эффекты погоды."
+
+msgid "Background tiles, back freeform shapes, and pictures and free tiles of the Background layer."
+msgstr "Тайлы фона, задние свободные фигуры, а также рисунки и свободные тайлы слоя Background."
+
+msgid "Stamps placed behind the terrain."
+msgstr "Штампы, размещённые позади местности."
+
+msgid "Terrain tiles, freeform shapes, and pictures and free tiles of the Terrain layer."
+msgstr "Тайлы местности, свободные фигуры, а также рисунки и свободные тайлы слоя Terrain."
+
+msgid "Decor tiles, and pictures and free tiles of the Decor layer."
+msgstr "Тайлы декора, а также рисунки и свободные тайлы слоя Decor."
+
+msgid "Stamps placed in front of the terrain."
+msgstr "Штампы, размещённые перед местностью."
+
+msgid "Foreground tiles, front freeform shapes, and pictures and free tiles of the Foreground layer."
+msgstr "Тайлы переднего плана, передние свободные фигуры, а также рисунки и свободные тайлы слоя Foreground."
+
+msgid "Stamps placed in front of everything."
+msgstr "Штампы, размещённые перед всем остальным."
+
+msgid "Effects in front of the tiles: placed ones set to Foreground (or with a z of 0 or more) and the weather's."
+msgstr "Эффекты перед тайлами: размещённые с глубиной «Передний план» (или с z от 0 и выше) и эффекты погоды."
+
+msgid "The parallax background's foreground layers, passing in front of the room."
+msgstr "Слои переднего плана фона с параллаксом, проходящие перед комнатой."
+
+msgid "The scene's other nodes: gameplay objects, enemies, gates, props."
+msgstr "Остальные узлы сцены: игровые объекты, враги, проходы, реквизит."
+
+msgid "The tile grid, the room's outline, the gates' boxes and the reachability check."
+msgstr "Сетка тайлов, контур комнаты, рамки проходов и проверка достижимости."
+
+msgid "Erase"
+msgstr "Ластик"
 
 msgid "Effects"
 msgstr "Эффекты"
@@ -2234,11 +2294,11 @@ msgstr "Исправить"
 msgid "Untwist the selected shape: an outline that crosses itself has no fill and no collision. The largest part stays; other parts become shapes of their own; slivers go"
 msgstr "Распутать выбранную фигуру: контур, пересекающий сам себя, не имеет заливки и столкновений. Самая большая часть остаётся, остальные части становятся отдельными фигурами, а тонкие обрезки удаляются"
 
-msgid "Untwist every shape of the room whose outline crosses itself (drawn red)"
-msgstr "Распутать все фигуры комнаты, контур которых пересекает сам себя (рисуются красным)"
-
 msgid "Repair all"
 msgstr "Исправить все"
+
+msgid "Untwist every shape of the room whose outline crosses itself (drawn red)"
+msgstr "Распутать все фигуры комнаты, контур которых пересекает сам себя (рисуются красным)"
 
 msgid "Stamp size. Random on: each stamp varies from 80% to 120% of it. Random off: every stamp is exactly this size"
 msgstr "Размер штампа. «Случайно» вкл.: размер каждого штампа меняется от 80% до 120% от заданного. «Случайно» выкл.: каждый штамп точно такого размера"
@@ -2318,11 +2378,11 @@ msgstr "MDSPickup: фрагмент здоровья"
 msgid "Health fragment"
 msgstr "Фрагмент здоровья"
 
-msgid "Breakable wall"
-msgstr "Разрушаемая стена"
-
 msgid "MDSBreakable: wall that breaks on attack"
 msgstr "MDSBreakable: стена, разрушающаяся от атаки"
+
+msgid "Breakable wall"
+msgstr "Разрушаемая стена"
 
 msgid "Cracked floor"
 msgstr "Треснувший пол"
@@ -2354,23 +2414,23 @@ msgstr "Точка зацепа"
 msgid "MDSGrapplePoint: anchor for the grapple hook"
 msgstr "MDSGrapplePoint: якорь для крюка-кошки"
 
-msgid "Enemy (Walker)"
-msgstr "Враг (ходок)"
-
 msgid "Walker template enemy"
 msgstr "Шаблонный враг: ходок"
 
-msgid "Enemy (Flyer)"
-msgstr "Враг (летун)"
+msgid "Enemy (Walker)"
+msgstr "Враг (ходок)"
 
 msgid "Flyer template enemy"
 msgstr "Шаблонный враг: летун"
 
-msgid "Turret template enemy"
-msgstr "Шаблонный враг: турель"
+msgid "Enemy (Flyer)"
+msgstr "Враг (летун)"
 
 msgid "Enemy (Turret)"
 msgstr "Враг (турель)"
+
+msgid "Turret template enemy"
+msgstr "Шаблонный враг: турель"
 
 msgid "Enemy (Charger)"
 msgstr "Враг (таран)"
@@ -2378,29 +2438,29 @@ msgstr "Враг (таран)"
 msgid "Charger template enemy"
 msgstr "Шаблонный враг: таран"
 
-msgid "Ambusher template enemy"
-msgstr "Шаблонный враг: засадник"
-
 msgid "Enemy (Ambusher)"
 msgstr "Враг (засадник)"
 
-msgid "Boss arena"
-msgstr "Арена босса"
+msgid "Ambusher template enemy"
+msgstr "Шаблонный враг: засадник"
 
 msgid "MDSBossArena: locks doors during boss fight"
 msgstr "MDSBossArena: запирает двери на время боя с боссом"
 
-msgid "NPC"
-msgstr "NPC"
+msgid "Boss arena"
+msgstr "Арена босса"
 
 msgid "MDSNPC: dialogue and interaction"
 msgstr "MDSNPC: диалоги и взаимодействие"
 
-msgid "Dialogue trigger"
-msgstr "Триггер диалога"
+msgid "NPC"
+msgstr "NPC"
 
 msgid "MDSDialogueTrigger: a conversation with anything (a door, a sign, a statue), on interact or on touch"
 msgstr "MDSDialogueTrigger: разговор с чем угодно (дверью, табличкой, статуей) при взаимодействии или касании"
+
+msgid "Dialogue trigger"
+msgstr "Триггер диалога"
 
 msgid "No effect: click an effect in the room to select, move or resize it."
 msgstr "Без эффекта: щёлкните эффект в комнате, чтобы выделить, переместить или изменить его размер."
@@ -2420,17 +2480,20 @@ msgstr "В этой комнате нет погоды и эффектов от 
 msgid "Drag onto the room. Click one in the room to edit it in the Inspector; drag its handles to resize it. Drop an image on a parallax background to add it as a layer, or on an animated background to show it blurred."
 msgstr "Перетащите в комнату. Щёлкните объект в комнате, чтобы изменить его в инспекторе; потяните за маркеры, чтобы изменить размер. Бросьте изображение на фон с параллаксом, чтобы добавить его как слой, или на анимированный фон, чтобы показать его размытым."
 
-msgid "Show the area's weather"
-msgstr "Показывать погоду области"
+msgid "Auto"
+msgstr "Авто"
 
-msgid "Show the weather of the room's area (Areas tab > Weather), or of the room itself (Inspect tab), as the game adds it to every room of the area. Only a preview: it isn't saved into the scene"
-msgstr "Показывать погоду области комнаты (вкладка «Области» > «Погода») или самой комнаты (вкладка «Свойства») так, как игра добавляет её в каждую комнату области. Только предпросмотр: в сцену он не сохраняется"
+msgid "Where new effects (and the selected one) draw: Auto at the effect's own depth, Background behind the room's tiles, Foreground in front of the tiles and stamps. The Layers list shows and hides each"
+msgstr "Где рисуются новые эффекты (и выбранный): «Авто» — на собственной глубине эффекта, «Фон» — позади тайлов комнаты, «Передний план» — перед тайлами и штампами. Список «Слои» показывает и скрывает каждый"
 
-msgid "Show the backgrounds"
-msgstr "Показывать фоны"
+msgid "Depth"
+msgstr "Глубина"
 
-msgid "Show the parallax and animated backgrounds of the room's area (Areas tab > Parallax, Animated bg), of the boss rooms or of the room itself, behind the room as the game adds them; pan the view to see them move. Only a preview: they aren't saved into the scene"
-msgstr "Показывать фоны с параллаксом и анимированные фоны области комнаты (вкладка «Области» > «Параллакс», «Аним. фон»), комнат боссов или самой комнаты позади комнаты так, как их добавляет игра; двигайте вид, чтобы увидеть их движение. Только предпросмотр: в сцену они не сохраняются"
+msgid "Only in the cave's open air"
+msgstr "Только в полостях пещеры"
+
+msgid "Draw the effects, the weather and the backgrounds only inside the room's shape and off its Terrain tiles, as the game does: nothing shows over rock or outside the cave. An effect can opt out (Clip To Cave in the Inspector)"
+msgstr "Рисовать эффекты, погоду и фоны только внутри формы комнаты и вне тайлов местности, как в игре: ничего не видно поверх скалы или за пределами пещеры. Эффект может отказаться от этого (Clip To Cave в инспекторе)"
 
 msgid "Solid color painted by the \"Solid color\" fill"
 msgstr "Сплошной цвет, которым рисует заливка «Сплошной цвет»"
@@ -2477,11 +2540,11 @@ msgstr "Предыдущая комната области"
 msgid "The area's next room"
 msgstr "Следующая комната области"
 
-msgid "Caves for the area"
-msgstr "Пещеры для области"
-
 msgid "Generate a cave in every room of the area, with the fills and options here. Rooms without a scene get one. Every room's gates are joined by paths a player can walk, jump and climb both ways, so the whole area can be crossed and backtracked"
 msgstr "Сгенерировать пещеру в каждой комнате области с заливками и параметрами отсюда. Комнатам без сцены создаётся сцена. Переходы каждой комнаты соединены путями, по которым игрок может ходить, прыгать и взбираться в обе стороны, так что всю область можно пройти и вернуться обратно"
+
+msgid "Caves for the area"
+msgstr "Пещеры для области"
 
 msgid "Generate all"
 msgstr "Сгенерировать все"
@@ -2507,29 +2570,29 @@ msgstr "Сгенерировать снова с другой случайной
 msgid "New variation"
 msgstr "Новая вариация"
 
-msgid "Paint the Background fill behind the cave"
-msgstr "Нарисовать заливку фона позади пещеры"
+msgid "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"
+msgstr "Комната, объединённая на карте из нескольких, сохраняет стены на стыке прежних комнат, с проёмами на месте их дверей (выкл.: одна открытая пещера)"
+
+msgid "Merged walls"
+msgstr "Стены объединения"
+
+msgid "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"
+msgstr "Каждый переход достижим из любого другого и обратно: туннели и шахты с уступами прорезаются там, где пещера этого не допускает"
+
+msgid "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"
+msgstr "Заливка переднего плана спереди: сплошной цвет или местность затемняют породу в глубине стен; тайлы свисают с потолков и окаймляют полы"
 
 msgid "Decorations on floors and under ceilings; most floor ones of the Decor fill"
 msgstr "Декор на полах и под потолками; большая часть напольного — из заливки «Декор»"
 
-msgid "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"
-msgstr "Заливка переднего плана спереди: сплошной цвет или местность затемняют породу в глубине стен; тайлы свисают с потолков и окаймляют полы"
+msgid "Paint the Background fill behind the cave"
+msgstr "Нарисовать заливку фона позади пещеры"
 
 msgid "Stamps of the set and category picked for the Stamps tool along the floors, as it places them: its Size, and its Random (off: the one sprite picked there, exactly at the Size)"
 msgstr "Штампы набора и категории, выбранных для инструмента «Штампы», вдоль полов — так, как он их размещает: с его «Размером» и его «Случайно» (выкл.: один выбранный там спрайт точно заданного размера)"
 
 msgid "Paths"
 msgstr "Пути"
-
-msgid "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"
-msgstr "Каждый переход достижим из любого другого и обратно: туннели и шахты с уступами прорезаются там, где пещера этого не допускает"
-
-msgid "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"
-msgstr "Комната, объединённая на карте из нескольких, сохраняет стены на стыке прежних комнат, с проёмами на месте их дверей (выкл.: одна открытая пещера)"
-
-msgid "Merged walls"
-msgstr "Стены объединения"
 
 msgid "Auto-decorate"
 msgstr "Автодекор"
@@ -2543,17 +2606,17 @@ msgstr "Залить фон"
 msgid "Fill the room's shape with the Background fill (foliage, palette tiles or a solid color)"
 msgstr "Залить форму комнаты заливкой фона (листва, тайлы палитры или сплошной цвет)"
 
-msgid "Clear background"
-msgstr "Очистить фон"
-
 msgid "Remove every tile of the Background layer. A room filled from edge to edge takes many, and a hidden layer's tiles are saved in the scene all the same"
 msgstr "Удалить все тайлы слоя фона. Для комнаты, залитой от края до края, их очень много, а тайлы скрытого слоя всё равно сохраняются в сцене"
 
-msgid "Convert to freeform..."
-msgstr "Преобразовать в свободную форму..."
+msgid "Clear background"
+msgstr "Очистить фон"
 
 msgid "Turn the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects. Platforms become one-way ledges. Block a room out with rectangles or tiles, then make it organic"
 msgstr "Превратить твёрдые тайлы комнаты, статические тела и прямолинейные фигуры свободной формы в органичную скальную породу свободной формы, сохраняя все проёмы, верх платформ и пол под объектами. Платформы становятся односторонними уступами. Наметьте комнату прямоугольниками или тайлами, затем сделайте её органичной"
+
+msgid "Convert to freeform..."
+msgstr "Преобразовать в свободную форму..."
 
 msgid "Trace drawing..."
 msgstr "Трассировка рисунка..."
@@ -2561,11 +2624,11 @@ msgstr "Трассировка рисунка..."
 msgid "Draw the room from a picture: each color of a drawing (any image file, or drop one on the view) becomes freeform shapes of the style you pick. Black, grey and brown: terrain; red, orange and yellow: one-way platforms; green: background; blue and purple: foreground"
 msgstr "Нарисовать комнату по картинке: каждый цвет рисунка (любой файл изображения или перетащите его в вид) становится фигурами свободной формы выбранного стиля. Чёрный, серый и коричневый — местность; красный, оранжевый и жёлтый — односторонние платформы; зелёный — фон; синий и фиолетовый — передний план"
 
-msgid "Decorate freeform..."
-msgstr "Украсить свободные формы..."
-
 msgid "Place scenery relative to the freeform rock: stamps hung under ceilings, plants along floors, background structures (columns, broken arches, garden walls, mounds, stalactites) on flat floors, and foreground leaves in free corners. Never over doorways or anything in the room; running it again replaces it"
 msgstr "Разместить декорации по свободной породе: штампы, свисающие с потолков, растения вдоль полов, сооружения на фоне (колонны, разрушенные арки, садовые стены, холмики, сталактиты) на ровных полах и листья на переднем плане в свободных углах. Никогда не поверх проёмов и других объектов комнаты; повторный запуск заменяет размещённое"
+
+msgid "Decorate freeform..."
+msgstr "Украсить свободные формы..."
 
 msgid "Style of Fill outside shape (deep ground)"
 msgstr "Стиль «Заполнения вне формы» (глубокий грунт)"
@@ -2573,11 +2636,11 @@ msgstr "Стиль «Заполнения вне формы» (глубокий 
 msgid "Cover the cells of the room's box that are outside its shape on the map (its notches, which belong to neighbouring rooms) with non-solid shapes of the style picked next to it, drawn over the rock's edges. Run it again after changing the room's shape; the Room view also redoes it when it opens a room whose shape changed"
 msgstr "Покрыть ячейки рамки комнаты, лежащие за пределами её формы на карте (её вырезы, принадлежащие соседним комнатам), нетвёрдыми фигурами стиля, выбранного рядом, поверх краёв породы. Запустите снова после изменения формы комнаты; «Вид комнаты» также делает это сам при открытии комнаты с изменённой формой"
 
-msgid "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view"
-msgstr "Загрузить местность комнаты во внеэкранное физическое пространство и проверить её так, как это сделал бы игрок: все переходы открыты, на платформы можно приземлиться, и над ними хватает места, объекты стоят на земле, выходы вверх достижимы прыжком (Параметры мира > Игрок). Проблемы отмечаются в виде"
-
 msgid "Check room"
 msgstr "Проверить комнату"
+
+msgid "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view"
+msgstr "Загрузить местность комнаты во внеэкранное физическое пространство и проверить её так, как это сделал бы игрок: все переходы открыты, на платформы можно приземлиться, и над ними хватает места, объекты стоят на земле, выходы вверх достижимы прыжком (Параметры мира > Игрок). Проблемы отмечаются в виде"
 
 msgid "Reachability"
 msgstr "Достижимость"
@@ -2603,11 +2666,11 @@ msgstr "Предпросмотр 2.5D"
 msgid "Show the room as MDSDepth25D draws it in the game: walls and floors extruded toward the middle of the view, floors paved in perspective, lit from above (World settings > 2.5D turns it on in the game)"
 msgstr "Показать комнату так, как её рисует MDSDepth25D в игре: стены и полы выдавлены к середине вида, полы вымощены в перспективе, освещение сверху (Параметры мира > 2.5D включает это в игре)"
 
-msgid "Remove all tiles, freeform shapes and stamps"
-msgstr "Удалить все тайлы, фигуры свободной формы и штампы"
-
 msgid "Clear"
 msgstr "Очистить"
+
+msgid "Remove all tiles, freeform shapes and stamps"
+msgstr "Удалить все тайлы, фигуры свободной формы и штампы"
 
 msgid "Cleared."
 msgstr "Очищено."
@@ -2693,11 +2756,11 @@ msgstr "Создать комнаты на карте из выбранных к
 msgid "Generate map"
 msgstr "Сгенерировать карту"
 
-msgid "Clear outlines"
-msgstr "Очистить контуры"
-
 msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
 msgstr "Удалить все контуры, нарисованные на этом слое (Ctrl+Z отменяет)"
+
+msgid "Clear outlines"
+msgstr "Очистить контуры"
 
 msgid "Caves too"
 msgstr "И пещеры"
@@ -2806,6 +2869,45 @@ msgstr "Фон залит."
 
 msgid "Background cleared."
 msgstr "Фон очищен."
+
+msgid "Show or hide each layer of the room, or show one alone with Solo. Only the view changes: nothing is saved hidden"
+msgstr "Показать или скрыть каждый слой комнаты либо показать один кнопкой «Соло». Меняется только вид: ничего не сохраняется скрытым"
+
+msgid "Show every layer"
+msgstr "Показать все слои"
+
+msgid "All"
+msgstr "Все"
+
+msgid "Hide every layer (then tick the ones to see)"
+msgstr "Скрыть все слои (затем отметьте нужные)"
+
+msgid "Solo"
+msgstr "Соло"
+
+msgid "Show only this layer, and point the tools at it. Click again to show the layers as they were"
+msgstr "Показать только этот слой и направить на него инструменты. Нажмите ещё раз, чтобы вернуть слои как было"
+
+msgid "Showing the layers as they were."
+msgstr "Слои показаны как было."
+
+msgid "Showing only %s. Click Solo again to show the other layers."
+msgstr "Показан только слой «%s». Нажмите «Соло» ещё раз, чтобы показать остальные слои."
+
+msgid "%s is drawn %s now."
+msgstr "%s теперь рисуется %s."
+
+msgid "in front of the tiles"
+msgstr "перед тайлами"
+
+msgid "behind the tiles"
+msgstr "позади тайлов"
+
+msgid "at its own depth"
+msgstr "на собственной глубине"
+
+msgid "Layers"
+msgstr "Слои"
 
 msgid "Style of new freeform shapes (and of the selected one). Styles are *.freeform.tres files in the project"
 msgstr "Стиль новых фигур свободной формы (и выбранной). Стили — это файлы *.freeform.tres в проекте"

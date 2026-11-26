@@ -105,4 +105,6 @@ void fragment() {
 	float a = max(front.a, back.a * 0.9);
 	float side = clamp(min(px.x, rect_size.x - px.x) / max(edge_fade, 0.001), 0.0, 1.0);
 	COLOR = vec4(c, a * color.a * intensity * side);
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

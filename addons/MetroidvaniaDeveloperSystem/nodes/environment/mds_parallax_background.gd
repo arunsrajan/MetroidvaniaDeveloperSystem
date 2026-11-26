@@ -87,6 +87,8 @@ const EDITOR_FOREGROUND_ALPHA := 0.4
 
 var _layer_mats: Array[ShaderMaterial] = []
 var _layer_quads: Array[Polygon2D] = []
+var _show_back := true ## see set_parts_visible
+var _show_front := true
 
 func _init() -> void:
 	z_index = -100
@@ -95,6 +97,19 @@ func _init() -> void:
 
 func get_effect_id() -> String:
 	return "parallax"
+
+## Shows or hides the background's layers ([param back]) and its foreground's ([param front])
+## apart: the Room view's Parallax background and Parallax foreground layers. Not saved.
+func set_parts_visible(back: bool, front: bool) -> void:
+	_show_back = back
+	_show_front = front
+	_strength_changed(get_strength())
+
+func _strength_changed(value: float) -> void:
+	for i in _layer_quads.size():
+		var q := _layer_quads[i]
+		if is_instance_valid(q):
+			q.visible = value > 0.0005 and (_show_front if is_foreground_index(i) else _show_back)
 
 ## Starts from [param p] (a preset id, see [constant PRESET_IDS]). Returns false for an
 ## unknown one.

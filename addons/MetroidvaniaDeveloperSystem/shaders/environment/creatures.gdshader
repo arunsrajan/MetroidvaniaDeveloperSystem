@@ -574,4 +574,6 @@ void fragment() {
 	a = lay_a + a * (1.0 - lay_a);
 	float k = intensity * env_edge(px);
 	COLOR = vec4(pm * k, clamp(a, 0.0, 1.0) * k);
+	// Only in the cave's open air (see env_cave).
+	COLOR *= env_cave(px);
 }

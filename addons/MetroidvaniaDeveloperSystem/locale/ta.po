@@ -2150,14 +2150,74 @@ msgstr "மீண்டும் செய்யப்பட்டது."
 msgid "Click in a room to paint it, or draw rooms with the Full view's Rectangle, Ellipse, Polygon or Curvy tool, then Generate map."
 msgstr "ஒரு அறையை வண்ணமிட அதில் சொடுக்கவும், அல்லது முழுப் பார்வையின் செவ்வகம், நீள்வட்டம், பலகோணம் அல்லது வளைவு கருவியால் அறைகளை வரைந்து, பின்னர் வரைபடத்தை உருவாக்கு."
 
+msgid "Background effects"
+msgstr "பின்னணி விளைவுகள்"
+
+msgid "Stamps (back)"
+msgstr "முத்திரைகள் (பின்)"
+
 msgid "Decor"
 msgstr "அலங்காரம்"
 
-msgid "Erase"
-msgstr "அழி"
-
 msgid "Stamps"
 msgstr "முத்திரைகள்"
+
+msgid "Stamps (foreground)"
+msgstr "முத்திரைகள் (முன்புறம்)"
+
+msgid "Foreground effects"
+msgstr "முன்புற விளைவுகள்"
+
+msgid "Parallax foreground"
+msgstr "பேரலாக்ஸ் முன்புறம்"
+
+msgid "Objects"
+msgstr "பொருட்கள்"
+
+msgid "Guides"
+msgstr "வழிகாட்டிகள்"
+
+msgid "The room's parallax and animated backgrounds, behind everything."
+msgstr "அறையின் பேரலாக்ஸ் மற்றும் அசைவூட்டப் பின்னணிகள், எல்லாவற்றுக்கும் பின்னால்."
+
+msgid "Effects behind the tiles: placed ones set to Background (or with a negative z) and the weather's."
+msgstr "ஓடுகளுக்குப் பின்னால் உள்ள விளைவுகள்: பின்னணி என அமைத்து வைத்தவை (அல்லது எதிர்ம z உள்ளவை) மற்றும் வானிலையின் விளைவுகள்."
+
+msgid "Background tiles, back freeform shapes, and pictures and free tiles of the Background layer."
+msgstr "பின்னணி ஓடுகள், பின் கட்டற்ற வடிவங்கள், மற்றும் Background அடுக்கின் படங்களும் கட்டற்ற ஓடுகளும்."
+
+msgid "Stamps placed behind the terrain."
+msgstr "நிலப்பரப்புக்குப் பின்னால் வைத்த முத்திரைகள்."
+
+msgid "Terrain tiles, freeform shapes, and pictures and free tiles of the Terrain layer."
+msgstr "நிலப்பரப்பு ஓடுகள், கட்டற்ற வடிவங்கள், மற்றும் Terrain அடுக்கின் படங்களும் கட்டற்ற ஓடுகளும்."
+
+msgid "Decor tiles, and pictures and free tiles of the Decor layer."
+msgstr "அலங்கார ஓடுகள், மற்றும் Decor அடுக்கின் படங்களும் கட்டற்ற ஓடுகளும்."
+
+msgid "Stamps placed in front of the terrain."
+msgstr "நிலப்பரப்புக்கு முன்னால் வைத்த முத்திரைகள்."
+
+msgid "Foreground tiles, front freeform shapes, and pictures and free tiles of the Foreground layer."
+msgstr "முன்புற ஓடுகள், முன் கட்டற்ற வடிவங்கள், மற்றும் Foreground அடுக்கின் படங்களும் கட்டற்ற ஓடுகளும்."
+
+msgid "Stamps placed in front of everything."
+msgstr "எல்லாவற்றுக்கும் முன்னால் வைத்த முத்திரைகள்."
+
+msgid "Effects in front of the tiles: placed ones set to Foreground (or with a z of 0 or more) and the weather's."
+msgstr "ஓடுகளுக்கு முன்னால் உள்ள விளைவுகள்: முன்புறம் என அமைத்து வைத்தவை (அல்லது 0 அல்லது அதற்கு மேல் z உள்ளவை) மற்றும் வானிலையின் விளைவுகள்."
+
+msgid "The parallax background's foreground layers, passing in front of the room."
+msgstr "பேரலாக்ஸ் பின்னணியின் முன்புற அடுக்குகள், அறைக்கு முன்னால் கடந்து செல்பவை."
+
+msgid "The scene's other nodes: gameplay objects, enemies, gates, props."
+msgstr "காட்சியின் மற்ற முனைகள்: விளையாட்டுப் பொருட்கள், எதிரிகள், வாயில்கள், அலங்காரப் பொருட்கள்."
+
+msgid "The tile grid, the room's outline, the gates' boxes and the reachability check."
+msgstr "ஓடு கட்டம், அறையின் வெளிக்கோடு, வாயில்களின் பெட்டிகள் மற்றும் அடையும் தன்மை சோதனை."
+
+msgid "Erase"
+msgstr "அழி"
 
 msgid "Effects"
 msgstr "விளைவுகள்"
@@ -2234,11 +2294,11 @@ msgstr "சரிசெய்"
 msgid "Untwist the selected shape: an outline that crosses itself has no fill and no collision. The largest part stays; other parts become shapes of their own; slivers go"
 msgstr "தேர்ந்த வடிவத்தின் முறுக்கை அவிழ்: தன்னைத் தானே வெட்டிக்கொள்ளும் வெளிக்கோட்டுக்கு நிரப்பும் இல்லை, மோதலும் இல்லை. மிகப் பெரிய பகுதி நிலைக்கும்; மற்ற பகுதிகள் தனி வடிவங்களாகும்; மிகச் சிறு துண்டுகள் நீங்கும்"
 
-msgid "Untwist every shape of the room whose outline crosses itself (drawn red)"
-msgstr "வெளிக்கோடு தன்னைத் தானே வெட்டிக்கொள்ளும் (சிவப்பில் வரையப்பட்ட) அறையின் ஒவ்வொரு வடிவத்தின் முறுக்கையும் அவிழ்"
-
 msgid "Repair all"
 msgstr "அனைத்தையும் சரிசெய்"
+
+msgid "Untwist every shape of the room whose outline crosses itself (drawn red)"
+msgstr "வெளிக்கோடு தன்னைத் தானே வெட்டிக்கொள்ளும் (சிவப்பில் வரையப்பட்ட) அறையின் ஒவ்வொரு வடிவத்தின் முறுக்கையும் அவிழ்"
 
 msgid "Stamp size. Random on: each stamp varies from 80% to 120% of it. Random off: every stamp is exactly this size"
 msgstr "முத்திரை அளவு. சீரற்றது இயக்கத்தில்: ஒவ்வொரு முத்திரையும் இதன் 80% முதல் 120% வரை மாறுபடும். சீரற்றது முடக்கத்தில்: ஒவ்வொரு முத்திரையும் சரியாக இந்த அளவு"
@@ -2318,11 +2378,11 @@ msgstr "MDSPickup: ஆரோக்கியத் துண்டு"
 msgid "Health fragment"
 msgstr "ஆரோக்கியத் துண்டு"
 
-msgid "Breakable wall"
-msgstr "உடையும் சுவர்"
-
 msgid "MDSBreakable: wall that breaks on attack"
 msgstr "MDSBreakable: தாக்கினால் உடையும் சுவர்"
+
+msgid "Breakable wall"
+msgstr "உடையும் சுவர்"
 
 msgid "Cracked floor"
 msgstr "விரிசல் தரை"
@@ -2354,23 +2414,23 @@ msgstr "கொக்கிப் புள்ளி"
 msgid "MDSGrapplePoint: anchor for the grapple hook"
 msgstr "MDSGrapplePoint: பற்றுக் கொக்கிக்கான நங்கூரம்"
 
-msgid "Enemy (Walker)"
-msgstr "நடக்கும் எதிரி"
-
 msgid "Walker template enemy"
 msgstr "நடக்கும் எதிரி வார்ப்புரு"
 
-msgid "Enemy (Flyer)"
-msgstr "பறக்கும் எதிரி"
+msgid "Enemy (Walker)"
+msgstr "நடக்கும் எதிரி"
 
 msgid "Flyer template enemy"
 msgstr "பறக்கும் எதிரி வார்ப்புரு"
 
-msgid "Turret template enemy"
-msgstr "டரெட் எதிரி வார்ப்புரு"
+msgid "Enemy (Flyer)"
+msgstr "பறக்கும் எதிரி"
 
 msgid "Enemy (Turret)"
 msgstr "டரெட் எதிரி"
+
+msgid "Turret template enemy"
+msgstr "டரெட் எதிரி வார்ப்புரு"
 
 msgid "Enemy (Charger)"
 msgstr "பாய்ந்து தாக்கும் எதிரி"
@@ -2378,29 +2438,29 @@ msgstr "பாய்ந்து தாக்கும் எதிரி"
 msgid "Charger template enemy"
 msgstr "பாய்ந்து தாக்கும் எதிரி வார்ப்புரு"
 
-msgid "Ambusher template enemy"
-msgstr "பதுங்கித் தாக்கும் எதிரி வார்ப்புரு"
-
 msgid "Enemy (Ambusher)"
 msgstr "பதுங்கித் தாக்கும் எதிரி"
 
-msgid "Boss arena"
-msgstr "பாஸ் அரங்கம்"
+msgid "Ambusher template enemy"
+msgstr "பதுங்கித் தாக்கும் எதிரி வார்ப்புரு"
 
 msgid "MDSBossArena: locks doors during boss fight"
 msgstr "MDSBossArena: பாஸ் சண்டையின்போது கதவுகளைப் பூட்டும்"
 
-msgid "NPC"
-msgstr "NPC"
+msgid "Boss arena"
+msgstr "பாஸ் அரங்கம்"
 
 msgid "MDSNPC: dialogue and interaction"
 msgstr "MDSNPC: உரையாடலும் தொடர்பும்"
 
-msgid "Dialogue trigger"
-msgstr "உரையாடல் தூண்டி"
+msgid "NPC"
+msgstr "NPC"
 
 msgid "MDSDialogueTrigger: a conversation with anything (a door, a sign, a statue), on interact or on touch"
 msgstr "MDSDialogueTrigger: எதனுடனும் (ஒரு கதவு, ஒரு பலகை, ஒரு சிலை) உரையாடல்; தொடர்புகொள்ளும்போது அல்லது தொடும்போது"
+
+msgid "Dialogue trigger"
+msgstr "உரையாடல் தூண்டி"
 
 msgid "No effect: click an effect in the room to select, move or resize it."
 msgstr "விளைவு இல்லை: அறையிலுள்ள ஒரு விளைவைத் தேர்ந்தெடுக்க, நகர்த்த அல்லது அளவை மாற்றச் சொடுக்கவும்."
@@ -2420,17 +2480,20 @@ msgstr "இந்த அறையில் அறையின் பகுதி
 msgid "Drag onto the room. Click one in the room to edit it in the Inspector; drag its handles to resize it. Drop an image on a parallax background to add it as a layer, or on an animated background to show it blurred."
 msgstr "அறையின் மேல் இழுக்கவும். ஒன்றை இன்ஸ்பெக்டரில் தொகுக்க அறையில் அதைச் சொடுக்கவும்; அளவை மாற்ற அதன் கைப்பிடிகளை இழுக்கவும். படத்தை அடுக்காகச் சேர்க்க பேரலாக்ஸ் பின்னணியின் மேலும், மங்கலாகக் காட்ட அனிமேஷன் பின்னணியின் மேலும் விடவும்."
 
-msgid "Show the area's weather"
-msgstr "பகுதியின் வானிலையைக் காட்டு"
+msgid "Auto"
+msgstr "தானியங்கு"
 
-msgid "Show the weather of the room's area (Areas tab > Weather), or of the room itself (Inspect tab), as the game adds it to every room of the area. Only a preview: it isn't saved into the scene"
-msgstr "அறையின் பகுதியின் வானிலையை (பகுதிகள் தாவல் > வானிலை), அல்லது அறையின் சொந்த வானிலையை (ஆய்வு தாவல்), பகுதியின் ஒவ்வொரு அறைக்கும் விளையாட்டு சேர்ப்பது போலவே காட்டு. முன்னோட்டம் மட்டுமே: அது காட்சியில் சேமிக்கப்படாது"
+msgid "Where new effects (and the selected one) draw: Auto at the effect's own depth, Background behind the room's tiles, Foreground in front of the tiles and stamps. The Layers list shows and hides each"
+msgstr "புதிய விளைவுகள் (மற்றும் தேர்ந்தெடுத்தது) எங்கே வரையப்படும்: தானியங்கு என்றால் விளைவின் சொந்த ஆழத்தில், பின்னணி என்றால் அறையின் ஓடுகளுக்குப் பின்னால், முன்புறம் என்றால் ஓடுகளுக்கும் முத்திரைகளுக்கும் முன்னால். அடுக்குகள் பட்டியல் ஒவ்வொன்றையும் காட்டும், மறைக்கும்"
 
-msgid "Show the backgrounds"
-msgstr "பின்னணிகளைக் காட்டு"
+msgid "Depth"
+msgstr "ஆழம்"
 
-msgid "Show the parallax and animated backgrounds of the room's area (Areas tab > Parallax, Animated bg), of the boss rooms or of the room itself, behind the room as the game adds them; pan the view to see them move. Only a preview: they aren't saved into the scene"
-msgstr "அறையின் பகுதியின் (பகுதிகள் தாவல் > பேரலாக்ஸ், அனிமேஷன் பின்னணி), பாஸ் அறைகளின் அல்லது அறையின் சொந்த பேரலாக்ஸ் மற்றும் அனிமேஷன் பின்னணிகளை, விளையாட்டு சேர்ப்பது போலவே அறைக்குப் பின்னால் காட்டு; அவை நகர்வதைக் காண பார்வையை நகர்த்தவும். முன்னோட்டம் மட்டுமே: அவை காட்சியில் சேமிக்கப்படாது"
+msgid "Only in the cave's open air"
+msgstr "குகையின் திறந்த வெளியில் மட்டும்"
+
+msgid "Draw the effects, the weather and the backgrounds only inside the room's shape and off its Terrain tiles, as the game does: nothing shows over rock or outside the cave. An effect can opt out (Clip To Cave in the Inspector)"
+msgstr "விளைவுகள், வானிலை, பின்னணிகளை அறையின் வடிவத்துக்குள்ளும் நிலப்பரப்பு ஓடுகளுக்கு வெளியேயும் மட்டும் வரையவும், விளையாட்டில் உள்ளது போல: பாறையின் மேலோ குகைக்கு வெளியிலோ எதுவும் தெரியாது. ஒரு விளைவு இதிலிருந்து விலகலாம் (Inspector-இல் Clip To Cave)"
 
 msgid "Solid color painted by the \"Solid color\" fill"
 msgstr "\"Solid color\" நிரப்பால் வண்ணமிடப்படும் திட நிறம்"
@@ -2477,11 +2540,11 @@ msgstr "பகுதியின் முந்தைய அறை"
 msgid "The area's next room"
 msgstr "பகுதியின் அடுத்த அறை"
 
-msgid "Caves for the area"
-msgstr "பகுதிக்கான குகைகள்"
-
 msgid "Generate a cave in every room of the area, with the fills and options here. Rooms without a scene get one. Every room's gates are joined by paths a player can walk, jump and climb both ways, so the whole area can be crossed and backtracked"
 msgstr "இங்குள்ள நிரப்புகள், விருப்பங்களுடன் பகுதியின் ஒவ்வொரு அறையிலும் ஒரு குகையை உருவாக்கு. காட்சி இல்லாத அறைகளுக்கு ஒன்று உருவாக்கப்படும். ஒவ்வொரு அறையின் வாயில்களும், ஆட்டக்காரர் இரு திசைகளிலும் நடக்கவும் குதிக்கவும் ஏறவும் கூடிய பாதைகளால் இணைக்கப்படும்; இதனால் முழுப் பகுதியையும் கடந்து திரும்பிச் செல்லலாம்"
+
+msgid "Caves for the area"
+msgstr "பகுதிக்கான குகைகள்"
 
 msgid "Generate all"
 msgstr "அனைத்தையும் உருவாக்கு"
@@ -2507,29 +2570,29 @@ msgstr "வேறொரு சீரற்ற தளவமைப்புடன�
 msgid "New variation"
 msgstr "புதிய மாறுபாடு"
 
-msgid "Paint the Background fill behind the cave"
-msgstr "குகைக்குப் பின்னால் பின்னணி நிரப்பை வண்ணமிடு"
+msgid "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"
+msgstr "வரைபடத்தில் பலவற்றிலிருந்து இணைக்கப்பட்ட அறை, அதன் பழைய அறைகள் சந்தித்த இடங்களில் சுவர்களைத் தக்கவைக்கும்; அவற்றின் கதவுகள் இருந்த இடங்களில் திறப்புகள் இருக்கும் (முடக்கத்தில்: ஒரே திறந்த குகை)"
+
+msgid "Merged walls"
+msgstr "இணைந்த சுவர்கள்"
+
+msgid "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"
+msgstr "ஒவ்வொரு வாயிலும் மற்ற ஒவ்வொன்றையும் சென்றடையும், திரும்பியும் வரும்: குகை அனுமதிக்காத இடங்களில் சுரங்கங்களும் விளிம்புகளுடன் கூடிய செங்குத்துப் பாதைகளும் செதுக்கப்படும்"
+
+msgid "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"
+msgstr "முன்னால் உள்ள முன்புற நிரப்பு: ஒரு திட நிறம் அல்லது நிலப்பரப்பு சுவர்களின் ஆழத்திலுள்ள பாறையை இருளாக்கும்; டைல்கள் கூரைகளிலிருந்து தொங்கும், தரைகளின் ஓரங்களில் அமையும்"
 
 msgid "Decorations on floors and under ceilings; most floor ones of the Decor fill"
 msgstr "தரைகளிலும் கூரைகளின் அடியிலும் அலங்காரங்கள்; தரை அலங்காரங்களில் பெரும்பாலானவை அலங்கார நிரப்பிலிருந்து"
 
-msgid "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"
-msgstr "முன்னால் உள்ள முன்புற நிரப்பு: ஒரு திட நிறம் அல்லது நிலப்பரப்பு சுவர்களின் ஆழத்திலுள்ள பாறையை இருளாக்கும்; டைல்கள் கூரைகளிலிருந்து தொங்கும், தரைகளின் ஓரங்களில் அமையும்"
+msgid "Paint the Background fill behind the cave"
+msgstr "குகைக்குப் பின்னால் பின்னணி நிரப்பை வண்ணமிடு"
 
 msgid "Stamps of the set and category picked for the Stamps tool along the floors, as it places them: its Size, and its Random (off: the one sprite picked there, exactly at the Size)"
 msgstr "முத்திரைகள் கருவிக்குத் தேர்ந்த தொகுப்பு, வகையின் முத்திரைகள் தரையோரம், அது வைக்கும் விதமாகவே: அதன் அளவு, அதன் சீரற்றது (முடக்கத்தில்: அங்கு தேர்ந்த ஒரே ஸ்பிரைட், அளவில் சரியாக)"
 
 msgid "Paths"
 msgstr "பாதைகள்"
-
-msgid "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"
-msgstr "ஒவ்வொரு வாயிலும் மற்ற ஒவ்வொன்றையும் சென்றடையும், திரும்பியும் வரும்: குகை அனுமதிக்காத இடங்களில் சுரங்கங்களும் விளிம்புகளுடன் கூடிய செங்குத்துப் பாதைகளும் செதுக்கப்படும்"
-
-msgid "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"
-msgstr "வரைபடத்தில் பலவற்றிலிருந்து இணைக்கப்பட்ட அறை, அதன் பழைய அறைகள் சந்தித்த இடங்களில் சுவர்களைத் தக்கவைக்கும்; அவற்றின் கதவுகள் இருந்த இடங்களில் திறப்புகள் இருக்கும் (முடக்கத்தில்: ஒரே திறந்த குகை)"
-
-msgid "Merged walls"
-msgstr "இணைந்த சுவர்கள்"
 
 msgid "Auto-decorate"
 msgstr "தானாக அலங்கரி"
@@ -2543,17 +2606,17 @@ msgstr "பின்னணியை நிரப்பு"
 msgid "Fill the room's shape with the Background fill (foliage, palette tiles or a solid color)"
 msgstr "அறையின் வடிவத்தைப் பின்னணி நிரப்பால் நிரப்பு (தழைகள், தட்டு டைல்கள் அல்லது திட நிறம்)"
 
-msgid "Clear background"
-msgstr "பின்னணியைத் துடை"
-
 msgid "Remove every tile of the Background layer. A room filled from edge to edge takes many, and a hidden layer's tiles are saved in the scene all the same"
 msgstr "பின்னணி அடுக்கின் ஒவ்வொரு டைலையும் அகற்று. ஓரம் முதல் ஓரம் வரை நிரப்பிய அறைக்குப் பல டைல்கள் ஆகும்; மறைக்கப்பட்ட அடுக்கின் டைல்களும் அப்படியே காட்சியில் சேமிக்கப்படும்"
 
-msgid "Convert to freeform..."
-msgstr "கட்டற்ற வடிவத்துக்கு மாற்று..."
+msgid "Clear background"
+msgstr "பின்னணியைத் துடை"
 
 msgid "Turn the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects. Platforms become one-way ledges. Block a room out with rectangles or tiles, then make it organic"
 msgstr "அறையின் திடமான டைல்கள், நிலையான உடல்கள், நேர்விளிம்புக் கட்டற்ற வடிவங்களை இயற்கையான கட்டற்ற பாறையாக மாற்று; ஒவ்வொரு வாசலும், மேடையின் மேற்பகுதியும், பொருள்களின் கீழுள்ள தரையும் அப்படியே இருக்கும். மேடைகள் ஒருவழி விளிம்புகளாகும். செவ்வகங்களாலோ டைல்களாலோ அறையின் தோராய வடிவத்தை அமைத்து, பின்னர் அதை இயற்கையாக்கவும்"
+
+msgid "Convert to freeform..."
+msgstr "கட்டற்ற வடிவத்துக்கு மாற்று..."
 
 msgid "Trace drawing..."
 msgstr "ஓவியத்தைத் தடமிடு..."
@@ -2561,11 +2624,11 @@ msgstr "ஓவியத்தைத் தடமிடு..."
 msgid "Draw the room from a picture: each color of a drawing (any image file, or drop one on the view) becomes freeform shapes of the style you pick. Black, grey and brown: terrain; red, orange and yellow: one-way platforms; green: background; blue and purple: foreground"
 msgstr "ஒரு படத்திலிருந்து அறையை வரை: ஓவியத்தின் ஒவ்வொரு நிறமும் (ஏதேனும் பட கோப்பு, அல்லது பார்வையில் ஒன்றை விடவும்) நீங்கள் தேர்ந்த பாணியின் கட்டற்ற வடிவங்களாகும். கருப்பு, சாம்பல், பழுப்பு: நிலப்பரப்பு; சிவப்பு, ஆரஞ்சு, மஞ்சள்: ஒருவழி மேடைகள்; பச்சை: பின்னணி; நீலம், ஊதா: முன்புறம்"
 
-msgid "Decorate freeform..."
-msgstr "கட்டற்ற வடிவத்தை அலங்கரி..."
-
 msgid "Place scenery relative to the freeform rock: stamps hung under ceilings, plants along floors, background structures (columns, broken arches, garden walls, mounds, stalactites) on flat floors, and foreground leaves in free corners. Never over doorways or anything in the room; running it again replaces it"
 msgstr "கட்டற்ற பாறையைச் சார்ந்து சூழல் அலங்காரங்களை வை: கூரைகளின் அடியில் தொங்கும் முத்திரைகள், தரையோரம் செடிகள், தட்டையான தரைகளில் பின்னணிக் கட்டமைப்புகள் (தூண்கள், உடைந்த வளைவுகள், தோட்டச் சுவர்கள், மேடுகள், ஸ்டாலக்டைட்கள்), காலி மூலைகளில் முன்புற இலைகள். வாசல்கள் அல்லது அறையிலுள்ள எதன் மேலும் வைக்காது; மீண்டும் இயக்கினால் மாற்றப்படும்"
+
+msgid "Decorate freeform..."
+msgstr "கட்டற்ற வடிவத்தை அலங்கரி..."
 
 msgid "Style of Fill outside shape (deep ground)"
 msgstr "வடிவத்துக்கு வெளியே நிரப்புவதன் பாணி (ஆழமான தரை)"
@@ -2573,11 +2636,11 @@ msgstr "வடிவத்துக்கு வெளியே நிரப்�
 msgid "Cover the cells of the room's box that are outside its shape on the map (its notches, which belong to neighbouring rooms) with non-solid shapes of the style picked next to it, drawn over the rock's edges. Run it again after changing the room's shape; the Room view also redoes it when it opens a room whose shape changed"
 msgstr "வரைபடத்தில் அறையின் வடிவத்துக்கு வெளியே உள்ள (அண்டை அறைகளுக்குச் சொந்தமான உள்வெட்டுகள்) பெட்டிச் செல்களை, அதன் அருகில் தேர்ந்த பாணியின் திடமற்ற வடிவங்களால், பாறையின் ஓரங்களின் மேல் வரைந்து மூடு. அறையின் வடிவத்தை மாற்றிய பின் மீண்டும் இயக்கவும்; வடிவம் மாறிய அறையைத் திறக்கும்போது அறைப் பார்வையும் இதை மீண்டும் செய்யும்"
 
-msgid "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view"
-msgstr "அறையின் நிலப்பரப்பைத் திரைக்கு வெளியேயுள்ள இயற்பியல் வெளியில் ஏற்றி, ஆட்டக்காரர் செய்வது போலவே சரிபார்: ஒவ்வொரு வாயிலும் திறந்திருக்கிறதா, மேடைகளில் தலை இடைவெளியுடன் இறங்க முடிகிறதா, பொருள்கள் தரையில் உள்ளனவா, மேலே செல்லும் வெளியேறல்களைக் குதித்து அடைய முடிகிறதா (உலக அமைப்புகள் > ஆட்டக்காரர்). சிக்கல்கள் பார்வையில் குறிக்கப்படும்"
-
 msgid "Check room"
 msgstr "அறையைச் சரிபார்"
+
+msgid "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view"
+msgstr "அறையின் நிலப்பரப்பைத் திரைக்கு வெளியேயுள்ள இயற்பியல் வெளியில் ஏற்றி, ஆட்டக்காரர் செய்வது போலவே சரிபார்: ஒவ்வொரு வாயிலும் திறந்திருக்கிறதா, மேடைகளில் தலை இடைவெளியுடன் இறங்க முடிகிறதா, பொருள்கள் தரையில் உள்ளனவா, மேலே செல்லும் வெளியேறல்களைக் குதித்து அடைய முடிகிறதா (உலக அமைப்புகள் > ஆட்டக்காரர்). சிக்கல்கள் பார்வையில் குறிக்கப்படும்"
 
 msgid "Reachability"
 msgstr "அடையக்கூடிய தன்மை"
@@ -2603,11 +2666,11 @@ msgstr "2.5D முன்னோட்டம்"
 msgid "Show the room as MDSDepth25D draws it in the game: walls and floors extruded toward the middle of the view, floors paved in perspective, lit from above (World settings > 2.5D turns it on in the game)"
 msgstr "விளையாட்டில் MDSDepth25D வரைவது போலவே அறையைக் காட்டு: சுவர்களும் தரைகளும் பார்வையின் நடுவை நோக்கி நீட்டப்பட்டு, தரைகள் முன்னோக்கில் பாவப்பட்டு, மேலிருந்து ஒளியூட்டப்பட்டு (உலக அமைப்புகள் > 2.5D விளையாட்டில் இதை இயக்கும்)"
 
-msgid "Remove all tiles, freeform shapes and stamps"
-msgstr "அனைத்து டைல்கள், கட்டற்ற வடிவங்கள், முத்திரைகளை அகற்று"
-
 msgid "Clear"
 msgstr "துடை"
+
+msgid "Remove all tiles, freeform shapes and stamps"
+msgstr "அனைத்து டைல்கள், கட்டற்ற வடிவங்கள், முத்திரைகளை அகற்று"
 
 msgid "Cleared."
 msgstr "துடைக்கப்பட்டது."
@@ -2693,11 +2756,11 @@ msgstr "தேர்ந்த வெளிக்கோடுகளிலிர�
 msgid "Generate map"
 msgstr "வரைபடத்தை உருவாக்கு"
 
-msgid "Clear outlines"
-msgstr "வெளிக்கோடுகளைத் துடை"
-
 msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
 msgstr "இந்த அடுக்கில் வரைந்த ஒவ்வொரு வெளிக்கோட்டையும் அகற்று (Ctrl+Z செயல்தவிர்க்கும்)"
+
+msgid "Clear outlines"
+msgstr "வெளிக்கோடுகளைத் துடை"
 
 msgid "Caves too"
 msgstr "குகைகளும்"
@@ -2806,6 +2869,45 @@ msgstr "பின்னணி நிரப்பப்பட்டது."
 
 msgid "Background cleared."
 msgstr "பின்னணி துடைக்கப்பட்டது."
+
+msgid "Show or hide each layer of the room, or show one alone with Solo. Only the view changes: nothing is saved hidden"
+msgstr "அறையின் ஒவ்வொரு அடுக்கையும் காட்டவும் அல்லது மறைக்கவும், அல்லது தனி மூலம் ஒன்றை மட்டும் காட்டவும். காட்சி மட்டுமே மாறும்: எதுவும் மறைந்த நிலையில் சேமிக்கப்படாது"
+
+msgid "Show every layer"
+msgstr "எல்லா அடுக்குகளையும் காட்டவும்"
+
+msgid "All"
+msgstr "எல்லாம்"
+
+msgid "Hide every layer (then tick the ones to see)"
+msgstr "எல்லா அடுக்குகளையும் மறைக்கவும் (பின் பார்க்க வேண்டியவற்றைத் தேர்வு செய்யவும்)"
+
+msgid "Solo"
+msgstr "தனி"
+
+msgid "Show only this layer, and point the tools at it. Click again to show the layers as they were"
+msgstr "இந்த அடுக்கை மட்டும் காட்டி, கருவிகளை இதன் மீது செலுத்தவும். அடுக்குகளை முன்பு போல் காட்ட மீண்டும் சொடுக்கவும்"
+
+msgid "Showing the layers as they were."
+msgstr "அடுக்குகள் முன்பு போல் காட்டப்படுகின்றன."
+
+msgid "Showing only %s. Click Solo again to show the other layers."
+msgstr "%s மட்டும் காட்டப்படுகிறது. மற்ற அடுக்குகளைக் காட்ட தனி-யை மீண்டும் சொடுக்கவும்."
+
+msgid "%s is drawn %s now."
+msgstr "%s இப்போது %s வரையப்படுகிறது."
+
+msgid "in front of the tiles"
+msgstr "ஓடுகளுக்கு முன்னால்"
+
+msgid "behind the tiles"
+msgstr "ஓடுகளுக்குப் பின்னால்"
+
+msgid "at its own depth"
+msgstr "தன் சொந்த ஆழத்தில்"
+
+msgid "Layers"
+msgstr "அடுக்குகள்"
 
 msgid "Style of new freeform shapes (and of the selected one). Styles are *.freeform.tres files in the project"
 msgstr "புதிய கட்டற்ற வடிவங்களின் (தேர்ந்ததின்) பாணி. பாணிகள் திட்டத்திலுள்ள *.freeform.tres கோப்புகள்"

@@ -67,6 +67,12 @@ var _source_paths: Dictionary = {} ## name -> NodePath inside root
 var items_root: Node2D
 var _undo: Array = [] ## snapshots: layer name -> tile_map_data
 var _redo: Array = []
+## Items the Room view hides (its Layers checkboxes): Node -> true. They are shown again while
+## the scene is saved and while undo snapshots are taken, so nothing is saved hidden.
+var view_hidden: Dictionary = {}
+## The Room view hides the scene's other nodes (its Objects layer): the gameplay items are not
+## picked then.
+var objects_hidden := false
 ## Hidden tiles: layer name -> disabled TileMapLayer copy ("<Layer>Blockout").
 var blockout: Dictionary = {}
 ## Changes to the scene's other nodes: path from the root -> {hidden, removed, position}.
@@ -288,11 +294,13 @@ func _snapshot() -> Dictionary:
 			traced[n] = (layers[n].get_meta(TRACED_CELLS) as Array).duplicate()
 	out[&"_traced"] = traced
 	var items: Dictionary = {}
+	var shown := _show_view_hidden()
 	for g in ITEM_GROUPS:
 		var list: Array = []
 		for node in items_root.get_node(g).get_children():
 			list.append(_item_data(node))
 		items[g] = list
+	_hide_view_hidden(shown)
 	out[&"_items"] = items
 	var hidden: Dictionary = {}
 	for n in blockout:
@@ -437,6 +445,35 @@ func effects() -> Array:
 				list.append(c)
 	return list
 
+## The effects and gameplay items the Room view shows now (see [member view_hidden]).
+func shown_effects() -> Array:
+	return effects().filter(func(e: Node) -> bool: return not is_view_hidden(e))
+
+## Whether the Room view hides [param node] now (its layer is unticked).
+func is_view_hidden(node: Node) -> bool:
+	if view_hidden.has(node):
+		return true
+	if objects_hidden and node.is_in_group(&"mds_gameplay_placed"):
+		return true
+	var parent := node.get_parent()
+	return parent is CanvasItem and parent.get_parent() == items_root and not (parent as CanvasItem).visible
+
+## Shows the nodes the Room view hides, for a moment (saving, a snapshot). Returns them.
+func _show_view_hidden() -> Array:
+	var out: Array = []
+	for n in view_hidden.keys():
+		if not is_instance_valid(n):
+			view_hidden.erase(n)
+		elif n is CanvasItem and not (n as CanvasItem).visible:
+			(n as CanvasItem).visible = true
+			out.append(n)
+	return out
+
+func _hide_view_hidden(nodes: Array) -> void:
+	for n in nodes:
+		if is_instance_valid(n):
+			(n as CanvasItem).visible = false
+
 static func node_effect_rect(node: Node2D) -> Rect2:
 	if node is MDSEnvironmentEffect:
 		return (node as MDSEnvironmentEffect).get_effect_rect()
@@ -450,7 +487,7 @@ static func node_effect_rect(node: Node2D) -> Rect2:
 ## Every effect whose area holds [param p] (scene-local), the top-most first.
 func effects_at(p: Vector2) -> Array[Node2D]:
 	var out: Array[Node2D] = []
-	var list := effects()
+	var list := shown_effects()
 	for i in range(list.size() - 1, -1, -1):
 		var e: Node2D = list[i]
 		if node_effect_rect(e).has_point(e.transform.affine_inverse() * p):
@@ -459,7 +496,7 @@ func effects_at(p: Vector2) -> Array[Node2D]:
 
 ## The top-most effect whose area holds [param p] (scene-local), or null.
 func effect_at(p: Vector2) -> Node2D:
-	var list := effects()
+	var list := shown_effects()
 	for i in range(list.size() - 1, -1, -1):
 		var e: Node2D = list[i]
 		if node_effect_rect(e).has_point(e.transform.affine_inverse() * p):
@@ -660,7 +697,8 @@ func pickable_items() -> Array[Node2D]:
 		if g == EFFECTS_GROUP:
 			continue
 		for node in items(g):
-			out.append(node)
+			if not is_view_hidden(node):
+				out.append(node)
 	return out
 
 ## The top-most item Select picks at [param p] (scene-local), or null. Items draw by z, then in
@@ -1037,7 +1075,9 @@ func save() -> Error:
 			target.set_meta(TRACED_CELLS, (copy.get_meta(TRACED_CELLS) as Array).duplicate())
 		elif target.has_meta(TRACED_CELLS):
 			target.remove_meta(TRACED_CELLS)
+	var shown := _show_view_hidden()
 	_save_items()
+	_hide_view_hidden(shown)
 	_save_blockout()
 	_apply_scene_edits()
 	_drop_empty_created()
@@ -1478,21 +1518,15 @@ func cell_rect(layer_name: String, cell: Vector2i) -> Rect2:
 ## Cells (of the Terrain grid) inside the room's shape on the world map: inside its outline
 ## when it has curved or slanted sides ([param follow_outline]), else its rectangles.
 func room_cells(world: MDSWorld, id: String, follow_outline := true) -> Dictionary:
-	var out: Dictionary = {}
-	var ts := tile_size()
-	# A room with curved or slanted sides on the map: only the tiles inside that outline.
-	var outline: Array[PackedVector2Array] = []
-	if follow_outline:
-		outline = world.get_local_shape(id)
-	for r in world.get_local_rects(id):
-		var c0 := Vector2i((r.position / ts - Vector2(0.5, 0.5)).ceil())
-		var c1 := Vector2i((r.end / ts - Vector2(0.5, 0.5)).ceil()) - Vector2i.ONE
-		for y in range(c0.y, c1.y + 1):
-			for x in range(c0.x, c1.x + 1):
-				var at := (Vector2(x, y) + Vector2(0.5, 0.5)) * ts
-				if outline.is_empty() or MDSGeometry.point_in_any(outline, at):
-					out[cell_at("Terrain", at)] = true
-	return out
+	return MDSCaveMask.shape_cells(world, id, tile_size(), layers["Terrain"].transform, follow_outline)
+
+## The room's open air: its shape's cells with no Terrain tile (see [MDSCaveMask]).
+func cave_mask(world: MDSWorld, id: String) -> MDSCaveMask:
+	var cells := room_cells(world, id)
+	if cells.is_empty():
+		return null
+	var terrain: TileMapLayer = layers["Terrain"]
+	return MDSCaveMask.from_cells(MDSCaveMask.open_cells(cells, terrain), cells, tile_size(), terrain.transform)
 
 # --- Tileset introspection ----------------------------------------------------------------------
 

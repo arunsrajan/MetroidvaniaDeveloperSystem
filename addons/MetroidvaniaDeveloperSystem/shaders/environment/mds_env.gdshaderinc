@@ -13,7 +13,28 @@ uniform float seed = 0.0;
 /// The effect fades out over this many px at the rectangle's edges, so it never shows a hard border.
 uniform float edge_fade = 32.0;
 
+/// The cave's open air (see MDSCaveMask): 1 px per Terrain cell, white where the cave is open.
+/// The effect draws only there, so it never shows over rock or outside the room.
+uniform sampler2D cave_mask : filter_linear, repeat_disable, hint_default_white;
+/// The rectangle the mask covers, x, y, width, height in the node's own coordinates (px).
+uniform vec4 cave_rect = vec4(0.0);
+/// Off: the effect is not clipped (no mask, or MDSEnvironmentEffect.clip_to_cave off).
+uniform bool cave_on = false;
+
 varying vec2 px;
+
+// 1 inside the cave's open air, 0 over rock and outside the room (softened over one tile).
+// [param p] is a fragment's `px`. Every effect shader multiplies its output by it last.
+float env_cave(vec2 p) {
+	if (!cave_on) {
+		return 1.0;
+	}
+	vec2 uv = (p + rect_origin - cave_rect.xy) / max(cave_rect.zw, vec2(1.0));
+	if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) {
+		return 0.0;
+	}
+	return texture(cave_mask, uv).r;
+}
 
 // Hash without sine (Dave Hoskins, MIT): stable on every GPU for the coordinates used here.
 float env_hash(vec2 p) {

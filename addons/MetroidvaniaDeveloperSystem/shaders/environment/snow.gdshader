@@ -57,4 +57,6 @@ void fragment() {
 		alpha = max(alpha, b * blizzard);
 	}
 	COLOR = vec4(color.rgb, alpha * color.a * intensity * env_edge(px));
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

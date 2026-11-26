@@ -84,4 +84,6 @@ void fragment() {
 	// No fade along the bottom: that is the ground the splashes land on.
 	float edge = clamp(min(min(px.x, rect_size.x - px.x), px.y) / max(edge_fade, 0.001), 0.0, 1.0);
 	COLOR = vec4(col, alpha * intensity * edge);
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

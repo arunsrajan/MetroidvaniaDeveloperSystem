@@ -59,4 +59,6 @@ void fragment() {
 		best = m3;
 	}
 	COLOR = vec4(best.rgb, best.a * mix(1.0, 0.6, depth) * intensity * env_edge(px));
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

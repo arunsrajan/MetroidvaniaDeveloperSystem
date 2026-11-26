@@ -65,4 +65,6 @@ void fragment() {
 	// Soft at the sides and the top; the censers sit on the bottom edge.
 	float fade = clamp(min(min(px.x, rect_size.x - px.x), px.y) / max(edge_fade, 0.001), 0.0, 1.0);
 	COLOR = vec4(c, a * intensity * fade);
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

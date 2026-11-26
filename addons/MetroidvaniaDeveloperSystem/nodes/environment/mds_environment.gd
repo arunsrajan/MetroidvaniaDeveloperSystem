@@ -140,6 +140,10 @@ static func create(id: String, settings: Dictionary = {}) -> MDSEnvironmentEffec
 	var e: MDSEnvironmentEffect = script.new()
 	e.name = str(EFFECTS[id][0]).get_slice(" /", 0).to_pascal_case()
 	for k in settings:
+		# depth=back / front (see MDSEnvironmentEffect.Depth).
+		if k == "depth" and settings[k] is String and MDSEnvironmentEffect.depth_from(settings[k]) >= 0:
+			e.depth = MDSEnvironmentEffect.depth_from(settings[k]) as MDSEnvironmentEffect.Depth
+			continue
 		if not set_setting(e, k, settings[k]):
 			push_warning("MDS weather: %s has no setting '%s' (or '%s' doesn't fit it)." % [id, k, settings[k]])
 	return e
@@ -242,6 +246,8 @@ static func check(spec: String) -> String:
 	for e in parse(spec):
 		if e.has("unknown"):
 			problems.append("'%s' is not an effect or a preset" % e.unknown)
+		elif e.has("effect") and e.get("settings", {}).has("depth") and MDSEnvironmentEffect.depth_from(str(e.settings.depth)) < 0:
+			problems.append("%s: depth '%s' is not auto, back or front" % [e.effect, e.settings.depth])
 		elif e.has("scene") and not ResourceLoader.exists(_path_of(e.scene)):
 			problems.append("%s doesn't exist" % e.scene)
 	return "; ".join(problems)

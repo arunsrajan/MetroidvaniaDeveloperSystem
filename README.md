@@ -362,6 +362,9 @@ The map is one view of a room; the **Room view** is the other. It shows the room
 
 ![Map view and Room view](docs/map_and_room_view.png)
 
+- **Layers:** the list at the top of the controls shows or hides each layer of the room, farthest first: **Parallax background**, **Background effects**, **Background**, **Stamps (back)**, **Terrain**, **Decor**, **Stamps**, **Foreground**, **Stamps (foreground)**, **Foreground effects**, **Parallax foreground**, **Objects** (the scene's other nodes) and **Guides** (grid, outlines, gate boxes, reachability). **All** and **None** set them all.
+  - **Solo** shows one layer alone and points the tools at it (that layer's brush, the Stamps or Effects tool at that depth); click it again for the layers as they were.
+  - Only the view changes: hidden things can't be picked, and nothing is saved hidden. The list is remembered per project. In code: `MDSRoomView.set_layer_visible()`, `set_solo()` and `MDSRoomCanvas.set_layers()`.
 - **Brushes:**
   - **Terrain** paints ground and walls on the `Terrain` layer.
   - **Background** paints behind the room.
@@ -1148,7 +1151,9 @@ Give an area weather and every room of it gets it as the room loads, sized to th
   - `autumn`, `petals`, `glitter`;
   - after Silksong: `weavenest` (silk in a pale haze), `bilewater` (gnats, drips and a green haze), `wisp_thicket` (wisps in a smoky wood), `deep_docks` (sparks, heat haze and a rusty haze), `wormways` (drips in a damp tunnel).
 - **Scenes** of effect nodes give you full control. Effects in them with `fit_room` on are sized to the room; the others stay where you put them.
-- The Room view shows the room's weather over it (**Effects** tool > **Show the area's weather**), as a preview that isn't saved into the scene.
+- The Room view shows the room's weather over it, as a preview that isn't saved into the scene. Its **Layers** list shows and hides the **Background effects** and **Foreground effects** apart (see below).
+- **Depth:** an entry's `depth=back` draws it behind the room's tiles, `depth=front` in front of the tiles and stamps (`fog(depth=back), rain`); placed effects have the same **Depth** (Auto, Background, Foreground) in the Effects tool and the Inspector.
+- **Only in the cave:** every effect, the weather and the backgrounds draw only in the cave's open air, inside the room's shape and off its Terrain tiles, fading out over a tile at the rock (`MDSCaveMask`). Turn **Clip To Cave** off on an effect to draw it whole, or `clip_effects_to_cave` off on `MDSWorldGame` for all of them.
 - The **Issues** tab reports unknown names and missing scenes.
 
 `MDSWorldGame` adds the weather as an `MDSWeather` child of the room; `weather` holds it, and `room_weather` off skips it. In code: `MDSEnvironment.spec_for_room(world, id)`, `MDSEnvironment.build(spec, rect)` and `MDSEnvironment.create("rain", {"angle": "-20"})`.
@@ -1176,7 +1181,7 @@ Use one three ways:
 - **As a node:** Add Child Node > `MDSParallaxBackground`.
 - **By drag and drop:** drag it from the Room view's Effects list onto the room.
 
-`MDSWorldGame` adds the room's background as it loads (`parallax` holds it; `room_parallax` off skips it). The Room view shows it behind the room (**Show the backgrounds**). The Issues tab reports unknown presets and missing scenes. In code: `MDSEnvironment.parallax_for_room(world, id)` and `MDSEnvironment.build_parallax("misty_forest", rect)`.
+`MDSWorldGame` adds the room's background as it loads (`parallax` holds it; `room_parallax` off skips it). The Room view shows it behind the room (the **Parallax background** and **Parallax foreground** layers). The Issues tab reports unknown presets and missing scenes. In code: `MDSEnvironment.parallax_for_room(world, id)` and `MDSEnvironment.build_parallax("misty_forest", rect)`.
 
 #### Animated backgrounds
 
@@ -1224,7 +1229,7 @@ Set one for:
 
 The most specific wins: the room's own, then (for a boss room) its area's boss room background and the world's boss rooms one, then its area's, then the world's. A value is a style id (`aurora`), a style with settings (`aurora(blur=0.8, speed=0.5)`), a `.tscn` holding an `MDSAnimatedBackground`, or a spec like `animated_background(style=nebula, density=0.8)`. It can also be added as a node (Add Child Node > `MDSAnimatedBackground`) or dragged from the Room view's Effects list.
 
-`MDSWorldGame` adds the room's animated background as it loads (`background` holds it; `room_background` off skips it). The Room view shows it behind the room (**Show the backgrounds**), and the Issues tab reports unknown styles and missing scenes. In code: `MDSEnvironment.background_for_room(world, id)`, `MDSEnvironment.is_boss_room(world, id)` and `MDSEnvironment.build_background("blood_moon", rect)`.
+`MDSWorldGame` adds the room's animated background as it loads (`background` holds it; `room_background` off skips it). The Room view shows it behind the room (the **Parallax background** layer), and the Issues tab reports unknown styles and missing scenes. In code: `MDSEnvironment.background_for_room(world, id)`, `MDSEnvironment.is_boss_room(world, id)` and `MDSEnvironment.build_background("blood_moon", rect)`.
 
 #### Creature backgrounds
 

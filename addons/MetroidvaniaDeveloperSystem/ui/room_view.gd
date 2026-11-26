@@ -136,6 +136,16 @@ var _area_rooms: Array[String] = []
 var _area_box: VBoxContainer
 var _area_label: Label
 var _weather_label: Label
+## The Layers section: a checkbox and a Solo button per layer (see [MDSRoomLayers]).
+var layer_checks: Dictionary = {} ## layer id -> CheckBox
+var layer_solos: Dictionary = {} ## layer id -> Button
+var _layers_box: VBoxContainer
+## The layer shown alone by Solo ("" for none), and the layers shown before it.
+var _solo_id := ""
+var _before_solo: Dictionary = {}
+## Effects tool: the depth of new effects and of the selected one.
+var depth_opt: OptionButton
+var clip_check: CheckBox
 ## Shown while the room has cells pointing at tiles its tileset no longer has.
 var broken_button: Button
 ## Shown when the room's scene is big enough for Godot to warn about it: what makes it big, and
@@ -191,6 +201,7 @@ func _init() -> void:
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	controls = VBoxContainer.new()
 	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_build_layers(controls)
 	# What to paint.
 	var tool_grid := MDSSidePanel.grid(controls, 2)
 	var group := ButtonGroup.new()
@@ -390,22 +401,19 @@ func _init() -> void:
 	no_effects_check.toggled.connect(set_no_effects)
 	MDSSidePanel.row(_effect_box, [clear_effects, no_effects_check])
 	_effect_box.add_child(MDSUi.hint("Drag onto the room. Click one in the room to edit it in the Inspector; drag its handles to resize it. Drop an image on a parallax background to add it as a layer, or on an animated background to show it blurred."))
-	var weather_check := CheckBox.new()
-	weather_check.text = "Show the area's weather"
-	weather_check.button_pressed = true
-	weather_check.tooltip_text = "Show the weather of the room's area (Areas tab > Weather), or of the room itself (Inspect tab), as the game adds it to every room of the area. Only a preview: it isn't saved into the scene"
-	weather_check.toggled.connect(func(on: bool) -> void:
-		canvas.set_weather_preview(on)
-		_update_weather_label())
-	_effect_box.add_child(weather_check)
-	var parallax_check := CheckBox.new()
-	parallax_check.text = "Show the backgrounds"
-	parallax_check.button_pressed = true
-	parallax_check.tooltip_text = "Show the parallax and animated backgrounds of the room's area (Areas tab > Parallax, Animated bg), of the boss rooms or of the room itself, behind the room as the game adds them; pan the view to see them move. Only a preview: they aren't saved into the scene"
-	parallax_check.toggled.connect(func(on: bool) -> void:
-		canvas.set_parallax_preview(on)
-		_update_weather_label())
-	_effect_box.add_child(parallax_check)
+	depth_opt = OptionButton.new()
+	depth_opt.add_item("Auto", MDSEnvironmentEffect.Depth.AUTO)
+	depth_opt.add_item("Background", MDSEnvironmentEffect.Depth.BACKGROUND)
+	depth_opt.add_item("Foreground", MDSEnvironmentEffect.Depth.FOREGROUND)
+	depth_opt.tooltip_text = "Where new effects (and the selected one) draw: Auto at the effect's own depth, Background behind the room's tiles, Foreground in front of the tiles and stamps. The Layers list shows and hides each"
+	depth_opt.item_selected.connect(func(idx: int) -> void: set_effect_depth(depth_opt.get_item_id(idx)))
+	MDSSidePanel.field(_effect_box, "Depth", depth_opt)
+	clip_check = CheckBox.new()
+	clip_check.text = "Only in the cave's open air"
+	clip_check.button_pressed = true
+	clip_check.tooltip_text = "Draw the effects, the weather and the backgrounds only inside the room's shape and off its Terrain tiles, as the game does: nothing shows over rock or outside the cave. An effect can opt out (Clip To Cave in the Inspector)"
+	clip_check.toggled.connect(func(on: bool) -> void: canvas.set_clip_effects(on))
+	_effect_box.add_child(clip_check)
 	_weather_label = MDSUi.hint("")
 	_effect_box.add_child(_weather_label)
 	color_button = ColorPickerButton.new()
@@ -632,11 +640,16 @@ func _init() -> void:
 	canvas.painted.connect(func() -> void:
 		canvas.check_result = {}
 		canvas._overlay.queue_redraw())
+	canvas.layer_visible = _load_layers()
+	_sync_layer_checks()
 	canvas.status_message.connect(func(t: String) -> void: status_message.emit(t))
 	canvas.selection_changed.connect(func(f: MDSFreeform) -> void:
 		if f and canvas.freeform_mode == MDSRoomCanvas.FreeformMode.EDIT:
 			role_opt.select(MDSRoomCanvas.role_choice_of(f)))
 	canvas.effect_selected.connect(_inspect_effect)
+	canvas.effect_selected.connect(func(e: MDSEnvironmentEffect) -> void:
+		if e and depth_opt:
+			depth_opt.select(depth_opt.get_item_index(e.depth)))
 	canvas.effect_pick_changed.connect(func(id: String) -> void:
 		for i in effect_list.item_count:
 			if str(effect_list.get_item_metadata(i)) == id:
@@ -1734,6 +1747,8 @@ func _on_inspector_edited(_property: String) -> void:
 	var inspector: Object = Engine.get_singleton(&"EditorInterface").get_inspector()
 	if inspector.get_edited_object() == canvas.selected_effect:
 		painter.dirty = true
+		# Its depth may have moved it to the other effects layer.
+		canvas.refresh_layers()
 		canvas._overlay.queue_redraw()
 
 ## Shows the weather of the room (its own or its area's) again, after it changed.
@@ -2045,8 +2060,161 @@ func _terrain_for_generation() -> Vector2i:
 	var t: Array = painter.get_terrains()[0]
 	return Vector2i(t[0], t[1])
 
+# --- Layers ---------------------------------------------------------------------------------
+
+## The Layers section at the top of the controls: show or hide each layer of the room, or show
+## one alone (Solo). Only the view changes.
+func _build_layers(parent: Control) -> void:
+	var header := Button.new()
+	header.flat = true
+	header.toggle_mode = true
+	header.button_pressed = true
+	header.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	header.tooltip_text = "Show or hide each layer of the room, or show one alone with Solo. Only the view changes: nothing is saved hidden"
+	MDSL10n.raw(header)
+	header.text = MDSSidePanel._section_text(LAYERS_TITLE, true)
+	parent.add_child(header)
+	_layers_box = VBoxContainer.new()
+	_layers_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(_layers_box)
+	header.toggled.connect(func(on: bool) -> void:
+		_layers_box.visible = on
+		header.text = MDSSidePanel._section_text(LAYERS_TITLE, on))
+	var all := MDSUi.button("All", "Show every layer")
+	all.pressed.connect(func() -> void: set_layers(MDSRoomLayers.all(true)))
+	var none := MDSUi.button("None", "Hide every layer (then tick the ones to see)")
+	none.pressed.connect(func() -> void: set_layers(MDSRoomLayers.all(false)))
+	MDSSidePanel.row(_layers_box, [all, none])
+	for id in MDSRoomLayers.IDS:
+		var check := CheckBox.new()
+		check.text = MDSRoomLayers.LABELS[id]
+		check.tooltip_text = MDSRoomLayers.TIPS[id]
+		check.button_pressed = true
+		check.clip_text = true
+		check.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		check.toggled.connect(func(on: bool) -> void: set_layer_visible(id, on))
+		var solo := Button.new()
+		solo.text = "Solo"
+		solo.toggle_mode = true
+		solo.tooltip_text = "Show only this layer, and point the tools at it. Click again to show the layers as they were"
+		solo.toggled.connect(func(on: bool) -> void: set_solo(id if on else ""))
+		var h := HBoxContainer.new()
+		h.add_child(check)
+		h.add_child(solo)
+		_layers_box.add_child(h)
+		layer_checks[id] = check
+		layer_solos[id] = solo
+
+## Shows or hides layer [param id] ([constant MDSRoomLayers.IDS]). Ends a Solo.
+func set_layer_visible(id: String, on: bool) -> void:
+	_solo_id = ""
+	_before_solo = {}
+	canvas.set_layer_visible(id, on)
+	_sync_layer_checks()
+	_save_layers()
+
+## Shows the layers of [param layers] (id -> bool). Ends a Solo.
+func set_layers(layers: Dictionary) -> void:
+	_solo_id = ""
+	_before_solo = {}
+	canvas.set_layers(layers)
+	_sync_layer_checks()
+	_save_layers()
+
+## Shows layer [param id] alone ("" shows the layers as they were before), and points the tools
+## at it: a tile layer's brush, the stamps of that depth, the effects of that depth. The guides
+## stay as they are.
+func set_solo(id: String) -> void:
+	if id == _solo_id:
+		return
+	if id.is_empty():
+		var back := _before_solo
+		_solo_id = ""
+		_before_solo = {}
+		canvas.set_layers(back)
+	else:
+		if _solo_id.is_empty():
+			_before_solo = canvas.layer_visible.duplicate()
+		_solo_id = id
+		var only := MDSRoomLayers.solo(id)
+		if id != "guides":
+			only["guides"] = canvas.is_layer_visible("guides") if not _before_solo.has("guides") else bool(_before_solo.guides)
+		canvas.set_layers(only)
+		_point_tools_at(id)
+	_sync_layer_checks()
+	_save_layers()
+	if id.is_empty():
+		status_message.emit("Showing the layers as they were.")
+	else:
+		status_message.emit(MDSL10n.tf("Showing only %s. Click Solo again to show the other layers.", [MDSL10n.t(MDSRoomLayers.LABELS[id])]))
+
+## The layer shown alone by Solo, or "".
+func get_solo() -> String:
+	return _solo_id
+
+func _point_tools_at(id: String) -> void:
+	if MDSRoomLayers.is_tile_layer(id):
+		var t := {"background": MDSRoomCanvas.Tool.BACKGROUND, "terrain": MDSRoomCanvas.Tool.TERRAIN,
+			"decor": MDSRoomCanvas.Tool.DECOR, "foreground": MDSRoomCanvas.Tool.FOREGROUND}
+		if canvas.tool != t[id] and not canvas.tool in [MDSRoomCanvas.Tool.ERASE, MDSRoomCanvas.Tool.SELECT, MDSRoomCanvas.Tool.PLACE]:
+			set_tool(t[id])
+	elif MDSRoomLayers.is_stamps(id):
+		canvas.stamp_group = MDSRoomLayers.STAMP_GROUPS[id]
+		set_tool(MDSRoomCanvas.Tool.STAMP)
+	elif MDSRoomLayers.is_effects(id):
+		canvas.effect_depth = MDSEnvironmentEffect.Depth.BACKGROUND if id == "effects_back" else MDSEnvironmentEffect.Depth.FOREGROUND
+		if depth_opt:
+			depth_opt.select(depth_opt.get_item_index(canvas.effect_depth))
+		set_tool(MDSRoomCanvas.Tool.EFFECT)
+
+## Shows the checkboxes and Solo buttons as the canvas's layers are.
+func _sync_layer_checks() -> void:
+	for id in layer_checks:
+		(layer_checks[id] as CheckBox).set_pressed_no_signal(canvas.is_layer_visible(id))
+		(layer_solos[id] as Button).set_pressed_no_signal(id == _solo_id)
+
+## The depth of new effects, and of the selected one ([enum MDSEnvironmentEffect.Depth]).
+func set_effect_depth(value: int) -> void:
+	canvas.effect_depth = value
+	if depth_opt and depth_opt.get_selected_id() != value:
+		depth_opt.select(depth_opt.get_item_index(value))
+	var e := canvas.selected_effect
+	if painter and e is MDSEnvironmentEffect and canvas._is_room_effect(e) and (e as MDSEnvironmentEffect).depth != value:
+		painter.checkpoint()
+		(e as MDSEnvironmentEffect).depth = value as MDSEnvironmentEffect.Depth
+		painter.dirty = true
+		_changed(MDSL10n.tf("%s is drawn %s now.", [String(e.name), MDSL10n.t(DEPTH_WORDS[value])]))
+
+## How the status line says each depth ([enum MDSEnvironmentEffect.Depth]).
+# l10n: text
+const DEPTH_WORDS: PackedStringArray = ["at its own depth", "behind the tiles", "in front of the tiles"]
+## The title of the Layers section.
+# l10n: text
+const LAYERS_TITLE := "Layers"
+const LAYERS_META := "room_layers"
+
+## The layers shown when the editor last closed (the project's editor metadata).
+func _load_layers() -> Dictionary:
+	var es := _editor_settings()
+	if not es:
+		return {}
+	var d: Variant = es.get_project_metadata("mds", LAYERS_META, {})
+	return d if d is Dictionary else {}
+
+func _save_layers() -> void:
+	var es := _editor_settings()
+	if es:
+		es.set_project_metadata("mds", LAYERS_META, _before_solo if not _solo_id.is_empty() else canvas.layer_visible)
+
+static func _editor_settings() -> EditorSettings:
+	if not Engine.is_editor_hint() or not Engine.has_singleton(&"EditorInterface"):
+		return null
+	return Engine.get_singleton(&"EditorInterface").get_editor_settings()
+
 func _changed(message: String) -> void:
 	canvas.check_result = {}
+	canvas.refresh_layers()
+	canvas.refresh_cave_mask()
 	canvas._overlay.queue_redraw()
 	if painter and broken_button:
 		broken_button.visible = not painter.broken_cells().is_empty() or painter.has_dropped_tiles()

@@ -91,4 +91,6 @@ void fragment() {
 	// Soft at the rectangle's edges (the sheet keeps its own).
 	alpha = max(inside, alpha * env_edge(px));
 	COLOR = vec4(out_col, alpha * intensity);
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

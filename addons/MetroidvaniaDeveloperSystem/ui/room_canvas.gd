@@ -203,6 +203,15 @@ var _parallax: Node2D
 var _parallax_value := ""
 var _background: Node2D
 var _background_value := ""
+## The layers shown ([MDSRoomLayers] id -> bool; a missing id is shown). See [method set_layers].
+var layer_visible: Dictionary = {}
+## Effects drawn only in the cave's open air (see [MDSCaveMask]), in the view as in the game.
+var clip_effects := true
+## The depth of new effects ([enum MDSEnvironmentEffect.Depth]).
+var effect_depth: int = MDSEnvironmentEffect.Depth.AUTO
+## The edited room's open air, made again as its Terrain is painted.
+var cave_mask: MDSCaveMask
+var _cave_pending := false
 var _effect_drag := 0 ## 0 none, 1 move, 2 resize
 var _effect_from := Vector2.ZERO
 var _effect_orig := Rect2()
@@ -320,6 +329,9 @@ func _init() -> void:
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_overlay.draw.connect(_draw_overlay)
 	add_child(_overlay, false, Node.INTERNAL_MODE_BACK)
+	painted.connect(refresh_layers)
+	# The Terrain may have changed: the cave's open air is made again.
+	painted.connect(refresh_cave_mask)
 
 ## Shows [param p_painter]'s room: the whole scene for context (as the painter opened it: from
 ## its file, or from the editor), its tile layers editable. With [param keep_view] the view
@@ -359,7 +371,9 @@ func open(p_world: MDSWorld, id: String, p_painter: MDSRoomPainter, keep_view :=
 	set_selection([])
 	_draft.clear()
 	set_depth_preview(depth_preview)
+	cave_mask = null
 	refresh_weather()
+	_rebuild_cave_mask()
 	if keep_view:
 		_apply_view()
 	else:
@@ -1011,8 +1025,10 @@ func _draw_overlay() -> void:
 	if not full:
 		_shade_outside(ci, shown, outer, shade)
 	_draw_session_rooms(ci, get_theme_default_font())
+	var guides := is_layer_visible("guides")
 	for r in rects:
-		ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(1, 1, 1, 0.8), false, 2.0)
+		if guides:
+			ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(1, 1, 1, 0.8), false, 2.0)
 	# A curved or slanted outline on the map: what lies outside it lightly shaded, the outline drawn.
 	var map_shape := world.get_local_shape(room_id)
 	if not map_shape.is_empty():
@@ -1034,6 +1050,8 @@ func _draw_overlay() -> void:
 				pts.append(local_to_screen(q))
 			ci.draw_colored_polygon(pts, Color(0, 0, 0, 0.3))
 		for poly in map_shape:
+			if not guides:
+				break
 			var line := PackedVector2Array()
 			for q in poly:
 				line.append(local_to_screen(q))
@@ -1041,7 +1059,7 @@ func _draw_overlay() -> void:
 			ci.draw_polyline(line, Color(0.3, 0.9, 1.0, 0.9), 2.0)
 	# Tile grid when zoomed in.
 	var ts := painter.tile_size() * zoom
-	if ts.x >= 10.0:
+	if ts.x >= 10.0 and guides:
 		var x := b.position.x
 		while x <= b.end.x:
 			ci.draw_line(local_to_screen(Vector2(x, b.position.y)), local_to_screen(Vector2(x, b.end.y)), Color(1, 1, 1, 0.06))
@@ -1052,17 +1070,18 @@ func _draw_overlay() -> void:
 			y += painter.tile_size().y
 	# Gates: the gate nodes' collision boxes (where the player goes through), and the map's gates.
 	var font := get_theme_default_font()
-	var boxes := painter.gate_boxes()
+	var boxes: Dictionary = painter.gate_boxes() if guides else {}
 	for g in boxes:
 		var r: Rect2 = boxes[g]
 		ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(1, 0.9, 0.3, 0.14))
 		ci.draw_rect(Rect2(local_to_screen(r.position), r.size * zoom), Color(1, 0.9, 0.3, 0.8), false, 1.5)
-	for g in world.get_gates(room_id):
+	for g in (world.get_gates(room_id) if guides else []):
 		var p := local_to_screen(world.get_gate_local_pos(room_id, g))
 		ci.draw_rect(Rect2(p - Vector2(6, 6), Vector2(12, 12)), Color(1, 0.9, 0.3))
 		ci.draw_string_outline(font, p + Vector2(9, -8), g, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 3, Color.BLACK)
 		ci.draw_string(font, p + Vector2(9, -8), g, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1, 0.9, 0.3))
-	_draw_check(ci, font)
+	if guides:
+		_draw_check(ci, font)
 	_draw_effects(ci, font)
 	# Brush / shape preview.
 	var color: Color = TOOL_COLORS[tool]
@@ -1745,6 +1764,8 @@ func pick_at(p: Vector2) -> Dictionary:
 				best_z = z
 	for layer_name in PICK_LAYERS[pick_layer]:
 		var l: TileMapLayer = painter.layers[layer_name]
+		if not l.visible:
+			continue
 		var c := painter.cell_at(layer_name, p)
 		if l.get_cell_source_id(c) != -1 and (best.is_empty() or l.z_index > best_z):
 			best = {"layer": layer_name, "cell": c}
@@ -1788,6 +1809,8 @@ func select_box(box: Rect2, add := false) -> void:
 			nodes.append(node)
 	for layer_name in PICK_LAYERS[pick_layer]:
 		var l: TileMapLayer = painter.layers[layer_name]
+		if not l.visible:
+			continue
 		var lo := painter.cell_at(layer_name, box.position)
 		var hi := painter.cell_at(layer_name, box.end)
 		var list: Array = cells.get(layer_name, [])
@@ -2270,6 +2293,8 @@ func place_effect(id: String, p: Vector2) -> Node2D:
 	var e := painter.add_effect(id, p)
 	if not e:
 		return null
+	if effect_depth != MDSEnvironmentEffect.Depth.AUTO:
+		e.depth = effect_depth as MDSEnvironmentEffect.Depth
 	selected_effect = e
 	painted.emit()
 	_overlay.queue_redraw()
@@ -2441,7 +2466,7 @@ func _draw_effects(ci: CanvasItem, font: Font) -> void:
 	if not painter:
 		return
 	var active := tool == Tool.EFFECT
-	for e in painter.effects():
+	for e in painter.shown_effects():
 		var r := _effect_screen_rect(e)
 		var sel: bool = e == selected_effect
 		var c := Color(0.55, 0.85, 1.0, 0.9 if sel else (0.55 if active else 0.2))
@@ -2499,6 +2524,10 @@ func _effect_area(id: String) -> Rect2:
 ## Shows the room's weather over the view (its own, else its area's, else the world's), as
 ## the game adds it. It is only a preview: nothing is saved into the scene.
 func refresh_weather() -> void:
+	_refresh_weather()
+	_dress_previews()
+
+func _refresh_weather() -> void:
 	_refresh_parallax()
 	_refresh_background()
 	var spec := ""
@@ -2585,6 +2614,7 @@ func set_parallax_preview(on: bool) -> void:
 	parallax_preview = on
 	_refresh_parallax()
 	_refresh_background()
+	_dress_previews()
 
 ## The weather preview node (null when the room has none).
 func get_weather_preview() -> Node2D:
@@ -2593,6 +2623,105 @@ func get_weather_preview() -> Node2D:
 func set_weather_preview(on: bool) -> void:
 	weather_preview = on
 	refresh_weather()
+
+# --- Layers and the cave's open air -------------------------------------------------------------
+
+## Whether layer [param id] ([constant MDSRoomLayers.IDS]) is shown.
+func is_layer_visible(id: String) -> bool:
+	return bool(layer_visible.get(id, true))
+
+## Shows or hides layer [param id]. Only the view changes: nothing is saved hidden.
+func set_layer_visible(id: String, on: bool) -> void:
+	layer_visible[id] = on
+	refresh_layers()
+
+## Shows the layers of [param layers] (id -> bool; a missing id is shown).
+func set_layers(layers: Dictionary) -> void:
+	layer_visible = layers.duplicate()
+	refresh_layers()
+
+## Shows and hides the room's nodes as the layers say (after an edit, an undo, a new preview).
+## A new effect of the room gets the cave's open air too.
+func refresh_layers() -> void:
+	if painter:
+		for n in MDSRoomPainter.LAYER_ORDER:
+			var l: TileMapLayer = painter.layers[n]
+			l.visible = is_layer_visible(MDSRoomLayers.of_tile_layer(n))
+		for g in MDSRoomPainter.ITEM_GROUPS:
+			var c := painter.items_root.get_node_or_null(NodePath(g)) as CanvasItem
+			if not c:
+				continue
+			if MDSRoomLayers.GROUPS.has(g):
+				c.visible = is_layer_visible(MDSRoomLayers.GROUPS[g])
+				continue
+			for item in c.get_children():
+				if item is CanvasItem:
+					_show_item(item, is_layer_visible(MDSRoomLayers.of_item(item)))
+		painter.objects_hidden = not is_layer_visible("objects")
+		if cave_mask:
+			for fx in MDSEnvironment.effects_in(painter.items_root.get_node(MDSRoomPainter.EFFECTS_GROUP)):
+				if fx.clip_to_cave and not fx.is_clipped_to_cave():
+					fx.set_cave_mask(cave_mask.texture, cave_mask.rect, _room_node)
+	if is_instance_valid(_display_scene):
+		_display_scene.visible = is_layer_visible("objects")
+	if is_instance_valid(_weather):
+		for fx in MDSEnvironment.effects_in(_weather):
+			fx.visible = is_layer_visible(MDSRoomLayers.of_effect(fx))
+	for node: Node2D in [_parallax, _background]:
+		if not is_instance_valid(node):
+			continue
+		for fx in MDSEnvironment.effects_in(node):
+			if fx is MDSParallaxBackground:
+				(fx as MDSParallaxBackground).set_parts_visible(is_layer_visible("parallax_back"), is_layer_visible("parallax_fore"))
+			else:
+				fx.visible = is_layer_visible("parallax_back")
+	_overlay.queue_redraw()
+
+func _show_item(item: CanvasItem, on: bool) -> void:
+	if on:
+		if painter.view_hidden.has(item):
+			painter.view_hidden.erase(item)
+			item.visible = true
+	elif item.visible:
+		item.visible = false
+		painter.view_hidden[item] = true
+
+## Makes the edited room's open air again (see [MDSCaveMask]) and gives it to the effects shown.
+func _rebuild_cave_mask() -> void:
+	_cave_pending = false
+	cave_mask = null
+	if painter and world and world.has_room(room_id) and not full and clip_effects:
+		cave_mask = painter.cave_mask(world, room_id)
+	_dress_previews()
+
+## Makes the cave's open air again at the end of the frame (after the Terrain changed).
+func refresh_cave_mask() -> void:
+	if _cave_pending:
+		return
+	_cave_pending = true
+	_rebuild_cave_mask.call_deferred()
+
+## Turns drawing the effects only in the cave's open air on or off.
+func set_clip_effects(on: bool) -> void:
+	clip_effects = on
+	_rebuild_cave_mask()
+
+## Gives the previews (weather, backgrounds) and the room's effects the cave's mask (or takes
+## it away), and shows them as the layers say.
+func _dress_previews() -> void:
+	var roots: Array = []
+	for node: Node2D in [_weather, _parallax, _background]:
+		if is_instance_valid(node):
+			roots.append([node, _view])
+	if painter:
+		roots.append([painter.items_root.get_node(MDSRoomPainter.EFFECTS_GROUP), _room_node])
+	for pair: Array in roots:
+		for fx in MDSEnvironment.effects_in(pair[0]):
+			if cave_mask:
+				fx.set_cave_mask(cave_mask.texture, cave_mask.rect, pair[1])
+			else:
+				fx.clear_cave_mask()
+	refresh_layers()
 
 # --- Dropping ----------------------------------------------------------------------------------
 
