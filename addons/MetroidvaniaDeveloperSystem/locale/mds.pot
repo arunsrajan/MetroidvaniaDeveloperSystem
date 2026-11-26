@@ -3874,7 +3874,7 @@ msgid "No area"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Saved the layers shown. Unticked layers kept what %s had; their changes are not saved yet."
+msgid "Saved the ticked layers into %s. The unticked ones are left out of the scene and kept for the Room view (%s)."
 msgstr ""
 
 #: ui/room_view.gd

@@ -2795,8 +2795,8 @@ msgstr "புதிய பகுதி"
 msgid "No area"
 msgstr "பகுதி இல்லை"
 
-msgid "Saved the layers shown. Unticked layers kept what %s had; their changes are not saved yet."
-msgstr "காட்டப்பட்ட அடுக்குகள் சேமிக்கப்பட்டன. தேர்வு நீக்கிய அடுக்குகள் %s-இல் இருந்ததையே வைத்துள்ளன; அவற்றின் மாற்றங்கள் இன்னும் சேமிக்கப்படவில்லை."
+msgid "Saved the ticked layers into %s. The unticked ones are left out of the scene and kept for the Room view (%s)."
+msgstr "தேர்ந்த அடுக்குகள் %s இல் சேமிக்கப்பட்டன. தேர்வு நீக்கிய அடுக்குகள் காட்சியில் சேர்க்கப்படவில்லை, அறை காட்சிக்காக வைக்கப்பட்டுள்ளன (%s)."
 
 msgid "Depth of the placed tiles: they draw and collide like the tiles of this layer"
 msgstr "வைக்கப்படும் டைல்களின் ஆழம்: அவை இந்த அடுக்கின் டைல்களைப் போலவே வரையப்பட்டு மோதும்"

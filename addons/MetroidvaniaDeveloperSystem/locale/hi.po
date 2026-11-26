@@ -2795,8 +2795,8 @@ msgstr "नया क्षेत्र"
 msgid "No area"
 msgstr "कोई क्षेत्र नहीं"
 
-msgid "Saved the layers shown. Unticked layers kept what %s had; their changes are not saved yet."
-msgstr "दिखाई गई लेयर सहेजी गईं। बिना चुनी लेयरों में वही रहा जो %s में था; उनके बदलाव अभी सहेजे नहीं गए हैं।"
+msgid "Saved the ticked layers into %s. The unticked ones are left out of the scene and kept for the Room view (%s)."
+msgstr "चुनी गई परतें %s में सहेजी गईं। बिना चुनी परतें सीन से बाहर रखी गईं और रूम व्यू के लिए रखी गई हैं (%s)।"
 
 msgid "Depth of the placed tiles: they draw and collide like the tiles of this layer"
 msgstr "लगाई गई टाइलों की गहराई: वे इस परत की टाइलों की तरह दिखती और टकराती हैं"

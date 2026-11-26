@@ -266,8 +266,10 @@ static func summary(spec: String) -> String:
 
 ## The weather of a room: its own ([code]rooms[id].weather[/code]), else its area's, else the
 ## world's ([code]settings.weather[/code]). "none" when it is turned off, "" when there is none.
-static func spec_for_room(world: MDSWorld, id: String) -> String:
-	var s := str(world.get_room_value(id, "weather", "")).strip_edges()
+## With [param as_edited], the room's own value before Save turned its unticked layers off
+## ([method MDSRoomLayers.apply_to_world]): what the Room view previews.
+static func spec_for_room(world: MDSWorld, id: String, as_edited := false) -> String:
+	var s := str(MDSRoomLayers.own_value(world, id, "weather", as_edited)).strip_edges()
 	if s.is_empty():
 		s = str(world.get_areas().get(world.get_room_area(id), {}).get("weather", "")).strip_edges()
 	if s.is_empty():
@@ -279,8 +281,8 @@ static func spec_for_room(world: MDSWorld, id: String) -> String:
 ## The parallax background of a room: its own ([code]rooms[id].parallax[/code]), else its
 ## area's, else the world's ([code]settings.parallax[/code]). "none" when it is turned off, ""
 ## when there is none.
-static func parallax_for_room(world: MDSWorld, id: String) -> String:
-	var s := str(world.get_room_value(id, "parallax", "")).strip_edges()
+static func parallax_for_room(world: MDSWorld, id: String, as_edited := false) -> String:
+	var s := str(MDSRoomLayers.own_value(world, id, "parallax", as_edited)).strip_edges()
 	if s.is_empty():
 		s = str(world.get_areas().get(world.get_room_area(id), {}).get("parallax", "")).strip_edges()
 	if s.is_empty():
@@ -328,8 +330,8 @@ static func is_boss_room(world: MDSWorld, id: String) -> bool:
 ## [code]boss_background[/code], else the world's ([code]settings.boss_background[/code]); else
 ## its area's [code]background[/code], else the world's ([code]settings.background[/code]).
 ## "none" when it is turned off, "" when there is none.
-static func background_for_room(world: MDSWorld, id: String) -> String:
-	var s := str(world.get_room_value(id, "background", "")).strip_edges()
+static func background_for_room(world: MDSWorld, id: String, as_edited := false) -> String:
+	var s := str(MDSRoomLayers.own_value(world, id, "background", as_edited)).strip_edges()
 	var area: Dictionary = world.get_areas().get(world.get_room_area(id), {})
 	if s.is_empty() and is_boss_room(world, id):
 		s = str(area.get("boss_background", "")).strip_edges()

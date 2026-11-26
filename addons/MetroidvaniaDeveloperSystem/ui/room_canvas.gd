@@ -2532,7 +2532,7 @@ func _refresh_weather() -> void:
 	_refresh_background()
 	var spec := ""
 	if weather_preview and world and painter and world.has_room(room_id) and not full:
-		spec = MDSEnvironment.spec_for_room(world, room_id)
+		spec = MDSEnvironment.spec_for_room(world, room_id, true)
 	if spec == _weather_spec and (spec.is_empty() or MDSEnvironment.is_none(spec) or is_instance_valid(_weather)):
 		return
 	_weather_spec = spec
@@ -2555,7 +2555,7 @@ func _refresh_weather() -> void:
 func _refresh_parallax() -> void:
 	var value := ""
 	if parallax_preview and world and painter and world.has_room(room_id) and not full:
-		value = MDSEnvironment.parallax_for_room(world, room_id)
+		value = MDSEnvironment.parallax_for_room(world, room_id, true)
 	if value == _parallax_value and (value.is_empty() or MDSEnvironment.is_none(value) or is_instance_valid(_parallax)):
 		return
 	_parallax_value = value
@@ -2579,7 +2579,7 @@ func _refresh_parallax() -> void:
 func _refresh_background() -> void:
 	var value := ""
 	if parallax_preview and world and painter and world.has_room(room_id) and not full:
-		value = MDSEnvironment.background_for_room(world, room_id)
+		value = MDSEnvironment.background_for_room(world, room_id, true)
 	if value == _background_value and (value.is_empty() or MDSEnvironment.is_none(value) or is_instance_valid(_background)):
 		return
 	_background_value = value

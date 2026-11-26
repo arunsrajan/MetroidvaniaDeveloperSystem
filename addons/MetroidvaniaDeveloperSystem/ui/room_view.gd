@@ -1279,7 +1279,7 @@ func save() -> Error:
 		return ERR_UNCONFIGURED
 	# What changed in the editor first, so saving never writes over it.
 	sync_from_editor()
-	# Only the layers ticked in the Layers list: the others keep what the scene has.
+	# Only the layers ticked in the Layers list go into the scene; the others are kept beside it.
 	var skip := MDSRoomLayers.unsaved(canvas.layer_visible)
 	var picked := canvas.selection_names() if painter and not skip.is_empty() else {}
 	var err := _save_painter(painter, skip) if painter else OK
@@ -1291,7 +1291,9 @@ func save() -> Error:
 		var note := painter.size_note()
 		status_message.emit("Saved. " + note if not note.is_empty() else "Saved %s." % painter.scene_path.get_file())
 		if not skip.is_empty():
-			status_message.emit(MDSL10n.tf("Saved the layers shown. Unticked layers kept what %s had; their changes are not saved yet.", [painter.scene_path.get_file()]))
+			status_message.emit(MDSL10n.tf("Saved the ticked layers into %s. The unticked ones are left out of the scene and kept for the Room view (%s).", [painter.scene_path.get_file(), MDSHiddenLayers.path_for(painter.scene_path).get_file()]))
+		if world and world.has_room(room_id) and MDSRoomLayers.apply_to_world(world, room_id, MDSRoomLayers.unticked(canvas.layer_visible)):
+			refresh_weather()
 		_report_size()
 	elif painter and not MDSWorldSceneTools.last_error.is_empty():
 		status_message.emit(MDSWorldSceneTools.last_error)

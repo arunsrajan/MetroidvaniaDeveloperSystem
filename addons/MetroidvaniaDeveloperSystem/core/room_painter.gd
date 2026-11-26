@@ -181,6 +181,8 @@ static func open_packed(packed: PackedScene, path: String, default_tile_set: Til
 		if copy is TileMapLayer and not copy.tile_set:
 			copy.tile_set = p.tile_set
 		p.items_root.get_node(group).add_child(copy)
+	# The layers left unticked when the room was saved last, kept out of its scene.
+	p._merge_hidden(MDSHiddenLayers.load_for(path))
 	p._base = p._snapshot()
 	return p
 
@@ -1086,77 +1088,110 @@ func save() -> Error:
 	if err == OK:
 		dirty = false
 		_base = _snapshot()
+		# Every layer is in the scene now (save_layers writes the unticked ones again after).
+		MDSHiddenLayers.remove_for(scene_path)
 	return err
 
 ## Saves only the layers not in [param skip] ([MDSRoomLayers] ids -> true, the Room view's
-## unticked Layers checkboxes). The scene keeps what it had on the others, and their changes
-## stay here, unsaved (and undoable), until they are saved with their layers shown. Without
-## [param skip] it is [method save].
+## unticked Layers checkboxes) into the scene: it has nothing of the others, so the game, Play
+## from here and Godot's 2D editor show only the layers ticked. The unticked layers are kept
+## next to the scene ([MDSHiddenLayers]) and stay here, shown when their layers are ticked; the
+## painter puts them back as it opens the room again. The scene's other nodes (Objects) are
+## always saved. Without [param skip] it is [method save].
 func save_layers(skip: Dictionary) -> Error:
 	if skip.is_empty():
 		return save()
 	var mine := _snapshot()
-	var kept := keep_layers(mine, _base, skip)
-	if same_state(kept, _base) and kept.get(&"_scene", {}) == _base.get(&"_scene", {}):
-		# Nothing of the layers shown changed: the scene stays as it is.
-		dirty = not same_state(mine, _base)
-		return OK
-	_restore(kept)
+	var kept := hidden_part(mine, skip)
+	_restore(without_layers(mine, skip))
 	var err := save()
 	_restore(mine)
-	dirty = err != OK or not same_state(mine, kept)
+	if err == OK:
+		err = kept.save_for(scene_path)
+	if err == OK:
+		dirty = false
+		_base = mine
+	else:
+		dirty = true
 	return err
 
-## The room as [param mine] has it, but on the layers of [param skip] as [param base] has them
-## (see [method save_layers]). Items are matched by group and name: one whose layer is skipped
-## (now, or when it was deleted) keeps its saved state; one on a layer shown takes its new state.
-static func keep_layers(mine: Dictionary, base: Dictionary, skip: Dictionary) -> Dictionary:
-	var out := mine.duplicate()
-	var traced: Dictionary = (mine.get(&"_traced", {}) as Dictionary).duplicate()
-	var hidden_tiles: Dictionary = (mine.get(&"_blockout", {}) as Dictionary).duplicate()
-	var base_traced: Dictionary = base.get(&"_traced", {})
-	var base_hidden: Dictionary = base.get(&"_blockout", {})
+## The room as [param state] has it ([method _snapshot]) without the layers of [param skip].
+static func without_layers(state: Dictionary, skip: Dictionary) -> Dictionary:
+	var out := state.duplicate()
+	var traced: Dictionary = (state.get(&"_traced", {}) as Dictionary).duplicate()
+	var hidden_tiles: Dictionary = (state.get(&"_blockout", {}) as Dictionary).duplicate()
 	for n in LAYER_ORDER:
-		if not skip.has(MDSRoomLayers.of_tile_layer(n)):
-			continue
-		out[n] = base.get(n, PackedByteArray())
-		if base_traced.has(n):
-			traced[n] = base_traced[n]
-		else:
+		if skip.has(MDSRoomLayers.of_tile_layer(n)):
+			out[n] = PackedByteArray()
 			traced.erase(n)
-		if base_hidden.has(n):
-			hidden_tiles[n] = base_hidden[n]
-		else:
-			hidden_tiles.erase(n)
+			if hidden_tiles.has(n):
+				hidden_tiles[n] = PackedByteArray()
 	out[&"_traced"] = traced
 	out[&"_blockout"] = hidden_tiles
 	var items: Dictionary = {}
-	var mine_items: Dictionary = mine.get(&"_items", {})
-	var base_items: Dictionary = base.get(&"_items", {})
-	for g in ITEM_GROUPS:
-		var now: Array = mine_items.get(g, [])
-		var before: Array = base_items.get(g, [])
-		var by_name: Dictionary = {}
-		for d in before:
-			by_name[str(d.get("name", ""))] = d
-		var list: Array = []
-		var seen: Dictionary = {}
-		for d in now:
-			var key := str(d.get("name", ""))
-			seen[key] = true
-			if not skip.has(MDSRoomLayers.of_data(g, d)):
-				list.append(d)
-			elif by_name.has(key) and not key.is_empty():
-				list.append(by_name[key])
-		for d in before:
-			var key := str(d.get("name", ""))
-			if not seen.has(key) and skip.has(MDSRoomLayers.of_data(g, d)):
-				list.append(d)
-		items[g] = list
+	var all: Dictionary = state.get(&"_items", {})
+	for g in all:
+		items[g] = (all[g] as Array).filter(func(d: Dictionary) -> bool: return not skip.has(MDSRoomLayers.of_data(String(g), d)))
 	out[&"_items"] = items
-	if skip.has("objects"):
-		out[&"_scene"] = (base.get(&"_scene", {}) as Dictionary).duplicate(true)
 	return out
+
+## What the layers of [param skip] hold in [param state] ([method _snapshot]).
+static func hidden_part(state: Dictionary, skip: Dictionary) -> MDSHiddenLayers:
+	var h := MDSHiddenLayers.new()
+	for id in skip:
+		h.layers.append(String(id))
+	var hidden_tiles: Dictionary = state.get(&"_blockout", {})
+	for n in LAYER_ORDER:
+		if not skip.has(MDSRoomLayers.of_tile_layer(n)):
+			continue
+		var cells: PackedByteArray = state.get(n, PackedByteArray())
+		if _has_cells(cells):
+			h.tiles[n] = cells
+		if _has_cells(hidden_tiles.get(n, PackedByteArray())):
+			h.blockout[n] = hidden_tiles[n]
+	var all: Dictionary = state.get(&"_items", {})
+	for g in all:
+		var list: Array = (all[g] as Array).filter(func(d: Dictionary) -> bool: return skip.has(MDSRoomLayers.of_data(String(g), d)))
+		if not list.is_empty():
+			h.items[String(g)] = list
+	return h
+
+static func _has_cells(data: PackedByteArray) -> bool:
+	if data.size() <= 2:
+		return false
+	var l := TileMapLayer.new()
+	l.tile_map_data = data
+	var any := not l.get_used_cells().is_empty()
+	l.free()
+	return any
+
+## Puts back the unticked layers kept for the room ([MDSHiddenLayers]): their tiles where the
+## scene has none, their items unless the scene has one of that name in the same group.
+func _merge_hidden(h: MDSHiddenLayers) -> void:
+	if not h:
+		return
+	for n in h.tiles:
+		if layers.has(n):
+			_merge_cells(layers[n], h.tiles[n])
+	for n in h.blockout:
+		if layers.has(n):
+			_merge_cells(blockout_layer(n), h.blockout[n])
+	for g in h.items:
+		var group := items_root.get_node_or_null(NodePath(String(g)))
+		if not group:
+			continue
+		for d: Dictionary in h.items[g]:
+			if not str(d.get("name", "")).is_empty() and group.has_node(NodePath(str(d.name))):
+				continue
+			group.add_child(_item_from(d), true)
+
+static func _merge_cells(target: TileMapLayer, data: PackedByteArray) -> void:
+	var src := TileMapLayer.new()
+	src.tile_map_data = data
+	for c in src.get_used_cells():
+		if target.get_cell_source_id(c) == -1:
+			target.set_cell(c, src.get_cell_source_id(c), src.get_cell_atlas_coords(c), src.get_cell_alternative_tile(c))
+	src.free()
 
 # --- Changes made elsewhere ----------------------------------------------------------------------
 

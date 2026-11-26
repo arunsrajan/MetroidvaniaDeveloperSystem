@@ -2795,8 +2795,8 @@ msgstr "Новая область"
 msgid "No area"
 msgstr "Без области"
 
-msgid "Saved the layers shown. Unticked layers kept what %s had; their changes are not saved yet."
-msgstr "Сохранены показанные слои. Неотмеченные слои сохранили то, что было в %s; их изменения ещё не сохранены."
+msgid "Saved the ticked layers into %s. The unticked ones are left out of the scene and kept for the Room view (%s)."
+msgstr "Отмеченные слои сохранены в %s. Неотмеченные не попали в сцену и сохранены для вида комнаты (%s)."
 
 msgid "Depth of the placed tiles: they draw and collide like the tiles of this layer"
 msgstr "Глубина размещаемых тайлов: они отрисовываются и сталкиваются как тайлы этого слоя"
