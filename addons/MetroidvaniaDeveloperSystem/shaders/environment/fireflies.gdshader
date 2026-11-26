@@ -52,4 +52,6 @@ void fragment() {
 	vec3 col = mix(c2, c1, step(a2, a1));
 	float a = max(a1, a2) * mix(1.0, 0.55, depth);
 	COLOR = vec4(col, a * color.a * intensity * env_edge(px));
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

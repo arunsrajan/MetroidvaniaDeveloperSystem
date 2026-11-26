@@ -88,4 +88,6 @@ void fragment() {
 	hl = max(hl, wetline * 0.5);
 	float side = clamp(min(px.x, rect_size.x - px.x) / max(edge_fade, 0.001), 0.0, 1.0);
 	COLOR = vec4(mix(color.rgb, highlight.rgb, clamp(hl * highlight.a, 0.0, 1.0)), a * color.a * intensity * side);
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

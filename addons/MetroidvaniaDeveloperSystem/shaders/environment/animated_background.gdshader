@@ -609,4 +609,6 @@ void fragment() {
 	col *= 1.0 - vignette * vig;
 	col += (env_hash(FRAGCOORD.xy + floor(TIME * 24.0) * vec2(17.0, 31.0)) - 0.5) * (0.004 + grain * 0.045);
 	COLOR = vec4(max(col, vec3(0.0)), intensity * env_edge(px));
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

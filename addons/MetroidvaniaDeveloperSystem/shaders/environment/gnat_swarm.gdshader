@@ -81,4 +81,6 @@ void fragment() {
 	}
 	vec3 c = mix(color.rgb, glint_color.rgb, gl * glint_color.a);
 	COLOR = vec4(c, a * color.a * intensity * env_edge(px));
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

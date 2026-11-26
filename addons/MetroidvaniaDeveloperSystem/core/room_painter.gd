@@ -67,6 +67,12 @@ var _source_paths: Dictionary = {} ## name -> NodePath inside root
 var items_root: Node2D
 var _undo: Array = [] ## snapshots: layer name -> tile_map_data
 var _redo: Array = []
+## Items the Room view hides (its Layers checkboxes): Node -> true. They are shown again while
+## the scene is saved and while undo snapshots are taken, so nothing is saved hidden.
+var view_hidden: Dictionary = {}
+## The Room view hides the scene's other nodes (its Objects layer): the gameplay items are not
+## picked then.
+var objects_hidden := false
 ## Hidden tiles: layer name -> disabled TileMapLayer copy ("<Layer>Blockout").
 var blockout: Dictionary = {}
 ## Changes to the scene's other nodes: path from the root -> {hidden, removed, position}.
@@ -175,6 +181,8 @@ static func open_packed(packed: PackedScene, path: String, default_tile_set: Til
 		if copy is TileMapLayer and not copy.tile_set:
 			copy.tile_set = p.tile_set
 		p.items_root.get_node(group).add_child(copy)
+	# The layers left unticked when the room was saved last, kept out of its scene.
+	p._merge_hidden(MDSHiddenLayers.load_for(path))
 	p._base = p._snapshot()
 	return p
 
@@ -288,11 +296,13 @@ func _snapshot() -> Dictionary:
 			traced[n] = (layers[n].get_meta(TRACED_CELLS) as Array).duplicate()
 	out[&"_traced"] = traced
 	var items: Dictionary = {}
+	var shown := _show_view_hidden()
 	for g in ITEM_GROUPS:
 		var list: Array = []
 		for node in items_root.get_node(g).get_children():
 			list.append(_item_data(node))
 		items[g] = list
+	_hide_view_hidden(shown)
 	out[&"_items"] = items
 	var hidden: Dictionary = {}
 	for n in blockout:
@@ -437,6 +447,35 @@ func effects() -> Array:
 				list.append(c)
 	return list
 
+## The effects and gameplay items the Room view shows now (see [member view_hidden]).
+func shown_effects() -> Array:
+	return effects().filter(func(e: Node) -> bool: return not is_view_hidden(e))
+
+## Whether the Room view hides [param node] now (its layer is unticked).
+func is_view_hidden(node: Node) -> bool:
+	if view_hidden.has(node):
+		return true
+	if objects_hidden and node.is_in_group(&"mds_gameplay_placed"):
+		return true
+	var parent := node.get_parent()
+	return parent is CanvasItem and parent.get_parent() == items_root and not (parent as CanvasItem).visible
+
+## Shows the nodes the Room view hides, for a moment (saving, a snapshot). Returns them.
+func _show_view_hidden() -> Array:
+	var out: Array = []
+	for n in view_hidden.keys():
+		if not is_instance_valid(n):
+			view_hidden.erase(n)
+		elif n is CanvasItem and not (n as CanvasItem).visible:
+			(n as CanvasItem).visible = true
+			out.append(n)
+	return out
+
+func _hide_view_hidden(nodes: Array) -> void:
+	for n in nodes:
+		if is_instance_valid(n):
+			(n as CanvasItem).visible = false
+
 static func node_effect_rect(node: Node2D) -> Rect2:
 	if node is MDSEnvironmentEffect:
 		return (node as MDSEnvironmentEffect).get_effect_rect()
@@ -450,7 +489,7 @@ static func node_effect_rect(node: Node2D) -> Rect2:
 ## Every effect whose area holds [param p] (scene-local), the top-most first.
 func effects_at(p: Vector2) -> Array[Node2D]:
 	var out: Array[Node2D] = []
-	var list := effects()
+	var list := shown_effects()
 	for i in range(list.size() - 1, -1, -1):
 		var e: Node2D = list[i]
 		if node_effect_rect(e).has_point(e.transform.affine_inverse() * p):
@@ -459,7 +498,7 @@ func effects_at(p: Vector2) -> Array[Node2D]:
 
 ## The top-most effect whose area holds [param p] (scene-local), or null.
 func effect_at(p: Vector2) -> Node2D:
-	var list := effects()
+	var list := shown_effects()
 	for i in range(list.size() - 1, -1, -1):
 		var e: Node2D = list[i]
 		if node_effect_rect(e).has_point(e.transform.affine_inverse() * p):
@@ -660,7 +699,8 @@ func pickable_items() -> Array[Node2D]:
 		if g == EFFECTS_GROUP:
 			continue
 		for node in items(g):
-			out.append(node)
+			if not is_view_hidden(node):
+				out.append(node)
 	return out
 
 ## The top-most item Select picks at [param p] (scene-local), or null. Items draw by z, then in
@@ -1037,7 +1077,9 @@ func save() -> Error:
 			target.set_meta(TRACED_CELLS, (copy.get_meta(TRACED_CELLS) as Array).duplicate())
 		elif target.has_meta(TRACED_CELLS):
 			target.remove_meta(TRACED_CELLS)
+	var shown := _show_view_hidden()
 	_save_items()
+	_hide_view_hidden(shown)
 	_save_blockout()
 	_apply_scene_edits()
 	_drop_empty_created()
@@ -1046,7 +1088,110 @@ func save() -> Error:
 	if err == OK:
 		dirty = false
 		_base = _snapshot()
+		# Every layer is in the scene now (save_layers writes the unticked ones again after).
+		MDSHiddenLayers.remove_for(scene_path)
 	return err
+
+## Saves only the layers not in [param skip] ([MDSRoomLayers] ids -> true, the Room view's
+## unticked Layers checkboxes) into the scene: it has nothing of the others, so the game, Play
+## from here and Godot's 2D editor show only the layers ticked. The unticked layers are kept
+## next to the scene ([MDSHiddenLayers]) and stay here, shown when their layers are ticked; the
+## painter puts them back as it opens the room again. The scene's other nodes (Objects) are
+## always saved. Without [param skip] it is [method save].
+func save_layers(skip: Dictionary) -> Error:
+	if skip.is_empty():
+		return save()
+	var mine := _snapshot()
+	var kept := hidden_part(mine, skip)
+	_restore(without_layers(mine, skip))
+	var err := save()
+	_restore(mine)
+	if err == OK:
+		err = kept.save_for(scene_path)
+	if err == OK:
+		dirty = false
+		_base = mine
+	else:
+		dirty = true
+	return err
+
+## The room as [param state] has it ([method _snapshot]) without the layers of [param skip].
+static func without_layers(state: Dictionary, skip: Dictionary) -> Dictionary:
+	var out := state.duplicate()
+	var traced: Dictionary = (state.get(&"_traced", {}) as Dictionary).duplicate()
+	var hidden_tiles: Dictionary = (state.get(&"_blockout", {}) as Dictionary).duplicate()
+	for n in LAYER_ORDER:
+		if skip.has(MDSRoomLayers.of_tile_layer(n)):
+			out[n] = PackedByteArray()
+			traced.erase(n)
+			if hidden_tiles.has(n):
+				hidden_tiles[n] = PackedByteArray()
+	out[&"_traced"] = traced
+	out[&"_blockout"] = hidden_tiles
+	var items: Dictionary = {}
+	var all: Dictionary = state.get(&"_items", {})
+	for g in all:
+		items[g] = (all[g] as Array).filter(func(d: Dictionary) -> bool: return not skip.has(MDSRoomLayers.of_data(String(g), d)))
+	out[&"_items"] = items
+	return out
+
+## What the layers of [param skip] hold in [param state] ([method _snapshot]).
+static func hidden_part(state: Dictionary, skip: Dictionary) -> MDSHiddenLayers:
+	var h := MDSHiddenLayers.new()
+	for id in skip:
+		h.layers.append(String(id))
+	var hidden_tiles: Dictionary = state.get(&"_blockout", {})
+	for n in LAYER_ORDER:
+		if not skip.has(MDSRoomLayers.of_tile_layer(n)):
+			continue
+		var cells: PackedByteArray = state.get(n, PackedByteArray())
+		if _has_cells(cells):
+			h.tiles[n] = cells
+		if _has_cells(hidden_tiles.get(n, PackedByteArray())):
+			h.blockout[n] = hidden_tiles[n]
+	var all: Dictionary = state.get(&"_items", {})
+	for g in all:
+		var list: Array = (all[g] as Array).filter(func(d: Dictionary) -> bool: return skip.has(MDSRoomLayers.of_data(String(g), d)))
+		if not list.is_empty():
+			h.items[String(g)] = list
+	return h
+
+static func _has_cells(data: PackedByteArray) -> bool:
+	if data.size() <= 2:
+		return false
+	var l := TileMapLayer.new()
+	l.tile_map_data = data
+	var any := not l.get_used_cells().is_empty()
+	l.free()
+	return any
+
+## Puts back the unticked layers kept for the room ([MDSHiddenLayers]): their tiles where the
+## scene has none, their items unless the scene has one of that name in the same group.
+func _merge_hidden(h: MDSHiddenLayers) -> void:
+	if not h:
+		return
+	for n in h.tiles:
+		if layers.has(n):
+			_merge_cells(layers[n], h.tiles[n])
+	for n in h.blockout:
+		if layers.has(n):
+			_merge_cells(blockout_layer(n), h.blockout[n])
+	for g in h.items:
+		var group := items_root.get_node_or_null(NodePath(String(g)))
+		if not group:
+			continue
+		for d: Dictionary in h.items[g]:
+			if not str(d.get("name", "")).is_empty() and group.has_node(NodePath(str(d.name))):
+				continue
+			group.add_child(_item_from(d), true)
+
+static func _merge_cells(target: TileMapLayer, data: PackedByteArray) -> void:
+	var src := TileMapLayer.new()
+	src.tile_map_data = data
+	for c in src.get_used_cells():
+		if target.get_cell_source_id(c) == -1:
+			target.set_cell(c, src.get_cell_source_id(c), src.get_cell_atlas_coords(c), src.get_cell_alternative_tile(c))
+	src.free()
 
 # --- Changes made elsewhere ----------------------------------------------------------------------
 
@@ -1478,21 +1623,15 @@ func cell_rect(layer_name: String, cell: Vector2i) -> Rect2:
 ## Cells (of the Terrain grid) inside the room's shape on the world map: inside its outline
 ## when it has curved or slanted sides ([param follow_outline]), else its rectangles.
 func room_cells(world: MDSWorld, id: String, follow_outline := true) -> Dictionary:
-	var out: Dictionary = {}
-	var ts := tile_size()
-	# A room with curved or slanted sides on the map: only the tiles inside that outline.
-	var outline: Array[PackedVector2Array] = []
-	if follow_outline:
-		outline = world.get_local_shape(id)
-	for r in world.get_local_rects(id):
-		var c0 := Vector2i((r.position / ts - Vector2(0.5, 0.5)).ceil())
-		var c1 := Vector2i((r.end / ts - Vector2(0.5, 0.5)).ceil()) - Vector2i.ONE
-		for y in range(c0.y, c1.y + 1):
-			for x in range(c0.x, c1.x + 1):
-				var at := (Vector2(x, y) + Vector2(0.5, 0.5)) * ts
-				if outline.is_empty() or MDSGeometry.point_in_any(outline, at):
-					out[cell_at("Terrain", at)] = true
-	return out
+	return MDSCaveMask.shape_cells(world, id, tile_size(), layers["Terrain"].transform, follow_outline)
+
+## The room's open air: its shape's cells with no Terrain tile (see [MDSCaveMask]).
+func cave_mask(world: MDSWorld, id: String) -> MDSCaveMask:
+	var cells := room_cells(world, id)
+	if cells.is_empty():
+		return null
+	var terrain: TileMapLayer = layers["Terrain"]
+	return MDSCaveMask.from_cells(MDSCaveMask.open_cells(cells, terrain), cells, tile_size(), terrain.transform)
 
 # --- Tileset introspection ----------------------------------------------------------------------
 

@@ -41,8 +41,21 @@ signal body_hurt(body: Node2D, amount: float)
 ##   the cave).
 ## - [code]MANUAL[/code]: off until [method start] is called.
 enum Activation { ALWAYS, PLAYER_INSIDE, MANUAL }
+## Where the effect draws (see [member depth]):
+## - [code]AUTO[/code]: at its own z_index (each effect has one that suits it).
+## - [code]BACKGROUND[/code]: behind the room's tiles ([constant DEPTH_BACK_Z]).
+## - [code]FOREGROUND[/code]: in front of the room's tiles and stamps ([constant DEPTH_FRONT_Z]).
+enum Depth { AUTO, BACKGROUND, FOREGROUND }
 
 const SHADER_DIR := "res://addons/MetroidvaniaDeveloperSystem/shaders/environment/"
+## The z_index of a background effect: behind the Background tiles (-10), in front of the
+## parallax and animated backgrounds (-100 and below).
+const DEPTH_BACK_Z := -12
+## The z_index of a foreground effect: in front of the Foreground tiles (20) and the
+## foreground stamps (24).
+const DEPTH_FRONT_Z := 26
+## The values [member depth] takes in a weather spec ([code]fog(depth=back)[/code]).
+const DEPTH_IDS: PackedStringArray = ["auto", "back", "front"]
 
 ## Size of the area the effect covers (px), see [method get_effect_rect].
 @export var size := Vector2(1152, 648):
@@ -69,6 +82,21 @@ const SHADER_DIR := "res://addons/MetroidvaniaDeveloperSystem/shaders/environmen
 	set(v):
 		seed_value = v
 		_changed()
+## Behind the room's tiles or in front of them (see [enum Depth]). BACKGROUND and FOREGROUND
+## set [member CanvasItem.z_index]; AUTO gives it back the effect's own.
+@export var depth: Depth = Depth.AUTO:
+	set(v):
+		if v == depth:
+			return
+		depth = v
+		_apply_depth()
+## Draw only in the cave's open air: inside the room's shape and off the Terrain tiles (see
+## [MDSCaveMask]). The Room view and [MDSWorldGame] give the effect the room's mask. Off: the
+## effect covers its whole rectangle (a storm meant to show past the cave's mouth).
+@export var clip_to_cave := true:
+	set(v):
+		clip_to_cave = v
+		_push_cave()
 @export_group("Bodies")
 ## Nodes in these groups are pushed or hurt by the effect and reported by
 ## [signal body_entered_effect].
@@ -89,6 +117,14 @@ var _fade_now := -1.0 ## the fade time start() or stop() asked for (negative: fa
 var _strength := -1.0
 var _inside: Dictionary = {}
 var _hurt_at: Dictionary = {}
+var _cave_tex: Texture2D ## the room's open air (see set_cave_mask)
+var _cave_rect := Rect2() ## ...the rectangle it covers, in _cave_space's coordinates
+var _cave_space: Node ## null: the effect's parent
+var _line_mat: ShaderMaterial ## for parts that are not quads (see line_material)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_LOCAL_TRANSFORM_CHANGED and _cave_tex:
+		_push_cave()
 
 func _ready() -> void:
 	if not Engine.is_editor_hint():
@@ -166,9 +202,11 @@ func rebuild() -> void:
 			c.queue_free()
 	_materials.clear()
 	_quads.clear()
+	_line_mat = null
 	_build()
 	_strength = -1.0
 	_changed()
+	_push_cave()
 	queue_redraw()
 
 ## Effect-specific: makes the parts (with [method add_quad], [method add_part]).
@@ -247,6 +285,91 @@ func set_param(param: StringName, value: Variant) -> void:
 
 func get_materials() -> Array[ShaderMaterial]:
 	return _materials
+
+## A material for parts that are not quads (a lightning bolt's lines): drawn added, and only in
+## the cave's open air like the rest of the effect. One per build.
+func line_material() -> ShaderMaterial:
+	if not _line_mat:
+		_line_mat = ShaderMaterial.new()
+		_line_mat.shader = shader("cave_line")
+		_materials.append(_line_mat)
+		_push_cave()
+	return _line_mat
+
+# --- Depth and the cave's open air ----------------------------------------------------------------
+
+## Whether the effect draws behind the room's Terrain (a negative z_index).
+func is_background() -> bool:
+	return z_index < 0
+
+func _apply_depth() -> void:
+	match depth:
+		Depth.BACKGROUND:
+			z_index = DEPTH_BACK_Z
+		Depth.FOREGROUND:
+			z_index = DEPTH_FRONT_Z
+		_:
+			z_index = default_z()
+
+## The z_index the effect has when it is made (its AUTO depth).
+func default_z() -> int:
+	var script := get_script() as Script
+	if not script or not script.can_instantiate():
+		return 0
+	var fresh: Object = script.new()
+	var z := int(fresh.get("z_index")) if fresh is CanvasItem else 0
+	if fresh is Node:
+		(fresh as Node).free()
+	return z
+
+## [enum Depth] from [param text]: "auto", "back" / "background", "front" / "foreground".
+## -1 when it is none of them.
+static func depth_from(text: String) -> int:
+	match text.strip_edges().to_lower():
+		"auto", "":
+			return Depth.AUTO
+		"back", "background", "behind":
+			return Depth.BACKGROUND
+		"front", "foreground":
+			return Depth.FOREGROUND
+	return -1
+
+## Draws the effect only in the cave's open air: where [param texture] (one pixel per Terrain
+## cell, see [MDSCaveMask]) is white. [param rect] is the rectangle the texture covers, in
+## [param space]'s coordinates ([param space] is an ancestor of the effect; null: its parent).
+## The mask follows the effect as it moves. A null [param texture] takes the mask away.
+func set_cave_mask(texture: Texture2D, rect: Rect2, space: Node = null) -> void:
+	_cave_tex = texture
+	_cave_rect = rect
+	_cave_space = space
+	set_notify_local_transform(texture != null)
+	_push_cave()
+
+func clear_cave_mask() -> void:
+	set_cave_mask(null, Rect2())
+
+## Whether the effect is clipped to a cave's open air now.
+func is_clipped_to_cave() -> bool:
+	return clip_to_cave and _cave_tex != null
+
+## The mask's rectangle in the effect's own coordinates.
+func cave_rect_local() -> Rect2:
+	var xf := transform.affine_inverse()
+	if is_instance_valid(_cave_space) and _cave_space != get_parent():
+		xf = MDSEnvironment._to_local(self, _cave_space)
+	var a := xf * _cave_rect.position
+	var b := xf * _cave_rect.end
+	return Rect2(a, b - a).abs()
+
+func _push_cave() -> void:
+	if _materials.is_empty():
+		return
+	var on := is_clipped_to_cave()
+	var r := cave_rect_local() if on else Rect2()
+	for m in _materials:
+		m.set_shader_parameter("cave_on", on)
+		m.set_shader_parameter("cave_mask", _cave_tex if on else null)
+		m.set_shader_parameter("cave_rect", Vector4(r.position.x, r.position.y, r.size.x, r.size.y))
 
 # --- Running ------------------------------------------------------------------------------------
 

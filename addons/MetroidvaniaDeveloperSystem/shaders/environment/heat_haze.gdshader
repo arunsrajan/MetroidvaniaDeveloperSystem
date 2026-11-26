@@ -32,4 +32,6 @@ void fragment() {
 	vec3 c = texture(screen_tex, SCREEN_UV + offs).rgb;
 	c = mix(c, tint.rgb, tint.a * k);
 	COLOR = vec4(c, 1.0);
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

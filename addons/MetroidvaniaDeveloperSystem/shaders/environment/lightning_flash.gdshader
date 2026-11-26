@@ -25,4 +25,6 @@ void fragment() {
 	float clouds = 0.75 + 0.5 * env_fbm(px / 300.0 + vec2(seed, TIME * 0.2), 3);
 	float a = flash * intensity * mix(near_bolt, 1.0, spread) * sky * clouds * env_edge(px);
 	COLOR = vec4(color.rgb, clamp(a, 0.0, 1.0) * color.a);
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

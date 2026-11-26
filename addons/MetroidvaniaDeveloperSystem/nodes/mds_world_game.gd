@@ -145,6 +145,10 @@ static var instance: MDSWorldGame
 ## [code]boss_background[/code]; else its area's, else the world's
 ## ([code]settings.background[/code]), see [MDSAnimatedBackground].
 @export var room_background := true
+## Draw each room's effects (its weather, backgrounds and the effects placed in it) only in the
+## cave's open air: inside the room's shape and off its Terrain tiles (see [MDSCaveMask]).
+## Effects with [member MDSEnvironmentEffect.clip_to_cave] off are left whole.
+@export var clip_effects_to_cave := true
 ## Nodes in these groups carry a soft light in dark rooms (the player, enemies, lanterns).
 ## The world setting [code]light_groups[/code] replaces the list.
 @export var light_groups: PackedStringArray = ["player", "enemy", "lantern"]
@@ -675,7 +679,18 @@ func _dress_room(room: Node2D, id: String) -> void:
 	_apply_weather(room, id)
 	_apply_background(room, id)
 	_apply_parallax(room, id)
+	_clip_to_cave(room, id)
 	_apply_darkness(room, id)
+
+## Gives the room's effects (its own and the weather and backgrounds just added) the room's
+## open air as their mask (see [member clip_effects_to_cave]).
+func _clip_to_cave(room: Node2D, id: String) -> void:
+	if not clip_effects_to_cave:
+		return
+	var mask := MDSCaveMask.build(world, id, MDSCaveMask.terrain_of(room))
+	if mask:
+		for fx in MDSEnvironment.effects_in(room):
+			fx.set_cave_mask(mask.texture, mask.rect, room)
 
 ## Gives [param room] an [MDSDepth25D], unless it has one of its own.
 func _add_depth(room: Node2D) -> void:

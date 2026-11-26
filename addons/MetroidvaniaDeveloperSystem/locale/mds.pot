@@ -93,6 +93,7 @@ msgstr ""
 
 #. Drawn behind the player.
 #: core/drawing_tracer.gd
+#: ui/room_layers.gd
 #: ui/room_view.gd
 msgid "Background"
 msgstr ""
@@ -100,7 +101,8 @@ msgstr ""
 #. Drawn in front of the player.
 #: core/drawing_tracer.gd
 #: ui/decorate_dialog.gd
-#: ui/room_view.gd
+#: ui/room_layers.gd
+# and 1 more files
 msgid "Foreground"
 msgstr ""
 
@@ -1395,6 +1397,7 @@ msgid "A soft, out-of-focus background in motion, drawn by a shader: bokeh light
 msgstr ""
 
 #: nodes/environment/mds_environment.gd
+#: ui/room_layers.gd
 msgid "Parallax background"
 msgstr ""
 
@@ -1873,6 +1876,7 @@ msgstr ""
 
 #: nodes/environment/mds_parallax_background.gd
 #: nodes/mds_room_camera.gd
+#: ui/room_view.gd
 msgid "None"
 msgstr ""
 
@@ -2906,6 +2910,7 @@ msgstr ""
 
 #. The solid ground and walls of a room.
 #: ui/room_canvas.gd
+#: ui/room_layers.gd
 #: ui/room_view.gd
 msgid "Terrain"
 msgstr ""
@@ -2988,20 +2993,102 @@ msgstr ""
 msgid "Click in a room to paint it, or draw rooms with the Full view's Rectangle, Ellipse, Polygon or Curvy tool, then Generate map."
 msgstr ""
 
+#: ui/room_layers.gd
+msgid "Background effects"
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Stamps (back)"
+msgstr ""
+
 #. Decorations on floors and under ceilings (grass, vines, stalactites).
+#: ui/room_layers.gd
 #: ui/room_view.gd
 msgid "Decor"
+msgstr ""
+
+#. Decoration sprites placed on a room's walls and floors, as with rubber stamps.
+#: ui/room_layers.gd
+#: ui/room_view.gd
+msgid "Stamps"
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Stamps (foreground)"
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Foreground effects"
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Parallax foreground"
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Objects"
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Guides"
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "The room's parallax and animated backgrounds, behind everything."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Effects behind the tiles: placed ones set to Background (or with a negative z) and the weather's."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Background tiles, back freeform shapes, and pictures and free tiles of the Background layer."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Stamps placed behind the terrain."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Terrain tiles, freeform shapes, and pictures and free tiles of the Terrain layer."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Decor tiles, and pictures and free tiles of the Decor layer."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Stamps placed in front of the terrain."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Foreground tiles, front freeform shapes, and pictures and free tiles of the Foreground layer."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Stamps placed in front of everything."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "Effects in front of the tiles: placed ones set to Foreground (or with a z of 0 or more) and the weather's."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "The parallax background's foreground layers, passing in front of the room."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "The scene's other nodes: gameplay objects, enemies, gates, props."
+msgstr ""
+
+#: ui/room_layers.gd
+msgid "The tile grid, the room's outline, the gates' boxes and the reachability check."
 msgstr ""
 
 #. A tool: remove what is under the brush.
 #: ui/room_view.gd
 #: world_panel.gd
 msgid "Erase"
-msgstr ""
-
-#. Decoration sprites placed on a room's walls and floors, as with rubber stamps.
-#: ui/room_view.gd
-msgid "Stamps"
 msgstr ""
 
 #. Weather, hazards and scenery in motion (rain, lava, fog...).
@@ -3110,11 +3197,11 @@ msgid "Untwist the selected shape: an outline that crosses itself has no fill an
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Untwist every shape of the room whose outline crosses itself (drawn red)"
+msgid "Repair all"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Repair all"
+msgid "Untwist every shape of the room whose outline crosses itself (drawn red)"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3224,11 +3311,11 @@ msgid "Health fragment"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Breakable wall"
+msgid "MDSBreakable: wall that breaks on attack"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "MDSBreakable: wall that breaks on attack"
+msgid "Breakable wall"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3272,15 +3359,11 @@ msgid "MDSGrapplePoint: anchor for the grapple hook"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Enemy (Walker)"
-msgstr ""
-
-#: ui/room_view.gd
 msgid "Walker template enemy"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Enemy (Flyer)"
+msgid "Enemy (Walker)"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3288,11 +3371,15 @@ msgid "Flyer template enemy"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Turret template enemy"
+msgid "Enemy (Flyer)"
 msgstr ""
 
 #: ui/room_view.gd
 msgid "Enemy (Turret)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Turret template enemy"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3304,15 +3391,11 @@ msgid "Charger template enemy"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Ambusher template enemy"
-msgstr ""
-
-#: ui/room_view.gd
 msgid "Enemy (Ambusher)"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Boss arena"
+msgid "Ambusher template enemy"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3320,7 +3403,7 @@ msgid "MDSBossArena: locks doors during boss fight"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "NPC"
+msgid "Boss arena"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3328,11 +3411,15 @@ msgid "MDSNPC: dialogue and interaction"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Dialogue trigger"
+msgid "NPC"
 msgstr ""
 
 #: ui/room_view.gd
 msgid "MDSDialogueTrigger: a conversation with anything (a door, a sign, a statue), on interact or on touch"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Dialogue trigger"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3360,19 +3447,23 @@ msgid "Drag onto the room. Click one in the room to edit it in the Inspector; dr
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Show the area's weather"
+msgid "Auto"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Show the weather of the room's area (Areas tab > Weather), or of the room itself (Inspect tab), as the game adds it to every room of the area. Only a preview: it isn't saved into the scene"
+msgid "Where new effects (and the selected one) draw: Auto at the effect's own depth, Background behind the room's tiles, Foreground in front of the tiles and stamps. The Layers list shows and hides each"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Show the backgrounds"
+msgid "Depth"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Show the parallax and animated backgrounds of the room's area (Areas tab > Parallax, Animated bg), of the boss rooms or of the room itself, behind the room as the game adds them; pan the view to see them move. Only a preview: they aren't saved into the scene"
+msgid "Only in the cave's open air"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Draw the effects, the weather and the backgrounds only inside the room's shape and off its Terrain tiles, as the game does: nothing shows over rock or outside the cave. An effect can opt out (Clip To Cave in the Inspector)"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3437,11 +3528,11 @@ msgid "The area's next room"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Caves for the area"
+msgid "Generate a cave in every room of the area, with the fills and options here. Rooms without a scene get one. Every room's gates are joined by paths a player can walk, jump and climb both ways, so the whole area can be crossed and backtracked"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Generate a cave in every room of the area, with the fills and options here. Rooms without a scene get one. Every room's gates are joined by paths a player can walk, jump and climb both ways, so the whole area can be crossed and backtracked"
+msgid "Caves for the area"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3477,7 +3568,19 @@ msgid "New variation"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Paint the Background fill behind the cave"
+msgid "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Merged walls"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3485,7 +3588,7 @@ msgid "Decorations on floors and under ceilings; most floor ones of the Decor fi
 msgstr ""
 
 #: ui/room_view.gd
-msgid "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"
+msgid "Paint the Background fill behind the cave"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3494,18 +3597,6 @@ msgstr ""
 
 #: ui/room_view.gd
 msgid "Paths"
-msgstr ""
-
-#: ui/room_view.gd
-msgid "Every gate reaches every other one and back: tunnels and shafts with ledges are carved where the cave doesn't allow it"
-msgstr ""
-
-#: ui/room_view.gd
-msgid "A room merged from several on the map keeps walls where its old rooms met, with openings where their doors were (off: one open cave)"
-msgstr ""
-
-#: ui/room_view.gd
-msgid "Merged walls"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3525,19 +3616,19 @@ msgid "Fill the room's shape with the Background fill (foliage, palette tiles or
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Clear background"
-msgstr ""
-
-#: ui/room_view.gd
 msgid "Remove every tile of the Background layer. A room filled from edge to edge takes many, and a hidden layer's tiles are saved in the scene all the same"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Convert to freeform..."
+msgid "Clear background"
 msgstr ""
 
 #: ui/room_view.gd
 msgid "Turn the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects. Platforms become one-way ledges. Block a room out with rectangles or tiles, then make it organic"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Convert to freeform..."
 msgstr ""
 
 #: ui/room_view.gd
@@ -3549,11 +3640,11 @@ msgid "Draw the room from a picture: each color of a drawing (any image file, or
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Decorate freeform..."
+msgid "Place scenery relative to the freeform rock: stamps hung under ceilings, plants along floors, background structures (columns, broken arches, garden walls, mounds, stalactites) on flat floors, and foreground leaves in free corners. Never over doorways or anything in the room; running it again replaces it"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Place scenery relative to the freeform rock: stamps hung under ceilings, plants along floors, background structures (columns, broken arches, garden walls, mounds, stalactites) on flat floors, and foreground leaves in free corners. Never over doorways or anything in the room; running it again replaces it"
+msgid "Decorate freeform..."
 msgstr ""
 
 #: ui/room_view.gd
@@ -3565,11 +3656,11 @@ msgid "Cover the cells of the room's box that are outside its shape on the map (
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view"
+msgid "Check room"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Check room"
+msgid "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3605,12 +3696,12 @@ msgid "Show the room as MDSDepth25D draws it in the game: walls and floors extru
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Remove all tiles, freeform shapes and stamps"
+#: ui/ui_util.gd
+msgid "Clear"
 msgstr ""
 
 #: ui/room_view.gd
-#: ui/ui_util.gd
-msgid "Clear"
+msgid "Remove all tiles, freeform shapes and stamps"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3723,11 +3814,11 @@ msgid "Each outline drawn becomes rooms on the map right away (off: draw them al
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
+msgid "Generate map"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Generate map"
+msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3780,6 +3871,10 @@ msgstr ""
 
 #: ui/room_view.gd
 msgid "No area"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Saved the ticked layers into %s. The unticked ones are left out of the scene and kept for the Room view (%s)."
 msgstr ""
 
 #: ui/room_view.gd
@@ -3881,6 +3976,58 @@ msgstr ""
 
 #: ui/room_view.gd
 msgid "Background cleared."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Show or hide each layer of the room, or show one alone with Solo. Only the view changes: nothing is saved hidden"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "All"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Show every layer"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Hide every layer (then tick the ones to see)"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Solo"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Show only this layer, and point the tools at it. Click again to show the layers as they were"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Showing the layers as they were."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Showing only %s. Click Solo again to show the other layers."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "%s is drawn %s now."
+msgstr ""
+
+#: ui/room_view.gd
+msgid "at its own depth"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "behind the tiles"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "in front of the tiles"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Layers"
 msgstr ""
 
 #: ui/room_view.gd

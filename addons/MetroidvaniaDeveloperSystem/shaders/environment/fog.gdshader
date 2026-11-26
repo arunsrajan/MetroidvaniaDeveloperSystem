@@ -32,4 +32,6 @@ void fragment() {
 	float k = mix(1.0, low, ground);
 	float a = fog * density * k * (0.55 + 0.45 * density);
 	COLOR = vec4(color.rgb * mix(0.85, 1.05, f2), a * color.a * intensity * env_edge(px));
+	// Only in the cave's open air (see env_cave).
+	COLOR.a *= env_cave(px);
 }

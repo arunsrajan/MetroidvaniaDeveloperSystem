@@ -89,8 +89,8 @@ func strike(x := -1.0) -> void:
 	_since = 0.0
 	_flash_mat.set_shader_parameter("bolt_x", u)
 	var top := Vector2(r.position.x + r.size.x * u, r.position.y)
-	var depth := _rng.randf_range(minf(reach.x, reach.y), maxf(reach.x, reach.y))
-	var bottom := top + Vector2(_rng.randf_range(-0.12, 0.12) * r.size.x, r.size.y * depth)
+	var reach_to := _rng.randf_range(minf(reach.x, reach.y), maxf(reach.x, reach.y))
+	var bottom := top + Vector2(_rng.randf_range(-0.12, 0.12) * r.size.x, r.size.y * reach_to)
 	if bolts and _bolt_root:
 		for c in _bolt_root.get_children():
 			c.queue_free()
@@ -123,9 +123,8 @@ static func bolt_points(a: Vector2, b: Vector2, rng: RandomNumberGenerator, leve
 	return pts
 
 func _add_bolt(pts: PackedVector2Array, width: float) -> void:
-	var add := CanvasItemMaterial.new()
-	add.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	add.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	# Added, unshaded, and only in the cave's open air.
+	var add := line_material()
 	var taper := Curve.new()
 	taper.add_point(Vector2(0.0, 1.0))
 	taper.add_point(Vector2(1.0, 0.35))
