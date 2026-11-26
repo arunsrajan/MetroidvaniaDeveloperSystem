@@ -2750,17 +2750,17 @@ msgstr "तुरंत"
 msgid "Each outline drawn becomes rooms on the map right away (off: draw them all first, then Generate map)"
 msgstr "बनाई गई हर आउटलाइन तुरंत मानचित्र पर कक्ष बन जाती है (बंद: पहले सब बनाएँ, फिर मानचित्र जनरेट करें)"
 
-msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
-msgstr "चुनी हुई आउटलाइन, या बनाई गई हर आउटलाइन के मानचित्र पर कक्ष बनाएँ: उनके पेंट सेल (जिन पर अभी कोई कक्ष नहीं), उनके घुमाव कक्षों की आउटलाइन के रूप में, उनके बीच और उनके छूने वाले कक्षों तक दरवाज़े, चुने हुए क्षेत्रों में। एक Ctrl+Z इसे वापस ले लेता है"
-
 msgid "Generate map"
 msgstr "मानचित्र जनरेट करें"
 
-msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
-msgstr "इस परत पर बनी हर आउटलाइन निकालें (Ctrl+Z इसे पूर्ववत करता है)"
+msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
+msgstr "चुनी हुई आउटलाइन, या बनाई गई हर आउटलाइन के मानचित्र पर कक्ष बनाएँ: उनके पेंट सेल (जिन पर अभी कोई कक्ष नहीं), उनके घुमाव कक्षों की आउटलाइन के रूप में, उनके बीच और उनके छूने वाले कक्षों तक दरवाज़े, चुने हुए क्षेत्रों में। एक Ctrl+Z इसे वापस ले लेता है"
 
 msgid "Clear outlines"
 msgstr "आउटलाइन साफ़ करें"
+
+msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
+msgstr "इस परत पर बनी हर आउटलाइन निकालें (Ctrl+Z इसे पूर्ववत करता है)"
 
 msgid "Caves too"
 msgstr "गुफाएँ भी"
@@ -2794,6 +2794,9 @@ msgstr "नया क्षेत्र"
 
 msgid "No area"
 msgstr "कोई क्षेत्र नहीं"
+
+msgid "Saved the layers shown. Unticked layers kept what %s had; their changes are not saved yet."
+msgstr "दिखाई गई लेयर सहेजी गईं। बिना चुनी लेयरों में वही रहा जो %s में था; उनके बदलाव अभी सहेजे नहीं गए हैं।"
 
 msgid "Depth of the placed tiles: they draw and collide like the tiles of this layer"
 msgstr "लगाई गई टाइलों की गहराई: वे इस परत की टाइलों की तरह दिखती और टकराती हैं"
@@ -2873,11 +2876,11 @@ msgstr "पृष्ठभूमि साफ़ कर दी गई।"
 msgid "Show or hide each layer of the room, or show one alone with Solo. Only the view changes: nothing is saved hidden"
 msgstr "रूम की हर लेयर दिखाएँ या छिपाएँ, या सोलो से एक ही दिखाएँ। केवल दृश्य बदलता है: कुछ भी छिपा हुआ सहेजा नहीं जाता"
 
-msgid "Show every layer"
-msgstr "सभी लेयर दिखाएँ"
-
 msgid "All"
 msgstr "सभी"
+
+msgid "Show every layer"
+msgstr "सभी लेयर दिखाएँ"
 
 msgid "Hide every layer (then tick the ones to see)"
 msgstr "सभी लेयर छिपाएँ (फिर जिन्हें देखना है उन्हें चुनें)"
@@ -2897,14 +2900,14 @@ msgstr "केवल %s दिखाई जा रही है। दूसर�
 msgid "%s is drawn %s now."
 msgstr "%s अब %s बनता है।"
 
-msgid "in front of the tiles"
-msgstr "टाइलों के आगे"
+msgid "at its own depth"
+msgstr "अपनी गहराई पर"
 
 msgid "behind the tiles"
 msgstr "टाइलों के पीछे"
 
-msgid "at its own depth"
-msgstr "अपनी गहराई पर"
+msgid "in front of the tiles"
+msgstr "टाइलों के आगे"
 
 msgid "Layers"
 msgstr "लेयर"

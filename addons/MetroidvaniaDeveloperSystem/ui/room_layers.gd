@@ -82,6 +82,28 @@ static func of_item(node: Node) -> String:
 		return of_tile_layer(str(node.get_meta(MDSRoomPainter.DRAWING_LAYER_META, "Terrain")))
 	return "objects"
 
+## The layer of an item's data ([method MDSRoomPainter._snapshot]'s) in group [param group].
+static func of_data(group: String, d: Dictionary) -> String:
+	if GROUPS.has(group):
+		return GROUPS[group]
+	match group:
+		MDSRoomPainter.EFFECTS_GROUP:
+			return "effects_back" if int(d.get("z_index", 0)) < 0 else "effects_fore"
+		MDSRoomPainter.TILES_GROUP:
+			return of_tile_layer(str((d.get("meta", {}) as Dictionary).get(MDSRoomPainter.PIECE_META, "Terrain")))
+		MDSRoomPainter.PICTURES_GROUP:
+			return of_tile_layer(str((d.get("meta", {}) as Dictionary).get(MDSRoomPainter.DRAWING_LAYER_META, "Terrain")))
+	return "objects"
+
+## The layers [param visible] hides (id -> true): what Save leaves as the scene has it. The
+## previews and guides are never saved, so they are left out.
+static func unsaved(visible: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for id in visible:
+		if not bool(visible[id]) and not id in ["parallax_back", "parallax_fore", "guides"]:
+			out[id] = true
+	return out
+
 ## "effects_back" or "effects_fore": whether [param fx] draws behind the tiles.
 static func of_effect(fx: MDSEnvironmentEffect) -> String:
 	return "effects_back" if fx.is_background() else "effects_fore"

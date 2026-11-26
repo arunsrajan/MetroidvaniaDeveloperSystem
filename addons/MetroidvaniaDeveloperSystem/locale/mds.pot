@@ -3814,19 +3814,19 @@ msgid "Each outline drawn becomes rooms on the map right away (off: draw them al
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
-msgstr ""
-
-#: ui/room_view.gd
 msgid "Generate map"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
+msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
 msgstr ""
 
 #: ui/room_view.gd
 msgid "Clear outlines"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3871,6 +3871,10 @@ msgstr ""
 
 #: ui/room_view.gd
 msgid "No area"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Saved the layers shown. Unticked layers kept what %s had; their changes are not saved yet."
 msgstr ""
 
 #: ui/room_view.gd
@@ -3979,11 +3983,11 @@ msgid "Show or hide each layer of the room, or show one alone with Solo. Only th
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Show every layer"
+msgid "All"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "All"
+msgid "Show every layer"
 msgstr ""
 
 #: ui/room_view.gd
@@ -4011,7 +4015,7 @@ msgid "%s is drawn %s now."
 msgstr ""
 
 #: ui/room_view.gd
-msgid "in front of the tiles"
+msgid "at its own depth"
 msgstr ""
 
 #: ui/room_view.gd
@@ -4019,7 +4023,7 @@ msgid "behind the tiles"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "at its own depth"
+msgid "in front of the tiles"
 msgstr ""
 
 #: ui/room_view.gd

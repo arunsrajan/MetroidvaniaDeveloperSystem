@@ -1279,7 +1279,10 @@ func save() -> Error:
 		return ERR_UNCONFIGURED
 	# What changed in the editor first, so saving never writes over it.
 	sync_from_editor()
-	var err := painter.save() if painter else OK
+	# Only the layers ticked in the Layers list: the others keep what the scene has.
+	var skip := MDSRoomLayers.unsaved(canvas.layer_visible)
+	var picked := canvas.selection_names() if painter and not skip.is_empty() else {}
+	var err := _save_painter(painter, skip) if painter else OK
 	if painter and err == OK:
 		saved.emit(painter.scene_path)
 		# The editor reloaded it: that is no change to take in.
@@ -1287,6 +1290,8 @@ func save() -> Error:
 		_editor_seen = _history_mark(live) if live else []
 		var note := painter.size_note()
 		status_message.emit("Saved. " + note if not note.is_empty() else "Saved %s." % painter.scene_path.get_file())
+		if not skip.is_empty():
+			status_message.emit(MDSL10n.tf("Saved the layers shown. Unticked layers kept what %s had; their changes are not saved yet.", [painter.scene_path.get_file()]))
 		_report_size()
 	elif painter and not MDSWorldSceneTools.last_error.is_empty():
 		status_message.emit(MDSWorldSceneTools.last_error)
@@ -1298,7 +1303,7 @@ func save() -> Error:
 		var p: MDSRoomPainter = _painters[id]
 		if p == painter or not p.dirty:
 			continue
-		var e := p.save()
+		var e := _save_painter(p, skip)
 		if e == OK:
 			others += 1
 			saved.emit(p.scene_path)
@@ -1313,8 +1318,17 @@ func save() -> Error:
 	if _session_row and (_session.size() >= 2 or _full):
 		_update_session_bar()
 		canvas.refresh_context()
+	if not picked.is_empty():
+		# Saving the layers shown made the items again: the same ones are selected, shown as the layers say.
+		canvas.refresh_layers()
+		canvas.select_names(picked, true)
 	canvas._overlay.queue_redraw()
 	return err
+
+## Saves [param p], leaving the layers of [param skip] as its scene has them (see
+## [method MDSRoomPainter.save_layers]).
+func _save_painter(p: MDSRoomPainter, skip: Dictionary) -> Error:
+	return p.save_layers(skip) if not skip.is_empty() else p.save()
 
 # --- Changes made in the editor -------------------------------------------------------------
 

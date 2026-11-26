@@ -2750,17 +2750,17 @@ msgstr "Сразу"
 msgid "Each outline drawn becomes rooms on the map right away (off: draw them all first, then Generate map)"
 msgstr "Каждый нарисованный контур сразу становится комнатами на карте (выкл.: сначала нарисовать все, затем «Сгенерировать карту»)"
 
-msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
-msgstr "Создать комнаты на карте из выбранных контуров или из всех нарисованных: их ячейки рисования (ещё не занятые комнатами), их кривые как контуры комнат, двери между ними и к соседним комнатам, в выбранных областях. Один Ctrl+Z отменяет всё"
-
 msgid "Generate map"
 msgstr "Сгенерировать карту"
 
-msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
-msgstr "Удалить все контуры, нарисованные на этом слое (Ctrl+Z отменяет)"
+msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
+msgstr "Создать комнаты на карте из выбранных контуров или из всех нарисованных: их ячейки рисования (ещё не занятые комнатами), их кривые как контуры комнат, двери между ними и к соседним комнатам, в выбранных областях. Один Ctrl+Z отменяет всё"
 
 msgid "Clear outlines"
 msgstr "Очистить контуры"
+
+msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
+msgstr "Удалить все контуры, нарисованные на этом слое (Ctrl+Z отменяет)"
 
 msgid "Caves too"
 msgstr "И пещеры"
@@ -2794,6 +2794,9 @@ msgstr "Новая область"
 
 msgid "No area"
 msgstr "Без области"
+
+msgid "Saved the layers shown. Unticked layers kept what %s had; their changes are not saved yet."
+msgstr "Сохранены показанные слои. Неотмеченные слои сохранили то, что было в %s; их изменения ещё не сохранены."
 
 msgid "Depth of the placed tiles: they draw and collide like the tiles of this layer"
 msgstr "Глубина размещаемых тайлов: они отрисовываются и сталкиваются как тайлы этого слоя"
@@ -2873,11 +2876,11 @@ msgstr "Фон очищен."
 msgid "Show or hide each layer of the room, or show one alone with Solo. Only the view changes: nothing is saved hidden"
 msgstr "Показать или скрыть каждый слой комнаты либо показать один кнопкой «Соло». Меняется только вид: ничего не сохраняется скрытым"
 
-msgid "Show every layer"
-msgstr "Показать все слои"
-
 msgid "All"
 msgstr "Все"
+
+msgid "Show every layer"
+msgstr "Показать все слои"
 
 msgid "Hide every layer (then tick the ones to see)"
 msgstr "Скрыть все слои (затем отметьте нужные)"
@@ -2897,14 +2900,14 @@ msgstr "Показан только слой «%s». Нажмите «Соло»
 msgid "%s is drawn %s now."
 msgstr "%s теперь рисуется %s."
 
-msgid "in front of the tiles"
-msgstr "перед тайлами"
+msgid "at its own depth"
+msgstr "на собственной глубине"
 
 msgid "behind the tiles"
 msgstr "позади тайлов"
 
-msgid "at its own depth"
-msgstr "на собственной глубине"
+msgid "in front of the tiles"
+msgstr "перед тайлами"
 
 msgid "Layers"
 msgstr "Слои"

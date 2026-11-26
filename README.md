@@ -364,7 +364,8 @@ The map is one view of a room; the **Room view** is the other. It shows the room
 
 - **Layers:** the list at the top of the controls shows or hides each layer of the room, farthest first: **Parallax background**, **Background effects**, **Background**, **Stamps (back)**, **Terrain**, **Decor**, **Stamps**, **Foreground**, **Stamps (foreground)**, **Foreground effects**, **Parallax foreground**, **Objects** (the scene's other nodes) and **Guides** (grid, outlines, gate boxes, reachability). **All** and **None** set them all.
   - **Solo** shows one layer alone and points the tools at it (that layer's brush, the Stamps or Effects tool at that depth); click it again for the layers as they were.
-  - Only the view changes: hidden things can't be picked, and nothing is saved hidden. The list is remembered per project. In code: `MDSRoomView.set_layer_visible()`, `set_solo()` and `MDSRoomCanvas.set_layers()`.
+  - Hidden things can't be picked, and nothing is saved hidden. The list is remembered per project. In code: `MDSRoomView.set_layer_visible()`, `set_solo()` and `MDSRoomCanvas.set_layers()`.
+  - **Save writes only the ticked layers.** An unticked layer keeps in the scene what it had; its changes stay in the Room view, unsaved and undoable, until you save with it ticked. The parallax and guides layers are never saved. In code: `MDSRoomPainter.save_layers(skip)`.
 - **Brushes:**
   - **Terrain** paints ground and walls on the `Terrain` layer.
   - **Background** paints behind the room.

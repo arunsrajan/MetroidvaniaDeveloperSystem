@@ -9,6 +9,8 @@ func _run() -> void:
 	_depth()
 	await _canvas_layers()
 	await _room_view_solo()
+	_save_shown_layers()
+	await _room_view_save()
 
 # --- Effect depth -----------------------------------------------------------------------------------
 
@@ -139,3 +141,77 @@ func _room_view_solo() -> void:
 
 func painter_dirty(view: MDSRoomView) -> bool:
 	return view.painter != null and view.painter.dirty
+
+# --- Saving only the layers shown ---------------------------------------------------------------
+
+func _saved_root(path: String) -> Node:
+	return (load_fresh(path) as PackedScene).instantiate()
+
+func _saved_layer(root: Node, layer_name: String) -> TileMapLayer:
+	return root.find_children(layer_name, "TileMapLayer", true, false).front() if not root.find_children(layer_name, "TileMapLayer", true, false).is_empty() else null
+
+func _effect_names(root: Node) -> Array:
+	var fx := root.get_node_or_null("Effects")
+	return fx.get_children().map(func(n: Node) -> String: return String(n.name)) if fx else []
+
+func _save_shown_layers() -> void:
+	check(MDSRoomLayers.unsaved({"terrain": false, "guides": false, "parallax_back": false, "decor": true}) == {"terrain": true}, "the guides and previews are never what Save leaves out")
+	var world := Fixture.build()
+	var path := world.get_scene_path("Garden_01")
+	var painter := MDSRoomPainter.open(path)
+	# Saved first: a fog (foreground effects) and a Background tile.
+	var old_fog := painter.add_effect("fog", Vector2(300, 300))
+	painter.layers["Background"].set_cell(Vector2i(1, 1), 0, Vector2i.ZERO)
+	check(painter.save() == OK, "saved with every layer")
+	# Then: a Terrain tile, another Background tile, a waterfall (background effects), and the fog deleted.
+	painter.checkpoint()
+	painter.layers["Terrain"].set_cell(Vector2i(5, 5), 0, Vector2i.ZERO)
+	painter.layers["Background"].set_cell(Vector2i(2, 2), 0, Vector2i.ZERO)
+	var falls := painter.add_effect("waterfall", Vector2(600, 300))
+	painter.remove_item(old_fog)
+	var skip := {"background": true, "effects_fore": true}
+	check(painter.save_layers(skip) == OK, "saved the layers shown")
+	var root := _saved_root(path)
+	var terrain := _saved_layer(root, "Terrain")
+	var bg := _saved_layer(root, "Background")
+	check(terrain != null and terrain.get_cell_source_id(Vector2i(5, 5)) != -1, "a shown layer's change is saved (Terrain)")
+	check(bg != null and bg.get_cell_source_id(Vector2i(1, 1)) != -1 and bg.get_cell_source_id(Vector2i(2, 2)) == -1, "an unticked layer keeps what the scene had (Background)")
+	var names := _effect_names(root)
+	check(names.has(String(falls.name)), "the waterfall (background effects, shown) is saved (%s)" % [names])
+	check(names.has(String(old_fog.name)), "the fog deleted on an unticked layer is still in the scene (%s)" % [names])
+	root.free()
+	check(painter.dirty and painter.layers["Background"].get_cell_source_id(Vector2i(2, 2)) != -1, "the unticked layer's changes stay in the Room view, unsaved")
+	check(painter.can_undo(), "and undoable")
+	check(painter.save_layers({}) == OK and not painter.dirty, "saving with every layer shown saves them")
+	var root2 := _saved_root(path)
+	check(_saved_layer(root2, "Background").get_cell_source_id(Vector2i(2, 2)) != -1 and not _effect_names(root2).has(String(old_fog.name)), "then the Background tile and the fog's removal are saved too")
+	root2.free()
+	# Nothing changed on the layers shown: the scene isn't written.
+	painter.layers["Decor"].set_cell(Vector2i(3, 3), 0, Vector2i.ZERO)
+	var before := FileAccess.get_file_as_string(path)
+	check(painter.save_layers({"decor": true}) == OK and FileAccess.get_file_as_string(path) == before and painter.dirty, "only an unticked layer changed: the scene is left as it is")
+	painter.free_instance()
+
+func _room_view_save() -> void:
+	var world := Fixture.build()
+	var view := MDSRoomView.new()
+	view.size = Vector2(1400, 900)
+	add_child(view)
+	await get_tree().process_frame
+	view.open_room(world, "Garden_01")
+	var painter := view.painter
+	var path := painter.scene_path
+	painter.layers["Terrain"].set_cell(Vector2i(6, 6), 0, Vector2i.ZERO)
+	painter.layers["Foreground"].set_cell(Vector2i(7, 7), 0, Vector2i.ZERO)
+	painter.dirty = true
+	view.set_layer_visible("foreground", false)
+	check(view.save() == OK, "Save with Foreground unticked")
+	var root := _saved_root(path)
+	var fg := _saved_layer(root, "Foreground")
+	check(_saved_layer(root, "Terrain").get_cell_source_id(Vector2i(6, 6)) != -1 and (fg == null or fg.get_cell_source_id(Vector2i(7, 7)) == -1), "Save writes only the ticked layers")
+	root.free()
+	check(view.painter.dirty and view.painter.layers["Foreground"].get_cell_source_id(Vector2i(7, 7)) != -1 and not view.painter.layers["Foreground"].visible, "the Foreground change waits, still hidden")
+	view.set_layers(MDSRoomLayers.all(true))
+	check(view.save() == OK and not view.painter.dirty, "ticked again, Save writes it")
+	view.queue_free()
+	await get_tree().process_frame

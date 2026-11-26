@@ -1088,6 +1088,76 @@ func save() -> Error:
 		_base = _snapshot()
 	return err
 
+## Saves only the layers not in [param skip] ([MDSRoomLayers] ids -> true, the Room view's
+## unticked Layers checkboxes). The scene keeps what it had on the others, and their changes
+## stay here, unsaved (and undoable), until they are saved with their layers shown. Without
+## [param skip] it is [method save].
+func save_layers(skip: Dictionary) -> Error:
+	if skip.is_empty():
+		return save()
+	var mine := _snapshot()
+	var kept := keep_layers(mine, _base, skip)
+	if same_state(kept, _base) and kept.get(&"_scene", {}) == _base.get(&"_scene", {}):
+		# Nothing of the layers shown changed: the scene stays as it is.
+		dirty = not same_state(mine, _base)
+		return OK
+	_restore(kept)
+	var err := save()
+	_restore(mine)
+	dirty = err != OK or not same_state(mine, kept)
+	return err
+
+## The room as [param mine] has it, but on the layers of [param skip] as [param base] has them
+## (see [method save_layers]). Items are matched by group and name: one whose layer is skipped
+## (now, or when it was deleted) keeps its saved state; one on a layer shown takes its new state.
+static func keep_layers(mine: Dictionary, base: Dictionary, skip: Dictionary) -> Dictionary:
+	var out := mine.duplicate()
+	var traced: Dictionary = (mine.get(&"_traced", {}) as Dictionary).duplicate()
+	var hidden_tiles: Dictionary = (mine.get(&"_blockout", {}) as Dictionary).duplicate()
+	var base_traced: Dictionary = base.get(&"_traced", {})
+	var base_hidden: Dictionary = base.get(&"_blockout", {})
+	for n in LAYER_ORDER:
+		if not skip.has(MDSRoomLayers.of_tile_layer(n)):
+			continue
+		out[n] = base.get(n, PackedByteArray())
+		if base_traced.has(n):
+			traced[n] = base_traced[n]
+		else:
+			traced.erase(n)
+		if base_hidden.has(n):
+			hidden_tiles[n] = base_hidden[n]
+		else:
+			hidden_tiles.erase(n)
+	out[&"_traced"] = traced
+	out[&"_blockout"] = hidden_tiles
+	var items: Dictionary = {}
+	var mine_items: Dictionary = mine.get(&"_items", {})
+	var base_items: Dictionary = base.get(&"_items", {})
+	for g in ITEM_GROUPS:
+		var now: Array = mine_items.get(g, [])
+		var before: Array = base_items.get(g, [])
+		var by_name: Dictionary = {}
+		for d in before:
+			by_name[str(d.get("name", ""))] = d
+		var list: Array = []
+		var seen: Dictionary = {}
+		for d in now:
+			var key := str(d.get("name", ""))
+			seen[key] = true
+			if not skip.has(MDSRoomLayers.of_data(g, d)):
+				list.append(d)
+			elif by_name.has(key) and not key.is_empty():
+				list.append(by_name[key])
+		for d in before:
+			var key := str(d.get("name", ""))
+			if not seen.has(key) and skip.has(MDSRoomLayers.of_data(g, d)):
+				list.append(d)
+		items[g] = list
+	out[&"_items"] = items
+	if skip.has("objects"):
+		out[&"_scene"] = (base.get(&"_scene", {}) as Dictionary).duplicate(true)
+	return out
+
 # --- Changes made elsewhere ----------------------------------------------------------------------
 
 ## The room as its scene had it when this painter opened, saved or took in the scene last (a

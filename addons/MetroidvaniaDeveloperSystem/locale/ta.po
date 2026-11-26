@@ -2750,17 +2750,17 @@ msgstr "உடனே"
 msgid "Each outline drawn becomes rooms on the map right away (off: draw them all first, then Generate map)"
 msgstr "வரைந்த ஒவ்வொரு வெளிக்கோடும் உடனே வரைபடத்தில் அறைகளாகும் (முடக்கத்தில்: முதலில் அனைத்தையும் வரைந்து, பின்னர் வரைபடத்தை உருவாக்கு)"
 
-msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
-msgstr "தேர்ந்த வெளிக்கோடுகளிலிருந்து, அல்லது வரைந்த ஒவ்வொரு வெளிக்கோட்டிலிருந்தும் வரைபடத்தில் அறைகளை உருவாக்கு: அவற்றின் வண்ணச் செல்கள் (இன்னும் எந்த அறையிலும் இல்லாதவை), அவற்றின் வளைவுகள் அறைகளின் வெளிக்கோடுகளாக, அவற்றுக்கிடையேயும் அவை தொடும் அறைகளுக்கும் கதவுகள், தேர்ந்த பகுதிகளில். ஒரு Ctrl+Z இதைத் திரும்பப் பெறும்"
-
 msgid "Generate map"
 msgstr "வரைபடத்தை உருவாக்கு"
 
-msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
-msgstr "இந்த அடுக்கில் வரைந்த ஒவ்வொரு வெளிக்கோட்டையும் அகற்று (Ctrl+Z செயல்தவிர்க்கும்)"
+msgid "Make rooms on the map of the outlines selected, or of every outline drawn: their paint cells (those no room has yet), their curves as the rooms' outlines, doors between them and to the rooms they touch, in the areas picked. One Ctrl+Z takes it back"
+msgstr "தேர்ந்த வெளிக்கோடுகளிலிருந்து, அல்லது வரைந்த ஒவ்வொரு வெளிக்கோட்டிலிருந்தும் வரைபடத்தில் அறைகளை உருவாக்கு: அவற்றின் வண்ணச் செல்கள் (இன்னும் எந்த அறையிலும் இல்லாதவை), அவற்றின் வளைவுகள் அறைகளின் வெளிக்கோடுகளாக, அவற்றுக்கிடையேயும் அவை தொடும் அறைகளுக்கும் கதவுகள், தேர்ந்த பகுதிகளில். ஒரு Ctrl+Z இதைத் திரும்பப் பெறும்"
 
 msgid "Clear outlines"
 msgstr "வெளிக்கோடுகளைத் துடை"
+
+msgid "Remove every outline drawn on this layer (Ctrl+Z undoes it)"
+msgstr "இந்த அடுக்கில் வரைந்த ஒவ்வொரு வெளிக்கோட்டையும் அகற்று (Ctrl+Z செயல்தவிர்க்கும்)"
 
 msgid "Caves too"
 msgstr "குகைகளும்"
@@ -2794,6 +2794,9 @@ msgstr "புதிய பகுதி"
 
 msgid "No area"
 msgstr "பகுதி இல்லை"
+
+msgid "Saved the layers shown. Unticked layers kept what %s had; their changes are not saved yet."
+msgstr "காட்டப்பட்ட அடுக்குகள் சேமிக்கப்பட்டன. தேர்வு நீக்கிய அடுக்குகள் %s-இல் இருந்ததையே வைத்துள்ளன; அவற்றின் மாற்றங்கள் இன்னும் சேமிக்கப்படவில்லை."
 
 msgid "Depth of the placed tiles: they draw and collide like the tiles of this layer"
 msgstr "வைக்கப்படும் டைல்களின் ஆழம்: அவை இந்த அடுக்கின் டைல்களைப் போலவே வரையப்பட்டு மோதும்"
@@ -2873,11 +2876,11 @@ msgstr "பின்னணி துடைக்கப்பட்டது."
 msgid "Show or hide each layer of the room, or show one alone with Solo. Only the view changes: nothing is saved hidden"
 msgstr "அறையின் ஒவ்வொரு அடுக்கையும் காட்டவும் அல்லது மறைக்கவும், அல்லது தனி மூலம் ஒன்றை மட்டும் காட்டவும். காட்சி மட்டுமே மாறும்: எதுவும் மறைந்த நிலையில் சேமிக்கப்படாது"
 
-msgid "Show every layer"
-msgstr "எல்லா அடுக்குகளையும் காட்டவும்"
-
 msgid "All"
 msgstr "எல்லாம்"
+
+msgid "Show every layer"
+msgstr "எல்லா அடுக்குகளையும் காட்டவும்"
 
 msgid "Hide every layer (then tick the ones to see)"
 msgstr "எல்லா அடுக்குகளையும் மறைக்கவும் (பின் பார்க்க வேண்டியவற்றைத் தேர்வு செய்யவும்)"
@@ -2897,14 +2900,14 @@ msgstr "%s மட்டும் காட்டப்படுகிறது. 
 msgid "%s is drawn %s now."
 msgstr "%s இப்போது %s வரையப்படுகிறது."
 
-msgid "in front of the tiles"
-msgstr "ஓடுகளுக்கு முன்னால்"
+msgid "at its own depth"
+msgstr "தன் சொந்த ஆழத்தில்"
 
 msgid "behind the tiles"
 msgstr "ஓடுகளுக்குப் பின்னால்"
 
-msgid "at its own depth"
-msgstr "தன் சொந்த ஆழத்தில்"
+msgid "in front of the tiles"
+msgstr "ஓடுகளுக்கு முன்னால்"
 
 msgid "Layers"
 msgstr "அடுக்குகள்"
