@@ -1762,11 +1762,11 @@ msgstr "निकालें"
 msgid "Selected move"
 msgstr "चुनी हुई चाल"
 
-msgid "Up"
-msgstr "ऊपर"
-
 msgid "Move it before the one above it"
 msgstr "इसे ऊपर वाली चाल से पहले ले जाएँ"
+
+msgid "Up"
+msgstr "ऊपर"
 
 msgid "Down"
 msgstr "नीचे"
@@ -1780,11 +1780,11 @@ msgstr "डुप्लिकेट करें"
 msgid "A copy of it and everything in it, right after it"
 msgstr "इसकी और इसके अंदर की हर चीज़ की एक प्रति, ठीक इसके बाद"
 
-msgid "Make unique"
-msgstr "यूनिक बनाएँ"
-
 msgid "It is used in more than one place: give this place a copy of its own"
 msgstr "यह एक से ज़्यादा जगह इस्तेमाल हो रहा है: इस जगह को इसकी अपनी प्रति दें"
+
+msgid "Make unique"
+msgstr "यूनिक बनाएँ"
 
 msgid "Take it out, and everything in it"
 msgstr "इसे और इसके अंदर की हर चीज़ को निकाल दें"
@@ -1813,6 +1813,12 @@ msgstr "बदलाव करने के लिए इन चरणों क
 msgid "Select an MDSMoveBoss or an MDSMoveEnemy in the scene, or open a .tres of a phase or a move."
 msgstr "सीन में कोई MDSMoveBoss या MDSMoveEnemy चुनें, या किसी चरण या चाल की .tres खोलें।"
 
+msgid "then ▸"
+msgstr "फिर ▸"
+
+msgid "Drag to empty space to pick the move that comes after it"
+msgstr "इसके बाद आने वाली चाल चुनने के लिए खाली जगह पर खींचें"
+
 msgid "⚠ see below"
 msgstr "⚠ नीचे देखें"
 
@@ -1827,6 +1833,15 @@ msgstr "पहले चुनें कि यह कहाँ जाएगा:
 
 msgid "Couldn't make one: its script needs @tool."
 msgstr "एक बनाया नहीं जा सका: इसकी स्क्रिप्ट में @tool होना ज़रूरी है।"
+
+msgid "Next in %s"
+msgstr "%s में अगली"
+
+msgid "After %s"
+msgstr "%s के बाद"
+
+msgid "Add a %s"
+msgstr "%s जोड़ें"
 
 msgid "No fighters in this scene"
 msgstr "इस सीन में कोई लड़ाका नहीं"

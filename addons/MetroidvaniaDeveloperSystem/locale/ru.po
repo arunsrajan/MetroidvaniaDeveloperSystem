@@ -1762,11 +1762,11 @@ msgstr "Удалить"
 msgid "Selected move"
 msgstr "Выбранный приём"
 
-msgid "Up"
-msgstr "Вверх"
-
 msgid "Move it before the one above it"
 msgstr "Переместить выше, перед предыдущим"
+
+msgid "Up"
+msgstr "Вверх"
 
 msgid "Down"
 msgstr "Вниз"
@@ -1780,11 +1780,11 @@ msgstr "Дублировать"
 msgid "A copy of it and everything in it, right after it"
 msgstr "Копия приёма со всем его содержимым сразу после него"
 
-msgid "Make unique"
-msgstr "Сделать уникальным"
-
 msgid "It is used in more than one place: give this place a copy of its own"
 msgstr "Используется в нескольких местах: дать этому месту собственную копию"
+
+msgid "Make unique"
+msgstr "Сделать уникальным"
 
 msgid "Take it out, and everything in it"
 msgstr "Убрать его вместе со всем содержимым"
@@ -1813,6 +1813,12 @@ msgstr "Скопировать эти фазы на босса, чтобы из�
 msgid "Select an MDSMoveBoss or an MDSMoveEnemy in the scene, or open a .tres of a phase or a move."
 msgstr "Выберите в сцене MDSMoveBoss или MDSMoveEnemy либо откройте .tres фазы или приёма."
 
+msgid "then ▸"
+msgstr "затем ▸"
+
+msgid "Drag to empty space to pick the move that comes after it"
+msgstr "Перетащите в пустое место, чтобы выбрать приём, который идёт после него"
+
 msgid "⚠ see below"
 msgstr "⚠ см. ниже"
 
@@ -1827,6 +1833,15 @@ msgstr "Сначала выберите место: приём, в которы�
 
 msgid "Couldn't make one: its script needs @tool."
 msgstr "Не удалось создать: его скрипту нужен @tool."
+
+msgid "Next in %s"
+msgstr "Дальше в %s"
+
+msgid "After %s"
+msgstr "После %s"
+
+msgid "Add a %s"
+msgstr "Добавить %s"
 
 msgid "No fighters in this scene"
 msgstr "В этой сцене нет бойцов"

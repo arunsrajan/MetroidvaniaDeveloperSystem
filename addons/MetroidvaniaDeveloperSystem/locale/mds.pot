@@ -2459,11 +2459,11 @@ msgid "Selected move"
 msgstr ""
 
 #: ui/fight_panel.gd
-msgid "Up"
+msgid "Move it before the one above it"
 msgstr ""
 
 #: ui/fight_panel.gd
-msgid "Move it before the one above it"
+msgid "Up"
 msgstr ""
 
 #: ui/fight_panel.gd
@@ -2484,11 +2484,11 @@ msgid "A copy of it and everything in it, right after it"
 msgstr ""
 
 #: ui/fight_panel.gd
-msgid "Make unique"
+msgid "It is used in more than one place: give this place a copy of its own"
 msgstr ""
 
 #: ui/fight_panel.gd
-msgid "It is used in more than one place: give this place a copy of its own"
+msgid "Make unique"
 msgstr ""
 
 #: ui/fight_panel.gd
@@ -2528,6 +2528,14 @@ msgid "Select an MDSMoveBoss or an MDSMoveEnemy in the scene, or open a .tres of
 msgstr ""
 
 #: ui/fight_panel.gd
+msgid "then ▸"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Drag to empty space to pick the move that comes after it"
+msgstr ""
+
+#: ui/fight_panel.gd
 msgid "⚠ see below"
 msgstr ""
 
@@ -2545,6 +2553,18 @@ msgstr ""
 
 #: ui/fight_panel.gd
 msgid "Couldn't make one: its script needs @tool."
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Next in %s"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "After %s"
+msgstr ""
+
+#: ui/fight_panel.gd
+msgid "Add a %s"
 msgstr ""
 
 #: ui/fight_panel.gd
