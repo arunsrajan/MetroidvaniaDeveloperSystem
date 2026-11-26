@@ -310,7 +310,7 @@ func _rebuild_graph() -> void:
 			c.queue_free()
 	node_paths.clear()
 	nodes_by_path.clear()
-	_findings = MDSFightCheck.check(doc.phases() if doc.has_phases() else [], doc.root() if not doc.has_phases() else null)
+	_findings = MDSFightCheck.check(doc.phases() if doc.has_phases() else [], doc.root() if not doc.has_phases() else null, doc.target)
 	var entries := doc.entries()
 	for i in entries.size():
 		var node := _make_node(entries[i], i)

@@ -27,7 +27,9 @@ signal staggered
 		boss_name = v
 		_update_meta()
 @export var phases: Array[MDSBossPhase] = []
-## Its arena (which starts the fight). Empty: the fight starts when the player comes near.
+## Its arena, where it fights. The fight is started by an [MDSBossArena] whose
+## [member MDSBossArena.boss] is this boss (it fills this in as it starts), or by [member wake_range].
+## With neither, it never starts: it waits in its Dormant state, and doesn't move.
 @export var arena: Node
 ## Said when the fight starts (with an [MDSDialogueBox] in the game).
 @export var intro_dialogue: MDSDialogueData
@@ -43,7 +45,8 @@ signal staggered
 @export var attack_damage := 2
 ## Seconds of rest between attacks (shorter in faster phases).
 @export var rest_time := 0.9
-## Starts the fight on its own when the player comes this close, with no arena (0: never).
+## Starts the fight on its own when the player comes this close (0: never; then only an
+## [MDSBossArena] starts it).
 @export var wake_range := 0.0
 ## After this many hits it is staggered: it stops and takes hits freely (0: never).
 @export var stagger_hits := 0

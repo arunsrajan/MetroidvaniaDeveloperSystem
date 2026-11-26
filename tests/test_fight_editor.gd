@@ -320,6 +320,37 @@ func _checks() -> void:
 	var enemy := MDSMoveEnemy.new()
 	check(_has(MDSFightCheck.check([], enemy), L.WARNING, "No moves"), "an enemy with no moves")
 	enemy.free()
+	# What starts a boss's fight: an arena with it as its boss, or a wake range.
+	var room := Node2D.new()
+	var asleep := MDSMoveBoss.new()
+	room.add_child(asleep)
+	asleep.owner = room
+	var phases: Array = [_phase()]
+	check(_has(MDSFightCheck.check(phases, null, asleep), L.WARNING, "never moves"), "a boss nothing starts")
+	check(not _has(MDSFightCheck.check(phases), L.WARNING, "never moves"), "only asked with the boss")
+	asleep.wake_range = 300.0
+	check(not _has(MDSFightCheck.check(phases, null, asleep), L.WARNING, "never moves"), "a wake range starts it")
+	asleep.wake_range = 0.0
+	var arena := MDSBossArena.new()
+	room.add_child(arena)
+	arena.owner = room
+	check(_has(MDSFightCheck.check(phases, null, asleep), L.WARNING, "never moves"), "an arena for no boss doesn't")
+	arena.boss = asleep
+	check(not _has(MDSFightCheck.check(phases, null, asleep), L.WARNING, "never moves"), "an arena with it as its boss does")
+	var holder := Node2D.new()
+	room.remove_child(asleep)
+	holder.add_child(asleep)
+	room.add_child(holder)
+	check(MDSFightCheck.starts(asleep), "found from anywhere in its scene")
+	var loose := MDSMoveBoss.new()
+	var parent := Node2D.new()
+	parent.add_child(loose)
+	var loose_arena := MDSBossArena.new()
+	loose_arena.boss = loose
+	parent.add_child(loose_arena)
+	check(MDSFightCheck.starts(loose), "a boss put together in code, with its arena beside it")
+	parent.free()
+	room.free()
 	for recipe: String in MDSMoveRecipes.RECIPES:
 		var boss := MDSMoveBoss.new()
 		MDSMoveRecipes.setup(boss, recipe)
@@ -352,6 +383,7 @@ func _panel() -> void:
 	var boss := MDSMoveBoss.new()
 	boss.name = "Boss"
 	boss.phases = [_phase(), MDSMovePhase.of(0.5, MDSMoveGuard.of(0.5, MDSMoveWait.of(1.0)))] as Array[MDSBossPhase]
+	boss.wake_range = 400.0 # something starts its fight, or that is reported too
 	panel.set_target(boss)
 	var doc := panel.doc
 	check(not panel.banner.visible, "opened")
