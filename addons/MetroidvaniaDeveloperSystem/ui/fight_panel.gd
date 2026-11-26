@@ -3,7 +3,8 @@ class_name MDSFightPanel
 extends Control
 ## The Fight editor, a mode of the MetDevSys panel: a fight's moves as a graph. Select an
 ## [MDSMoveBoss] or [MDSMoveEnemy] in the scene (or open a .tres of a phase or move) and it shows up,
-## a tab for each phase. Drag a line from a move's port to another to put it there, drag a move up or
+## a tab for each phase. Drag a line from a move's port to another to put it there, or to empty space
+## to pick a new move for it from a list (from "then", one right after it). Drag a move up or
 ## down among its siblings to reorder it, and edit the selected one on the right. Everything is one
 ## undo step and goes straight into the resources, so nothing in the game depends on this panel.
 ##
@@ -36,6 +37,8 @@ var add_where: OptionButton
 var add_box: Container
 var live_picker: OptionButton
 var live_text: RichTextLabel
+## The moves to pick from when a line is dropped on empty space.
+var next_menu: PopupMenu
 
 ## The path of the selected move ("": the root).
 var selected_path := ""
@@ -52,6 +55,8 @@ var _findings: Array[Dictionary] = []
 var _fighters: Array[Node] = []
 var _scene_seen := 0
 var _dialog: FileDialog
+## Where a move picked from [member next_menu] goes: [parent path, slot, index].
+var _next_where: Array = []
 
 func _ready() -> void:
 	if is_part_of_edited_scene():
@@ -100,6 +105,11 @@ func _build() -> void:
 	fields = VBoxContainer.new()
 	fields.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.add_child(fields)
+	next_menu = PopupMenu.new()
+	next_menu.name = "NextMoves"
+	MDSL10n.raw(next_menu) # move classes; its header is translated in code
+	next_menu.id_pressed.connect(_on_next_picked)
+	add_child(next_menu)
 	resized.connect(func() -> void:
 		if side_panel:
 			side_panel.fit_width(size.x, (MDSSidePanel.WIDTH + 620.0) * MDSUi.editor_scale()))
@@ -183,6 +193,17 @@ func _build_add_buttons() -> void:
 	for c in add_box.get_children():
 		if c is Button and not c is OptionButton:
 			c.queue_free()
+	for c in move_classes():
+		var name := String(c["class"])
+		var button := MDSUi.button(name.trim_prefix("MDSMove"), "Add a %s" % name)
+		button.name = "Add_%s" % name
+		var script_path := String(c["path"])
+		button.pressed.connect(func() -> void: add_new(script_path))
+		add_box.add_child(button)
+
+## Every kind of move, those of your own too, by name: each [code]{class, path, ...}[/code] of
+## [method ProjectSettings.get_global_class_list]. Any of them can go in any place for a move.
+func move_classes() -> Array[Dictionary]:
 	MDSMoveTree.forget_classes()
 	var classes: Array[Dictionary] = []
 	for c: Dictionary in ProjectSettings.get_global_class_list():
@@ -190,13 +211,7 @@ func _build_add_buttons() -> void:
 		if name != "MDSMove" and MDSMoveTree.is_move_class(name):
 			classes.append(c)
 	classes.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return String(a["class"]) < String(b["class"]))
-	for c in classes:
-		var name := String(c["class"])
-		var button := MDSUi.button(name.trim_prefix("MDSMove"), "Add a %s" % name)
-		button.name = "Add_%s" % name
-		var script_path := String(c["path"])
-		button.pressed.connect(func() -> void: add_new(script_path))
-		add_box.add_child(button)
+	return classes
 
 func _build_middle(middle: VBoxContainer) -> void:
 	banner = HBoxContainer.new()
@@ -221,6 +236,7 @@ func _build_middle(middle: VBoxContainer) -> void:
 	graph.right_disconnects = true
 	graph.show_arrange_button = false
 	graph.connection_request.connect(_on_connect)
+	graph.connection_to_empty.connect(show_next_moves)
 	graph.disconnection_request.connect(_on_disconnect)
 	graph.delete_nodes_request.connect(_on_delete)
 	graph.duplicate_nodes_request.connect(func() -> void: doc.duplicate_at(selected_path))
@@ -294,7 +310,7 @@ func _rebuild_graph() -> void:
 			c.queue_free()
 	node_paths.clear()
 	nodes_by_path.clear()
-	_findings = MDSFightCheck.check(doc.phases() if doc.has_phases() else [], doc.root() if not doc.has_phases() else null)
+	_findings = MDSFightCheck.check(doc.phases() if doc.has_phases() else [], doc.root() if not doc.has_phases() else null, doc.target)
 	var entries := doc.entries()
 	for i in entries.size():
 		var node := _make_node(entries[i], i)
@@ -351,6 +367,17 @@ func _make_node(e: Dictionary, index: int) -> GraphNode:
 		row.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		node.add_child(row)
 		node.set_slot(node.get_child_count() - 1, false, 0, Color.WHITE, true, 0, COLOR_PATTERN if s["array"] else COLOR_ROOT)
+	# One of a list: a port for what comes right after it (the port after its slots).
+	if _has_then(e):
+		var then := Label.new()
+		then.name = "Then"
+		then.text = "then ▸"
+		then.tooltip_text = "Drag to empty space to pick the move that comes after it"
+		then.mouse_filter = Control.MOUSE_FILTER_PASS
+		then.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		then.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		node.add_child(then)
+		node.set_slot(node.get_child_count() - 1, false, 0, Color.WHITE, true, 0, COLOR_ACTION)
 	var uses := doc.uses_of(res)
 	if uses > 1:
 		var shared := Label.new()
@@ -488,8 +515,12 @@ func _on_connect(from_node: StringName, from_port: int, to_node: StringName, _to
 	if doc.read_only or not node_paths.has(from_node) or not node_paths.has(to_node):
 		return
 	var parent_path: String = node_paths[from_node]
-	var slots := MDSMoveTree.slots_of(doc.entry(parent_path)["res"])
+	var e := doc.entry(parent_path)
+	var slots := MDSMoveTree.slots_of(e["res"])
 	if from_port >= slots.size():
+		# From "then": the other goes right after this one.
+		if _is_then_port(parent_path, from_port) and not doc.move_to(node_paths[to_node], e["parent"], e["slot"], int(e["index"]) + 1):
+			say("A move can't go inside itself.")
 		return
 	var slot: StringName = slots[from_port]["name"]
 	if not doc.has_room(parent_path, slot):
@@ -554,7 +585,13 @@ func add_new(script_path: String) -> bool:
 	if add_where.selected < 0:
 		say("Select where it goes first: a move with room in it, or one to add after.")
 		return false
-	var where: Array = add_where.get_item_metadata(add_where.selected)
+	return add_new_at(script_path, add_where.get_item_metadata(add_where.selected))
+
+## Adds a new move of the script at [param script_path] at [param where]: [parent path, slot, index]
+## (-1: the end). It is selected then.
+func add_new_at(script_path: String, where: Array) -> bool:
+	if doc.read_only or not doc.is_open() or where.size() != 3:
+		return false
 	var script := load(script_path) as Script
 	var move := script.new() as Resource if script and script.can_instantiate() else null
 	if not move:
@@ -572,6 +609,64 @@ func add_new(script_path: String) -> bool:
 			selected_path = MDSMoveTree.child_path(parent, slot)
 		_refresh()
 	return ok
+
+## Whether the move at [param e] is one of a list, so something can come right after it.
+func _has_then(e: Dictionary) -> bool:
+	return not String(e["path"]).is_empty() and int(e["index"]) >= 0
+
+## Whether [param port] of the move at [param path] is its "then" port, the one after its slots.
+func _is_then_port(path: String, port: int) -> bool:
+	var e := doc.entry(path)
+	return not e.is_empty() and _has_then(e) and port == MDSMoveTree.slots_of(e["res"]).size()
+
+## A line dropped on empty space: the moves that can go there, to pick from. From a slot, a new one
+## in it; from "then", one right after the move. Whether the list opened.
+func show_next_moves(from_node: StringName, from_port: int, release_position: Vector2) -> bool:
+	_next_where = []
+	if doc.read_only or not doc.is_open() or not node_paths.has(from_node):
+		return false
+	var path: String = node_paths[from_node]
+	var e := doc.entry(path)
+	var slots := MDSMoveTree.slots_of(e["res"])
+	var header: String
+	if from_port < slots.size():
+		var slot: StringName = slots[from_port]["name"]
+		var shown := String(slot).replace("_", " ")
+		if not doc.has_room(path, slot):
+			say("%s already holds a move. Take it out first." % shown)
+			return false
+		_next_where = [path, slot, -1]
+		header = MDSL10n.tf("Next in %s", [shown])
+	elif _is_then_port(path, from_port):
+		_next_where = [e["parent"], e["slot"], int(e["index"]) + 1]
+		var own_title := String(e["res"].get(&"title")) if e["res"] is MDSMove else ""
+		header = MDSL10n.tf("After %s", [own_title if not own_title.is_empty() else MDSFightDocument.short_name(e["res"])])
+	else:
+		return false
+	next_menu.clear()
+	next_menu.add_separator(header)
+	for c in move_classes():
+		var name := String(c["class"])
+		next_menu.add_item(name.trim_prefix("MDSMove"))
+		var i := next_menu.item_count - 1
+		next_menu.set_item_metadata(i, String(c["path"]))
+		next_menu.set_item_tooltip(i, MDSL10n.tf("Add a %s", [name]))
+	next_menu.reset_size()
+	next_menu.position = Vector2i(graph.get_screen_position() + release_position)
+	next_menu.popup()
+	return true
+
+func _on_next_picked(id: int) -> void:
+	pick_next(String(next_menu.get_item_metadata(next_menu.get_item_index(id))))
+
+## Adds a move of the script at [param script_path] where the line was dropped. It is selected, for
+## the next line to come from it.
+func pick_next(script_path: String) -> bool:
+	var where := _next_where
+	_next_where = []
+	if next_menu.visible:
+		next_menu.hide()
+	return add_new_at(script_path, where)
 
 func _on_issue_selected(index: int) -> void:
 	var f: Dictionary = issues.get_item_metadata(index)

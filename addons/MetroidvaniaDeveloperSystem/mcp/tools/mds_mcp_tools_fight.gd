@@ -76,7 +76,7 @@ func _fight_get(args: Dictionary, _report: Callable) -> Dictionary:
 		moves.append(entry)
 	out.moves = moves
 	var checks := []
-	for f: Dictionary in MDSFightCheck.check(doc.phases(), doc.root()):
+	for f: Dictionary in MDSFightCheck.check(doc.phases(), doc.root(), doc.target):
 		checks.append({"phase": f.phase, "path": f.path, "level": ["info", "warning", "error"][f.level], "text": f.text})
 	out.checks = checks
 	if not opened.is_empty():

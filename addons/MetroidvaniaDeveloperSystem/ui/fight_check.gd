@@ -7,8 +7,11 @@ extends RefCounted
 enum Level { INFO, WARNING, ERROR }
 
 ## All the findings of a fight: [param phases] of a boss, or a single [param root] (an enemy, a file).
-static func check(phases: Array, root: Object = null) -> Array[Dictionary]:
+## [param fighter], the boss in its scene, is checked for what starts its fight.
+static func check(phases: Array, root: Object = null, fighter: Object = null) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	if fighter is MDSBoss and not starts(fighter as MDSBoss):
+		_add(out, 0, "", Level.WARNING, "Nothing in this scene starts its fight, so it never moves: add an MDSBossArena with this boss as its boss, or give it a wake range.")
 	var roots: Array = phases if not phases.is_empty() else ([root] if root else [])
 	var set_flags := {}
 	for r: Object in roots:
@@ -28,6 +31,28 @@ static func check(phases: Array, root: Object = null) -> Array[Dictionary]:
 		for e in MDSMoveTree.walk(r):
 			_check_move(e, i, set_flags, out)
 	return out
+
+## Whether something starts [param boss]'s fight: a wake range, or an [MDSBossArena] of its scene
+## (searched from the root of its scene) that has it as its boss.
+static func starts(boss: MDSBoss) -> bool:
+	if boss.wake_range > 0.0 or (boss.arena is MDSBossArena and (boss.arena as MDSBossArena).boss == boss):
+		return true
+	var top: Node = boss.owner if boss.owner else boss
+	# Outside the editor a node with no owner was put together in code: the tree it is in is its scene.
+	# In the editor a node with no owner is the scene's root, above it is the editor itself.
+	if not boss.owner and not Engine.is_editor_hint():
+		var window: Node = boss.get_tree().root if boss.is_inside_tree() else null
+		while top.get_parent() and top.get_parent() != window:
+			top = top.get_parent()
+	return _has_arena_for(top, boss)
+
+static func _has_arena_for(at: Node, boss: MDSBoss) -> bool:
+	if at is MDSBossArena and (at as MDSBossArena).boss == boss:
+		return true
+	for c in at.get_children():
+		if _has_arena_for(c, boss):
+			return true
+	return false
 
 static func _add(out: Array[Dictionary], phase: int, path: String, level: Level, text: String) -> void:
 	out.append({"phase": phase, "path": path, "level": level, "text": text})

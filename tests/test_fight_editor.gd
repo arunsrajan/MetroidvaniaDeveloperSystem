@@ -21,6 +21,7 @@ func _run() -> void:
 	_files()
 	_checks()
 	await _panel()
+	await _panel_next_moves()
 	await _panel_enemy()
 	await _panel_scenes()
 	await _live()
@@ -319,6 +320,37 @@ func _checks() -> void:
 	var enemy := MDSMoveEnemy.new()
 	check(_has(MDSFightCheck.check([], enemy), L.WARNING, "No moves"), "an enemy with no moves")
 	enemy.free()
+	# What starts a boss's fight: an arena with it as its boss, or a wake range.
+	var room := Node2D.new()
+	var asleep := MDSMoveBoss.new()
+	room.add_child(asleep)
+	asleep.owner = room
+	var phases: Array = [_phase()]
+	check(_has(MDSFightCheck.check(phases, null, asleep), L.WARNING, "never moves"), "a boss nothing starts")
+	check(not _has(MDSFightCheck.check(phases), L.WARNING, "never moves"), "only asked with the boss")
+	asleep.wake_range = 300.0
+	check(not _has(MDSFightCheck.check(phases, null, asleep), L.WARNING, "never moves"), "a wake range starts it")
+	asleep.wake_range = 0.0
+	var arena := MDSBossArena.new()
+	room.add_child(arena)
+	arena.owner = room
+	check(_has(MDSFightCheck.check(phases, null, asleep), L.WARNING, "never moves"), "an arena for no boss doesn't")
+	arena.boss = asleep
+	check(not _has(MDSFightCheck.check(phases, null, asleep), L.WARNING, "never moves"), "an arena with it as its boss does")
+	var holder := Node2D.new()
+	room.remove_child(asleep)
+	holder.add_child(asleep)
+	room.add_child(holder)
+	check(MDSFightCheck.starts(asleep), "found from anywhere in its scene")
+	var loose := MDSMoveBoss.new()
+	var parent := Node2D.new()
+	parent.add_child(loose)
+	var loose_arena := MDSBossArena.new()
+	loose_arena.boss = loose
+	parent.add_child(loose_arena)
+	check(MDSFightCheck.starts(loose), "a boss put together in code, with its arena beside it")
+	parent.free()
+	room.free()
 	for recipe: String in MDSMoveRecipes.RECIPES:
 		var boss := MDSMoveBoss.new()
 		MDSMoveRecipes.setup(boss, recipe)
@@ -351,6 +383,7 @@ func _panel() -> void:
 	var boss := MDSMoveBoss.new()
 	boss.name = "Boss"
 	boss.phases = [_phase(), MDSMovePhase.of(0.5, MDSMoveGuard.of(0.5, MDSMoveWait.of(1.0)))] as Array[MDSBossPhase]
+	boss.wake_range = 400.0 # something starts its fight, or that is reported too
 	panel.set_target(boss)
 	var doc := panel.doc
 	check(not panel.banner.visible, "opened")
@@ -484,6 +517,104 @@ func _panel() -> void:
 	boss.free()
 	panel._refresh()
 	check(not panel.doc.is_open() and panel.nodes_by_path.is_empty(), "when what it shows is gone, it empties")
+	panel.queue_free()
+	await get_tree().process_frame
+
+## Lines dropped on empty space: a list of the moves that can go there, and the one picked goes in.
+func _panel_next_moves() -> void:
+	var panel := await _make_panel()
+	var boss := MDSMoveBoss.new()
+	boss.name = "Boss"
+	boss.phases = [_phase()] as Array[MDSBossPhase]
+	panel.set_target(boss)
+	var doc := panel.doc
+	var phase := boss.phases[0] as MDSMovePhase
+	var seq := phase.moves as MDSMoveSequence
+	var pick := seq.moves[0] as MDSMovePick
+	var undo := doc.undo as UndoRedo
+	var path_of := func(s: Script) -> String: return s.resource_path
+	var classes := panel.move_classes()
+
+	# From the phase's opening (its second port).
+	var root := _node_of(panel, "")
+	check(panel.show_next_moves(root.name, 1, Vector2(40, 40)), "a line dropped from the opening opens the list")
+	check(panel.next_menu.item_count == classes.size() + 1, "every kind of move, under a header (%d)" % panel.next_menu.item_count)
+	check(panel.next_menu.is_item_separator(0) and panel.next_menu.get_item_text(0) == "Next in opening", "the header says where it goes: %s" % panel.next_menu.get_item_text(0))
+	var names: Array = []
+	for i in range(1, panel.next_menu.item_count):
+		names.append(panel.next_menu.get_item_text(i))
+	check("Dash" in names and "Wait" in names and "Zones" in names and "Cue" in names, "with the kinds of moves by name")
+	check(panel.next_menu.get_item_metadata(names.find("Cue") + 1) == path_of.call(MDSMoveCue), "each knows its script")
+	check(panel.pick_next(path_of.call(MDSMoveCue)) and phase.opening is MDSMoveCue, "the one picked is the opening")
+	check(panel.nodes_by_path.has("opening") and panel.selected_path == "opening", "it shows, selected")
+	check(not panel.next_menu.visible, "no list opens by itself after")
+	check(_node_of(panel, "opening").get_node_or_null("Then") == null, "an opening has nothing after it")
+	check(not panel.show_next_moves(_node_of(panel, "").name, 1, Vector2.ZERO) and panel.status.text.contains("already holds"), "a full place says so")
+	check(not panel.pick_next(path_of.call(MDSMoveDash)), "nothing picked without a list")
+	undo.undo()
+	check(phase.opening == null and not panel.nodes_by_path.has("opening"), "one undo takes it back")
+
+	# From "then": right after a move of a list.
+	var a := _node_of(panel, "moves/moves.0/moves.0")
+	check(a.get_node_or_null("Then") != null and a.get_output_port_count() == 1, "a move of a list has a then port")
+	check(_node_of(panel, "moves/moves.0").get_output_port_count() == 2, "after its slots")
+	check(panel.show_next_moves(a.name, 0, Vector2(10, 10)) and panel.next_menu.get_item_text(0) == "After a", "from then, after it: %s" % panel.next_menu.get_item_text(0))
+	check(panel.pick_next(path_of.call(MDSMoveDash)) and pick.moves.size() == 3 and pick.moves[1] is MDSMoveDash and _titles([pick.moves[0], pick.moves[2]]) == "a,b", "it goes right after it")
+	check(panel.selected_path == "moves/moves.0/moves.1", "and is selected")
+
+	# A chain, step by step: a sequence after c, a wait in it, a strike after the wait.
+	var c := _node_of(panel, "moves/moves.1")
+	check(panel.show_next_moves(c.name, 0, Vector2.ZERO) and panel.pick_next(path_of.call(MDSMoveSequence)), "a sequence after c")
+	var inner := seq.moves[2] as MDSMoveSequence
+	check(inner != null and panel.selected_path == "moves/moves.2", "at the end of the list")
+	check(panel.show_next_moves(_node_of(panel, "moves/moves.2").name, 0, Vector2.ZERO) and panel.next_menu.get_item_text(0) == "Next in moves", "from its moves")
+	check(panel.pick_next(path_of.call(MDSMoveWait)) and inner.moves.size() == 1 and inner.moves[0] is MDSMoveWait, "a wait in it")
+	check(panel.show_next_moves(_node_of(panel, "moves/moves.2/moves.0").name, 0, Vector2.ZERO) and panel.pick_next(path_of.call(MDSMoveStrike)), "a strike after the wait")
+	check(inner.moves.size() == 2 and inner.moves[1] is MDSMoveStrike and panel.selected_path == "moves/moves.2/moves.1", "in its place")
+	undo.undo()
+	check(inner.moves.size() == 1, "each step is one undo")
+	undo.undo()
+	check(inner.moves.is_empty(), "and the one before")
+	undo.redo()
+	undo.redo()
+	check(inner.moves.size() == 2, "redo brings them back")
+
+	# A line from then onto a move: it goes right after.
+	var b_path := "moves/moves.0/moves.2"
+	panel.graph.connection_request.emit(_node_of(panel, "moves/moves.0/moves.0").name, 0, _node_of(panel, "moves/moves.1").name, 0)
+	check(pick.moves.size() == 4 and _titles([pick.moves[1]]) == "c" and seq.moves.size() == 2, "a line from then puts a move right after it")
+	undo.undo()
+	check(pick.moves.size() == 3 and panel.nodes_by_path.has(b_path), "undo")
+	panel.graph.connection_request.emit(_node_of(panel, "moves/moves.0/moves.0").name, 0, _node_of(panel, "moves").name, 0)
+	check(panel.status.text.contains("inside itself"), "not inside itself")
+
+	# Reactions: a list, always with room.
+	check(panel.show_next_moves(_node_of(panel, "").name, 2, Vector2.ZERO) and panel.pick_next(path_of.call(MDSMoveGuard)), "a reaction")
+	check(panel.show_next_moves(_node_of(panel, "").name, 2, Vector2.ZERO) and panel.pick_next(path_of.call(MDSMoveDash)), "and another")
+	check(phase.reactions.size() == 2 and phase.reactions[0] is MDSMoveGuard and phase.reactions[1] is MDSMoveDash, "in order")
+	check(panel.show_next_moves(_node_of(panel, "reactions.0").name, 0, Vector2.ZERO) and panel.next_menu.get_item_text(0) == "Next in riposte", "a guard's riposte from its own port")
+	check(panel.show_next_moves(_node_of(panel, "reactions.0").name, 1, Vector2.ZERO) and panel.pick_next(path_of.call(MDSMoveLeap)), "then after the guard")
+	check(phase.reactions.size() == 3 and phase.reactions[1] is MDSMoveLeap, "between them")
+	check(not panel.show_next_moves(_node_of(panel, "").name, 7, Vector2.ZERO), "a port that isn't there opens nothing")
+
+	# Read-only: no list.
+	var other := MDSMoveBoss.new()
+	other.name = "Other"
+	other.recipe = "showman"
+	panel.set_target(other)
+	check(not panel.show_next_moves(_node_of(panel, "").name, 2, Vector2.ZERO) and other.phases.is_empty(), "a recipe offers no list")
+
+	# An enemy: a pick of its moves, a dash in the pick.
+	var enemy := MDSMoveEnemy.new()
+	enemy.name = "Grub"
+	panel.set_target(enemy)
+	check(panel.show_next_moves(_node_of(panel, "").name, 0, Vector2.ZERO) and panel.pick_next(path_of.call(MDSMovePick)) and enemy.moves is MDSMovePick, "an enemy's moves from the list")
+	check(panel.show_next_moves(_node_of(panel, "moves").name, 0, Vector2.ZERO) and panel.pick_next(path_of.call(MDSMoveDash)), "and what is in them")
+	check((enemy.moves as MDSMovePick).moves.size() == 1 and (enemy.moves as MDSMovePick).moves[0] is MDSMoveDash, "joined up")
+	check(panel.graph.get_connection_list().size() == 2, "with lines")
+	enemy.free()
+	other.free()
+	boss.free()
 	panel.queue_free()
 	await get_tree().process_frame
 
