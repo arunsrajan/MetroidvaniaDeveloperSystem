@@ -87,6 +87,8 @@ var gate_openings: Dictionary = {}
 ## Whether the last Generate cave joined every gate to every other one and back (false: the room
 ## is too thin on the map somewhere for a path a player can climb).
 var paths_joined := true
+## The hazards the last Generate cave placed: [{kind, rect (scene-local)}] (see [MDSRoomHazards]).
+var hazards_placed: Array = []
 
 const COLOR_SOURCE_NAME := "MDS colors"
 const MAX_UNDO := 60
@@ -2003,7 +2005,14 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 	var solid: Dictionary = {}
 	var cave: Dictionary = fills.get("cave", {})
 	var outdoor := str(cave.get("style", "")) == "outdoor"
-	if MDSCaveShapes.is_open(cave):
+	# A rooms-style room's layout: its chambers are kept joined when hazards go in.
+	var rect_room: Dictionary = {}
+	if MDSRectRooms.wanted(cave):
+		# Straight-walled chambers split out of the box (see MDSRectRooms).
+		var climb := climb_params(world)
+		rect_room = MDSRectRooms.build(inside, lo, hi, cave, gate_cells, rng, int(climb.tall), int(climb.step), int(climb.reach))
+		solid = rect_room.solid
+	elif MDSCaveShapes.is_open(cave):
 		# Not a cave: an open world's surface, or an arena (see MDSOpenLayouts).
 		var climb := climb_params(world)
 		var sides := MDSOpenLayouts.open_sides(world, id, lo, hi, Vector2(ts))
@@ -2130,6 +2139,27 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 		paths_joined = joined
 		for c in ladder:
 			solid[c] = true
+	# Hazards last, where they can't cut the paths just made (see MDSRoomHazards).
+	_clear_generated_hazards()
+	if MDSRoomHazards.wanted(cave) and paths_joined:
+		var climb := climb_params(world)
+		var ends: Array = part_ends.duplicate()
+		for g in world.get_gates(id):
+			var e := gate_end(world, id, g, inside)
+			if not e.is_empty():
+				ends.append(e)
+		var keep: Dictionary = rect_room.get("keep", {}).duplicate()
+		for c in open:
+			keep[c] = true
+		for c in ladder:
+			keep[c] = true
+		for c in part_ground:
+			keep[c] = true
+		# Its own numbers, so the rest of the room comes out as it would without hazards.
+		var hazard_rng := RandomNumberGenerator.new()
+		hazard_rng.seed = rng.seed + 7717
+		var placed := MDSRoomHazards.place(solid, inside, rect_room.get("anchors", []), ends, keep, cave, hazard_rng, int(climb.reach), int(climb.tall), rect_room.get("chambers", []).size(), MDSCaveShapes.wall_climb(cave))
+		_spawn_hazards(placed)
 	# The gate nodes go where their doorways now are, their collision across them.
 	fit_gate_nodes(gate_openings)
 	var terrain_fill: Dictionary = fills.get("terrain", {})
@@ -2165,6 +2195,38 @@ func generate_cave(world: MDSWorld, id: String, seed_value := 0, terrain_set := 
 	var stamps: Dictionary = fills.get("stamps", {})
 	if stamps.get("set") is MDSStampSet:
 		_generate_stamps(inside, solid, stamps, rng)
+
+## Takes out the hazards an earlier Generate cave placed (those placed by hand stay).
+func _clear_generated_hazards() -> void:
+	hazards_placed = []
+	if not root:
+		return
+	for n in root.get_children():
+		if n is MDSHazard and n.has_meta(GENERATED_META):
+			remove_item(n)
+
+## [MDSHazard] nodes for the hazards [param placed] ([method MDSRoomHazards.place]): one along
+## each run of spiked cells, on the floor under it, putting the player back on safe ground.
+func _spawn_hazards(placed: Array) -> void:
+	if not root:
+		return
+	var names := {"spikes": "Spikes", "pit": "SpikedPit", "gauntlet": "Gauntlet"}
+	for h: Dictionary in placed:
+		for strip: Array in MDSRoomHazards.strips(h.cells):
+			var r := cell_rect("Terrain", strip[0]).merge(cell_rect("Terrain", strip[-1]))
+			var hz := MDSHazard.new()
+			hz.name = names.get(h.kind, "Hazard")
+			hz.mode = MDSHazard.Mode.RESPAWN
+			hz.look = MDSHazard.Look.SPIKES
+			hz.size = Vector2(r.size.x, r.size.y * 0.5)
+			hz.position = Vector2(r.get_center().x, r.end.y - hz.size.y * 0.5)
+			hz.set_meta(GENERATED_META, true)
+			hz.set_meta(&"mds_hazard_kind", h.kind)
+			hz.add_to_group(&"mds_gameplay_placed")
+			root.add_child(hz, true)
+			hz.owner = root
+			hazards_placed.append({"kind": h.kind, "rect": Rect2(hz.position - hz.size * 0.5, hz.size)})
+			dirty = true
 
 ## Foreground in front of a generated cave, of [param fill]: a solid color or a terrain fills
 ## the rock deep inside the walls (three tiles and more from the cave: the room's dark mass);
@@ -2637,8 +2699,11 @@ static func land_map(open: Dictionary) -> Dictionary:
 ## [param open] tile cells: walking, jumping up to [param jump_h] tiles and across [param jump_w],
 ## and falling; with [param wall_climb], also climbing any wall as high as it goes (a linear room's
 ## smooth shafts, see [MDSCaveShapes]). A rough platformer reach, to check a room can be crossed
-## (and backtracked).
-static func climb_reach(open: Dictionary, from: Vector2i, jump_h := 4, jump_w := 3, land: Dictionary = {}, wall_climb := false) -> Dictionary:
+## (and backtracked). [param deadly]: standing cells that don't count as ground (a spiked floor:
+## the player is hurt and put back, see [MDSRoomHazards]); they are never reached nor left from.
+## [param stop_at]: cells that end the search as soon as one is reached (when only whether it is
+## matters).
+static func climb_reach(open: Dictionary, from: Vector2i, jump_h := 4, jump_w := 3, land: Dictionary = {}, wall_climb := false, deadly: Dictionary = {}, stop_at: Dictionary = {}) -> Dictionary:
 	if land.is_empty():
 		land = land_map(open)
 	var seen: Dictionary = {}
@@ -2657,8 +2722,10 @@ static func climb_reach(open: Dictionary, from: Vector2i, jump_h := 4, jump_w :=
 					if not open.has(c):
 						break
 					var n: Vector2i = land[c]
-					if not seen.has(n):
+					if not seen.has(n) and not deadly.has(n):
 						seen[n] = true
+						if stop_at.has(n):
+							return seen
 						todo.append(n)
 	return seen
 

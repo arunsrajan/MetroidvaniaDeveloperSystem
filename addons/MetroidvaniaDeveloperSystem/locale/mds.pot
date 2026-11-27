@@ -41,6 +41,10 @@ msgid "Arena (flat floor, tiers)"
 msgstr ""
 
 #: core/cave_shapes.gd
+msgid "Rooms (rectilinear chambers)"
+msgstr ""
+
+#: core/cave_shapes.gd
 msgid "Natural (from the room's outline)"
 msgstr ""
 
@@ -144,6 +148,37 @@ msgstr ""
 
 #: core/room_check.gd
 msgid "Exit out of reach"
+msgstr ""
+
+#: core/room_hazards.gd
+#: nodes/environment/mds_parallax_background.gd
+#: nodes/mds_room_camera.gd
+# and 1 more files
+msgid "None"
+msgstr ""
+
+#: core/room_hazards.gd
+msgid "Few"
+msgstr ""
+
+#: core/room_hazards.gd
+msgid "Some"
+msgstr ""
+
+#: core/room_hazards.gd
+msgid "Many"
+msgstr ""
+
+#: core/room_hazards.gd
+msgid "Spikes"
+msgstr ""
+
+#: core/room_hazards.gd
+msgid "Spiked pits"
+msgstr ""
+
+#: core/room_hazards.gd
+msgid "Gauntlets"
 msgstr ""
 
 #: core/shape_generators.gd
@@ -1875,12 +1910,6 @@ msgid "Cargo lifts riding up and down their rails, lamps blinking"
 msgstr ""
 
 #: nodes/environment/mds_parallax_background.gd
-#: nodes/mds_room_camera.gd
-#: ui/room_view.gd
-msgid "None"
-msgstr ""
-
-#: nodes/environment/mds_parallax_background.gd
 msgid "Dusty wastes"
 msgstr ""
 
@@ -3307,15 +3336,11 @@ msgid "Place nothing: click an object in the room to select it, drag it to move 
 msgstr ""
 
 #: ui/room_view.gd
-msgid "MDSAbilityPickup: grants an ability on touch and persists"
-msgstr ""
-
-#: ui/room_view.gd
 msgid "Ability pickup"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "MDSPickup: item or collectible"
+msgid "MDSAbilityPickup: grants an ability on touch and persists"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3323,7 +3348,7 @@ msgid "Item pickup"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "MDSPickup: health fragment"
+msgid "MDSPickup: item or collectible"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3331,11 +3356,15 @@ msgid "Health fragment"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "MDSBreakable: wall that breaks on attack"
+msgid "MDSPickup: health fragment"
 msgstr ""
 
 #: ui/room_view.gd
 msgid "Breakable wall"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSBreakable: wall that breaks on attack"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3355,11 +3384,11 @@ msgid "MDSSwitch: sets a flag on hit or interact"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Hazard (spikes)"
+msgid "MDSHazard: spikes/thorns that hurt and respawn"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "MDSHazard: spikes/thorns that hurt and respawn"
+msgid "Hazard (spikes)"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3395,15 +3424,11 @@ msgid "Enemy (Flyer)"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Enemy (Turret)"
-msgstr ""
-
-#: ui/room_view.gd
 msgid "Turret template enemy"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Enemy (Charger)"
+msgid "Enemy (Turret)"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3411,7 +3436,7 @@ msgid "Charger template enemy"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Enemy (Ambusher)"
+msgid "Enemy (Charger)"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3419,11 +3444,15 @@ msgid "Ambusher template enemy"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "MDSBossArena: locks doors during boss fight"
+msgid "Enemy (Ambusher)"
 msgstr ""
 
 #: ui/room_view.gd
 msgid "Boss arena"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "MDSBossArena: locks doors during boss fight"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3548,11 +3577,11 @@ msgid "The area's next room"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Generate a cave in every room of the area, with the fills and options here. Rooms without a scene get one. Every room's gates are joined by paths a player can walk, jump and climb both ways, so the whole area can be crossed and backtracked"
+msgid "Caves for the area"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Caves for the area"
+msgid "Generate a cave in every room of the area, with the fills and options here. Rooms without a scene get one. Every room's gates are joined by paths a player can walk, jump and climb both ways, so the whole area can be crossed and backtracked"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3600,15 +3629,7 @@ msgid "Every gate reaches every other one and back: tunnels and shafts with ledg
 msgstr ""
 
 #: ui/room_view.gd
-msgid "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"
-msgstr ""
-
-#: ui/room_view.gd
-msgid "Decorations on floors and under ceilings; most floor ones of the Decor fill"
-msgstr ""
-
-#: ui/room_view.gd
-msgid "Paint the Background fill behind the cave"
+msgid "Paths"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3616,7 +3637,15 @@ msgid "Stamps of the set and category picked for the Stamps tool along the floor
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Paths"
+msgid "Paint the Background fill behind the cave"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Decorations on floors and under ceilings; most floor ones of the Decor fill"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "The Foreground fill in front: a solid color or a terrain darkens the rock deep in the walls; tiles hang from ceilings and edge floors"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3628,11 +3657,11 @@ msgid "Redo grass, plants, vines, stalactites and moss on the current terrain (u
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Fill background"
+msgid "Fill the room's shape with the Background fill (foliage, palette tiles or a solid color)"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Fill the room's shape with the Background fill (foliage, palette tiles or a solid color)"
+msgid "Fill background"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3644,19 +3673,19 @@ msgid "Clear background"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Turn the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects. Platforms become one-way ledges. Block a room out with rectangles or tiles, then make it organic"
-msgstr ""
-
-#: ui/room_view.gd
 msgid "Convert to freeform..."
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Trace drawing..."
+msgid "Turn the room's solid tiles, static bodies and straight-edged freeform shapes into organic freeform rock, keeping every doorway, platform top and floor under objects. Platforms become one-way ledges. Block a room out with rectangles or tiles, then make it organic"
 msgstr ""
 
 #: ui/room_view.gd
 msgid "Draw the room from a picture: each color of a drawing (any image file, or drop one on the view) becomes freeform shapes of the style you pick. Black, grey and brown: terrain; red, orange and yellow: one-way platforms; green: background; blue and purple: foreground"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Trace drawing..."
 msgstr ""
 
 #: ui/room_view.gd
@@ -3676,11 +3705,11 @@ msgid "Cover the cells of the room's box that are outside its shape on the map (
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Check room"
+msgid "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Load the room's terrain into an off-screen physics space and check it like a player would: every gate open, platforms landed on with headroom, objects on the ground, exits up reachable by jumping (World settings > Player). Problems are marked in the view"
+msgid "Check room"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3692,19 +3721,19 @@ msgid "After Check room, draw the floors the player can reach from the gates in 
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Fit props to floor"
-msgstr ""
-
-#: ui/room_view.gd
 msgid "Stand every object that stands (save points, shops, NPCs, benches, spawn points: see the mds_stands group) on the floor under it, or lift it out of the ground it is sunk in, then step it along its floor out of any platform. Ctrl+Z undoes it"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Declutter"
+msgid "Fit props to floor"
 msgstr ""
 
 #: ui/room_view.gd
 msgid "Separate objects that stand in or behind each other: doors, machines and enemies stay; save points and shops, then everything else, step along their floor to the nearest clear spot. A decoration with nowhere to go is removed. Ctrl+Z undoes it"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Declutter"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3966,7 +3995,7 @@ msgid "How wide the shapes' passages are, in tiles (0: from the room's size; nev
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too. Outdoor: no cave, an open world's surface: open sky over rolling hills, pits to jump and floating ledges, its sides open where another room goes on (the ground meets it). Arena: a fight room: a flat floor, walls, a ceiling and platforms in tiers, the same both sides"
+msgid "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too. Outdoor: no cave, an open world's surface: open sky over rolling hills, pits to jump and floating ledges, its sides open where another room goes on (the ground meets it). Arena: a fight room: a flat floor, walls, a ceiling and platforms in tiers, the same both sides. Rooms: straight-walled chambers split out of the room's box, joined by corridors and by shafts with ledges, every chamber reached from every other and back"
 msgstr ""
 
 #: ui/room_view.gd
@@ -3982,12 +4011,28 @@ msgid "Skeleton: 0 to 1, how far its draws stray from the typical room"
 msgstr ""
 
 #: ui/room_view.gd
+msgid "Rooms: how many times the room's box is split into parts, each with a chamber. More: smaller chambers, more corridors and shafts"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Hazards Generate cave places after the room's paths are made: spike strips to jump over, spiked pits and gauntlets (a spiked floor crossed on pillar tops). Never on a doorstep, a ledge or a corridor's end, and never where one would stop a gate or a chamber reaching the others and back. They put the player back on safe ground. Placed by hand ones stay when the room is generated again"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "The kinds of hazard to place"
+msgstr ""
+
+#: ui/room_view.gd
 msgid "Cave shape"
 msgstr ""
 
 #: ui/room_view.gd
 #: world_panel.gd
 msgid "Style"
+msgstr ""
+
+#: ui/room_view.gd
+msgid "Hazards"
 msgstr ""
 
 #: ui/room_view.gd

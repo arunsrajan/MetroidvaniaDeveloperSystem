@@ -5,7 +5,7 @@ extends MDSMcpTools
 
 const TEMPLATES_DIR := "res://addons/MetroidvaniaDeveloperSystem/gameplay/enemies/templates/"
 const CATALOGS: Array = [
-	"cave_styles", "cave_shapes", "attack_fx", "hit_particles", "damage_types", "effects", "enemy_templates", "gameplay_objects", "tile_palettes", "stamp_sets", "freeform_styles", "depth_styles", "backdrops",
+	"cave_styles", "cave_shapes", "hazard_kinds", "attack_fx", "hit_particles", "damage_types", "effects", "enemy_templates", "gameplay_objects", "tile_palettes", "stamp_sets", "freeform_styles", "depth_styles", "backdrops",
 	"recipes", "abilities", "room_types", "statuses", "pin_kinds", "map_styles", "parallax", "parallax_foregrounds", "animated_backgrounds", "machinery", "creatures", "conditions", "game_scenes", "tileset_terrains",
 ]
 
@@ -46,6 +46,9 @@ func _catalog(args: Dictionary, _report: Callable) -> Dictionary:
 				items.append({"id": s[0], "name": s[1]})
 		"cave_shapes":
 			for s: Array in MDSCaveShapes.CHOICES:
+				items.append({"id": s[0], "name": s[1]})
+		"hazard_kinds":
+			for s: Array in MDSRoomHazards.KINDS:
 				items.append({"id": s[0], "name": s[1]})
 		"attack_fx":
 			for id: String in MDSAttackFX.EFFECTS:

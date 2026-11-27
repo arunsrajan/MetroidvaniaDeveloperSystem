@@ -24,20 +24,23 @@ func _register() -> void:
 		{"path": S.text("res://....tres"), "palette": S.choice(MDSTilesetFactory.PALETTES.keys())}, ["path"], _tileset_create)
 	_add("mds_room_scene_create", "Makes a room's scene, with its map guides and gate nodes. Default path: the world's scene_folder.", AUTHOR,
 		{"world": world, "room": S.text(), "scene_path": S.text()}, ["room"], _scene_create)
-	_add("mds_room_generate", "Generates a cave (or a linear, outdoor or arena room) in one room, joining its gates so they can all be reached and walked back. Makes the scene if it has none. Refuses to replace painted terrain unless overwrite is true. A fixed seed gives the same room. Shape skeleton makes a trunk and branches, its widths drawn from a profile (mds_cave_profile writes one from rooms you like); tries and variance steer it.", AUTHOR,
+	_add("mds_room_generate", "Generates a room (cave, linear, outdoor, arena or rooms style), joining its gates so all can be reached and walked back. Makes the scene if needed; replaces painted terrain only with overwrite. A fixed seed gives the same room. Shape skeleton: trunk and branches, widths from a profile (mds_cave_profile). Style rooms: straight-walled chambers joined by corridors and shafts. hazards (any style): spikes, pits, gauntlets that never cut a path; the result lists them.", AUTHOR,
 		{
 			"world": world, "room": S.text(), "style": S.choice(_ids_of(MDSCaveShapes.STYLES)), "shape": S.choice(_ids_of(MDSCaveShapes.CHOICES)), "shapes": S.array(S.choice(Array(MDSCaveShapes.PICKABLE)), "With shape several"),
 			"rotation": S.number("Degrees"), "count": S.integer("", 1, 8), "width": S.integer("Tunnel width in tiles", 0), "seed": S.integer(),
 			"profile": S.text("With shape skeleton: a cave profile file (res://....caveprofile.json), the numbers its rooms are made to fit. Left out: generic widths"),
 			"tries": S.integer("With shape skeleton: rooms made to find one inside the profile's targets, the closest kept. Default 1", 1, 64),
 			"variance": S.number("With shape skeleton: 0 to 1, how far its draws stray from the typical. Default 1", 0, 1),
+			"depth": S.integer("With style rooms: how many times the room is split into parts, each with a chamber. Default 4", 1, 6),
+			"hazards": S.choice(_ids_of(MDSRoomHazards.LEVELS), "Hazards to place, any style. Default none"),
+			"hazard_kinds": S.array(S.choice(_ids_of(MDSRoomHazards.KINDS)), "Which kinds. Default all"),
 			"fills": S.any_object("Layer fills: terrain, background, decor, foreground, as {type: terrain, set, terrain}, {type: kind, kind}, {type: color, color}"),
 			"overwrite": S.boolean("Default false"), "on_unsaved": unsaved,
 		}, ["room"], _room_generate)
 	_add("mds_area_generate_caves", "Generates caves in many rooms: the given rooms, or a whole area. Painted rooms are left alone unless skip_painted is false. Reports progress.", AUTHOR,
 		{
 			"world": world, "rooms": S.array(S.text()), "area": S.text(),
-			"cave": S.any_object("style, shape, shapes, rotation, count, width, profile, tries, variance, as in mds_room_generate"), "fills": S.any_object("As in mds_room_generate"),
+			"cave": S.any_object("style, shape, shapes, rotation, count, width, profile, tries, variance, depth, hazards, hazard_kinds, as in mds_room_generate"), "fills": S.any_object("As in mds_room_generate"),
 			"skip_painted": S.boolean("Default true"), "seed": S.integer(), "on_unsaved": unsaved,
 		}, [], _area_caves)
 	_add("mds_room_paint", "Paints tiles on a layer of a room's scene, on cells or a rectangle of cells. op: terrain (set, terrain), kind (kind), fill (fill), tile (source, atlas), erase, clear (the whole layer).", AUTHOR,
@@ -160,7 +163,7 @@ func _room_generate(args: Dictionary, _report: Callable) -> Dictionary:
 	if not profile_problem.is_empty():
 		painter.free_instance()
 		return ctx.fail("bad_arguments", profile_problem, "A profile is a JSON file inside res://, as mds_cave_profile writes.")
-	for key in ["style", "shape", "shapes", "rotation", "count", "width", "profile", "tries", "variance"]:
+	for key in ["style", "shape", "shapes", "rotation", "count", "width", "profile", "tries", "variance", "depth", "hazards", "hazard_kinds"]:
 		if args.has(key):
 			cave[key] = args[key]
 	if cave.has("profile"):
@@ -180,10 +183,14 @@ func _room_generate(args: Dictionary, _report: Callable) -> Dictionary:
 	var warnings := []
 	if not painter.paths_joined:
 		warnings.append("Not all gates could be joined by a walkable path.")
+	var hazards: Array = []
+	for h: Dictionary in painter.hazards_placed:
+		var r: Rect2 = h.rect
+		hazards.append({"kind": h.kind, "rect": [r.position.x, r.position.y, r.size.x, r.size.y]})
 	var bad := _save_room(painter)
 	if bad.is_empty():
 		bad = ctx.save_world(world)
-	return bad if not bad.is_empty() else {"room": id, "scene": path, "paths_joined": warnings.is_empty(), "warnings": warnings}
+	return bad if not bad.is_empty() else {"room": id, "scene": path, "paths_joined": warnings.is_empty(), "warnings": warnings, "hazards": hazards}
 
 func _area_caves(args: Dictionary, report: Callable) -> Dictionary:
 	var world := ctx.edit_world(args)
