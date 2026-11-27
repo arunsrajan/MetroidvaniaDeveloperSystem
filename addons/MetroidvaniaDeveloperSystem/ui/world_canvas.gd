@@ -63,7 +63,21 @@ const TOOL_HINTS: PackedStringArray = [
 	"Drag a box: an area is generated in it (rectangle or square, irregular, freeform or hybrid, with curved and slanted sides), split into rooms with doors between them.",
 	"Paint an area: the stroke becomes rooms with doors between them. Start inside an area to grow it, on empty space for a new area. [ ] change the brush size.",
 ]
-enum Drag { NONE, PAN, MOVE_ROOM, RESIZE, RUBBER, CONNECT, MOVE_GATE, MOVE_LABEL, PAINT, MOVE_AREA, STROKE, BOX_SELECT }
+enum Drag { NONE, PAN, MOVE_ROOM, RESIZE, RUBBER, CONNECT, MOVE_GATE, MOVE_LABEL, PAINT, MOVE_AREA, STROKE, BOX_SELECT, ERASE_BOX }
+## How the tools draw rooms. MDS: free-form, on the world grid and paint cells (any size, any
+## shape). METSYS: on map cells a screen each, like MetSys' own editor: the Room tool draws a box of
+## cells with the left button and erases cells with the right one, Paint and Erase go a cell at a
+## time, the Gate tool puts a passage on the border a click is near (a click again takes it out),
+## rooms move and resize by whole cells. Switching changes only how the tools draw: the rooms
+## already on the map stay as they are, whichever mode drew them.
+enum DrawMode { MDS, METSYS }
+# l10n: text
+const DRAW_MODE_NAMES: PackedStringArray = ["MDS (free-form)", "MetSys (map cells)"]
+# l10n: text
+const DRAW_MODE_HINTS: PackedStringArray = [
+	"Drawing free-form: rooms on the world grid and paint cells, any size and shape.",
+	"Drawing like MetSys, on map cells a screen each: Room (R) left-drag draws cells, right-drag erases them; Gate (G) click a cell's border for a passage, again to take it out; rooms move by whole cells. The rooms already drawn stay as they are.",
+]
 
 const COLOR_BACKGROUND := Color(0.14, 0.12, 0.12)
 const COLOR_GRID := Color(1, 1, 1, 0.04)
@@ -80,6 +94,8 @@ var scene_db: Dictionary = {}
 var layer := 0
 var color_mode: int = MDSMapCanvas.ColorMode.AREA
 var tool: int = Tool.SELECT
+## How the tools draw (see [enum DrawMode], [method set_draw_mode]).
+var draw_mode: int = DrawMode.MDS
 var show := {
 	"labels": true, "area_labels": true, "terrain": true, "previews": false, "gates": true,
 	"markers": true, "pins": true, "issues": true, "grid": true, "legend": true, "explored": false,
@@ -111,6 +127,7 @@ var _layers_zoom := -1.0
 var _preview_root: Node2D
 var _preview_layer := -9999
 var _preview_nodes: Dictionary = {} ## room id -> preview instance
+var _preview_sig := 0 ## see [method _preview_signature]
 var _silhouettes: Dictionary = {}
 var _area_label_rects: Dictionary = {}
 var _drag := Drag.NONE
@@ -302,6 +319,156 @@ func set_tool(p_tool: int) -> void:
 	status_message.emit(TOOL_HINTS[tool])
 	redraw()
 
+## Switches how the tools draw (see [enum DrawMode]). The rooms on the map are left as they are.
+func set_draw_mode(mode: int) -> void:
+	draw_mode = clampi(mode, 0, DRAW_MODE_NAMES.size() - 1)
+	_drag = Drag.NONE
+	_stroke.clear()
+	status_message.emit(DRAW_MODE_HINTS[draw_mode])
+	redraw()
+
+## Whether the tools draw on MetSys-style map cells (see [enum DrawMode]).
+func is_metsys() -> bool:
+	return draw_mode == DrawMode.METSYS and world != null
+
+## A map cell of the MetSys mode (world px): a screen, the world's default room size.
+func map_cell() -> Vector2:
+	return world.get_default_room_size()
+
+## The map cell [param world_pos] is in.
+func map_cell_at(world_pos: Vector2) -> Vector2i:
+	return Vector2i((world_pos / map_cell()).floor())
+
+## Map cell [param c]'s rectangle (world px).
+func map_cell_rect(c: Vector2i) -> Rect2:
+	return Rect2(Vector2(c) * map_cell(), map_cell())
+
+## [param v] on the map cells' corners in the MetSys mode, else on the world grid.
+func snap_point(v: Vector2) -> Vector2:
+	if is_metsys():
+		var m := map_cell()
+		return (v / m).round() * m
+	return world.snap(v)
+
+## The map cells from the one at [param a] to the one at [param b] (world px), both in: a box.
+func map_box(a: Vector2, b: Vector2) -> Rect2:
+	var c0 := map_cell_at(a)
+	var c1 := map_cell_at(b)
+	return Rect2(Vector2(c0.min(c1)) * map_cell(), Vector2((c0 - c1).abs() + Vector2i.ONE) * map_cell())
+
+## The paint cells whose middles are in [param box] (world px).
+func paint_cells_in(box: Rect2) -> Array:
+	var out: Array = []
+	var s := world.get_paint_cell()
+	var c0 := Vector2i((box.position / s - Vector2(0.5, 0.5)).ceil())
+	var c1 := Vector2i((box.end / s - Vector2(0.5, 0.5)).ceil()) - Vector2i.ONE
+	for y in range(c0.y, c1.y + 1):
+		for x in range(c0.x, c1.x + 1):
+			out.append(Vector2i(x, y))
+	return out
+
+## MetSys mode, Room tool: the map cells in [param box] (world px) become a room, but for those
+## another room has (MetSys rooms don't overlap). Returns the room made, or "".
+func draw_cells_room(box: Rect2) -> String:
+	var cells := paint_cells_in(box)
+	if cells.is_empty():
+		return ""
+	if not cells.any(func(c: Vector2i) -> bool: return world.room_at_cell(c, layer).is_empty()):
+		status_message.emit("Those cells are taken: rooms don't overlap. Right-drag erases cells.")
+		return ""
+	world.checkpoint()
+	var id := world.add_room_from_cells(cells, layer, new_room_area)
+	if id.is_empty():
+		return ""
+	selected_room = id
+	selected_gate = ""
+	room_selected.emit(id)
+	var n := box.size / map_cell()
+	status_message.emit("Drew %s (%d x %d cells). Right-drag erases cells; the Gate tool puts passages on the borders." % [id, roundi(n.x), roundi(n.y)])
+	return id
+
+## MetSys mode: the map cells in [param box] (world px) are taken out of every room on the layer
+## (rooms left with none are removed). Returns the rooms that changed.
+func erase_cells_box(box: Rect2) -> Array[String]:
+	var changed: Array[String] = []
+	var cells := paint_cells_in(box)
+	if not cells.any(func(c: Vector2i) -> bool: return not world.room_at_cell(c, layer).is_empty()):
+		return changed
+	world.checkpoint()
+	changed = world.erase_cells(cells, layer)
+	if not world.has_room(selected_room):
+		selected_room = ""
+		selected_gate = ""
+		room_selected.emit("")
+	status_message.emit("Erased cells from %s." % ", ".join(changed))
+	return changed
+
+## MetSys mode, Gate tool: a click at [param world_pos] near the border of a map cell puts a
+## passage there, like MetSys: a door on each side, connected, between two rooms; a door to
+## nowhere on a room's outer wall. A click on a passage there takes it out. Returns whether the
+## map changed.
+func toggle_passage(world_pos: Vector2) -> bool:
+	var edge := passage_edge(world_pos)
+	if edge.is_empty():
+		return false
+	var p: Vector2 = edge.point
+	var n: Vector2 = edge.normal
+	var depth := minf(map_cell().x, map_cell().y) * 0.25
+	var a := world.room_at(p - n * depth, layer, true)
+	var b := world.room_at(p + n * depth, layer, true)
+	if a.is_empty() and b.is_empty():
+		status_message.emit("No room there: passages go on a room's border.")
+		return false
+	if a == b:
+		status_message.emit("Both sides are %s: a passage goes between cells of two rooms, or on a room's outer wall." % a)
+		return false
+	var near := minf(map_cell().x, map_cell().y) / 3.0
+	var found: Array = []
+	for id in [a, b]:
+		if id.is_empty():
+			continue
+		for g in world.get_gates(id):
+			if world.get_gate_world_pos(id, g).distance_to(p) <= near:
+				found.append([id, g])
+	world.checkpoint()
+	if not found.is_empty():
+		for f: Array in found:
+			world.remove_gate(f[0], f[1])
+		selected_gate = ""
+		status_message.emit("Passage taken out.")
+		return true
+	var made: Array[String] = []
+	for id in [a, b]:
+		if not id.is_empty():
+			made.append("%s.%s" % [id, world.add_gate(id, p)])
+	if made.size() == 2:
+		world.connect_gates(a, made[0].get_slice(".", 1), b, made[1].get_slice(".", 1))
+		status_message.emit("Passage %s <-> %s. Click it again to take it out." % [made[0], made[1]])
+	else:
+		status_message.emit("Passage %s to nowhere (no room beyond yet). Click it again to take it out." % made[0])
+	return true
+
+## The border of a map cell nearest [param world_pos], when it is within a third of a cell:
+## {point: its middle, normal: out of the cell it is in}. Empty when none is that near.
+func passage_edge(world_pos: Vector2) -> Dictionary:
+	var r := map_cell_rect(map_cell_at(world_pos))
+	var d := {
+		Vector2.LEFT: world_pos.x - r.position.x, Vector2.RIGHT: r.end.x - world_pos.x,
+		Vector2.UP: world_pos.y - r.position.y, Vector2.DOWN: r.end.y - world_pos.y,
+	}
+	var best := Vector2.ZERO
+	var best_d := INF
+	for k: Vector2 in d:
+		# Measured in cell sizes: a screen-shaped cell has nearer top and bottom borders.
+		var rel: float = d[k] / (r.size.x if k.x != 0 else r.size.y)
+		if rel < best_d:
+			best_d = rel
+			best = k
+	if best_d > 0.34:
+		return {}
+	var mid := r.get_center() + best * r.size / 2.0
+	return {"point": mid, "normal": best}
+
 func set_show(key: String, value: bool) -> void:
 	show[key] = value
 	if key == "previews":
@@ -472,7 +639,9 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), COLOR_BACKGROUND)
 	if not world:
 		return
-	if tool in [Tool.PAINT, Tool.ERASE, Tool.AREA_PAINT, Tool.GENERATE]:
+	if is_metsys():
+		_draw_map_cells()
+	elif tool in [Tool.PAINT, Tool.ERASE, Tool.AREA_PAINT, Tool.GENERATE]:
 		_draw_paint_grid()
 	elif show.grid:
 		_draw_grid()
@@ -610,6 +779,38 @@ func _passages(id: String) -> Dictionary:
 		out["%d,%d:%s" % [c.x, c.y, side]] = true
 	return out
 
+## MetSys mode: the map cells, a screen each (and their paint cells, faint, zoomed in).
+func _draw_map_cells() -> void:
+	var m := map_cell()
+	if m.x * zoom < 6.0:
+		return
+	var lines := PackedVector2Array()
+	var fine := PackedVector2Array()
+	var s := world.get_paint_cell()
+	var show_fine := s.x * zoom >= 10.0 and tool in [Tool.PAINT, Tool.ERASE, Tool.AREA_PAINT, Tool.GENERATE]
+	var w0 := screen_to_world(Vector2.ZERO)
+	var w1 := screen_to_world(size)
+	var x := floorf(w0.x / (s.x if show_fine else m.x)) * (s.x if show_fine else m.x)
+	while x <= w1.x:
+		var sx := world_to_screen(Vector2(x, 0)).x
+		if is_zero_approx(fposmod(x, m.x)):
+			lines.append_array([Vector2(sx, 0), Vector2(sx, size.y)])
+		else:
+			fine.append_array([Vector2(sx, 0), Vector2(sx, size.y)])
+		x += s.x if show_fine else m.x
+	var y := floorf(w0.y / (s.y if show_fine else m.y)) * (s.y if show_fine else m.y)
+	while y <= w1.y:
+		var sy := world_to_screen(Vector2(0, y)).y
+		if is_zero_approx(fposmod(y, m.y)):
+			lines.append_array([Vector2(0, sy), Vector2(size.x, sy)])
+		else:
+			fine.append_array([Vector2(0, sy), Vector2(size.x, sy)])
+		y += s.y if show_fine else m.y
+	if not fine.is_empty():
+		draw_multiline(fine, Color(1, 1, 1, 0.04))
+	if not lines.is_empty():
+		draw_multiline(lines, Color(1, 1, 1, 0.12))
+
 func _draw_paint_grid() -> void:
 	var s := world.get_paint_cell()
 	if s.x * zoom < 6.0:
@@ -628,6 +829,12 @@ func _draw_paint_grid() -> void:
 		y += s.y
 
 func _brush_cells(center: Vector2i) -> Array:
+	if is_metsys():
+		# Whole map cells: the one the paint cell is in, and the brush's others round it.
+		var c := map_cell_at(world.cell_to_world_rect(center).get_center())
+		var lo_m := -(brush_size - 1) / 2
+		var box := Rect2(Vector2(c + Vector2i(lo_m, lo_m)) * map_cell(), Vector2(brush_size, brush_size) * map_cell())
+		return paint_cells_in(box)
 	var out: Array = []
 	var lo := -(brush_size - 1) / 2
 	for y in range(lo, lo + brush_size):
@@ -1143,9 +1350,27 @@ func _handles(r: Rect2) -> Array[Vector2]:
 func _draw_drag_feedback(ci: CanvasItem) -> void:
 	if tool in [Tool.PAINT, Tool.ERASE, Tool.AREA_PAINT] and get_rect().has_point(_mouse):
 		var color := Color(1, 0.35, 0.35) if tool == Tool.ERASE else COLOR_SELECT
-		for c in _brush_cells(world.world_to_cell(screen_to_world(_mouse))):
-			ci.draw_rect(world_rect_to_screen(world.cell_to_world_rect(c)), Color(color, 0.25))
-			ci.draw_rect(world_rect_to_screen(world.cell_to_world_rect(c)), color, false, 1.5)
+		if is_metsys():
+			# Whole map cells.
+			var c := map_cell_at(screen_to_world(_mouse))
+			var lo := -(brush_size - 1) / 2
+			var box := world_rect_to_screen(Rect2(Vector2(c + Vector2i(lo, lo)) * map_cell(), Vector2(brush_size, brush_size) * map_cell()))
+			ci.draw_rect(box, Color(color, 0.25))
+			ci.draw_rect(box, color, false, 1.5)
+		else:
+			for c in _brush_cells(world.world_to_cell(screen_to_world(_mouse))):
+				ci.draw_rect(world_rect_to_screen(world.cell_to_world_rect(c)), Color(color, 0.25))
+				ci.draw_rect(world_rect_to_screen(world.cell_to_world_rect(c)), color, false, 1.5)
+	# MetSys mode, Room tool: the cell under the mouse, where a click draws a room of one cell.
+	if is_metsys() and tool == Tool.ROOM and _drag == Drag.NONE and get_rect().has_point(_mouse):
+		ci.draw_rect(world_rect_to_screen(map_cell_rect(map_cell_at(screen_to_world(_mouse)))), Color(COLOR_SELECT, 0.6), false, 1.5)
+	# MetSys mode, Gate tool: the border a click puts a passage on.
+	if is_metsys() and tool == Tool.GATE and _drag == Drag.NONE and get_rect().has_point(_mouse):
+		var edge := passage_edge(screen_to_world(_mouse))
+		if not edge.is_empty():
+			var n: Vector2 = edge.normal
+			var along := Vector2(-n.y, n.x) * map_cell() * 0.2
+			ci.draw_line(world_to_screen(edge.point - along), world_to_screen(edge.point + along), COLOR_SELECT, 4.0)
 	match _drag:
 		Drag.PAINT:
 			if tool == Tool.PAINT and world.has_room(_paint_room):
@@ -1161,6 +1386,18 @@ func _draw_drag_feedback(ci: CanvasItem) -> void:
 			ci.draw_rect(world_rect_to_screen(r), COLOR_SELECT, false, 2.0)
 			var font := get_theme_default_font()
 			ci.draw_string(font, world_to_screen(r.end) + Vector2(6, 14), "%d x %d cells" % [box.size.x, box.size.y], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COLOR_SELECT)
+		Drag.ERASE_BOX:
+			var r := map_box(screen_to_world(_drag_start), screen_to_world(_mouse))
+			ci.draw_rect(world_rect_to_screen(r), Color(1, 0.35, 0.35, 0.22))
+			ci.draw_rect(world_rect_to_screen(r), Color(1, 0.35, 0.35), false, 2.0)
+			var n := r.size / map_cell()
+			ci.draw_string(get_theme_default_font(), world_to_screen(r.end) + Vector2(6, 14), "erase %d x %d cells" % [roundi(n.x), roundi(n.y)], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 0.5, 0.5))
+		Drag.RUBBER when is_metsys():
+			var r := _rubber_world_rect()
+			ci.draw_rect(world_rect_to_screen(r), Color(COLOR_SELECT, 0.2))
+			ci.draw_rect(world_rect_to_screen(r), COLOR_SELECT, false, 2.0)
+			var n := r.size / map_cell()
+			ci.draw_string(get_theme_default_font(), world_to_screen(r.end) + Vector2(6, 14), "%d x %d cells" % [roundi(n.x), roundi(n.y)], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COLOR_SELECT)
 		Drag.RUBBER:
 			var r := _rubber_world_rect()
 			ci.draw_rect(world_rect_to_screen(r), Color(COLOR_SELECT, 0.2))
@@ -1178,6 +1415,9 @@ func _draw_drag_feedback(ci: CanvasItem) -> void:
 					ci.draw_string(font_s, world_to_screen(b.position) + Vector2(4, 14), id, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.9))
 			var font := get_theme_default_font()
 			ci.draw_string(font, world_to_screen(r.end) + Vector2(6, 14), "%d x %d" % [r.size.x, r.size.y], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COLOR_SELECT)
+		Drag.CONNECT when not _drag_moved and is_metsys() and tool == Tool.GATE:
+			# A click on a passage takes it out (both of its doors).
+			toggle_passage(world.get_gate_world_pos(_drag_room, _drag_gate))
 		Drag.CONNECT:
 			if _drag_moved:
 				ci.draw_line(world_to_screen(world.get_gate_world_pos(_drag_room, _drag_gate)), _mouse, COLOR_SELECT, 2.0)
@@ -1217,9 +1457,15 @@ func _update_previews() -> void:
 		_preview_nodes.clear()
 		_preview_layer = -9999
 		return
-	if _preview_layer == layer:
+	# The same rooms and scenes: they only go where their rooms are now (an undo, a nudge, a move
+	# made in the Full view), so their contents stay lined up with their outlines.
+	var sig := _preview_signature()
+	if _preview_layer == layer and sig == _preview_sig:
+		for id: String in _preview_nodes:
+			_sync_preview_position(id)
 		return
 	_preview_layer = layer
+	_preview_sig = sig
 	_preview_nodes.clear()
 	for child in _preview_root.get_children():
 		child.queue_free()
@@ -1256,8 +1502,18 @@ func _update_previews() -> void:
 ## Keeps a moved room's live preview in place without reloading every scene.
 func _sync_preview_position(id: String) -> void:
 	var node = _preview_nodes.get(id)
-	if node is Node2D and is_instance_valid(node):
+	if node is Node2D and is_instance_valid(node) and world.has_room(id):
 		node.position = world.get_origin(id) + node.get_meta(&"mds_offset", Vector2.ZERO)
+
+## The rooms of the layer with a scene, and their scenes and shapes: the previews are made again
+## when it changes, else only moved.
+func _preview_signature() -> int:
+	var parts: Array = []
+	for id in world.get_room_ids():
+		if world.get_room_layer(id) == layer:
+			var room: Dictionary = world.data.rooms[id]
+			parts.append([id, room.get("scene", ""), room.get("scene_path", ""), room.get("rects", [])])
+	return hash(parts)
 
 # --- Hit testing -------------------------------------------------------------------------------
 
@@ -1295,6 +1551,8 @@ func _area_label_at(screen_pos: Vector2) -> String:
 	return ""
 
 func _rubber_world_rect() -> Rect2:
+	if is_metsys():
+		return map_box(screen_to_world(_drag_start), screen_to_world(_mouse))
 	var a := world.snap(screen_to_world(_drag_start))
 	var b := world.snap(screen_to_world(_mouse))
 	return Rect2(a, b - a).abs()
@@ -1322,6 +1580,21 @@ func _on_mouse_button(mb: InputEventMouseButton) -> void:
 	if mb.pressed and (mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 		var factor := 1.15 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.15
 		set_zoom(zoom * pow(factor, maxf(mb.factor, 1.0)), mb.position)
+		accept_event()
+		return
+	# MetSys mode: the right button erases cells with the Room, Paint and Erase tools (a click
+	# without a drag still opens the menu, but with Erase, where it erases the cell).
+	if mb.button_index == MOUSE_BUTTON_RIGHT and is_metsys() and tool in [Tool.ROOM, Tool.PAINT, Tool.ERASE]:
+		if mb.pressed:
+			_begin_drag(Drag.ERASE_BOX, mb)
+		elif _drag == Drag.ERASE_BOX:
+			_drag = Drag.NONE
+			if _drag_moved or tool == Tool.ERASE:
+				erase_cells_box(map_box(screen_to_world(_drag_start), screen_to_world(mb.position)))
+			else:
+				var w := screen_to_world(mb.position)
+				context_requested.emit(world.room_at(w, layer, true), w, mb.position)
+			redraw()
 		accept_event()
 		return
 	if mb.button_index == MOUSE_BUTTON_MIDDLE or mb.button_index == MOUSE_BUTTON_RIGHT:
@@ -1422,6 +1695,11 @@ func _on_left_press(mb: InputEventMouseButton) -> void:
 				_begin_drag(Drag.CONNECT, mb)
 				_drag_room = hit[0]
 				_drag_gate = hit[1]
+				return
+			if is_metsys():
+				# Like MetSys: a click on a cell's border puts a passage there.
+				toggle_passage(w)
+				redraw()
 				return
 			if not room.is_empty():
 				world.checkpoint()
@@ -1549,6 +1827,17 @@ func _on_left_release(mb: InputEventMouseButton) -> void:
 				generate_requested.emit(box)
 			elif _drag_moved:
 				status_message.emit("Drag a bigger box: at least 2 x 2 cells.")
+		Drag.RUBBER when is_metsys() and tool == Tool.ROOM:
+			# A click draws a room of one cell, a drag one of the box's cells.
+			draw_cells_room(_rubber_world_rect())
+		Drag.RUBBER when is_metsys() and tool == Tool.RECT:
+			if world.has_room(selected_room):
+				var free := paint_cells_in(_rubber_world_rect()).filter(func(c: Vector2i) -> bool: return world.room_at_cell(c, layer).is_empty())
+				if free.is_empty():
+					status_message.emit("Those cells are taken: rooms don't overlap.")
+				else:
+					world.checkpoint()
+					world.paint_cells(selected_room, free)
 		Drag.RUBBER:
 			var r := _rubber_world_rect()
 			if r.size.x >= world.get_grid() and r.size.y >= world.get_grid():
@@ -1598,7 +1887,7 @@ func _on_mouse_motion(mm: InputEventMouseMotion) -> void:
 		redraw()
 		accept_event()
 		return
-	if tool in [Tool.PAINT, Tool.ERASE, Tool.AREA_PAINT]:
+	if tool in [Tool.PAINT, Tool.ERASE, Tool.AREA_PAINT] or (is_metsys() and tool in [Tool.ROOM, Tool.GATE]):
 		_overlay.queue_redraw()
 	if _drag != Drag.NONE:
 		if mm.position.distance_to(_drag_start) > 3.0:
@@ -1639,25 +1928,26 @@ func _apply_drag(pos: Vector2) -> void:
 		Drag.MOVE_ROOM:
 			_checkpoint_once()
 			# Snap the room's top-left corner, not its origin, so it lines up with neighbors.
-			var snapped := world.snap(_drag_orig_bounds.position + delta_world)
+			var snapped := snap_point(_drag_orig_bounds.position + delta_world)
 			world.set_origin(_drag_room, _drag_orig_origin + snapped - _drag_orig_bounds.position)
 			_sync_preview_position(_drag_room)
 		Drag.RESIZE:
 			_checkpoint_once()
 			var r := _drag_orig_rect
-			var p := world.snap(screen_to_world(pos))
+			var p := snap_point(screen_to_world(pos))
+			var step := map_cell() if is_metsys() else Vector2.ONE * world.get_grid()
 			var left := r.position.x
 			var top := r.position.y
 			var right := r.end.x
 			var bottom := r.end.y
 			if _drag_handle in [0, 6, 7]:
-				left = minf(p.x, right - world.get_grid())
+				left = minf(p.x, right - step.x)
 			if _drag_handle in [2, 3, 4]:
-				right = maxf(p.x, left + world.get_grid())
+				right = maxf(p.x, left + step.x)
 			if _drag_handle in [0, 1, 2]:
-				top = minf(p.y, bottom - world.get_grid())
+				top = minf(p.y, bottom - step.y)
 			if _drag_handle in [4, 5, 6]:
-				bottom = maxf(p.y, top + world.get_grid())
+				bottom = maxf(p.y, top + step.y)
 			var nr := Rect2(left, top, right - left, bottom - top)
 			world.set_local_rect(_drag_room, _drag_rect_index, Rect2(nr.position - world.get_origin(_drag_room), nr.size))
 		Drag.MOVE_GATE:
@@ -1752,7 +2042,7 @@ func _on_key(key: InputEventKey) -> void:
 			elif world.has_room(selected_room):
 				var d: Vector2 = {KEY_LEFT: Vector2.LEFT, KEY_RIGHT: Vector2.RIGHT, KEY_UP: Vector2.UP, KEY_DOWN: Vector2.DOWN}[key.keycode]
 				world.checkpoint()
-				world.set_origin(selected_room, world.get_origin(selected_room) + d * world.get_grid())
+				world.set_origin(selected_room, world.get_origin(selected_room) + d * (map_cell() if is_metsys() else Vector2.ONE * world.get_grid()))
 				_sync_preview_position(selected_room)
 			else:
 				handled = false

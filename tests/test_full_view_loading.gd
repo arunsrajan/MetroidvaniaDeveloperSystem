@@ -50,10 +50,13 @@ func _scene_files() -> void:
 	var moved := ProjectSettings.globalize_path(path) + ".moved"
 	DirAccess.rename_absolute(ProjectSettings.globalize_path(path), moved)
 	check(world.get_scene_path("R0_0") == path, "asked again only every couple of seconds (each ask is a file system call)")
-	world.set_origin("R0_0", world.get_origin("R0_0"))
-	check(world.get_scene_path("R0_0").is_empty(), "and at once after the world changed: gone")
+	world.set_origin("R0_0", world.get_origin("R0_0") + Vector2(32, 0))
+	check(world.get_scene_path("R0_0") == path, "a room moved (each step of a drag) doesn't ask again: moves can't make a file go")
+	world.set_origin("R0_0", world.get_origin("R0_0") - Vector2(32, 0))
+	world.set_room_value("R0_0", "notes", "checked")
+	check(world.get_scene_path("R0_0").is_empty(), "and at once after another change of the world: gone")
 	DirAccess.rename_absolute(moved, ProjectSettings.globalize_path(path))
-	world.set_origin("R0_0", world.get_origin("R0_0"))
+	world.set_room_value("R0_0", "notes", "")
 	check(world.get_scene_path("R0_0") == path, "back")
 
 ## Looks at the world's (x, y) at [param zoom].
@@ -94,7 +97,7 @@ func _zoomed_out() -> void:
 	check(_live().is_empty(), "still no scene")
 
 func _zoomed_in() -> void:
-	_look(_middle("R3_2"), 0.3)
+	_look(_middle("R3_2"), 0.36)
 	await get_tree().process_frame
 	check(canvas.is_room_live("R3_2"), "zoomed in, the room in the middle of the view comes first")
 	await _settle()
@@ -108,14 +111,14 @@ func _zoomed_in() -> void:
 	check(shown.get_meta(&"fake_map", false) and shown.process_mode == Node.PROCESS_MODE_DISABLED, "its scene is shown, not run")
 
 func _panned_away() -> void:
-	_look(world.get_room_bounds("R7_4").end + Vector2(20000, 20000), 0.3)
+	_look(world.get_room_bounds("R7_4").end + Vector2(20000, 20000), 0.36)
 	await _settle()
 	check(_live().is_empty(), "panned far away, the rooms let go of their scenes")
 	check(canvas.shown_picture("R1_0") != null and canvas.shown_picture("R0_0") != null, "those with a picture show it again")
 	check((canvas._context["R3_2"] as Node2D).get_child_count() == 0, "the others their outlines")
 
 func _painter_room() -> void:
-	_look(_middle("R3_2"), 0.3)
+	_look(_middle("R3_2"), 0.36)
 	await _settle()
 	check(view.activate_room("R3_2") and view.room_id == "R3_2", "a room is edited")
 	check(view.activate_room("R4_2") and view.room_id == "R4_2", "then another")

@@ -18,6 +18,8 @@ signal rooms_requested(ids: Array[String])
 signal generate_requested(box: Rect2i)
 ## The rooms or outlines selected changed.
 signal selection_changed
+## A move of rooms (or outlines) ended: the views take in where they went.
+signal move_finished
 
 enum Tool { ROOMS, RECTANGLE, ELLIPSE, POLYGON, CURVY, GENERATE }
 # l10n: text
@@ -70,6 +72,15 @@ var _delta := Vector2i.ZERO
 var _own_rects: Array[Rect2] = []
 var _other_rects: Array[Rect2] = []
 var _delta_px := Vector2.ZERO
+## Where the move put them last (a move to the same place does nothing).
+var _placed := Vector2.ZERO
+var _placed_once := false
+## The top-left corner of what moves, when the move started (see [method snap_delta]).
+var _anchor := Vector2.ZERO
+var _draw_cache: Dictionary = {} ## room id -> what is drawn of it (see [method _room_draw])
+var _text_cache: Dictionary = {} ## "size|text" -> TextLine (see [method draw_text])
+var _draw_world: MDSWorld
+var _draw_revision := -1
 var _mouse := Vector2.INF ## world px
 var _preview: Array = []
 var _preview_key := 0
@@ -104,9 +115,10 @@ func reset() -> void:
 	outlines.clear()
 	invalidate()
 
-## The world changed: the cells the outlines will take are measured again.
+## The world changed: the cells the outlines will take are measured again, the rooms drawn again.
 func invalidate() -> void:
 	_preview_key = 0
+	_draw_cache.clear()
 	for id: String in rooms.keys():
 		if not _world() or not _world().has_room(id) or _world().get_room_layer(id) != _layer():
 			rooms.erase(id)
@@ -122,8 +134,15 @@ func set_tool(t: int) -> void:
 	canvas._overlay.queue_redraw()
 
 func _cancel() -> void:
+	var was_moving := _drag == Drag.MOVE and _moved
 	_drag = Drag.NONE
+	if was_moving:
+		move_finished.emit()
 	_draft.clear()
+
+## Whether rooms or outlines are being dragged.
+func is_moving() -> bool:
+	return _drag == Drag.MOVE
 
 ## Whether a shape is being drawn or something moved.
 func is_busy() -> bool:
@@ -466,6 +485,19 @@ func _begin_move(p: Vector2) -> void:
 		_own_rects.append_array(_world().get_world_rects(id))
 	_other_rects = MDSWorldSceneTools.layer_rects(_world(), _layer(), ids)
 	_delta_px = Vector2.ZERO
+	_placed = Vector2.ZERO
+	_placed_once = false
+	# What snaps to the grid: the rooms' top-left corner, else the outlines'.
+	_anchor = Vector2.ZERO
+	var first := true
+	for r in _own_rects:
+		_anchor = r.position if first else _anchor.min(r.position)
+		first = false
+	if first:
+		for i: int in _starts:
+			var b := MDSGeometry.bounds(MDSRoomSketches.polygon(_world(), i))
+			_anchor = b.position if first else _anchor.min(b.position)
+			first = false
 
 func _move_to(p: Vector2) -> void:
 	var d := p - _from
@@ -477,18 +509,24 @@ func _move_to(p: Vector2) -> void:
 	_moved = true
 	_place(d)
 
-## The rooms and outlines moving go [param d] world px from where they were: rooms smoothly, with
-## the mouse, stopping flush against others and sliding along them (the outlines with them);
-## outlines alone by the grid.
-func _place(d: Vector2) -> void:
+## The rooms and outlines moving go [param d] world px from where they were, by the world grid
+## (a tile) with [member snap], so their tiles line up with the rooms around them, else to the
+## pixel; rooms stop flush against others and slide along them (the outlines with them).
+func _place(d: Vector2, exact := false) -> void:
 	var ids: Array[String] = []
 	ids.assign(_origins.keys())
-	var px := d
+	var px := d if exact else snap_delta(d)
 	if not ids.is_empty():
-		_delta_px = MDSAreaTools.slide_rects(_own_rects, _other_rects, _delta_px, d.round())
+		var at := MDSAreaTools.slide_rects(_own_rects, _other_rects, _delta_px, px)
+		# Stopped against a room off the grid: the last step on the grid that fits.
+		if snap and not exact and not at.is_equal_approx(px):
+			at = _on_grid_towards(at, _delta_px)
+		_delta_px = at
 		px = _delta_px
-	elif snap:
-		px = d.snapped(Vector2.ONE * _world().get_grid())
+	if px == _placed and _placed_once:
+		return
+	_placed = px
+	_placed_once = true
 	var before: Vector2 = canvas.frame_origin()
 	MDSAreaTools.place(_world(), ids, _origins, px)
 	MDSRoomSketches.move(_world(), _starts.keys(), px, _starts)
@@ -496,12 +534,41 @@ func _place(d: Vector2) -> void:
 	if canvas.is_editing() and _origins.has(canvas.room_id):
 		canvas.pan += (canvas.frame_origin() - before) * canvas.zoom
 		canvas._apply_view()
-	canvas.refresh_context()
-	invalidate()
+	# Only the rooms moving go along: the others stay as they are.
+	for id in ids:
+		_draw_cache.erase(id)
+	# What else is kept is as it was: only the rooms moved are drawn again.
+	_draw_revision = _world().revision
+	canvas.move_context(ids)
+	_preview_key = 0
+	canvas._overlay.queue_redraw()
+
+## A move of [param d] (world px) with [member snap]: the top-left corner of what moves lands on
+## the world grid (a tile), so the rooms' tiles line up with the rooms around them (rooms off the
+## grid come onto it); else to the pixel.
+func snap_delta(d: Vector2) -> Vector2:
+	if not snap:
+		return d.round()
+	return _world().snap(_anchor + d) - _anchor
+
+## [param at] (a move that stopped against a room off the grid) back towards [param from] to the
+## nearest grid step: the rooms moved keep their tiles on the grid. As it was if that doesn't fit.
+func _on_grid_towards(at: Vector2, from: Vector2) -> Vector2:
+	var g := _world().get_grid()
+	var out := at
+	for axis in 2:
+		var q := (_anchor[axis] + at[axis]) / g
+		if absf(q - roundf(q)) < 0.001:
+			continue
+		out[axis] = (floorf(q) if from[axis] < at[axis] else ceilf(q)) * g - _anchor[axis]
+	return out if MDSAreaTools.rects_fit(_own_rects, _other_rects, out) else at
 
 func _finish_move() -> void:
 	if not _moved:
 		return
+	canvas.refresh_context()
+	invalidate()
+	move_finished.emit()
 	var ids := selected_rooms()
 	if ids.is_empty():
 		status_message.emit("Moved %d outline(s)." % outlines.size())
@@ -527,7 +594,7 @@ func nudge(d: Vector2i) -> void:
 	_world().checkpoint()
 	var s := _world().get_paint_cell()
 	_delta = Vector2i.ZERO
-	_place(Vector2(d) * s)
+	_place(Vector2(d) * s, true)
 	_moved = true
 	_finish_move()
 
@@ -611,38 +678,59 @@ func draw_under(ci: CanvasItem, font: Font) -> void:
 	var areas: Dictionary = {}
 	# World px to screen px, for whole outlines at once (a world shows hundreds).
 	var xf := Transform2D(0.0, Vector2(canvas.zoom, canvas.zoom), 0.0, to_screen(Vector2.ZERO))
+	# The outlines of the rooms neither selected nor edited, one batch per color (a call per room
+	# was most of the time a frame took on big maps), the gates in one batch too.
+	var batches: Dictionary = {} # color -> PackedVector2Array of segments
+	var gates := PackedVector2Array()
+	var edited_id: String = canvas.room_id if canvas.is_editing() else ""
 	for id in w.get_room_ids():
-		if w.get_room_layer(id) != _layer():
+		var e := _room_draw(id)
+		if e.is_empty():
 			continue
-		var b := w.get_room_bounds(id)
-		var a := w.get_room_area(id)
+		var b: Rect2 = e.bounds
+		var a: String = e.area
 		if not a.is_empty():
 			areas[a] = b if not areas.has(a) else (areas[a] as Rect2).merge(b)
 		if not b.intersects(view):
 			continue
-		var color := w.get_area_color(a) if not a.is_empty() else COLOR_NO_AREA
-		var edited: bool = canvas.is_editing() and id == canvas.room_id
-		var no_scene := w.get_scene_path(id).is_empty()
-		for poly in w.get_room_outline(id):
+		var color: Color = e.color
+		var edited := id == edited_id
+		var no_scene: bool = e.no_scene
+		var picked := rooms.has(id)
+		for poly: PackedVector2Array in e.polys:
 			var pts := xf * poly
 			if no_scene and pts.size() >= 3:
 				ci.draw_colored_polygon(pts, Color(color, 0.2))
-			pts.append(pts[0])
-			if rooms.has(id):
-				ci.draw_polyline(pts, Color(COLOR_SELECT, 0.35), 7.0)
-			ci.draw_polyline(pts, COLOR_SELECT if rooms.has(id) else Color(color.lightened(0.2), 1.0 if edited else 0.8), 3.0 if rooms.has(id) or edited else 2.0)
+			if picked or edited:
+				pts.append(pts[0])
+				if picked:
+					ci.draw_polyline(pts, Color(COLOR_SELECT, 0.35), 7.0)
+				ci.draw_polyline(pts, COLOR_SELECT if picked else Color(color.lightened(0.2), 1.0), 3.0)
+				continue
+			var key := Color(color.lightened(0.2), 0.8)
+			var segs: PackedVector2Array = batches.get(key, PackedVector2Array())
+			for i in pts.size():
+				segs.append(pts[i])
+				segs.append(pts[(i + 1) % pts.size()])
+			batches[key] = segs
 		if not edited:
-			for g in w.get_gates(id):
-				var gp := to_screen(w.get_gate_world_pos(id, g))
-				ci.draw_rect(Rect2(gp - Vector2(4, 4), Vector2(8, 8)), Color(1, 0.9, 0.3, 0.75))
+			for gp: Vector2 in e.gates:
+				gates.append(xf * gp)
 		var sr := Rect2(to_screen(b.position), b.size * canvas.zoom)
 		if sr.size.x >= 70.0:
-			var label := id + ("  (no scene: click to paint)" if no_scene and sr.size.x >= 220.0 else "")
+			var label: String = id + ("  (no scene: click to paint)" if no_scene and sr.size.x >= 220.0 else "")
 			# Kept on screen while the room is (its corner may be off it).
 			var at := Vector2(clampf(sr.position.x, 0.0, maxf(0.0, sr.end.x - 80.0)), clampf(sr.position.y, 30.0, maxf(30.0, sr.end.y - 30.0))) + Vector2(8, 20)
-			var room_w := sr.end.x - at.x - 4.0
-			ci.draw_string_outline(font, at, label, HORIZONTAL_ALIGNMENT_LEFT, room_w, 14, 4, Color.BLACK)
-			ci.draw_string(font, at, label, HORIZONTAL_ALIGNMENT_LEFT, room_w, 14, Color(1, 1, 1, 0.9))
+			draw_text(ci, font, at, label, sr.end.x - at.x - 4.0, 14, 4, Color(1, 1, 1, 0.9), Color.BLACK)
+	for key: Color in batches:
+		ci.draw_multiline(batches[key], key, 2.0)
+	if not gates.is_empty():
+		# A square of 8 px at each: a line 8 px wide, 8 px long.
+		var marks := PackedVector2Array()
+		for gp in gates:
+			marks.append(gp - Vector2(4, 0))
+			marks.append(gp + Vector2(4, 0))
+		ci.draw_multiline(marks, Color(1, 0.9, 0.3, 0.75), 8.0)
 	# Area names over their rooms, when the rooms are small on screen.
 	for a: String in areas:
 		var r: Rect2 = areas[a]
@@ -654,9 +742,53 @@ func draw_under(ci: CanvasItem, font: Font) -> void:
 		var at := sr.get_center() + Vector2(-width / 2.0, fs * 0.35)
 		# Fainter over rooms big on screen (being painted), clear when the view is zoomed out.
 		var alpha := 0.45 if sr.size.x > canvas.size.x * 0.6 else 0.95
-		ci.draw_string_outline(font, at, a, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 6, Color(0, 0, 0, 0.8 * alpha))
-		ci.draw_string(font, at, a, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(w.get_area_color(a).lightened(0.45), alpha))
+		draw_text(ci, font, at, a, -1.0, fs, 6, Color(w.get_area_color(a).lightened(0.45), alpha), Color(0, 0, 0, 0.8 * alpha))
 	_draw_outlines(ci, font)
+
+## What the view draws of room [param id] (world px), kept until the world changes (see
+## [method invalidate]): its bounds, area and color, outline, gates, whether it has a scene. Empty
+## when it isn't on the layer.
+func _room_draw(id: String) -> Dictionary:
+	var w := _world()
+	if w != _draw_world or w.revision != _draw_revision:
+		_draw_cache.clear()
+		_draw_world = w
+		_draw_revision = w.revision
+	var e: Dictionary = _draw_cache.get(id, {})
+	if not e.is_empty():
+		return e
+	if not w.has_room(id) or w.get_room_layer(id) != _layer():
+		_draw_cache[id] = {}
+		return {}
+	var a := w.get_room_area(id)
+	var gates := PackedVector2Array()
+	for g in w.get_gates(id):
+		gates.append(w.get_gate_world_pos(id, g))
+	e = {"bounds": w.get_room_bounds(id), "area": a, "color": w.get_area_color(a) if not a.is_empty() else COLOR_NO_AREA,
+		"polys": w.get_room_outline(id), "gates": gates, "no_scene": w.get_scene_path(id).is_empty()}
+	_draw_cache[id] = e
+	return e
+
+## Draws [param text] with its baseline's start at [param at] (screen px), at most [param width]
+## wide (-1: all of it), outlined: shaped once and kept (shaping each label each frame was a good
+## part of what a frame of a big map took).
+func draw_text(ci: CanvasItem, font: Font, at: Vector2, text: String, width: float, font_size: int, outline: int, color: Color, outline_color: Color) -> void:
+	if width != -1.0 and width <= 1.0:
+		return
+	var key := "%d|%s" % [font_size, text]
+	var line: TextLine = _text_cache.get(key)
+	if not line:
+		if _text_cache.size() > 2000:
+			_text_cache.clear()
+		line = TextLine.new()
+		line.add_string(text, font, font_size)
+		line.text_overrun_behavior = TextServer.OVERRUN_TRIM_CHAR
+		_text_cache[key] = line
+	if line.width != width:
+		line.width = width
+	var pos := at - Vector2(0, line.get_line_ascent())
+	line.draw_outline(ci.get_canvas_item(), pos, outline, outline_color)
+	line.draw(ci.get_canvas_item(), pos, color)
 
 ## The outlines drawn: filled lightly, the cells they will take, what they make.
 func _draw_outlines(ci: CanvasItem, font: Font) -> void:
@@ -716,8 +848,11 @@ func drop_preview(files: PackedStringArray, p: Vector2) -> Vector2:
 	var shape := Rect2()
 	for i in rects.size():
 		shape = rects[i] if i == 0 else shape.merge(rects[i])
-	# Where the scene's (0, 0) goes for its shape to be centred on the mouse, to the pixel.
+	# Where the scene's (0, 0) goes for its shape to be centred on the mouse: its top-left corner on
+	# the world grid with Snap (its tiles line up with the rooms around it), else to the pixel.
 	var want := (p - shape.get_center()).round()
+	if snap:
+		want = w.snap(shape.position + want) - shape.position
 	if _drop.get("files") != files or not _drop.has("others"):
 		_drop = {"files": files, "others": MDSWorldSceneTools.layer_rects(w, _layer())}
 	var others: Array[Rect2] = _drop.others

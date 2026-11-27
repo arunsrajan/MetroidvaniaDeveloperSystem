@@ -3822,7 +3822,7 @@ msgid "Snap to cells"
 msgstr ""
 
 #: ui/room_view.gd
-msgid "Rectangles and ellipses on the paint cells' corners, polygon corners on the world grid, outlines moved by the grid. Rooms and scenes dragged in move smoothly, to the pixel, stopping against their neighbours"
+msgid "Rectangles and ellipses on the paint cells' corners, polygon corners on the world grid, outlines moved by the grid. Rooms and scenes dragged in follow the mouse a grid step (a tile) at a time, so their tiles line up with their neighbours', stopping against them (off: to the pixel)"
 msgstr ""
 
 #: ui/room_view.gd
@@ -4236,6 +4236,7 @@ msgid "Draws the room from a picture. Black, grey and brown: solid terrain; red,
 msgstr ""
 
 #: ui/trace_dialog.gd
+#: world_panel.gd
 msgid "Drawing"
 msgstr ""
 
@@ -4497,19 +4498,7 @@ msgid "Erase (X)"
 msgstr ""
 
 #: ui/world_canvas.gd
-msgid "Select (V)"
-msgstr ""
-
-#: ui/world_canvas.gd
-msgid "Draw room (R)"
-msgstr ""
-
-#: ui/world_canvas.gd
-msgid "Extend room (E)"
-msgstr ""
-
-#: ui/world_canvas.gd
-msgid "Gate (G)"
+msgid "Paint (B)"
 msgstr ""
 
 #: ui/world_canvas.gd
@@ -4517,7 +4506,19 @@ msgid "Pin (P)"
 msgstr ""
 
 #: ui/world_canvas.gd
-msgid "Paint (B)"
+msgid "Gate (G)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Extend room (E)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Select (V)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Draw room (R)"
 msgstr ""
 
 #: ui/world_canvas.gd
@@ -4561,11 +4562,43 @@ msgid "Paint an area: the stroke becomes rooms with doors between them. Start in
 msgstr ""
 
 #: ui/world_canvas.gd
+msgid "MDS (free-form)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "MetSys (map cells)"
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Drawing free-form: rooms on the world grid and paint cells, any size and shape."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Drawing like MetSys, on map cells a screen each: Room (R) left-drag draws cells, right-drag erases them; Gate (G) click a cell's border for a passage, again to take it out; rooms move by whole cells. The rooms already drawn stay as they are."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Those cells are taken: rooms don't overlap. Right-drag erases cells."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "No room there: passages go on a room's border."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Passage taken out."
+msgstr ""
+
+#: ui/world_canvas.gd
 msgid "Select a room first (Ctrl+click more to extend them together), then drag to add a rectangle to it."
 msgstr ""
 
 #: ui/world_canvas.gd
 msgid "Drag a bigger box: at least 2 x 2 cells."
+msgstr ""
+
+#: ui/world_canvas.gd
+msgid "Those cells are taken: rooms don't overlap."
 msgstr ""
 
 #: ui/world_canvas.gd
@@ -4658,11 +4691,11 @@ msgid "Every room of the layer where it is on the map, at its actual size, with 
 msgstr ""
 
 #: world_panel.gd
-msgid "Paint the rooms selected (on the map or in the Full view), or the selected room or area: their actual contents (terrain, background, decorations)"
+msgid "Room view"
 msgstr ""
 
 #: world_panel.gd
-msgid "Room view"
+msgid "Paint the rooms selected (on the map or in the Full view), or the selected room or area: their actual contents (terrain, background, decorations)"
 msgstr ""
 
 #: world_panel.gd
@@ -4670,17 +4703,12 @@ msgid "Show the Rooms / Scenes / Inspect... tabs on the right. Hide them for a b
 msgstr ""
 
 #: world_panel.gd
-msgid "Paint area"
+msgid "How the map tools draw. MDS: free-form, on the world grid and paint cells. MetSys: on map cells a screen each, like MetSys' editor (Room: left-drag draws, right-drag erases; Gate: click the border between two cells for a passage, again to remove it; rooms move and resize by whole cells). Switch any time: the rooms already drawn stay as they are"
 msgstr ""
 
-#. Paint tiles or colors.
+#. A tool: make a room bigger.
 #: world_panel.gd
-msgid "Paint"
-msgstr ""
-
-#. A note marker that the designer pins on the map.
-#: world_panel.gd
-msgid "Pin"
+msgid "Extend"
 msgstr ""
 
 #. A door or passage that joins two rooms on the map (as in Hollow Knight). Not a garden gate.
@@ -4688,9 +4716,18 @@ msgstr ""
 msgid "Gate"
 msgstr ""
 
-#. A tool: make a room bigger.
+#. A note marker that the designer pins on the map.
 #: world_panel.gd
-msgid "Extend"
+msgid "Pin"
+msgstr ""
+
+#. Paint tiles or colors.
+#: world_panel.gd
+msgid "Paint"
+msgstr ""
+
+#: world_panel.gd
+msgid "Paint area"
 msgstr ""
 
 #: world_panel.gd
@@ -4898,15 +4935,11 @@ msgid "Id your game uses for this area (Hollow Knight calls these map zones)."
 msgstr ""
 
 #: world_panel.gd
-msgid "Title"
-msgstr ""
-
-#: world_panel.gd
 msgid "Shown by MDSAreaTitle when the player arrives. Empty: the area's name"
 msgstr ""
 
 #: world_panel.gd
-msgid "Subtitle"
+msgid "Title"
 msgstr ""
 
 #: world_panel.gd
@@ -4914,11 +4947,15 @@ msgid "smaller line under the title"
 msgstr ""
 
 #: world_panel.gd
-msgid "Music"
+msgid "Subtitle"
 msgstr ""
 
 #: world_panel.gd
 msgid "Loops while the player is in this area. MDSMusic crossfades between areas and keeps playing when two areas share it"
+msgstr ""
+
+#: world_panel.gd
+msgid "Music"
 msgstr ""
 
 #: world_panel.gd
@@ -4934,7 +4971,7 @@ msgid "MDSMusic.play_boss() starts it from silence; end_boss() returns to the ar
 msgstr ""
 
 #: world_panel.gd
-msgid "Backdrop"
+msgid "MDSBackdrop (.tres) drawn in the distance behind the area's rooms. A room can have its own"
 msgstr ""
 
 #: world_panel.gd
@@ -4942,7 +4979,7 @@ msgid "world default"
 msgstr ""
 
 #: world_panel.gd
-msgid "MDSBackdrop (.tres) drawn in the distance behind the area's rooms. A room can have its own"
+msgid "Backdrop"
 msgstr ""
 
 #: world_panel.gd
@@ -4962,7 +4999,7 @@ msgid "Animated background behind every room of the area, soft and out of focus 
 msgstr ""
 
 #: world_panel.gd
-msgid "Boss room bg"
+msgid "Animated background of the area's boss rooms (type boss or mini_boss, or a boss named in the Inspect tab), instead of the area's: blood_moon, void_pulse, arcane_vortex, infection..., or creatures (bees, spiders, songbirds, bats, owls...), or both (blood_moon, bats). Empty: the world's boss rooms background, else the area's"
 msgstr ""
 
 #: world_panel.gd
@@ -4970,7 +5007,7 @@ msgid "world's boss rooms"
 msgstr ""
 
 #: world_panel.gd
-msgid "Animated background of the area's boss rooms (type boss or mini_boss, or a boss named in the Inspect tab), instead of the area's: blood_moon, void_pulse, arcane_vortex, infection..., or creatures (bees, spiders, songbirds, bats, owls...), or both (blood_moon, bats). Empty: the world's boss rooms background, else the area's"
+msgid "Boss room bg"
 msgstr ""
 
 #: world_panel.gd
@@ -4978,15 +5015,15 @@ msgid "Weather"
 msgstr ""
 
 #: world_panel.gd
-msgid "0 lit, 0.05 to 0.8 dimmed (lights carve pools around the player and enemies). Empty: automatic, from the world's Dark room share. A room can have its own"
-msgstr ""
-
-#: world_panel.gd
 msgid "Darkness"
 msgstr ""
 
 #: world_panel.gd
-msgid "Shown by MDSObjectiveBanner on arrival and on the map until done"
+msgid "0 lit, 0.05 to 0.8 dimmed (lights carve pools around the player and enemies). Empty: automatic, from the world's Dark room share. A room can have its own"
+msgstr ""
+
+#: world_panel.gd
+msgid "Objective"
 msgstr ""
 
 #: world_panel.gd
@@ -4994,7 +5031,7 @@ msgid "e.g. Find the crypt key"
 msgstr ""
 
 #: world_panel.gd
-msgid "Objective"
+msgid "Shown by MDSObjectiveBanner on arrival and on the map until done"
 msgstr ""
 
 #: world_panel.gd
@@ -5078,11 +5115,11 @@ msgid "Create a new scene for this room with bounds guides and one MDSGate per g
 msgstr ""
 
 #: world_panel.gd
-msgid "Use an existing scene for this room"
+msgid "Assign scene..."
 msgstr ""
 
 #: world_panel.gd
-msgid "Assign scene..."
+msgid "Use an existing scene for this room"
 msgstr ""
 
 #: world_panel.gd
@@ -5090,11 +5127,11 @@ msgid "Progression is computed from the start room"
 msgstr ""
 
 #: world_panel.gd
-msgid "Open the Room view to paint this room's terrain, background and decorations"
+msgid "Paint room"
 msgstr ""
 
 #: world_panel.gd
-msgid "Paint room"
+msgid "Open the Room view to paint this room's terrain, background and decorations"
 msgstr ""
 
 #: world_panel.gd
@@ -5146,11 +5183,11 @@ msgid "0 lit, 0.05 to 0.8 dimmed: a subtractive light darkens the room and the p
 msgstr ""
 
 #: world_panel.gd
-msgid "Fit to scene"
+msgid "Resize the room to the scene's terrain"
 msgstr ""
 
 #: world_panel.gd
-msgid "Resize the room to the scene's terrain"
+msgid "Fit to scene"
 msgstr ""
 
 #: world_panel.gd
@@ -5174,11 +5211,11 @@ msgid "Add gate"
 msgstr ""
 
 #: world_panel.gd
-msgid "Add/move map gates to match the scene's gate nodes (left1, right1, MDSGate...)"
+msgid "Import from scene"
 msgstr ""
 
 #: world_panel.gd
-msgid "Import from scene"
+msgid "Add/move map gates to match the scene's gate nodes (left1, right1, MDSGate...)"
 msgstr ""
 
 #: world_panel.gd
@@ -5290,11 +5327,11 @@ msgid "Rooms, rects and gates snap to this. Use your tile size or a multiple of 
 msgstr ""
 
 #: world_panel.gd
-msgid "1152x648"
+msgid "Default room size"
 msgstr ""
 
 #: world_panel.gd
-msgid "Default room size"
+msgid "1152x648"
 msgstr ""
 
 #: world_panel.gd
@@ -5370,11 +5407,11 @@ msgid "TileSet (.tres) the Room view paints new rooms with, e.g. an asset pack's
 msgstr ""
 
 #: world_panel.gd
-msgid "optional .freeform.tres"
+msgid "Notch fill style"
 msgstr ""
 
 #: world_panel.gd
-msgid "Notch fill style"
+msgid "optional .freeform.tres"
 msgstr ""
 
 #: world_panel.gd
