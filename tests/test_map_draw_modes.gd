@@ -29,6 +29,7 @@ func _run() -> void:
 	_moves()
 	_switching()
 	_previews_follow()
+	_outline_follows()
 	canvas.queue_free()
 	await get_tree().process_frame
 
@@ -169,3 +170,41 @@ func _previews_follow() -> void:
 	canvas.set_data(world, null, scenes)
 	check(is_instance_valid(node) and node.position == world.get_origin(id), "and back on undo (%s)" % node.position)
 	canvas.show.previews = false
+
+## A room drawn on the grid, dragged by the grid, off the paint cells: the shape drawn of it (its cells counted from its
+## corner) keeps its size and follows it to the pixel; counted on the world's paint cells, it would
+## change size.
+func _outline_follows() -> void:
+	var w := MDSWorld.new()
+	# Drawn on the 32 px grid: not a whole number of paint cells (288 x 162) wide or tall.
+	var id := w.add_room("Drag", Rect2(0, 0, 1024, 608), 0)
+	var n: int = (w.get_room_frame_cells(id)[0] as Dictionary).size()
+	var sizes_same := true
+	var corners_same := true
+	var sizes_world: Dictionary = {}
+	for k in 12:
+		var to := Vector2(k * 37, k * 23).snapped(Vector2.ONE * w.get_grid())
+		w.set_origin(id, to)
+		var fc := w.get_room_frame_cells(id)
+		sizes_same = sizes_same and (fc[0] as Dictionary).size() == n
+		corners_same = corners_same and (fc[1] as Vector2) == w.get_room_bounds(id).position
+		sizes_world[w.get_room_cells(id).size()] = true
+	check(n > 0 and sizes_same, "the room's cells drawn stay as many wherever it is (%d)" % n)
+	check(corners_same, "and are drawn at its corner, to the pixel")
+	var fc0 := w.get_room_frame_cells(id)
+	var extent := Vector2i.ZERO
+	for c: Vector2i in fc0[0]:
+		extent = extent.max(c + Vector2i.ONE)
+	check((Vector2(extent) * (fc0[2] as Vector2)).is_equal_approx(w.get_room_bounds(id).size), "exactly the room's size, not a cell more or less (%s x %s = %s)" % [extent, fc0[2], w.get_room_bounds(id).size])
+	# An L room (whole paint cells) keeps its notch.
+	var l := w.add_room("Ell", Rect2(5000, 0, 576, 324), 0)
+	w.add_rect(l, Rect2(5000, 324, 288, 162))
+	var lc: Dictionary = w.get_room_frame_cells(l)[0]
+	check(lc.size() == 5 and not lc.has(Vector2i(1, 2)), "an L room keeps its shape (%s)" % [lc.keys()])
+	check(sizes_world.size() > 1, "(counted on the world's paint cells they would not: %s)" % [sizes_world.keys()])
+	# The canvas draws them: its cache follows the moves.
+	canvas.set_data(w, null, scenes)
+	w.set_origin(id, Vector2(64, 32))
+	var fc := canvas.get_frame_cells(id)
+	check((fc[1] as Vector2) == Vector2(64, 32) and (fc[0] as Dictionary).size() == n, "the map view draws them where the room is now (%s)" % fc[1])
+	canvas.set_data(world, null, scenes)

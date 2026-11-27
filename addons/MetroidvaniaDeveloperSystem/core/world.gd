@@ -913,6 +913,28 @@ func get_room_cells(id: String) -> Dictionary:
 				cells[Vector2i(x, y)] = true
 	return cells
 
+## The room's cells as the map draws them: counted from its own top-left corner (cell (0, 0)
+## there, centers inside its rects), each the paint cell stretched a little so a whole number of
+## them is exactly as wide and as tall as the room: [cells, corner (world px), cell size].
+## Drawn at the corner with that size they are the room's shape where it is and the size it is,
+## whether or not it sits on the paint cells or is a whole number of them ([method get_room_cells]
+## counts on the world's paint cells: there a room off them, as moving it by the grid leaves it, or
+## drawn on the grid, is shifted and a cell bigger or smaller).
+func get_room_frame_cells(id: String) -> Array:
+	var b := get_room_bounds(id)
+	var corner := b.position
+	var s := get_paint_cell()
+	var n := (b.size / s).round().max(Vector2.ONE)
+	var cs := b.size / n if b.has_area() else s
+	var cells: Dictionary = {}
+	for r in get_world_rects(id):
+		var c0 := Vector2i(((r.position - corner) / cs - Vector2(0.5, 0.5)).ceil())
+		var c1 := Vector2i(((r.end - corner) / cs - Vector2(0.5, 0.5)).ceil()) - Vector2i.ONE
+		for y in range(c0.y, c1.y + 1):
+			for x in range(c0.x, c1.x + 1):
+				cells[Vector2i(x, y)] = true
+	return [cells, corner, cs]
+
 ## Room on [param layer] whose shape covers the paint cell, or "".
 func room_at_cell(cell: Vector2i, layer: int) -> String:
 	return room_at(cell_to_world_rect(cell).get_center(), layer)

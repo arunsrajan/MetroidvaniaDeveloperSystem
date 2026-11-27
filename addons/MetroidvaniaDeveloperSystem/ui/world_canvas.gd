@@ -150,6 +150,7 @@ var brush_size := 1
 var _paint_room := ""
 var _paint_last := Vector2i.ZERO
 var _cells_cache: Dictionary = {} ## room id -> [signature, cells]
+var _frame_cells_cache: Dictionary = {} ## room id -> [signature, [cells, corner, cell size]] (see [method get_frame_cells])
 ## The area selected with the Area tool: its name, or "#id" for a room in no area.
 var selected_area := ""
 ## Paint tool: a room painted onto an area gets a door to each room of it that it touches.
@@ -690,7 +691,12 @@ func _draw_rooms() -> void:
 			var band := Color.TRANSPARENT if style.kind == MDSMapStyle.Kind.FLAT else (fill if style.kind == MDSMapStyle.Kind.ATLAS else _style_border_color(style, color))
 			MDSMapStyle.draw_outlined_xf(ci, MDSMapStyle.room_polygons(world, id), xf, style.outline_fill(fill), color.darkened(0.5), band, b * 1.6)
 		elif style.kind != MDSMapStyle.Kind.FLAT:
-			style.draw_room(ci, get_cells(id), world.get_paint_cell(), world_to_screen, zoom, fill, _style_border_color(style, color), _passages(id))
+			# Its cells counted from its own corner and drawn there: the shape keeps its size and
+			# stays on the room, to the pixel, wherever the room is (a room off the paint cells, as
+			# a drag by the grid leaves it, was drawn a cell bigger or smaller, and shifted).
+			var fc := get_frame_cells(id)
+			var corner: Vector2 = fc[1]
+			style.draw_room(ci, fc[0], fc[2], func(p: Vector2) -> Vector2: return world_to_screen(p + corner), zoom, fill, _style_border_color(style, color), _passages(id, corner, fc[2]))
 		else:
 			# Border first, fill on top: rects of one room merge into a single shape.
 			for r in rects:
@@ -723,8 +729,12 @@ func _draw_glow_areas(ci: CanvasItem, dim: bool) -> void:
 		if world.has_room_shape(id):
 			shaped[g] = true
 		var owner: Dictionary = groups[g]
-		for c in get_cells(id):
-			owner[c] = id
+		# Its own cells (the size it is), on the paint cells nearest where it is: an area is drawn
+		# on one grid of cells.
+		var fc := get_frame_cells(id)
+		var at := Vector2i(((fc[1] as Vector2) / world.get_paint_cell()).round())
+		for c: Vector2i in fc[0]:
+			owner[c + at] = id
 		var color := get_room_color(id)
 		if dim and not highlight_rooms.has(id):
 			color = color.darkened(0.65)
@@ -767,15 +777,30 @@ func get_cells(id: String) -> Dictionary:
 		_cells_cache[id] = cached
 	return cached[1]
 
-## "x,y:side" keys of cell edges that carry a gate (MetSys themes draw passages there).
-func _passages(id: String) -> Dictionary:
+## Room [param id]'s cells as the map draws them, [cells, corner, cell size] (see
+## [method MDSWorld.get_room_frame_cells]), cached until its shape changes.
+func get_frame_cells(id: String) -> Array:
+	var room: Dictionary = world.data.rooms.get(id, {})
+	var sig := str(room.get("rects", [])) + str(room.get("origin", [])) + str(world.get_paint_cell())
+	var cached: Array = _frame_cells_cache.get(id, [])
+	if cached.is_empty() or cached[0] != sig:
+		var got := world.get_room_frame_cells(id)
+		cached = [sig, got]
+		_frame_cells_cache[id] = cached
+	return cached[1]
+
+## "x,y:side" keys of cell edges that carry a gate (MetSys themes draw passages there), the cells
+## of [param cell_size] counted from [param corner] (see [method get_frame_cells]).
+func _passages(id: String, corner := Vector2.ZERO, cell_size := Vector2.ZERO) -> Dictionary:
+	if cell_size == Vector2.ZERO:
+		cell_size = world.get_paint_cell()
 	var out: Dictionary = {}
 	var inward := {"left": Vector2.RIGHT, "right": Vector2.LEFT, "top": Vector2.DOWN, "bot": Vector2.UP}
 	for g in world.get_gates(id):
 		var side := world.get_gate_side(id, g)
 		if not inward.has(side):
 			continue
-		var c := world.world_to_cell(world.get_gate_world_pos(id, g) + inward[side])
+		var c := Vector2i(((world.get_gate_world_pos(id, g) + inward[side] - corner) / cell_size).floor())
 		out["%d,%d:%s" % [c.x, c.y, side]] = true
 	return out
 
