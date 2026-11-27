@@ -682,6 +682,8 @@ func _build_full_controls() -> void:
 	full_tools.rooms_requested.connect(func(ids: Array[String]) -> void: rooms_requested.emit(ids))
 	full_tools.generate_requested.connect(func(box: Rect2i) -> void: generate_area_requested.emit(box))
 	full_tools.selection_changed.connect(_update_session_bar)
+	# A drag moves the rooms' contents itself; once it ends, the view takes in what changed.
+	full_tools.move_finished.connect(refresh_full_later)
 	canvas.scenes_dropped.connect(func(files: PackedStringArray, at: Vector2) -> void: scenes_dropped.emit(files, at))
 	full_controls = VBoxContainer.new()
 	full_controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -727,7 +729,7 @@ func _build_full_controls() -> void:
 	var snap := CheckBox.new()
 	snap.text = "Snap to cells"
 	snap.button_pressed = true
-	snap.tooltip_text = "Rectangles and ellipses on the paint cells' corners, polygon corners on the world grid, outlines moved by the grid. Rooms and scenes dragged in move smoothly, to the pixel, stopping against their neighbours"
+	snap.tooltip_text = "Rectangles and ellipses on the paint cells' corners, polygon corners on the world grid, outlines moved by the grid. Rooms and scenes dragged in follow the mouse a grid step (a tile) at a time, so their tiles line up with their neighbours', stopping against them (off: to the pixel)"
 	snap.toggled.connect(func(on: bool) -> void: full_tools.snap = on)
 	var at_once := CheckBox.new()
 	at_once.text = "At once"
@@ -870,6 +872,10 @@ func refresh_full_later() -> void:
 
 func _refresh_full_deferred() -> void:
 	_full_refresh_pending = false
+	# Rooms being dragged: they go along by themselves (every room shown again each step of the
+	# drag is what made it slow); the drag's end shows them all again.
+	if full_tools.is_moving():
+		return
 	refresh_full()
 
 ## The Full view after the world changed: every room of the layer shown again. A room no longer

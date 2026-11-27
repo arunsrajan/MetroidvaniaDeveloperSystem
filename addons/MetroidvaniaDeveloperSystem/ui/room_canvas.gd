@@ -96,9 +96,9 @@ const HANDLE_GAP := 6.0
 const NOTCHED_Z := -64
 const ROOM_MASK := preload("res://addons/MetroidvaniaDeveloperSystem/ui/room_mask.gdshader")
 const MASK_RECTS := 16
-## The Full view shows rooms' scenes (every node, as edited) only zoomed in at least this far;
-## further out, their pictures (see [MDSRoomPictures], drawn sharper than this), and their
-## outlines until those are drawn.
+## The Full view shows rooms' scenes (every node, as edited) only zoomed in at least this far, or
+## further than their pictures are sharp (see [method full_live_zoom]); further out, their
+## pictures (see [MDSRoomPictures]), and their outlines until those are drawn.
 const FULL_LIVE_ZOOM := 0.2
 ## At most this many rooms' scenes in the Full view at once (the nearest the view's middle).
 const FULL_MAX_LIVE := 40
@@ -135,6 +135,9 @@ var _full_bakes: Dictionary = {} ## scene path -> true: its picture being drawn
 var _full_to_draw: Dictionary = {} ## scene path -> room id: no picture of it yet, to be drawn
 var _full_tex: Dictionary = {} ## scene path -> its picture (null: none comes), as looked for
 var _full_skip: Dictionary = {} ## scene path -> true: it doesn't load
+var _bounds_cache: Dictionary = {} ## room id -> bounds (see [method _room_bounds])
+var _bounds_world: MDSWorld
+var _bounds_revision := -1
 var tool: int = Tool.TERRAIN
 ## Fill painted by each tool (see [method MDSRoomPainter.paint_fill]).
 var fills: Dictionary = {
@@ -653,6 +656,25 @@ func refresh_context() -> void:
 	if depth_preview:
 		set_depth_preview(true)
 
+## Rooms [param ids] moved on the map (a drag): their contents go with them, where they are now,
+## to the pixel with their outlines, and their masks too; the other rooms are left as they are
+## (see [method refresh_context] for any other change).
+func move_context(ids: Array[String]) -> void:
+	if not world:
+		return
+	var here := frame_origin()
+	var moved := false
+	for id in ids:
+		var box: Node2D = _context.get(id)
+		if is_instance_valid(box) and world.has_room(id):
+			box.position = world.get_origin(id) - here
+			moved = true
+	if moved:
+		_update_masks()
+		_overlay.queue_redraw()
+		if full:
+			_full_schedule()
+
 ## Shows room [param id]'s scene in [param box] ([param packed]: already loaded), and over it the
 ## tiles and items of its painter if it has one open.
 func _show_live(box: Node2D, id: String, packed: PackedScene = null) -> void:
@@ -738,7 +760,7 @@ func _full_run() -> void:
 	_full_busy = false
 
 ## One frame of the Full view's loading; returns whether there is more to do. The rooms nearest
-## the view's middle come first: zoomed in (at least [constant FULL_LIVE_ZOOM]), the scenes of the
+## the view's middle come first: zoomed in (at least [method full_live_zoom]), the scenes of the
 ## rooms in view and a quarter of a screen around it, a few a frame (within
 ## [constant FULL_FRAME_BUDGET], one at least); around them, and zoomed out, the rooms' pictures,
 ## read from the cache off the main thread, else drawn ([constant FULL_BAKES] at a time). Rooms
@@ -755,7 +777,7 @@ func _full_step() -> bool:
 	var reach := maxf(view.size.x, view.size.y)
 	var near := view.grow(reach * 0.25)
 	var keep := view.grow(reach * 0.75)
-	var live := zoom >= FULL_LIVE_ZOOM
+	var live := zoom >= full_live_zoom()
 	var center := view.get_center()
 	var order: Array = []
 	for id: String in _context:
@@ -763,7 +785,7 @@ func _full_step() -> bool:
 		var path: String = box.get_meta(&"mds_scene", "")
 		if path.is_empty() or session_painters.has(id) or _full_skip.has(path) or not world.has_room(id):
 			continue
-		var b := world.get_room_bounds(id)
+		var b := _room_bounds(id)
 		b.position -= here
 		order.append([(center.clamp(b.position, b.end) - center).length_squared(), id, b, box, path])
 	order.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
@@ -829,6 +851,25 @@ func _full_step() -> bool:
 		# The pictures being drawn are drawn only as the editor draws.
 		queue_redraw()
 	return more
+
+## The zoom from which the Full view shows rooms' scenes rather than their pictures: where the
+## pictures get blurry ([member MDSRoomPictures.bake_scale]), [constant FULL_LIVE_ZOOM] at least.
+## Below it, a picture looks the same as the scene and costs a sprite (dozens of whole scenes
+## drawn made panning slow).
+static func full_live_zoom() -> float:
+	return maxf(FULL_LIVE_ZOOM, MDSRoomPictures.bake_scale)
+
+## Room [param id]'s bounds (world px), kept until the world changes.
+func _room_bounds(id: String) -> Rect2:
+	if world != _bounds_world or world.revision != _bounds_revision:
+		_bounds_cache.clear()
+		_bounds_world = world
+		_bounds_revision = world.revision
+	var b: Variant = _bounds_cache.get(id)
+	if b == null:
+		b = world.get_room_bounds(id)
+		_bounds_cache[id] = b
+	return b
 
 ## Looks for room [param id]'s picture: in memory, else on disk (read off the main thread), else
 ## it is to be drawn. Known at once ([member _full_tex]) when in memory, or when none can be drawn

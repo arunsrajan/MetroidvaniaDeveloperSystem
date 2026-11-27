@@ -44,6 +44,9 @@ var side_tabs_check: CheckBox
 var canvas: MDSWorldCanvas
 var world_picker: OptionButton
 var tool_buttons: Array[Button] = []
+## The map tools' drawing mode (see [enum MDSWorldCanvas.DrawMode]).
+var draw_mode_option: OptionButton
+const DRAW_MODE_META := "map_draw_mode"
 var layer_picker: OptionButton
 var color_picker: OptionButton
 var style_picker: OptionButton
@@ -232,6 +235,25 @@ func _build_ui() -> void:
 
 	# Map tools.
 	var tools := side_panel.add_section(SECTION_TOOLS)
+	# How the tools draw: free-form (MDS) or on MetSys-style map cells. Kept per project in the
+	# editor, not in the world: switching leaves the rooms already drawn as they are.
+	draw_mode_option = OptionButton.new()
+	for m in MDSWorldCanvas.DRAW_MODE_NAMES:
+		draw_mode_option.add_item(m)
+	draw_mode_option.tooltip_text = "How the map tools draw. MDS: free-form, on the world grid and paint cells. MetSys: on map cells a screen each, like MetSys' editor (Room: left-drag draws, right-drag erases; Gate: click the border between two cells for a passage, again to remove it; rooms move and resize by whole cells). Switch any time: the rooms already drawn stay as they are"
+	draw_mode_option.item_selected.connect(func(idx: int) -> void:
+		canvas.set_draw_mode(idx)
+		var es := EditorInterface.get_editor_settings() if Engine.is_editor_hint() else null
+		if es:
+			es.set_project_metadata("mds", DRAW_MODE_META, idx)
+		canvas.grab_focus())
+	var saved_mode := 0
+	if Engine.is_editor_hint() and EditorInterface.get_editor_settings():
+		saved_mode = int(EditorInterface.get_editor_settings().get_project_metadata("mds", DRAW_MODE_META, 0))
+	saved_mode = clampi(saved_mode, 0, MDSWorldCanvas.DRAW_MODE_NAMES.size() - 1)
+	# The canvas is made further down: it takes the mode then.
+	draw_mode_option.select(saved_mode)
+	MDSSidePanel.field(tools, "Drawing", draw_mode_option)
 	var tool_grid := MDSSidePanel.grid(tools, 2)
 	var group := ButtonGroup.new()
 	# l10n: text
@@ -349,6 +371,7 @@ func _build_ui() -> void:
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main.add_child(split)
 	canvas = MDSWorldCanvas.new()
+	canvas.draw_mode = draw_mode_option.selected if draw_mode_option else MDSWorldCanvas.DrawMode.MDS
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	canvas.custom_minimum_size = Vector2(200, 120) * MDSUi.editor_scale()
@@ -1161,7 +1184,10 @@ func _on_world_changed() -> void:
 	_save_timer.start()
 	_refresh_timer.start()
 	canvas.redraw()
-	_track_gate_changes()
+	# Once a frame at most: a drag changes the world for each room moved, each step.
+	if not _gate_track_pending:
+		_gate_track_pending = true
+		_track_gate_changes_deferred.call_deferred()
 	if room_view and room_view.visible and room_view.is_full():
 		room_view.refresh_full_later()
 
@@ -1181,6 +1207,12 @@ func _gate_signature() -> Dictionary:
 
 func auto_gate_nodes_enabled() -> bool:
 	return world != null and bool(world.get_setting("auto_gate_nodes", true))
+
+var _gate_track_pending := false
+
+func _track_gate_changes_deferred() -> void:
+	_gate_track_pending = false
+	_track_gate_changes()
 
 ## Rooms whose gates were added or re-connected get their MDSGate nodes (batched); gates
 ## removed again (undo, delete) take back the nodes MDS added, if the scene is unchanged.

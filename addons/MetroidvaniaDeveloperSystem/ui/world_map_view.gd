@@ -528,8 +528,11 @@ func _draw() -> void:
 			if world.has_room_shape(id):
 				shaped[g] = true
 			var owner: Dictionary = groups[g]
-			for c in world.get_room_cells(id):
-				owner[c] = id
+			# Its own cells (its size), on the paint cells nearest where it is.
+			var fc := world.get_room_frame_cells(id)
+			var at := Vector2i(((fc[1] as Vector2) / world.get_paint_cell()).round())
+			for c: Vector2i in fc[0]:
+				owner[c + at] = id
 		for g: String in groups:
 			var rim: Color = fills[g.substr(1)] if g.begins_with("#") else world.get_area_color(g)
 			if shaped.has(g):
@@ -551,7 +554,10 @@ func _draw() -> void:
 			continue
 		if style.kind != MDSMapStyle.Kind.FLAT:
 			var border_color: Color = style.theme.default_border_color if style.kind == MDSMapStyle.Kind.METSYS and style.theme.get("default_border_color") is Color else color.lightened(0.3)
-			style.draw_room(self, world.get_room_cells(id), world.get_paint_cell(), to_screen, scale, color, border_color)
+			# Its cells counted from its corner and drawn there: its shape where it is, its size.
+			var fc := world.get_room_frame_cells(id)
+			var corner: Vector2 = fc[1]
+			style.draw_room(self, fc[0], fc[2], func(p: Vector2) -> Vector2: return to_screen.call(p + corner), scale, color, border_color)
 			continue
 		for r in world.get_world_rects(id):
 			draw_rect(Rect2(to_screen.call(r.position), r.size * scale).grow(border), color.darkened(0.5))

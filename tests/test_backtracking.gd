@@ -247,7 +247,7 @@ func _drops() -> void:
 	var hits := 0
 	var last := Vector2.ZERO
 	var xs: Array[float] = []
-	# Dragged from the right into the room on the left: it follows the mouse to the pixel, then
+	# Dragged from the right into the room on the left: it follows the mouse by the grid, then
 	# stays against the room, never over it.
 	for k in 12:
 		last = tools.drop_preview(files, Vector2(1800 - k * 117, 240))
@@ -258,7 +258,8 @@ func _drops() -> void:
 				if Rect2(r.position + d.at, r.size).grow(-0.5).intersects(l):
 					hits += 1
 	check(hits == 0 and tools._drop.touch, "dragged into a room, the scene's shape stays against it, never over it (%s)" % [tools._drop.get("at")])
-	check(is_equal_approx(xs[1] - xs[0], -117.0) and not is_zero_approx(fmod(xs[1], 256.0)), "smoothly, with the mouse, not by paint cells (%s)" % [xs.slice(0, 3)])
+	var grid := world.get_grid()
+	check(absf(xs[1] - xs[0] + 117.0) <= grid and is_zero_approx(fposmod(xs[1], grid)) and not is_zero_approx(fmod(xs[1], 256.0)), "with the mouse a grid step at a time, not by paint cells (%s)" % [xs.slice(0, 3)])
 	check(is_equal_approx(tools._drop.at.x + 0.0, 768.0), "flush against it (%s)" % tools._drop.at)
 	check(not tools._drop.is_empty(), "shown while dragged")
 	tools.drop_end()

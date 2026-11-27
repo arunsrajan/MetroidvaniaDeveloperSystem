@@ -53,6 +53,8 @@ var _undo: Array = []
 var _redo: Array = []
 ## Scene path -> [whether its file is there, msec when to ask again] (see [method scene_file_exists]).
 var _scene_files: Dictionary = {}
+## Goes up at each change of the world (views keep what they drew until it does).
+var revision := 0
 
 func clear() -> void:
 	data = {
@@ -612,7 +614,8 @@ func get_scene_path(id: String) -> String:
 
 ## Whether the scene file at [param p] is there. Views ask for every room's scene every frame and
 ## each answer is a file system call, so it is asked again only every [constant SCENE_RECHECK_MSEC]
-## (staggered over a second) and after the world changes.
+## (staggered over a second) and after the world changes (but for moves and resizes: see
+## [method _touch_layout]).
 func scene_file_exists(p: String) -> bool:
 	var now := Time.get_ticks_msec()
 	var e: Array = _scene_files.get(p, [])
@@ -622,8 +625,16 @@ func scene_file_exists(p: String) -> bool:
 	return e[0]
 
 func _touch() -> void:
+	revision += 1
 	_scene_files.clear()
 	super()
+
+## A change of where rooms or gates are, or of their size: it can't make a scene file appear or go,
+## so what [method scene_file_exists] knows stays (asking again for every room's scene after each
+## step of a drag made dragging slow on big maps).
+func _touch_layout() -> void:
+	revision += 1
+	changed.emit()
 
 func has_scene_reference(id: String) -> bool:
 	var room: Dictionary = data.rooms.get(id, {})
@@ -644,7 +655,7 @@ func get_origin(id: String) -> Vector2:
 func set_origin(id: String, origin: Vector2) -> void:
 	if data.rooms.has(id):
 		data.rooms[id].origin = [origin.x, origin.y]
-		_touch()
+		_touch_layout()
 
 func get_local_rects(id: String) -> Array[Rect2]:
 	var ret: Array[Rect2] = []
@@ -684,7 +695,7 @@ func set_local_rect(id: String, index: int, local: Rect2) -> void:
 		local = local.abs()
 		rects[index] = [local.position.x, local.position.y, local.size.x, local.size.y]
 		_reshape(id, before)
-		_touch()
+		_touch_layout()
 
 func remove_rect(id: String, index: int) -> bool:
 	var rects: Array = data.rooms.get(id, {}).get("rects", [])
@@ -901,6 +912,28 @@ func get_room_cells(id: String) -> Dictionary:
 			for x in range(c0.x, c1.x + 1):
 				cells[Vector2i(x, y)] = true
 	return cells
+
+## The room's cells as the map draws them: counted from its own top-left corner (cell (0, 0)
+## there, centers inside its rects), each the paint cell stretched a little so a whole number of
+## them is exactly as wide and as tall as the room: [cells, corner (world px), cell size].
+## Drawn at the corner with that size they are the room's shape where it is and the size it is,
+## whether or not it sits on the paint cells or is a whole number of them ([method get_room_cells]
+## counts on the world's paint cells: there a room off them, as moving it by the grid leaves it, or
+## drawn on the grid, is shifted and a cell bigger or smaller).
+func get_room_frame_cells(id: String) -> Array:
+	var b := get_room_bounds(id)
+	var corner := b.position
+	var s := get_paint_cell()
+	var n := (b.size / s).round().max(Vector2.ONE)
+	var cs := b.size / n if b.has_area() else s
+	var cells: Dictionary = {}
+	for r in get_world_rects(id):
+		var c0 := Vector2i(((r.position - corner) / cs - Vector2(0.5, 0.5)).ceil())
+		var c1 := Vector2i(((r.end - corner) / cs - Vector2(0.5, 0.5)).ceil()) - Vector2i.ONE
+		for y in range(c0.y, c1.y + 1):
+			for x in range(c0.x, c1.x + 1):
+				cells[Vector2i(x, y)] = true
+	return [cells, corner, cs]
 
 ## Room on [param layer] whose shape covers the paint cell, or "".
 func room_at_cell(cell: Vector2i, layer: int) -> String:
@@ -1211,7 +1244,7 @@ func set_gate_world_pos(id: String, gate_name: String, world_pos: Vector2, snap_
 			gate.side = edge.side
 	var local := pos - get_origin(id)
 	gate.pos = [local.x, local.y]
-	_touch()
+	_touch_layout()
 
 ## Connects gate [param a_gate] of room [param a] to [param b_gate] of room [param b].
 ## Two-way by default, like a normal Hollow Knight doorway.

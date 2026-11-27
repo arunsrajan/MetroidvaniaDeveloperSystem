@@ -4,7 +4,16 @@ All notable changes to the Metroidvania Developer System. Versions follow [Seman
 
 ## [Unreleased]
 
+### Changed
+
+- **Dragged rooms line up with their neighbours.** In the Full view, rooms moved with the Rooms tool and scenes dragged in follow the mouse a world-grid step (a tile) at a time, their top-left corner on the grid, so their tiles line up with the rooms around them; against a room off the grid they stop on the last grid step that fits. Snap to cells off moves them to the pixel, as before. Arrow nudges stay exact.
+- **Rooms on the map keep their outline while dragged.** The map styles drew a room as the paint cells whose middles fall inside it, counted on the world's paint cells: a room off them (moved by the grid) or not a whole number of them (drawn on the grid, sized to its scene) was drawn shifted and a cell bigger or smaller, the shape jumping and changing size during a drag. A room's cells are now counted from its own corner, stretched a little to its exact size, and drawn there, in the editor's map and the in-game map (`MDSWorld.get_room_frame_cells()`).
+- **The World map's scene previews follow their rooms** after an undo, a redo, a nudge or a move made in the Full view (they stayed where the room was until the layer changed).
+- **A faster Full view.** Dragging 12 rooms of a 140-room world: 43 ms a frame to 6 ms. Panning zoomed out: 11 ms to 6 ms; at 30% zoom: 11 ms to 5 ms. Moves and resizes no longer make the world ask the file system again for every room's scene (`MDSWorld._touch_layout`); a drag moves only the rooms it moves and shows the whole view again when it ends; outlines and gates are drawn in one batch per color and room names are shaped once (`MDSFullViewTools.draw_text`); rooms show their pictures rather than their scenes up to 35% zoom, where the pictures are as sharp (`MDSRoomCanvas.full_live_zoom()`); the editor panel looks for gate changes once a frame. `MDSWorld.revision` counts the world's changes.
+
 ### Added
+
+- **Drawing like MetSys on the non-linear map**: the Map tools' **Drawing** list switches the tools between **MDS (free-form)**, as before, and **MetSys (map cells)**: cells a screen each, the Room tool's left drag drawing a box of cells and its right drag erasing them, the Gate tool's click on a cell's border putting a connected passage there (a door to nowhere on an outer wall) and a click again taking it out, Paint and Erase a cell at a time, rooms moved, resized and nudged by whole cells (`MDSWorldCanvas.DrawMode`, `set_draw_mode()`). Switching leaves the rooms already drawn as they are; the choice is kept per project in the editor, not in the world.
 
 - **Room view: a Layers list**, at the top of the controls: a checkbox for each layer of the room, farthest first: Parallax background, Background effects, Background, Stamps (back), Terrain, Decor, Stamps, Foreground, Stamps (foreground), Foreground effects, Parallax foreground, Objects (the scene's other nodes) and Guides (grid, outlines, gate boxes, reachability). All and None show or hide them all (`MDSRoomLayers`).
   - **Solo** next to each shows that layer alone and points the tools at it: a tile layer's brush, the Stamps tool at that depth, the Effects tool at that depth. Clicking it again gives back the layers as they were. The guides stay as they are.

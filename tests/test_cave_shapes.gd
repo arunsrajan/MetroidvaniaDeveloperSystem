@@ -279,7 +279,7 @@ func _drag_takes_tiles() -> void:
 	view.full_tools._finish_move()
 	box = canvas._context.get("Ell")
 	var origin: Vector2 = mask.get_shader_parameter("origin") if mask else Vector2.INF
-	check(box != null and world.get_origin("Ell") == Vector2(700, 300) and origin.is_equal_approx(canvas.pan + box.position * canvas.zoom), "dragged, its tiles go with its outline: the mask moves with it (%s, want %s)" % [origin, canvas.pan + (box.position if box else Vector2.ZERO) * canvas.zoom])
+	check(box != null and world.get_origin("Ell").distance_to(Vector2(700, 300)) <= world.get_grid() and origin.is_equal_approx(canvas.pan + box.position * canvas.zoom), "dragged, its tiles go with its outline: the mask moves with it (%s, want %s)" % [origin, canvas.pan + (box.position if box else Vector2.ZERO) * canvas.zoom])
 	view.close_room(false)
 	view.queue_free()
 	await get_tree().process_frame
