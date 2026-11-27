@@ -36,8 +36,10 @@ const NECKS := {"i": [[Vector2(0.5, 0.12), Vector2(0.5, 0.5)]]}
 ## (straight walls, flat floors, the shapes' tall parts smooth walls to wall-climb, no ledges; the
 ## shafts Generate cave carves across open space to join gates keep theirs, having no wall). Or no
 ## cave at all, the shape not used: "outdoor" (an open world's surface: sky, hills, ledges) or
-## "arena" (a fight room: a flat floor, platforms in tiers), see [MDSOpenLayouts].
-const STYLES := [["cave", "Cave (nonlinear, ledges)"], ["linear", "Linear (straight, wall climb)"], ["outdoor", "Outdoor (open sky, hills)"], ["arena", "Arena (flat floor, tiers)"]]
+## "arena" (a fight room: a flat floor, platforms in tiers), see [MDSOpenLayouts]. Or "rooms":
+## straight-walled chambers split out of the room's box, joined by corridors and shafts, see
+## [MDSRectRooms].
+const STYLES := [["cave", "Cave (nonlinear, ledges)"], ["linear", "Linear (straight, wall climb)"], ["outdoor", "Outdoor (open sky, hills)"], ["arena", "Arena (flat floor, tiers)"], ["rooms", "Rooms (rectilinear chambers)"]]
 ## The styles that aren't caves (see [constant STYLES]).
 const OPEN_STYLES: PackedStringArray = ["outdoor", "arena"]
 # l10n: text
@@ -55,7 +57,7 @@ const PICKABLE: PackedStringArray = ["t", "u", "h", "l", "i", "cross", "ring", "
 ## Whether [param cave] (Generate cave's "cave" fill: {shape, shapes, rotation, count, width,
 ## style}) asks for shapes.
 static func wanted(cave: Dictionary) -> bool:
-	if is_open(cave) or MDSCaveSkeleton.wanted(cave):
+	if is_open(cave) or MDSCaveSkeleton.wanted(cave) or MDSRectRooms.wanted(cave):
 		return true
 	var kind := str(cave.get("shape", "natural"))
 	if kind == "several":

@@ -119,8 +119,14 @@ var cave_rotation_spin: SpinBox
 var cave_profile_edit: LineEdit
 var cave_tries_spin: SpinBox
 var cave_variance_spin: SpinBox
-## The Style picker under Cave shape (cave, linear, outdoor, arena: [constant MDSCaveShapes.STYLES]).
+## The Style picker under Cave shape (cave, linear, outdoor, arena, rooms: [constant MDSCaveShapes.STYLES]).
 var cave_style_picker: OptionButton
+## The Hazards picker under Style (none, few, some, many: [constant MDSRoomHazards.LEVELS]).
+var cave_hazards_picker: OptionButton
+## The kinds of hazard ticked (see [constant MDSRoomHazards.KINDS]).
+var cave_hazard_kinds_menu: MenuButton
+## Rooms style: how many times the room is split (more, smaller chambers).
+var cave_depth_spin: SpinBox
 ## Rooms shown together (see [method open_rooms]), [member room_id] the one edited. Empty: one.
 var _session: Array[String] = []
 ## Their painters opened so far: id -> MDSRoomPainter ([member painter] among them). Each keeps
@@ -1925,7 +1931,7 @@ func _build_cave_shape(box: Control) -> void:
 	width.prefix = "Wide"
 	width.tooltip_text = "How wide the shapes' passages are, in tiles (0: from the room's size; never lower than the player)"
 	var style := OptionButton.new()
-	style.tooltip_text = "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too. Outdoor: no cave, an open world's surface: open sky over rolling hills, pits to jump and floating ledges, its sides open where another room goes on (the ground meets it). Arena: a fight room: a flat floor, walls, a ceiling and platforms in tiers, the same both sides"
+	style.tooltip_text = "Cave: rough rock edges, ledges up the tall parts (a nonlinear cave). Linear: straight walls and flat floors, the tall parts smooth walls the player climbs (wall jump or climb ability); the paths between gates are shafts to climb too. Outdoor: no cave, an open world's surface: open sky over rolling hills, pits to jump and floating ledges, its sides open where another room goes on (the ground meets it). Arena: a fight room: a flat floor, walls, a ceiling and platforms in tiers, the same both sides. Rooms: straight-walled chambers split out of the room's box, joined by corridors and by shafts with ledges, every chamber reached from every other and back"
 	for i in MDSCaveShapes.STYLES.size():
 		style.add_item(MDSCaveShapes.STYLES[i][1], i)
 	# Skeleton: its profile, and how hard Generate cave looks for a room inside it.
@@ -1945,6 +1951,26 @@ func _build_cave_shape(box: Control) -> void:
 	variance.value = 1
 	variance.prefix = "Variance"
 	variance.tooltip_text = "Skeleton: 0 to 1, how far its draws stray from the typical room"
+	# Rooms: how many times its box is split.
+	var depth := SpinBox.new()
+	depth.min_value = 1
+	depth.max_value = 6
+	depth.value = MDSRectRooms.DEFAULT_DEPTH
+	depth.prefix = "Splits"
+	depth.tooltip_text = "Rooms: how many times the room's box is split into parts, each with a chamber. More: smaller chambers, more corridors and shafts"
+	# Hazards, in any style: how many, and which kinds.
+	var hazards := OptionButton.new()
+	hazards.tooltip_text = "Hazards Generate cave places after the room's paths are made: spike strips to jump over, spiked pits and gauntlets (a spiked floor crossed on pillar tops). Never on a doorstep, a ledge or a corridor's end, and never where one would stop a gate or a chamber reaching the others and back. They put the player back on safe ground. Placed by hand ones stay when the room is generated again"
+	for i in MDSRoomHazards.LEVELS.size():
+		hazards.add_item(MDSRoomHazards.LEVELS[i][1], i)
+	var kinds_menu := MenuButton.new()
+	kinds_menu.flat = false
+	kinds_menu.tooltip_text = "The kinds of hazard to place"
+	var kinds_popup := kinds_menu.get_popup()
+	kinds_popup.hide_on_checkable_item_selection = false
+	for i in MDSRoomHazards.KINDS.size():
+		kinds_popup.add_check_item(MDSRoomHazards.KINDS[i][1], i)
+		kinds_popup.set_item_checked(i, true)
 	var sync := func() -> void:
 		var picked: Array = []
 		for i in popup.item_count:
@@ -1955,11 +1981,24 @@ func _build_cave_shape(box: Control) -> void:
 		var skeleton: bool = cave_shape.shape == "skeleton"
 		if skeleton:
 			cave_shape.merge({"profile": profile.text.strip_edges(), "tries": int(tries.value), "variance": variance.value})
+		var rooms := MDSRectRooms.wanted(cave_shape)
+		if rooms:
+			cave_shape["depth"] = int(depth.value)
+		depth.visible = rooms
+		var level: String = MDSRoomHazards.LEVELS[hazards.selected][0]
+		var kinds: Array = []
+		for i in kinds_popup.item_count:
+			if kinds_popup.is_item_checked(i):
+				kinds.append(MDSRoomHazards.KINDS[kinds_popup.get_item_id(i)][0])
+		if level != "none":
+			cave_shape.merge({"hazards": level, "hazard_kinds": kinds})
+		kinds_menu.disabled = level == "none"
+		kinds_menu.text = "Kinds: %s" % (", ".join(kinds) if not kinds.is_empty() else "all")
 		profile.visible = skeleton
 		tries.visible = skeleton
 		variance.visible = skeleton
-		# Outdoor and Arena aren't caves: no shape to pick.
-		var open := MDSCaveShapes.is_open(cave_shape)
+		# Outdoor, Arena and Rooms aren't caves: no shape to pick.
+		var open := MDSCaveShapes.is_open(cave_shape) or rooms
 		var on: bool = (MDSCaveShapes.wanted(cave_shape) or cave_shape.shape == "several") and not open
 		shape.disabled = open
 		menu.visible = cave_shape.shape == "several" and not open
@@ -1981,12 +2020,21 @@ func _build_cave_shape(box: Control) -> void:
 	tries.value_changed.connect(func(_v: float) -> void: sync.call())
 	variance.value_changed.connect(func(_v: float) -> void: sync.call())
 	style.item_selected.connect(func(_i: int) -> void: sync.call())
+	depth.value_changed.connect(func(_v: float) -> void: sync.call())
+	hazards.item_selected.connect(func(_i: int) -> void: sync.call())
+	kinds_popup.id_pressed.connect(func(id: int) -> void:
+		var idx := kinds_popup.get_item_index(id)
+		kinds_popup.set_item_checked(idx, not kinds_popup.is_item_checked(idx))
+		sync.call())
 	sync.call()
 	MDSSidePanel.field(box, "Cave shape", shape)
 	box.add_child(menu)
 	MDSSidePanel.row(box, [turn, random])
 	MDSSidePanel.row(box, [count, width])
 	MDSSidePanel.field(box, "Style", style)
+	box.add_child(depth)
+	MDSSidePanel.field(box, "Hazards", hazards)
+	box.add_child(kinds_menu)
 	box.add_child(profile)
 	MDSSidePanel.row(box, [tries, variance])
 	cave_profile_edit = profile
@@ -1996,12 +2044,15 @@ func _build_cave_shape(box: Control) -> void:
 	cave_shapes_menu = menu
 	cave_rotation_spin = turn
 	cave_style_picker = style
+	cave_hazards_picker = hazards
+	cave_hazard_kinds_menu = kinds_menu
+	cave_depth_spin = depth
 
 ## What Generate cave makes, from the fills picked for each layer and the options (see
 ## [method MDSRoomPainter.generate_cave]).
 func generation_fills() -> Dictionary:
 	var fills := {"terrain": canvas.fills.get(MDSRoomCanvas.Tool.TERRAIN, {}), "paths": bool(generate_options.get("paths", true)), "parts": bool(generate_options.get("parts", true))}
-	if MDSCaveShapes.wanted(cave_shape):
+	if MDSCaveShapes.wanted(cave_shape) or MDSRoomHazards.wanted(cave_shape):
 		fills.cave = cave_shape.duplicate()
 	if fills.terrain.is_empty() or (str(fills.terrain.get("type", "")) == "terrain" and painter and painter.has_terrains()):
 		var t := _terrain_for_generation() if painter else Vector2i.ZERO
